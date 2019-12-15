@@ -13,20 +13,12 @@ import * as Net from 'net';
  * The compile time flag 'runMode' controls how the debug adapter is run.
  * Please note: the test suite only supports 'external' mode.
  */
-const runMode : 'external' | 'server' | 'inline' = 'external';
+const runMode : 'external' | 'server' | 'inline' = 'inline';
 
 export function activate(context: vscode.ExtensionContext) {
-
-	context.subscriptions.push(vscode.commands.registerCommand('extension.mock-debug.getProgramName', config => {
-		return vscode.window.showInputBox({
-			placeHolder: "Please enter the name of a markdown file in the workspace folder",
-			value: "readme.md"
-		});
-	}));
-
 	// register a configuration provider for 'mock' debug type
 	const provider = new MockConfigurationProvider();
-	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('mock', provider));
+	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('factoriomod', provider));
 
 	// debug adapters can be run in different ways by using a vscode.DebugAdapterDescriptorFactory:
 	let factory : any;
@@ -47,7 +39,7 @@ export function activate(context: vscode.ExtensionContext) {
 			break;
 		}
 
-		context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('mock', factory));
+		context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('factoriomod', factory));
 		context.subscriptions.push(factory);
 }
 
@@ -63,24 +55,23 @@ class MockConfigurationProvider implements vscode.DebugConfigurationProvider {
 	 * e.g. add all missing attributes to the debug configuration.
 	 */
 	resolveDebugConfiguration(folder: WorkspaceFolder | undefined, config: DebugConfiguration, token?: CancellationToken): ProviderResult<DebugConfiguration> {
-
+		//TODO: validate config has a factorio path to launch
 		// if launch.json is missing or empty
 		if (!config.type && !config.request && !config.name) {
 			const editor = vscode.window.activeTextEditor;
-			if (editor && editor.document.languageId === 'markdown') {
-				config.type = 'mock';
+			if (editor && editor.document.languageId === 'lua') {
+				config.type = 'factoriomod';
 				config.name = 'Launch';
 				config.request = 'launch';
-				config.program = '${file}';
 				config.stopOnEntry = true;
 			}
 		}
 
-		if (!config.program) {
-			return vscode.window.showInformationMessage("Cannot find a program to debug").then(_ => {
-				return undefined;	// abort launch
-			});
-		}
+		//if (!config.program) {
+		//	return vscode.window.showInformationMessage("Cannot find a program to debug").then(_ => {
+		//		return undefined;	// abort launch
+		//	});
+		//}
 
 		return config;
 	}

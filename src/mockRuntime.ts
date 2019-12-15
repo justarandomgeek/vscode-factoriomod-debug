@@ -2,40 +2,43 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { readFileSync } from 'fs';
 import { EventEmitter } from 'events';
+import { spawn, ChildProcess } from 'child_process';
+import { Breakpoint, Scope, Variable, StackFrame } from 'vscode-debugadapter';
+import { DebugProtocol } from 'vscode-debugprotocol';
+const { Subject } = require('await-notify');
+import StreamSplitter = require('stream-splitter');
 
-export interface MockBreakpoint {
-	id: number;
-	line: number;
-	verified: boolean;
+export interface FactorioPaths {
+	_modsPath?: string; // absolute path of `mods` directory
+	_dataPath?: string; // absolute path of `data` directory
+	_factorioPath: string; // aboslute path of factorio binary to launch
 }
-
 /**
  * A Mock runtime with minimal debugger functionality.
  */
 export class MockRuntime extends EventEmitter {
 
-	// the initial (and one and only) file we are 'debugging'
-	private _sourceFile: string;
-	public get sourceFile() {
-		return this._sourceFile;
-	}
-
-	// the contents (= lines) of the one and only file
-	private _sourceLines: string[];
-
-	// This is the next line that will be 'executed'
-	private _currentLine = 0;
-
 	// maps from sourceFile to array of Mock breakpoints
-	private _breakPoints = new Map<string, MockBreakpoint[]>();
-
-	// since we want to send breakpoint events, we will assign an id to every event
-	// so that the frontend can match events with breakpoints.
-	private _breakpointId = 1;
+	private _breakPoints = new Map<string, DebugProtocol.SourceBreakpoint[]>();
+	private _breakPointsChanged = new Map<string, boolean>();
 
 	private _breakAddresses = new Set<string>();
+
+	private _factorio : ChildProcess;
+
+	private _lastEvent : string;
+	private _nextEvent = new Subject();
+
+	private _stack = new Subject();
+	private _scopes = new Subject();
+	private _vars = new Subject();
+	private _step = new Subject();
+	private _bps = new Subject();
+
+	private _paths? : FactorioPaths;
+
+	public getPaths(){ return this._paths; }
 
 	constructor() {
 		super();
@@ -44,119 +47,155 @@ export class MockRuntime extends EventEmitter {
 	/**
 	 * Start executing the given program.
 	 */
-	public start(program: string, stopOnEntry: boolean) {
-
-		this.loadSource(program);
-		this._currentLine = -1;
-
-		this.verifyBreakpoints(this._sourceFile);
-
-		if (stopOnEntry) {
-			// we step once
-			this.step(false, 'stopOnEntry');
-		} else {
-			// we just start to run until we hit a breakpoint or an exception
-			this.continue();
-		}
+	public start(stopOnEntry: boolean, paths: FactorioPaths) {
+		this._paths = paths
+		this._factorio = spawn("D:\\factorio\\factoriogit\\bin\\FastDebugx64vs2017\\factorio-run.exe");
+		console.log("Factorio Launched");
+		let runtime = this;
+		this._factorio.on("exit", function(code:number, signal:string){
+			console.log("Factorio Closed");
+			runtime.sendEvent('end');
+		});
+		this._factorio.stderr.on("data", async function(chunk:any){
+			let chunkstr = chunk.toString();
+			chunkstr = chunkstr.trim();
+			console.log(chunkstr);
+			if (chunkstr === "lua_debug>") {
+				console.log(runtime._lastEvent);
+				if (!runtime._lastEvent)
+				{
+					await runtime._nextEvent.wait(1000);
+				}
+				console.log(runtime._lastEvent);
+				if (runtime._lastEvent === "on_tick") {
+					//if on_tick, then update breakpoints if needed and continue
+					runtime._lastEvent = "";
+					runtime._factorio.stdin.write("cont\n");
+				} else if (runtime._lastEvent === "on_load" || runtime._lastEvent === "on_init") {
+					//if on_load or on_init, set initial breakpoints and continue
+					//if(stopOnEntry)
+					//{
+					//	runtime.sendEvent('stopOnEntry')
+					//} else {
+					//
+					//}
+					runtime._lastEvent = "";
+					runtime._factorio.stdin.write("cont\n");
+				} else if (runtime._lastEvent.startsWith("step")) {
+					// notify stoponstep
+					runtime.sendEvent('stopOnStep');
+				} else if (runtime._lastEvent.startsWith("breakpoint")) {
+					// notify stop on breakpoint
+					runtime.sendEvent('stopOnBreakpoint');
+				} else if (runtime._lastEvent === "internal") {
+					runtime._lastEvent = "";
+				} else {
+					// unexpected event?
+					console.log("unexpected event: " + runtime._lastEvent);
+					runtime._lastEvent = "";
+					runtime._factorio.stdin.write("cont\n");
+				}
+			}
+			else
+			{
+				//raise this as a stderr "Output" event
+				runtime.sendEvent('output', chunkstr, "stderr");
+			}
+		});
+		const stdout = this._factorio.stdout.pipe(StreamSplitter("\n"));
+		stdout.on("token", function(chunk:any){
+			let chunkstr = chunk.toString().trim();
+			console.log(chunkstr);
+			if (chunkstr.startsWith("DBG: ")) {
+				let event = chunkstr.substring(5).trim();
+				if (event.startsWith("logpoint")) {
+					// notify output of logpoint, these won't break
+					runtime.sendEvent('output', chunkstr, "console");
+				} else {
+					runtime._lastEvent = event;
+					runtime._nextEvent.notify();
+				}
+			} else if (chunkstr.startsWith("DBGstack: ")) {
+				runtime._lastEvent = 'internal';
+				let trace = JSON.parse(chunkstr.substring(10).trim());
+				runtime._stack.trace = trace;
+				runtime._stack.notify();
+			} else if (chunkstr.startsWith("DBGscopes: ")) {
+				runtime._lastEvent = 'internal';
+				let dump = JSON.parse(chunkstr.substring(11).trim());
+				runtime._scopes.dump = dump;
+				runtime._scopes.notify();
+			} else if (chunkstr.startsWith("DBGvars: ")) {
+				runtime._lastEvent = 'internal';
+				runtime._vars.dump = JSON.parse(chunkstr.substring(9).trim());
+				runtime._vars.notify();
+			} else if (chunkstr.startsWith("DBGsetbp")) {
+				runtime._lastEvent = 'internal';
+			} else if (chunkstr.startsWith("DBGstep")) {
+				runtime._lastEvent = 'internal';
+				runtime._step.notify();
+			} else {
+				//raise this as a stdout "Output" event
+				runtime.sendEvent('output', chunkstr, "stdout");
+			}
+		});
 	}
 
 	/**
 	 * Continue execution to the end/beginning.
 	 */
-	public continue(reverse = false) {
-		this.run(reverse, undefined);
+	public continue() {
+		this.run(undefined);
 	}
 
 	/**
 	 * Step to the next/previous non empty line.
 	 */
-	public step(reverse = false, event = 'stopOnStep') {
-		this.run(reverse, event);
+	public step(event = 'stopOnStep') {
+		this.run(event);
 	}
 
 	/**
 	 * Returns a fake 'stacktrace' where every 'stackframe' is a word from the current line.
 	 */
-	public stack(startFrame: number, endFrame: number): any {
+	public async stack(startFrame: number, endFrame: number): Promise<StackFrame[]> {
+		this._factorio.stdin.write("__DebugAdapter.stackTrace(" + startFrame + "," + (endFrame-startFrame) + ")\n");
 
-		const words = this._sourceLines[this._currentLine].trim().split(/\s+/);
+		await this._stack.wait(1000);
 
-		const frames = new Array<any>();
-		// every word of the current line becomes a stack frame.
-		for (let i = startFrame; i < Math.min(endFrame, words.length); i++) {
-			const name = words[i];	// use a word of the line as the stackframe name
-			frames.push({
-				index: i,
-				name: `${name}(${i})`,
-				file: this._sourceFile,
-				line: this._currentLine
-			});
-		}
-		return {
-			frames: frames,
-			count: words.length
-		};
+		return this._stack.trace;
 	}
 
-	public getBreakpoints(path: string, line: number): number[] {
+	public async scopes(frameId: number): Promise<Scope[]> {
+		this._factorio.stdin.write("__DebugAdapter.scopes(" + frameId + ")\n");
 
-		const l = this._sourceLines[line];
+		await this._scopes.wait(1000);
 
-		let sawSpace = true;
-		const bps: number[] = [];
-		for (let i = 0; i < l.length; i++) {
-			if (l[i] !== ' ') {
-				if (sawSpace) {
-					bps.push(i);
-					sawSpace = false;
-				}
-			} else {
-				sawSpace = true;
-			}
-		}
+		return this._scopes.dump;
+	}
 
-		return bps;
+	public async vars(variablesReference: number): Promise<Variable[]> {
+		this._factorio.stdin.write("__DebugAdapter.variables(" + variablesReference + ")\n");
+
+		await this._vars.wait(1000);
+
+		return this._vars.dump;
 	}
 
 	/*
 	 * Set breakpoint in file with given line.
 	 */
-	public setBreakPoint(path: string, line: number) : MockBreakpoint {
+	public setBreakPoints(path: string, bps: DebugProtocol.SourceBreakpoint[] | undefined) : Breakpoint[] {
 
-		const bp = <MockBreakpoint> { verified: false, line, id: this._breakpointId++ };
-		let bps = this._breakPoints.get(path);
-		if (!bps) {
-			bps = new Array<MockBreakpoint>();
-			this._breakPoints.set(path, bps);
-		}
-		bps.push(bp);
+		this._breakPoints[path] = bps || [];
+		this._breakPointsChanged[path] = true;
 
-		this.verifyBreakpoints(path);
+		return (bps || []).map((bp) => { return {line:bp.line, verified:true }; });
 
-		return bp;
-	}
-
-	/*
-	 * Clear breakpoint in file with given line.
-	 */
-	public clearBreakPoint(path: string, line: number) : MockBreakpoint | undefined {
-		let bps = this._breakPoints.get(path);
-		if (bps) {
-			const index = bps.findIndex(bp => bp.line === line);
-			if (index >= 0) {
-				const bp = bps[index];
-				bps.splice(index, 1);
-				return bp;
-			}
-		}
-		return undefined;
-	}
-
-	/*
-	 * Clear all breakpoints for file.
-	 */
-	public clearBreakpoints(path: string): void {
-		this._breakPoints.delete(path);
+		//this._factorio.stdin.write("__DebugAdapter.setBreakpoints(" + path + ", " +
+		//JSON.stringify(bps) + ")\n")
+		//await this._bps.wait(1000)
+		//return this._bps.dump;
 	}
 
 	/*
@@ -179,123 +218,20 @@ export class MockRuntime extends EventEmitter {
 
 	// private methods
 
-	private loadSource(file: string) {
-		if (this._sourceFile !== file) {
-			this._sourceFile = file;
-			this._sourceLines = readFileSync(this._sourceFile).toString().split('\n');
-		}
-	}
-
 	/**
 	 * Run through the file.
 	 * If stepEvent is specified only run a single step and emit the stepEvent.
 	 */
-	private run(reverse = false, stepEvent?: string) {
-		if (reverse) {
-			for (let ln = this._currentLine-1; ln >= 0; ln--) {
-				if (this.fireEventsForLine(ln, stepEvent)) {
-					this._currentLine = ln;
-					return;
-				}
-			}
-			// no more lines: stop at first line
-			this._currentLine = 0;
-			this.sendEvent('stopOnEntry');
-		} else {
-			for (let ln = this._currentLine+1; ln < this._sourceLines.length; ln++) {
-				if (this.fireEventsForLine(ln, stepEvent)) {
-					this._currentLine = ln;
-					return true;
-				}
-			}
-			// no more lines: run to end
-			this.sendEvent('end');
+	private run(stepEvent?: string) {
+		if(stepEvent === 'stopOnStep')
+		{
+			this._factorio.stdin.write("__DebugAdapter.step()\n");
+			this._step.wait(1000).then(()=>{this._factorio.stdin.write("cont\n");});
 		}
-	}
-
-	private verifyBreakpoints(path: string) : void {
-		let bps = this._breakPoints.get(path);
-		if (bps) {
-			this.loadSource(path);
-			bps.forEach(bp => {
-				if (!bp.verified && bp.line < this._sourceLines.length) {
-					const srcLine = this._sourceLines[bp.line].trim();
-
-					// if a line is empty or starts with '+' we don't allow to set a breakpoint but move the breakpoint down
-					if (srcLine.length === 0 || srcLine.indexOf('+') === 0) {
-						bp.line++;
-					}
-					// if a line starts with '-' we don't allow to set a breakpoint but move the breakpoint up
-					if (srcLine.indexOf('-') === 0) {
-						bp.line--;
-					}
-					// don't set 'verified' to true if the line contains the word 'lazy'
-					// in this case the breakpoint will be verified 'lazy' after hitting it once.
-					if (srcLine.indexOf('lazy') < 0) {
-						bp.verified = true;
-						this.sendEvent('breakpointValidated', bp);
-					}
-				}
-			});
+		else
+		{
+			this._factorio.stdin.write("cont\n");
 		}
-	}
-
-	/**
-	 * Fire events if line has a breakpoint or the word 'exception' is found.
-	 * Returns true is execution needs to stop.
-	 */
-	private fireEventsForLine(ln: number, stepEvent?: string): boolean {
-
-		const line = this._sourceLines[ln].trim();
-
-		// if 'log(...)' found in source -> send argument to debug console
-		const matches = /log\((.*)\)/.exec(line);
-		if (matches && matches.length === 2) {
-			this.sendEvent('output', matches[1], this._sourceFile, ln, matches.index)
-		}
-
-		// if a word in a line matches a data breakpoint, fire a 'dataBreakpoint' event
-		const words = line.split(" ");
-		for (let word of words) {
-			if (this._breakAddresses.has(word)) {
-				this.sendEvent('stopOnDataBreakpoint');
-				return true;
-			}
-		}
-
-		// if word 'exception' found in source -> throw exception
-		if (line.indexOf('exception') >= 0) {
-			this.sendEvent('stopOnException');
-			return true;
-		}
-
-		// is there a breakpoint?
-		const breakpoints = this._breakPoints.get(this._sourceFile);
-		if (breakpoints) {
-			const bps = breakpoints.filter(bp => bp.line === ln);
-			if (bps.length > 0) {
-
-				// send 'stopped' event
-				this.sendEvent('stopOnBreakpoint');
-
-				// the following shows the use of 'breakpoint' events to update properties of a breakpoint in the UI
-				// if breakpoint is not yet verified, verify it now and send a 'breakpoint' update event
-				if (!bps[0].verified) {
-					bps[0].verified = true;
-					this.sendEvent('breakpointValidated', bps[0]);
-				}
-				return true;
-			}
-		}
-
-		// non-empty line
-		if (stepEvent && line.length > 0) {
-			this.sendEvent(stepEvent);
-			return true;
-		}
-
-		// nothing interesting found -> continue
-		return false;
 	}
 
 	private sendEvent(event: string, ... args: any[]) {

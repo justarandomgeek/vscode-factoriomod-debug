@@ -1,8 +1,8 @@
 {
-	"name": "mock-debug",
-	"displayName": "Mock Debug",
+	"name": "factorio-mod-debug",
+	"displayName": "Factorio Mod Debug",
 	"version": "0.35.1",
-	"publisher": "andreweinand",
+	"publisher": "justarandomgeek",
 	"description": "Starter extension for developing debug adapters for VS Code.",
 	"author": {
 		"name": "Microsoft Corporation",
@@ -39,6 +39,7 @@
 	},
 	"dependencies": {
 		"await-notify": "1.0.1",
+		"stream-splitter": "^0.3.2",
 		"vscode-debugadapter": "1.38.0-pre.1"
 	},
 	"devDependencies": {
@@ -53,32 +54,23 @@
 	},
 	"main": "./out/extension",
 	"activationEvents": [
-		"onDebug",
-		"onCommand:extension.mock-debug.getProgramName"
+		"onDebug"
 	],
 	"contributes": {
 		"breakpoints": [
 			{
-				"language": "markdown"
+				"language": "lua"
 			}
 		],
 		"debuggers": [
 			{
-				"type": "mock",
-				"label": "Mock Debug",
+				"type": "factoriomod",
+				"label": "Factorio Mod Debug",
 				"program": "./out/debugAdapter.js",
 				"runtime": "node",
 				"configurationAttributes": {
 					"launch": {
-						"required": [
-							"program"
-						],
 						"properties": {
-							"program": {
-								"type": "string",
-								"description": "Absolute path to a text file.",
-								"default": "${workspaceFolder}/${command:AskForProgramName}"
-							},
 							"stopOnEntry": {
 								"type": "boolean",
 								"description": "Automatically stop after launch.",
@@ -88,35 +80,43 @@
 								"type": "boolean",
 								"description": "Enable logging of the Debug Adapter Protocol.",
 								"default": true
+							},
+							"paths": {
+								"type": "object"
 							}
 						}
 					}
 				},
 				"initialConfigurations": [
 					{
-						"type": "mock",
+						"type": "factoriomod",
 						"request": "launch",
-						"name": "Ask for file name",
-						"program": "${workspaceFolder}/${command:AskForProgramName}",
-						"stopOnEntry": true
+						"name": "Factorio Mod Debug",
+						"stopOnEntry": true,
+						"paths" : {
+							"_modsPath" : "%appdata%/Factorio/mods",
+							"_dataPath" : "d:/factorio/Factorio_0.17/data",
+							"_factorioPath" : "d:/factorio/Factorio_0.17/bin/x64/factorio.exe"
+						}
 					}
 				],
 				"configurationSnippets": [
 					{
-						"label": "Mock Debug: Launch",
-						"description": "A new configuration for 'debugging' a user selected markdown file.",
+						"label": "Factorio Mod Debug: Launch",
+						"description": "A new configuration for debugging Factorio mods.",
 						"body": {
-							"type": "mock",
+							"type": "factoriomod",
 							"request": "launch",
-							"name": "Ask for file name",
-							"program": "^\"\\${workspaceFolder}/\\${command:AskForProgramName}\"",
-							"stopOnEntry": true
+							"name": "Factorio Mod Debug",
+							"stopOnEntry": true,
+							"paths" : {
+								"_modsPath" : "%appdata%/Factorio/mods",
+								"_dataPath" : "d:/factorio/Factorio_0.17/data",
+								"_factorioPath" : "d:/factorio/Factorio_0.17/bin/x64/factorio.exe"
+							}
 						}
 					}
-				],
-				"variables": {
-					"AskForProgramName": "extension.mock-debug.getProgramName"
-				}
+				]
 			}
 		]
 	}
