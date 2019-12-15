@@ -27,12 +27,9 @@ export class MockRuntime extends EventEmitter {
 
 	private _factorio : ChildProcess;
 
-	private _lastEvent : string;
-	private _nextEvent = new Subject();
-
 	private _stack = new Subject();
-	private _scopes = new Subject();
-	private _vars = new Subject();
+	private _scopes : any[] = [];
+	private _vars : any[] = [];
 	private _step = new Subject();
 	private _bps = new Subject();
 
@@ -48,7 +45,7 @@ export class MockRuntime extends EventEmitter {
 	 * Start executing the given program.
 	 */
 	public start(stopOnEntry: boolean, paths: FactorioPaths) {
-		this._paths = paths
+		this._paths = paths;
 		this._factorio = spawn("D:\\factorio\\factoriogit\\bin\\FastDebugx64vs2017\\factorio-run.exe");
 		console.log("Factorio Launched");
 		let runtime = this;
@@ -59,48 +56,8 @@ export class MockRuntime extends EventEmitter {
 		this._factorio.stderr.on("data", async function(chunk:any){
 			let chunkstr = chunk.toString();
 			chunkstr = chunkstr.trim();
-			console.log(chunkstr);
-			if (chunkstr === "lua_debug>") {
-				console.log(runtime._lastEvent);
-				if (!runtime._lastEvent)
-				{
-					await runtime._nextEvent.wait(1000);
-				}
-				console.log(runtime._lastEvent);
-				if (runtime._lastEvent === "on_tick") {
-					//if on_tick, then update breakpoints if needed and continue
-					runtime._lastEvent = "";
-					runtime._factorio.stdin.write("cont\n");
-				} else if (runtime._lastEvent === "on_load" || runtime._lastEvent === "on_init") {
-					//if on_load or on_init, set initial breakpoints and continue
-					//if(stopOnEntry)
-					//{
-					//	runtime.sendEvent('stopOnEntry')
-					//} else {
-					//
-					//}
-					runtime._lastEvent = "";
-					runtime._factorio.stdin.write("cont\n");
-				} else if (runtime._lastEvent.startsWith("step")) {
-					// notify stoponstep
-					runtime.sendEvent('stopOnStep');
-				} else if (runtime._lastEvent.startsWith("breakpoint")) {
-					// notify stop on breakpoint
-					runtime.sendEvent('stopOnBreakpoint');
-				} else if (runtime._lastEvent === "internal") {
-					runtime._lastEvent = "";
-				} else {
-					// unexpected event?
-					console.log("unexpected event: " + runtime._lastEvent);
-					runtime._lastEvent = "";
-					runtime._factorio.stdin.write("cont\n");
-				}
-			}
-			else
-			{
-				//raise this as a stderr "Output" event
-				runtime.sendEvent('output', chunkstr, "stderr");
-			}
+			//raise this as a stderr "Output" event
+			runtime.sendEvent('output', chunkstr, "stderr");
 		});
 		const stdout = this._factorio.stdout.pipe(StreamSplitter("\n"));
 		stdout.on("token", function(chunk:any){
@@ -111,28 +68,43 @@ export class MockRuntime extends EventEmitter {
 				if (event.startsWith("logpoint")) {
 					// notify output of logpoint, these won't break
 					runtime.sendEvent('output', chunkstr, "console");
+				} else if (event === "on_tick") {
+					//if on_tick, then update breakpoints if needed and continue
+					runtime._factorio.stdin.write("cont\n");
+				} else if (event === "on_load" || event === "on_init") {
+					//if on_load or on_init, set initial breakpoints and continue
+					//if(stopOnEntry)
+					//{
+					//	runtime.sendEvent('stopOnEntry')
+					//} else {
+					//
+					//}
+					runtime._factorio.stdin.write("cont\n");
+				} else if (event.startsWith("step")) {
+					// notify stoponstep
+					runtime.sendEvent('stopOnStep');
+				} else if (event.startsWith("breakpoint")) {
+					// notify stop on breakpoint
+					runtime.sendEvent('stopOnBreakpoint');
 				} else {
-					runtime._lastEvent = event;
-					runtime._nextEvent.notify();
+					// unexpected event?
+					console.log("unexpected event: " + event);
+					runtime._factorio.stdin.write("cont\n");
 				}
 			} else if (chunkstr.startsWith("DBGstack: ")) {
-				runtime._lastEvent = 'internal';
-				let trace = JSON.parse(chunkstr.substring(10).trim());
-				runtime._stack.trace = trace;
+				runtime._stack.trace = JSON.parse(chunkstr.substring(10).trim());
 				runtime._stack.notify();
 			} else if (chunkstr.startsWith("DBGscopes: ")) {
-				runtime._lastEvent = 'internal';
-				let dump = JSON.parse(chunkstr.substring(11).trim());
-				runtime._scopes.dump = dump;
-				runtime._scopes.notify();
+				const scopes = JSON.parse(chunkstr.substring(11).trim());
+				runtime._scopes[scopes.frameId].dump = scopes.scopes;
+				runtime._scopes[scopes.frameId].notify();
 			} else if (chunkstr.startsWith("DBGvars: ")) {
-				runtime._lastEvent = 'internal';
-				runtime._vars.dump = JSON.parse(chunkstr.substring(9).trim());
-				runtime._vars.notify();
+				const vars = JSON.parse(chunkstr.substring(9).trim());
+				runtime._vars[vars.variablesReference].dump = vars.vars;
+				runtime._vars[vars.variablesReference].notify();
 			} else if (chunkstr.startsWith("DBGsetbp")) {
-				runtime._lastEvent = 'internal';
+
 			} else if (chunkstr.startsWith("DBGstep")) {
-				runtime._lastEvent = 'internal';
 				runtime._step.notify();
 			} else {
 				//raise this as a stdout "Output" event
@@ -167,19 +139,25 @@ export class MockRuntime extends EventEmitter {
 	}
 
 	public async scopes(frameId: number): Promise<Scope[]> {
+		this._scopes[frameId] = new Subject();
 		this._factorio.stdin.write("__DebugAdapter.scopes(" + frameId + ")\n");
 
-		await this._scopes.wait(1000);
+		await this._scopes[frameId].wait(1000);
+		let dump = this._scopes[frameId].dump;
+		delete this._scopes[frameId];
 
-		return this._scopes.dump;
+		return dump;
 	}
 
 	public async vars(variablesReference: number): Promise<Variable[]> {
+		this._vars[variablesReference] = new Subject();
 		this._factorio.stdin.write("__DebugAdapter.variables(" + variablesReference + ")\n");
 
-		await this._vars.wait(1000);
+		await this._vars[variablesReference].wait(1000);
+		let dump = this._vars[variablesReference].dump;
+		delete this._vars[variablesReference];
 
-		return this._vars.dump;
+		return dump;
 	}
 
 	/*
