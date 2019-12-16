@@ -30,6 +30,7 @@ export class MockRuntime extends EventEmitter {
 	private _scopes = new Map<number, any>();
 	private _vars = new Map<number, any>();
 	private _setvars = new Map<number, any>();
+	private _evals = new Map<number, any>();
 	private _step = new Subject();
 
 	private _deferredevent: string;
@@ -78,10 +79,7 @@ export class MockRuntime extends EventEmitter {
 			console.log(chunkstr);
 			if (chunkstr.startsWith("DBG: ")) {
 				let event = chunkstr.substring(5).trim();
-				if (event.startsWith("logpoint")) {
-					// notify output of logpoint, these won't break
-					runtime.sendEvent('output', chunkstr, "console");
-				} else if (event === "on_first_tick") {
+				if (event === "on_first_tick") {
 					//on the first tick, update all breakpoints no matter what...
 					runtime._deferredevent = "continue";
 					runtime.updateBreakpoints(true);
@@ -124,6 +122,9 @@ export class MockRuntime extends EventEmitter {
 					console.log("unexpected event: " + event);
 					runtime.continue();
 				}
+			} else if (chunkstr.startsWith("DBGlogpoint: ")) {
+				const logpoint = JSON.parse(chunkstr.substring(13).trim());
+				runtime.sendEvent('output', logpoint.output, "console", logpoint.filePath, logpoint.line, logpoint.variablesReference);
 			} else if (chunkstr.startsWith("DBGstack: ")) {
 				runtime._stack.trace = JSON.parse(chunkstr.substring(10).trim());
 				runtime._stack.notify();
@@ -141,6 +142,11 @@ export class MockRuntime extends EventEmitter {
 				const result = JSON.parse(chunkstr.substring(11).trim());
 				let subj = runtime._setvars.get(result.seq);
 				subj.setvar = result.body;
+				subj.notify();
+			} else if (chunkstr.startsWith("DBGeval: ")) {
+				const evalresult = JSON.parse(chunkstr.substring(9).trim());
+				let subj = runtime._evals.get(evalresult.seq);
+				subj.evalresult = evalresult;
 				subj.notify();
 			} else if (chunkstr.startsWith("DBGsetbp")) {
 				// do whatever event was put off to update breakpoints
@@ -164,6 +170,7 @@ export class MockRuntime extends EventEmitter {
 
 	public terminate()
 	{
+		console.log("terminated");
 		this._factorio.kill();
 	}
 
@@ -228,6 +235,29 @@ export class MockRuntime extends EventEmitter {
 		this._setvars.delete(seq);
 
 		return setvar;
+	}
+
+	private evalseq = 0;
+	public async evaluate(args: DebugProtocol.EvaluateArguments): Promise<any> {
+		if(args.context === "repl" && !args.frameId)
+		{
+			let evalresult = {result:"cannot evaluate while running",type:"error",variablesReference:0};
+			console.log({args:args, evalresult:evalresult});
+			return evalresult;
+		}
+
+		const seq = this.evalseq++;
+
+		let subj = new Subject();
+		this._evals.set(seq, subj);
+		this._factorio.stdin.write(`__DebugAdapter.evaluate(${args.frameId},"${args.context}",[==[${args.expression}]==],${seq})\n`);
+
+		await subj.wait(1000);
+		let evalresult = subj.evalresult;
+		this._evals.delete(seq);
+
+		console.log({args:args, evalresult:evalresult});
+		return evalresult;
 	}
 
 	private async updateBreakpoints(updateAll:boolean = false) {

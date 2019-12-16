@@ -66,10 +66,13 @@ export class MockDebugSession extends LoggingDebugSession {
 		this._runtime.on('stopOnException', () => {
 			this.sendEvent(new StoppedEvent('exception', MockDebugSession.THREAD_ID));
 		});
-		this._runtime.on('output', (text, category, filePath, line, column) => {
+		this._runtime.on('output', (text, category, filePath, line, column, variablesReference) => {
 			const e: DebugProtocol.OutputEvent = new OutputEvent(`${text}\n`);
 			if (category) {
 				e.body.category = category;
+			}
+			if(variablesReference) {
+				e.body.variablesReference = variablesReference;
 			}
 			if(filePath) {
 				e.body.source = this.createSource(filePath);
@@ -100,7 +103,7 @@ export class MockDebugSession extends LoggingDebugSession {
 		response.body.supportsConfigurationDoneRequest = true;
 
 		// make VS Code to use 'evaluate' when hovering over source
-		response.body.supportsEvaluateForHovers = false;
+		response.body.supportsEvaluateForHovers = true;
 
 		// make VS Code to support data breakpoints
 		response.body.supportsDataBreakpoints = false;
@@ -126,6 +129,12 @@ export class MockDebugSession extends LoggingDebugSession {
 
 	protected terminateRequest(response: DebugProtocol.TerminateResponse, args: DebugProtocol.TerminateArguments): void {
 		this._runtime.terminate();
+		this.sendResponse(response);
+	}
+
+	protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments): void {
+		this._runtime.terminate();
+		this.sendResponse(response);
 	}
 
 	/**
@@ -224,6 +233,11 @@ export class MockDebugSession extends LoggingDebugSession {
 
 	protected async setVariableRequest(response: DebugProtocol.SetVariableResponse, args: DebugProtocol.SetVariableArguments, request?: DebugProtocol.Request) {
 		response.body = await this._runtime.setVar(args);
+		this.sendResponse(response);
+	}
+
+	protected async evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments, request?: DebugProtocol.Request) {
+		response.body = await this._runtime.evaluate(args);
 		this.sendResponse(response);
 	}
 
