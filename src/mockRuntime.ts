@@ -57,10 +57,8 @@ export class MockRuntime extends EventEmitter {
 		});
 		this._breakPoints = renamedbps;
 		this._factorio = spawn("D:\\factorio\\factoriogit\\bin\\FastDebugx64vs2017\\factorio-run.exe");
-		console.log("Factorio Launched");
 		let runtime = this;
 		this._factorio.on("exit", function(code:number, signal:string){
-			console.log("Factorio Closed");
 			runtime.sendEvent('end');
 		});
 		this._factorio.stderr.on("data", function(chunk:any){
@@ -170,7 +168,6 @@ export class MockRuntime extends EventEmitter {
 
 	public terminate()
 	{
-		console.log("terminated");
 		this._factorio.kill();
 	}
 
@@ -242,7 +239,6 @@ export class MockRuntime extends EventEmitter {
 		if(args.context === "repl" && !args.frameId)
 		{
 			let evalresult = {result:"cannot evaluate while running",type:"error",variablesReference:0};
-			console.log({args:args, evalresult:evalresult});
 			return evalresult;
 		}
 
@@ -256,7 +252,6 @@ export class MockRuntime extends EventEmitter {
 		let evalresult = subj.evalresult;
 		this._evals.delete(seq);
 
-		console.log({args:args, evalresult:evalresult});
 		return evalresult;
 	}
 
