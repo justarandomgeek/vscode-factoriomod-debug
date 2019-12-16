@@ -71,11 +71,6 @@
 				"configurationAttributes": {
 					"launch": {
 						"properties": {
-							"stopOnEntry": {
-								"type": "boolean",
-								"description": "Automatically stop after launch.",
-								"default": true
-							},
 							"trace": {
 								"type": "boolean",
 								"description": "Enable logging of the Debug Adapter Protocol.",
@@ -92,7 +87,6 @@
 						"type": "factoriomod",
 						"request": "launch",
 						"name": "Factorio Mod Debug",
-						"stopOnEntry": true,
 						"paths" : {
 							"_modsPath" : "%appdata%/Factorio/mods",
 							"_dataPath" : "d:/factorio/Factorio_0.17/data",
@@ -108,7 +102,6 @@
 							"type": "factoriomod",
 							"request": "launch",
 							"name": "Factorio Mod Debug",
-							"stopOnEntry": true,
 							"paths" : {
 								"_modsPath" : "%appdata%/Factorio/mods",
 								"_dataPath" : "d:/factorio/Factorio_0.17/data",

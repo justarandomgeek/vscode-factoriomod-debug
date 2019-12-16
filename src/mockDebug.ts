@@ -6,7 +6,7 @@ import {
 	Logger, logger,
 	LoggingDebugSession,
 	InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent,
-	Thread, StackFrame, Scope, Source, Handles, Breakpoint
+	Thread, Source, Handles
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { basename } from 'path';
@@ -20,8 +20,6 @@ const { Subject } = require('await-notify');
  * The interface should always match this schema.
  */
 interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
-	/** Automatically stop target after launch. If not specified, target does not stop. */
-	stopOnEntry?: boolean;
 	paths : FactorioPaths;
 	/** enable logging the Debug Adapter Protocol */
 	trace?: boolean;
@@ -116,12 +114,18 @@ export class MockDebugSession extends LoggingDebugSession {
 		// the adapter implements logpoints
 		response.body.supportsLogPoints = true;
 
+		response.body.supportsSetVariable = true;
+
 		this.sendResponse(response);
 
 		// since this debug adapter can accept configuration requests like 'setBreakpoint' at any time,
 		// we request them early by sending an 'initializeRequest' to the frontend.
 		// The frontend will end the configuration sequence by calling 'configurationDone' request.
 		this.sendEvent(new InitializedEvent());
+	}
+
+	protected terminateRequest(response: DebugProtocol.TerminateResponse, args: DebugProtocol.TerminateArguments): void {
+		this._runtime.terminate();
 	}
 
 	/**
@@ -144,7 +148,7 @@ export class MockDebugSession extends LoggingDebugSession {
 		await this._configurationDone.wait(1000);
 
 		// start the program in the runtime
-		this._runtime.start(!!args.stopOnEntry, args.paths);
+		this._runtime.start(args.paths);
 
 		this.sendResponse(response);
 	}
@@ -152,31 +156,18 @@ export class MockDebugSession extends LoggingDebugSession {
 
 	protected convertClientPathToDebugger(clientPath: string): string
 	{
-		return clientPath;
+		return this._runtime.convertClientPathToDebugger(clientPath);
 	}
 	protected convertDebuggerPathToClient(debuggerPath: string): string
 	{
-		let paths = this._runtime.getPaths();
-		if(!paths) { return debuggerPath; }
-
-		if (paths._modsPath && debuggerPath.startsWith("MOD"))
-		{
-			return paths._modsPath + debuggerPath.substring(3);
-		}
-
-		if (paths._dataPath && debuggerPath.startsWith("DATA"))
-		{
-			return paths._dataPath + debuggerPath.substring(4);
-		}
-
-		return debuggerPath;
+		return this._runtime.convertDebuggerPathToClient(debuggerPath);
 	}
 
 	protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
 
-		const path = <string>args.source.path;
-
-		const actualBreakpoints = this._runtime.setBreakPoints(this.convertClientPathToDebugger(path),
+		let path = <string>args.source.path;
+		path = this.convertClientPathToDebugger(path);
+		const actualBreakpoints = this._runtime.setBreakPoints(path,
 			(args.breakpoints || []).map((bp)=>{
 				bp.line = this.convertClientLineToDebugger(bp.line);
 				return bp;
@@ -228,6 +219,11 @@ export class MockDebugSession extends LoggingDebugSession {
 	protected async variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments, request?: DebugProtocol.Request) {
 		const vars = await this._runtime.vars(args.variablesReference);
 		response.body = { variables: vars };
+		this.sendResponse(response);
+	}
+
+	protected async setVariableRequest(response: DebugProtocol.SetVariableResponse, args: DebugProtocol.SetVariableArguments, request?: DebugProtocol.Request) {
+		response.body = await this._runtime.setVar(args);
 		this.sendResponse(response);
 	}
 

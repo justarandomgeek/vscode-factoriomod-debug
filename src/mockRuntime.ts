@@ -19,19 +19,20 @@ export interface FactorioPaths {
  */
 export class MockRuntime extends EventEmitter {
 
-	// maps from sourceFile to array of Mock breakpoints
 	private _breakPoints = new Map<string, DebugProtocol.SourceBreakpoint[]>();
-	private _breakPointsChanged = new Map<string, boolean>();
+	private _breakPointsChanged = new Set<string>();
 
 	private _breakAddresses = new Set<string>();
 
 	private _factorio : ChildProcess;
 
 	private _stack = new Subject();
-	private _scopes : any[] = [];
-	private _vars : any[] = [];
+	private _scopes = new Map<number, any>();
+	private _vars = new Map<number, any>();
+	private _setvars = new Map<number, any>();
 	private _step = new Subject();
-	private _bps = new Subject();
+
+	private _deferredevent: string;
 
 	private _paths? : FactorioPaths;
 
@@ -44,8 +45,16 @@ export class MockRuntime extends EventEmitter {
 	/**
 	 * Start executing the given program.
 	 */
-	public start(stopOnEntry: boolean, paths: FactorioPaths) {
+	public start(paths: FactorioPaths) {
 		this._paths = paths;
+		let renamedbps = new Map<string, DebugProtocol.SourceBreakpoint[]>();
+		this._breakPointsChanged.clear();
+		this._breakPoints.forEach((bps:DebugProtocol.SourceBreakpoint[], path:string, map) => {
+			const newpath = this.convertClientPathToDebugger(path);
+			renamedbps.set(newpath, bps);
+			this._breakPointsChanged.add(newpath);
+		});
+		this._breakPoints = renamedbps;
 		this._factorio = spawn("D:\\factorio\\factoriogit\\bin\\FastDebugx64vs2017\\factorio-run.exe");
 		console.log("Factorio Launched");
 		let runtime = this;
@@ -53,11 +62,15 @@ export class MockRuntime extends EventEmitter {
 			console.log("Factorio Closed");
 			runtime.sendEvent('end');
 		});
-		this._factorio.stderr.on("data", async function(chunk:any){
-			let chunkstr = chunk.toString();
+		this._factorio.stderr.on("data", function(chunk:any){
+			let chunkstr : string = chunk.toString();
+			chunkstr = chunkstr.replace(/lua_debug>/g,"");
 			chunkstr = chunkstr.trim();
-			//raise this as a stderr "Output" event
-			runtime.sendEvent('output', chunkstr, "stderr");
+			if (chunkstr.length > 0 )
+			{
+				//raise this as a stderr "Output" event
+				runtime.sendEvent('output', chunkstr, "stderr");
+			}
 		});
 		const stdout = this._factorio.stdout.pipe(StreamSplitter("\n"));
 		stdout.on("token", function(chunk:any){
@@ -68,42 +81,78 @@ export class MockRuntime extends EventEmitter {
 				if (event.startsWith("logpoint")) {
 					// notify output of logpoint, these won't break
 					runtime.sendEvent('output', chunkstr, "console");
+				} else if (event === "on_first_tick") {
+					//on the first tick, update all breakpoints no matter what...
+					runtime._deferredevent = "continue";
+					runtime.updateBreakpoints(true);
 				} else if (event === "on_tick") {
 					//if on_tick, then update breakpoints if needed and continue
-					runtime._factorio.stdin.write("cont\n");
-				} else if (event === "on_load" || event === "on_init") {
-					//if on_load or on_init, set initial breakpoints and continue
-					//if(stopOnEntry)
-					//{
-					//	runtime.sendEvent('stopOnEntry')
-					//} else {
-					//
-					//}
-					runtime._factorio.stdin.write("cont\n");
+					if(runtime._breakPointsChanged.size === 0)
+					{
+						runtime.continue();
+					} else {
+						runtime._deferredevent = "continue";
+						runtime.updateBreakpoints();
+					}
+				} else if (event === "on_init") {
+					//if on_init, set initial breakpoints and continue
+					runtime._deferredevent = "continue";
+					runtime.updateBreakpoints(true);
+				} else if (event === "on_load") {
+					//on_load can't set initial breakpoints
+					runtime.continue();
 				} else if (event.startsWith("step")) {
 					// notify stoponstep
-					runtime.sendEvent('stopOnStep');
+					if(runtime._breakPointsChanged.size === 0)
+					{
+						runtime.sendEvent('stopOnStep');
+					} else {
+						runtime._deferredevent = 'stopOnStep';
+						runtime.updateBreakpoints();
+					}
 				} else if (event.startsWith("breakpoint")) {
 					// notify stop on breakpoint
-					runtime.sendEvent('stopOnBreakpoint');
+					if(runtime._breakPointsChanged.size === 0)
+					{
+						runtime.sendEvent('stopOnBreakpoint');
+					} else {
+						runtime._deferredevent = 'stopOnBreakpoint';
+						runtime.updateBreakpoints();
+					}
 				} else {
 					// unexpected event?
 					console.log("unexpected event: " + event);
-					runtime._factorio.stdin.write("cont\n");
+					runtime.continue();
 				}
 			} else if (chunkstr.startsWith("DBGstack: ")) {
 				runtime._stack.trace = JSON.parse(chunkstr.substring(10).trim());
 				runtime._stack.notify();
 			} else if (chunkstr.startsWith("DBGscopes: ")) {
 				const scopes = JSON.parse(chunkstr.substring(11).trim());
-				runtime._scopes[scopes.frameId].dump = scopes.scopes;
-				runtime._scopes[scopes.frameId].notify();
+				let subj = runtime._scopes.get(scopes.frameId);
+				subj.scopes = scopes.scopes;
+				subj.notify();
 			} else if (chunkstr.startsWith("DBGvars: ")) {
 				const vars = JSON.parse(chunkstr.substring(9).trim());
-				runtime._vars[vars.variablesReference].dump = vars.vars;
-				runtime._vars[vars.variablesReference].notify();
+				let subj = runtime._vars.get(vars.variablesReference);
+				subj.vars = vars.vars;
+				subj.notify();
+			} else if (chunkstr.startsWith("DBGsetvar: ")) {
+				const result = JSON.parse(chunkstr.substring(11).trim());
+				let subj = runtime._setvars.get(result.seq);
+				subj.setvar = result.body;
+				subj.notify();
 			} else if (chunkstr.startsWith("DBGsetbp")) {
-
+				// do whatever event was put off to update breakpoints
+				switch (runtime._deferredevent)
+				{
+					case "continue":
+						runtime.continue();
+						break;
+					default:
+						runtime.sendEvent(runtime._deferredevent);
+						break;
+				}
 			} else if (chunkstr.startsWith("DBGstep")) {
 				runtime._step.notify();
 			} else {
@@ -111,6 +160,11 @@ export class MockRuntime extends EventEmitter {
 				runtime.sendEvent('output', chunkstr, "stdout");
 			}
 		});
+	}
+
+	public terminate()
+	{
+		this._factorio.kill();
 	}
 
 	/**
@@ -131,7 +185,7 @@ export class MockRuntime extends EventEmitter {
 	 * Returns a fake 'stacktrace' where every 'stackframe' is a word from the current line.
 	 */
 	public async stack(startFrame: number, endFrame: number): Promise<StackFrame[]> {
-		this._factorio.stdin.write("__DebugAdapter.stackTrace(" + startFrame + "," + (endFrame-startFrame) + ")\n");
+		this._factorio.stdin.write(`__DebugAdapter.stackTrace(${startFrame},${endFrame-startFrame})\n`);
 
 		await this._stack.wait(1000);
 
@@ -139,25 +193,53 @@ export class MockRuntime extends EventEmitter {
 	}
 
 	public async scopes(frameId: number): Promise<Scope[]> {
-		this._scopes[frameId] = new Subject();
-		this._factorio.stdin.write("__DebugAdapter.scopes(" + frameId + ")\n");
+		let subj = new Subject();
+		this._scopes.set(frameId, subj);
+		this._factorio.stdin.write(`__DebugAdapter.scopes(${frameId})\n`);
 
-		await this._scopes[frameId].wait(1000);
-		let dump = this._scopes[frameId].dump;
-		delete this._scopes[frameId];
+		await subj.wait(1000);
+		let scopes = subj.scopes;
+		this._scopes.delete(frameId);
 
-		return dump;
+		return scopes;
 	}
 
 	public async vars(variablesReference: number): Promise<Variable[]> {
-		this._vars[variablesReference] = new Subject();
-		this._factorio.stdin.write("__DebugAdapter.variables(" + variablesReference + ")\n");
+		let subj = new Subject();
+		this._vars.set(variablesReference, subj);
+		this._factorio.stdin.write(`__DebugAdapter.variables(${variablesReference})\n`);
 
-		await this._vars[variablesReference].wait(1000);
-		let dump = this._vars[variablesReference].dump;
-		delete this._vars[variablesReference];
+		await subj.wait(1000);
+		let vars = subj.vars;
+		this._vars.delete(variablesReference);
 
-		return dump;
+		return vars;
+	}
+
+	private setvarseq = 0;
+	public async setVar(args: DebugProtocol.SetVariableArguments): Promise<DebugProtocol.Variable> {
+		const seq = this.setvarseq++;
+		let subj = new Subject();
+		this._setvars.set(seq, subj);
+		this._factorio.stdin.write(`__DebugAdapter.setVariable(${args.variablesReference},[==[${args.name}]==],[==[${args.value}]==],${seq})\n`);
+
+		await subj.wait(1000);
+		let setvar = subj.setvar;
+		this._setvars.delete(seq);
+
+		return setvar;
+	}
+
+	private async updateBreakpoints(updateAll:boolean = false) {
+		let changes = {};
+		this._breakPoints.forEach((breakpoints:DebugProtocol.SourceBreakpoint[], filename:string) => {
+			if (updateAll || this._breakPointsChanged.has(filename))
+			{
+				changes[filename] = breakpoints;
+			}
+		});
+		this._breakPointsChanged.clear();
+		this._factorio.stdin.write("remote.call(\"debugadapter\", \"updateBreakpoints\", [==[" + JSON.stringify(changes) + "]==])\n");
 	}
 
 	/*
@@ -165,15 +247,10 @@ export class MockRuntime extends EventEmitter {
 	 */
 	public setBreakPoints(path: string, bps: DebugProtocol.SourceBreakpoint[] | undefined) : Breakpoint[] {
 
-		this._breakPoints[path] = bps || [];
-		this._breakPointsChanged[path] = true;
+		this._breakPoints.set(path, bps || []);
+		this._breakPointsChanged.add(path);
 
 		return (bps || []).map((bp) => { return {line:bp.line, verified:true }; });
-
-		//this._factorio.stdin.write("__DebugAdapter.setBreakpoints(" + path + ", " +
-		//JSON.stringify(bps) + ")\n")
-		//await this._bps.wait(1000)
-		//return this._bps.dump;
 	}
 
 	/*
@@ -195,6 +272,39 @@ export class MockRuntime extends EventEmitter {
 	}
 
 	// private methods
+
+	public convertClientPathToDebugger(clientPath: string): string
+	{
+		if(!this._paths) { return clientPath; }
+
+		clientPath = clientPath.replace(/\\/g,"/");
+
+		if (this._paths._dataPath)
+		{
+			clientPath = clientPath.replace(this._paths._dataPath,"DATA");
+		}
+		if (this._paths._modsPath)
+		{
+			clientPath = clientPath.replace(this._paths._modsPath,"MOD");
+		}
+		return clientPath;
+	}
+	public convertDebuggerPathToClient(debuggerPath: string): string
+	{
+		if(!this._paths) { return debuggerPath; }
+
+		if (this._paths._modsPath && debuggerPath.startsWith("MOD"))
+		{
+			return this._paths._modsPath + debuggerPath.substring(3);
+		}
+
+		if (this._paths._dataPath && debuggerPath.startsWith("DATA"))
+		{
+			return this._paths._dataPath + debuggerPath.substring(4);
+		}
+
+		return debuggerPath;
+	}
 
 	/**
 	 * Run through the file.
