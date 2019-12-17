@@ -180,7 +180,7 @@ export class FactorioModRuntime extends EventEmitter {
 	/**
 	 * Step to the next/previous non empty line.
 	 */
-	public step(event = 'stopOnStep') {
+	public step(event = 'in') {
 		this.run(event);
 	}
 
@@ -331,9 +331,9 @@ export class FactorioModRuntime extends EventEmitter {
 	 * If stepEvent is specified only run a single step and emit the stepEvent.
 	 */
 	private run(stepEvent?: string) {
-		if(stepEvent === 'stopOnStep')
+		if(stepEvent)
 		{
-			this._factorio.stdin.write("__DebugAdapter.step()\n");
+			this._factorio.stdin.write(`__DebugAdapter.step("${stepEvent}")\n`);
 			this._step.wait(1000).then(()=>{this._factorio.stdin.write("cont\n");});
 		}
 		else

@@ -244,7 +244,17 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 
 	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
-		this._runtime.step();
+		this._runtime.step("over");
+		this.sendResponse(response);
+	}
+
+	protected stepInRequest(response: DebugProtocol.StepInResponse, args: DebugProtocol.StepInArguments): void {
+		this._runtime.step("in");
+		this.sendResponse(response);
+	}
+
+	protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments): void {
+		this._runtime.step("out");
 		this.sendResponse(response);
 	}
 
