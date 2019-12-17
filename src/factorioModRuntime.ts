@@ -263,7 +263,7 @@ export class FactorioModRuntime extends EventEmitter {
 			}
 		});
 		this._breakPointsChanged.clear();
-		this._factorio.stdin.write("remote.call(\"debugadapter\", \"updateBreakpoints\", [==[" + JSON.stringify(changes) + "]==])\n");
+		this._factorio.stdin.write(`remote.call("debugadapter", "updateBreakpoints", [==[${JSON.stringify(changes)}]==])\n`);
 	}
 
 	/*
