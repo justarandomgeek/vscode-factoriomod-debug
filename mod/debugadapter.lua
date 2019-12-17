@@ -105,7 +105,6 @@ function __DebugAdapter.attach()
     elseif event == "call" then
       local s = getinfo(2,"S").source
       if sub(s,1,1) == "@" then
-        print(event)
         s = normalizeLuaSource(s)
         if step == "over" or step == "out" then
           stepdepth = stepdepth + 1
@@ -114,7 +113,6 @@ function __DebugAdapter.attach()
     elseif event == "return" then
       local s = getinfo(2,"S").source
       if sub(s,1,1) == "@" then
-        print(event)
         s = normalizeLuaSource(s)
         if step == "over" then
           stepdepth = stepdepth - 1
@@ -125,8 +123,6 @@ function __DebugAdapter.attach()
           stepdepth = stepdepth - 1
         end
       end
-    else
-      print(event)
     end
   end,"clr")
 end
