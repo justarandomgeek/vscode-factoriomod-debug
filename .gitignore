@@ -4,3 +4,4 @@ out/
 npm-debug.log
 mock-debug.txt
 *.vsix
+*.zip
