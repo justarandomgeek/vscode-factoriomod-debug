@@ -590,12 +590,18 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
         if goodvalue and success then
           print("DBGsetvar: " .. game.table_to_json({seq = seq, body = Variable(newname,newvalue)}))
         else
-          print("DBGsetvar: " .. game.table_to_json({seq = seq, body = Variable(newname,varRef.table[newname])}))
+          local _,oldvalue = pcall(function() return varRef.table[newname] end)
+          print("DBGsetvar: " .. game.table_to_json({seq = seq, body = Variable(newname,oldvalue)}))
         end
       end
     elseif varRef.type == "LuaObject" then
-      --TODO: attempt to set...
-      print("DBGsetvar: " .. game.table_to_json({seq = seq, body = Variable(name,oldvalue)}))
+      local goodvalue,newvalue = serpent.load(value,{safe=false})
+      local goodname,newname = serpent.load(name,{safe=false}) -- special name "[]" isn't valid lua so it won't parse anyway
+      if goodname then
+        local success = pcall(function() varRef.object[newname] = newvalue end)
+        local _,oldvalue = pcall(function() return varRef.object[newname] end)
+        print("DBGsetvar: " .. game.table_to_json({seq = seq, body = Variable(newname,oldvalue)}))
+      end
     end
   end
 end
