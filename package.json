@@ -1,5 +1,5 @@
 {
-	"name": "factorio-mod-debug",
+	"name": "factoriomod-debug",
 	"displayName": "Factorio Mod Debug",
 	"version": "0.17.0",
 	"publisher": "justarandomgeek",
@@ -71,7 +71,7 @@
 							"trace": {
 								"type": "boolean",
 								"description": "Enable logging of the Debug Adapter Protocol.",
-								"default": true
+								"default": false
 							},
 							"factorioPath": {
 								"type": "string",
