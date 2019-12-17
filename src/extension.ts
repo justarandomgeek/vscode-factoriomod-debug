@@ -33,8 +33,6 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 	 * e.g. add all missing attributes to the debug configuration.
 	 */
 	resolveDebugConfiguration(folder: WorkspaceFolder | undefined, config: DebugConfiguration, token?: CancellationToken): ProviderResult<DebugConfiguration> {
-		//TODO: validate config has a factorio path to launch
-
 		// factorio path exists and is a file (and is a binary?)
 		if (!config.factorioPath || !fs.existsSync(config.factorioPath) ){
 			return vscode.window.showInformationMessage("factorioPath is required").then(_ => {
