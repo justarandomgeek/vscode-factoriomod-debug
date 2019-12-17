@@ -219,9 +219,7 @@ export class FactorioModRuntime extends EventEmitter {
 		return vars;
 	}
 
-	private setvarseq = 0;
-	public async setVar(args: DebugProtocol.SetVariableArguments): Promise<DebugProtocol.Variable> {
-		const seq = this.setvarseq++;
+	public async setVar(args: DebugProtocol.SetVariableArguments, seq: number): Promise<DebugProtocol.Variable> {
 		let subj = new Subject();
 		this._setvars.set(seq, subj);
 		this._factorio.stdin.write(`__DebugAdapter.setVariable(${args.variablesReference},[==[${args.name}]==],[==[${args.value}]==],${seq})\n`);
@@ -233,15 +231,12 @@ export class FactorioModRuntime extends EventEmitter {
 		return setvar;
 	}
 
-	private evalseq = 0;
-	public async evaluate(args: DebugProtocol.EvaluateArguments): Promise<any> {
+	public async evaluate(args: DebugProtocol.EvaluateArguments, seq: number): Promise<any> {
 		if(args.context === "repl" && !args.frameId)
 		{
 			let evalresult = {result:"cannot evaluate while running",type:"error",variablesReference:0};
 			return evalresult;
 		}
-
-		const seq = this.evalseq++;
 
 		let subj = new Subject();
 		this._evals.set(seq, subj);
