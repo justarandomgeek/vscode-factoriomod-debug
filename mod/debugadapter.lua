@@ -241,8 +241,8 @@ local function LuaObjectType(obj)
     if not success then
       --[[Extract type from error message, LuaStruct errors have "Classname: " others have "Classname "]]
       t = string.sub(help, 1, string.find(help, ":? ") - 1)
-      --[[LuaStruct is a special case, apparently...]]
-      if t == "LuaStruct::luaIndex:" then t = "LuaStruct" end
+      --[[LuaStruct currently doens't identify what kind of struct, and has a different message... factorio PR2660 ]]
+      if t == "LuaStruct::luaIndex" then t = "LuaStruct" end
     else
       --[[Extract type from help message]]
       t = string.sub(help, 10, string.find(help, ":") - 1)
