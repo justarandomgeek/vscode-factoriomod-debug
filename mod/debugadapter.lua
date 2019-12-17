@@ -421,22 +421,28 @@ end
 ---@param context string
 ---@param expression string
 ---@param seq number
-function __DebugAdapter.evaluateInternal(frameId,context,expression,seq,offset)
-  --TODO: do i need a dynamic offset in case the expression includes functions?
-  -- Only if they're defined in-line on the repl, which seems unlikely
-  --default offset is:
-  -- evaluateInternal() tail call to pcall()
-  -- f(), loaded expression
-  -- __index() or __newindex()
-  offset = offset or 3
+function __DebugAdapter.evaluateInternal(frameId,context,expression,seq)
   local env = {}
   setmetatable(env,{
     __index = function(t,k)
       -- go ahead and loop these back...
       if k == "_ENV" or k == "_G" then return t end
+
+      -- find how deep we are, if the expression includes defining new functions and calling them...
+      local i = 1
+      local offset = 3
+      while true do
+        local func = debug.getinfo(i,"f").func
+        if func == __DebugAdapter.evaluateInternal then
+          offset = i - 1
+          break
+        end
+        i = i + 1
+      end
+
       local frame = frameId + offset
       --check for local at frameId
-      local i = 1
+      i = 1
       while true do
         local name,value = debug.getlocal(frame,i)
         if not name then break end
@@ -462,9 +468,22 @@ function __DebugAdapter.evaluateInternal(frameId,context,expression,seq,offset)
     __newindex = function(t,k,v)
       -- don't allow setting _ENV or _G in evals
       if k == "_ENV" or k == "_G" then return end
+
+      -- find how deep we are, if the expression includes defining new functions and calling them...
+      local i = 1
+      local offset = 3
+      while true do
+        local func = debug.getinfo(i,"f").func
+        if func == __DebugAdapter.evaluateInternal then
+          offset = i - 1
+          break
+        end
+        i = i + 1
+      end
+
       local frame = frameId + offset
       --check for local at frameId
-      local i = 1
+      i = 1
       while true do
         local name = debug.getlocal(frame,i)
         if not name then break end
