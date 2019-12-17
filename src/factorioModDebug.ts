@@ -229,12 +229,12 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 
 	protected async setVariableRequest(response: DebugProtocol.SetVariableResponse, args: DebugProtocol.SetVariableArguments, request?: DebugProtocol.Request) {
-		response.body = await this._runtime.setVar(args);
+		response.body = await this._runtime.setVar(args, response.request_seq);
 		this.sendResponse(response);
 	}
 
 	protected async evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments, request?: DebugProtocol.Request) {
-		response.body = await this._runtime.evaluate(args);
+		response.body = await this._runtime.evaluate(args, response.request_seq);
 		this.sendResponse(response);
 	}
 
