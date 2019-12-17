@@ -15,8 +15,8 @@ const { Subject } = require('await-notify');
 
 interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 	factorioPath: string; // absolute path of factorio binary to launch
-	modsPath?: string; // absolute path of `mods` directory
-	dataPath?: string; // absolute path of `data` directory
+	modsPath: string; // absolute path of `mods` directory
+	dataPath: string; // absolute path of `data` directory
 
 	/** enable logging the Debug Adapter Protocol */
 	trace?: boolean;

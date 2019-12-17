@@ -33,8 +33,8 @@ export class FactorioModRuntime extends EventEmitter {
 
 	private _deferredevent: string;
 
-	private modsPath?: string; // absolute path of `mods` directory
-	private dataPath?: string; // absolute path of `data` directory
+	private modsPath: string; // absolute path of `mods` directory
+	private dataPath: string; // absolute path of `data` directory
 
 	constructor() {
 		super();
@@ -43,9 +43,9 @@ export class FactorioModRuntime extends EventEmitter {
 	/**
 	 * Start executing the given program.
 	 */
-	public start(factorioPath: string, modsPath?: string, dataPath?: string) {
-		this.modsPath = modsPath;
-		this.dataPath = dataPath;
+	public start(factorioPath: string, modsPath: string, dataPath: string) {
+		this.modsPath = modsPath.replace(/\\/g,"/");
+		this.dataPath = dataPath.replace(/\\/g,"/");
 
 		let renamedbps = new Map<string, DebugProtocol.SourceBreakpoint[]>();
 		this._breakPointsChanged.clear();

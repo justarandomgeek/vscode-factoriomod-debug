@@ -7,6 +7,8 @@
 import * as vscode from 'vscode';
 import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken } from 'vscode';
 import { FactorioModDebugSession } from './factorioModDebug';
+import * as path from 'path';
+import * as fs from 'fs';
 
 export function activate(context: vscode.ExtensionContext) {
 	const provider = new FactorioModConfigurationProvider();
@@ -32,21 +34,22 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 	 */
 	resolveDebugConfiguration(folder: WorkspaceFolder | undefined, config: DebugConfiguration, token?: CancellationToken): ProviderResult<DebugConfiguration> {
 		//TODO: validate config has a factorio path to launch
-		// if launch.json is missing or empty
-		if (!config.type && !config.request && !config.name) {
-			const editor = vscode.window.activeTextEditor;
-			if (editor && editor.document.languageId === 'lua') {
-				config.type = 'factoriomod';
-				config.name = 'Launch';
-				config.request = 'launch';
-			}
+
+		// factorio path exists and is a file (and is a binary?)
+		if (!config.factorioPath || !fs.existsSync(config.factorioPath) ){
+			return vscode.window.showInformationMessage("factorioPath is required").then(_ => {
+				return undefined;	// abort launch
+			});
 		}
 
-		//if (!config.program) {
-		//	return vscode.window.showInformationMessage("Cannot find a program to debug").then(_ => {
-		//		return undefined;	// abort launch
-		//	});
-		//}
+		// if data path is not set, assume factorio path dir/../../data, verify dir exists
+		if (!config.dataPath){
+			config.dataPath = path.posix.normalize(path.resolve(path.dirname(config.factorioPath), "../../data" ));
+		}
+		// if mods path is not set, assume factorio path dir/../../mods, verify dir exists
+		if (!config.modsPath){
+			config.modsPath = path.posix.normalize(path.resolve(path.dirname(config.factorioPath), "../../mods" ));
+		}
 
 		return config;
 	}
