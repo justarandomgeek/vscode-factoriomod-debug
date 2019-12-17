@@ -6,11 +6,10 @@
 
 import * as vscode from 'vscode';
 import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken } from 'vscode';
-import { MockDebugSession } from './mockDebug';
+import { FactorioModDebugSession } from './factorioModDebug';
 
 export function activate(context: vscode.ExtensionContext) {
-	// register a configuration provider for 'mock' debug type
-	const provider = new MockConfigurationProvider();
+	const provider = new FactorioModConfigurationProvider();
 	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('factoriomod', provider));
 
 	// debug adapters can be run in different ways by using a vscode.DebugAdapterDescriptorFactory:
@@ -25,7 +24,7 @@ export function deactivate() {
 }
 
 
-class MockConfigurationProvider implements vscode.DebugConfigurationProvider {
+class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvider {
 
 	/**
 	 * Massage a debug configuration just before a debug session is being launched,
@@ -57,7 +56,7 @@ class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory 
 
 	createDebugAdapterDescriptor(_session: vscode.DebugSession): ProviderResult<vscode.DebugAdapterDescriptor> {
 		// since DebugAdapterInlineImplementation is proposed API, a cast to <any> is required for now
-		return <any> new vscode.DebugAdapterInlineImplementation(<any> new MockDebugSession());
+		return <any> new vscode.DebugAdapterInlineImplementation(<any> new FactorioModDebugSession());
 	}
 
 	dispose()

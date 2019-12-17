@@ -1,7 +1,3 @@
-/*---------------------------------------------------------
- * Copyright (C) Microsoft Corporation. All rights reserved.
- *--------------------------------------------------------*/
+ import { FactorioModDebugSession } from './factorioModDebug';
 
- import { MockDebugSession } from './mockDebug';
-
- MockDebugSession.run(MockDebugSession);
+ FactorioModDebugSession.run(FactorioModDebugSession);

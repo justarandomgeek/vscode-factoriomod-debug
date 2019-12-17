@@ -14,10 +14,8 @@ export interface FactorioPaths {
 	_dataPath?: string; // absolute path of `data` directory
 	_factorioPath: string; // aboslute path of factorio binary to launch
 }
-/**
- * A Mock runtime with minimal debugger functionality.
- */
-export class MockRuntime extends EventEmitter {
+
+export class FactorioModRuntime extends EventEmitter {
 
 	private _breakPoints = new Map<string, DebugProtocol.SourceBreakpoint[]>();
 	private _breakPointsChanged = new Set<string>();
