@@ -33,9 +33,8 @@ export class FactorioModRuntime extends EventEmitter {
 
 	private _deferredevent: string;
 
-	private _paths? : FactorioPaths;
-
-	public getPaths(){ return this._paths; }
+	private modsPath?: string; // absolute path of `mods` directory
+	private dataPath?: string; // absolute path of `data` directory
 
 	constructor() {
 		super();
@@ -44,8 +43,10 @@ export class FactorioModRuntime extends EventEmitter {
 	/**
 	 * Start executing the given program.
 	 */
-	public start(paths: FactorioPaths) {
-		this._paths = paths;
+	public start(factorioPath: string, modsPath?: string, dataPath?: string) {
+		this.modsPath = modsPath;
+		this.dataPath = dataPath;
+
 		let renamedbps = new Map<string, DebugProtocol.SourceBreakpoint[]>();
 		this._breakPointsChanged.clear();
 		this._breakPoints.forEach((bps:DebugProtocol.SourceBreakpoint[], path:string, map) => {
@@ -54,7 +55,7 @@ export class FactorioModRuntime extends EventEmitter {
 			this._breakPointsChanged.add(newpath);
 		});
 		this._breakPoints = renamedbps;
-		this._factorio = spawn("D:\\factorio\\factoriogit\\bin\\FastDebugx64vs2017\\factorio-run.exe");
+		this._factorio = spawn(factorioPath);
 		let runtime = this;
 		this._factorio.on("exit", function(code:number, signal:string){
 			runtime.sendEvent('end');
@@ -298,32 +299,28 @@ export class FactorioModRuntime extends EventEmitter {
 
 	public convertClientPathToDebugger(clientPath: string): string
 	{
-		if(!this._paths) { return clientPath; }
-
 		clientPath = clientPath.replace(/\\/g,"/");
 
-		if (this._paths._dataPath)
+		if (this.dataPath)
 		{
-			clientPath = clientPath.replace(this._paths._dataPath,"DATA");
+			clientPath = clientPath.replace(this.dataPath,"DATA");
 		}
-		if (this._paths._modsPath)
+		if (this.modsPath)
 		{
-			clientPath = clientPath.replace(this._paths._modsPath,"MOD");
+			clientPath = clientPath.replace(this.modsPath,"MOD");
 		}
 		return clientPath;
 	}
 	public convertDebuggerPathToClient(debuggerPath: string): string
 	{
-		if(!this._paths) { return debuggerPath; }
-
-		if (this._paths._modsPath && debuggerPath.startsWith("MOD"))
+		if (this.modsPath && debuggerPath.startsWith("MOD"))
 		{
-			return this._paths._modsPath + debuggerPath.substring(3);
+			return this.modsPath + debuggerPath.substring(3);
 		}
 
-		if (this._paths._dataPath && debuggerPath.startsWith("DATA"))
+		if (this.dataPath && debuggerPath.startsWith("DATA"))
 		{
-			return this._paths._dataPath + debuggerPath.substring(4);
+			return this.dataPath + debuggerPath.substring(4);
 		}
 
 		return debuggerPath;

@@ -1,6 +1,7 @@
-Copyright (c) Microsoft Corporation
+Copyright (c) justarandomgeek
+based on `Mock Debug` Copyright (c) Microsoft Corporation
 
-All rights reserved. 
+All rights reserved.
 
 MIT License
 

@@ -1,12 +1,12 @@
 {
 	"name": "factorio-mod-debug",
 	"displayName": "Factorio Mod Debug",
-	"version": "0.35.1",
+	"version": "0.17.0",
 	"publisher": "justarandomgeek",
-	"description": "Starter extension for developing debug adapters for VS Code.",
+	"description": "Debug Adapter for developing Factorio Mods",
 	"author": {
-		"name": "Microsoft Corporation",
-		"email": "aweinand@microsoft.com"
+		"name": "justarandomgeek",
+		"email": "factoriomod-debug@justarandomgeek.com"
 	},
 	"license": "MIT",
 	"keywords": [
@@ -15,24 +15,23 @@
 	"engines": {
 		"vscode": "^1.41.0"
 	},
-	"icon": "images/mock-debug-icon.png",
+	"icon": "images/factoriomod-debug-icon.png",
 	"categories": [
 		"Debuggers"
 	],
 	"private": true,
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/Microsoft/vscode-mock-debug.git"
+		"url": "https://github.com/justarandomgeek/vscode-factoriomod-debug.git"
 	},
 	"bugs": {
-		"url": "https://github.com/Microsoft/vscode-mock-debug/issues"
+		"url": "https://github.com/justarandomgeek/vscode-factoriomod-debug/issues"
 	},
 	"scripts": {
 		"prepublish": "tsc -p ./src",
 		"compile": "tsc -p ./src",
 		"tslint": "tslint ./src/**/*.ts",
 		"watch": "tsc -w -p ./src",
-		"test": "mocha -u tdd ./out/tests/",
 		"postinstall": "node ./node_modules/vscode/bin/install",
 		"package": "vsce package",
 		"publish": "vsce publish"
@@ -44,9 +43,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "10.12.12",
-		"@types/mocha": "5.2.7",
 		"typescript": "3.5.3",
-		"mocha": "6.2.0",
 		"vscode": "1.1.36",
 		"vscode-debugadapter-testsupport": "1.37.0",
 		"tslint": "5.18.0",
@@ -76,8 +73,17 @@
 								"description": "Enable logging of the Debug Adapter Protocol.",
 								"default": true
 							},
-							"paths": {
-								"type": "object"
+							"factorioPath": {
+								"type": "string",
+								"description": "Path to Factorio binary."
+							},
+							"modsPath": {
+								"type": "string",
+								"description": "Absolute path to Factorio mods directory."
+							},
+							"dataPath": {
+								"type": "string",
+								"description": "Absolute path to Factorio data directory."
 							}
 						}
 					}
@@ -87,11 +93,9 @@
 						"type": "factoriomod",
 						"request": "launch",
 						"name": "Factorio Mod Debug",
-						"paths" : {
-							"_modsPath" : "%appdata%/Factorio/mods",
-							"_dataPath" : "d:/factorio/Factorio_0.17/data",
-							"_factorioPath" : "d:/factorio/Factorio_0.17/bin/x64/factorio.exe"
-						}
+						"modsPath" : "%appdata%/Factorio/mods",
+						"dataPath" : "d:/factorio/Factorio_0.17/data",
+						"factorioPath" : "d:/factorio/Factorio_0.17/bin/x64/factorio.exe"
 					}
 				],
 				"configurationSnippets": [
@@ -102,11 +106,9 @@
 							"type": "factoriomod",
 							"request": "launch",
 							"name": "Factorio Mod Debug",
-							"paths" : {
-								"_modsPath" : "%appdata%/Factorio/mods",
-								"_dataPath" : "d:/factorio/Factorio_0.17/data",
-								"_factorioPath" : "d:/factorio/Factorio_0.17/bin/x64/factorio.exe"
-							}
+							"modsPath" : "%appdata%/Factorio/mods",
+							"dataPath" : "d:/factorio/Factorio_0.17/data",
+							"factorioPath" : "d:/factorio/Factorio_0.17/bin/x64/factorio.exe"
 						}
 					}
 				]
