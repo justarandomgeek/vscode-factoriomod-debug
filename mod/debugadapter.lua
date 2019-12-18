@@ -227,7 +227,7 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
   local i = (startFrame or 0) + offset
   local stackFrames = {}
   while true do
-    local info = debug.getinfo(i,"nSlt")
+    local info = debug.getinfo(i,"nSltf")
     if not info then break end
     local framename = info.name or "(name unavailable)"
     if not info.name then
@@ -240,6 +240,10 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
           end
         end
         framename = ("%s handler"):format(evtname)
+      elseif name == nil then
+        if script.get_event_handler(defines.events.on_tick) == info.func then
+          framename = "on_tick handler"
+        end
       end
     end
     if forRemote then
@@ -756,7 +760,7 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
     elseif varRef.type == "LuaObject" then
       local goodvalue,newvalue = serpent.load(value,{safe=false})
       local goodname,newname = serpent.load(name,{safe=false}) -- special name "[]" isn't valid lua so it won't parse anyway
-      if goodname then
+      if goodname and goodvalue then
         local success = pcall(function() varRef.object[newname] = newvalue end)
         local _,oldvalue = pcall(function() return varRef.object[newname] end)
         print("DBGsetvar: " .. game.table_to_json({seq = seq, body = Variable(newname,oldvalue)}))
