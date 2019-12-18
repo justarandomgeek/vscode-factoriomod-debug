@@ -6,7 +6,7 @@ import {
 	Logger, logger,
 	LoggingDebugSession,
 	InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent,
-	Thread, Source, Handles
+	Thread, Source, Handles, Module, ModuleEvent
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { basename } from 'path';
@@ -62,6 +62,11 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this._runtime.on('stopOnException', () => {
 			this.sendEvent(new StoppedEvent('exception', FactorioModDebugSession.THREAD_ID));
 		});
+		this._runtime.on('modules', (modules:Module[]) => {
+			modules.forEach((module:Module) =>{
+				this.sendEvent(new ModuleEvent('new', module));
+			});
+		});
 		this._runtime.on('output', (text, category, filePath, line, column, variablesReference) => {
 			const e: DebugProtocol.OutputEvent = new OutputEvent(`${text}\n`);
 			if (category) {
@@ -114,6 +119,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		response.body.supportsLogPoints = true;
 
 		response.body.supportsSetVariable = true;
+		response.body.supportsModulesRequest = true;
 
 		this.sendResponse(response);
 
@@ -214,6 +220,12 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		) };
 		this.sendResponse(response);
 
+	}
+
+	protected async modulesRequest(response: DebugProtocol.ModulesResponse, args: DebugProtocol.ModulesArguments) {
+		const modules = await this._runtime.modules();
+		response.body = { modules: modules };
+		this.sendResponse(response);
 	}
 
 	protected async scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments) {

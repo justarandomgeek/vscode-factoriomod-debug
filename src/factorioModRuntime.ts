@@ -4,7 +4,7 @@
 
 import { EventEmitter } from 'events';
 import { spawn, ChildProcess } from 'child_process';
-import { Breakpoint, Scope, Variable, StackFrame } from 'vscode-debugadapter';
+import { Breakpoint, Scope, Variable, StackFrame, Module } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 const { Subject } = require('await-notify');
 import StreamSplitter = require('stream-splitter');
@@ -25,6 +25,7 @@ export class FactorioModRuntime extends EventEmitter {
 	private _factorio : ChildProcess;
 
 	private _stack = new Subject();
+	private _modules = new Subject();
 	private _scopes = new Map<number, any>();
 	private _vars = new Map<number, any>();
 	private _setvars = new Map<number, any>();
@@ -125,6 +126,12 @@ export class FactorioModRuntime extends EventEmitter {
 			} else if (chunkstr.startsWith("DBGstack: ")) {
 				runtime._stack.trace = JSON.parse(chunkstr.substring(10).trim());
 				runtime._stack.notify();
+			} else if (chunkstr.startsWith("DBGmodules: ")) {
+				runtime._modules.modules = JSON.parse(chunkstr.substring(12).trim());
+				runtime._modules.notify();
+			} else if (chunkstr.startsWith("EVTmodules: ")) {
+				const modules = JSON.parse(chunkstr.substring(12).trim());
+				runtime.sendEvent('modules',modules);
 			} else if (chunkstr.startsWith("DBGscopes: ")) {
 				const scopes = JSON.parse(chunkstr.substring(11).trim());
 				let subj = runtime._scopes.get(scopes.frameId);
@@ -195,13 +202,21 @@ export class FactorioModRuntime extends EventEmitter {
 		return this._stack.trace;
 	}
 
+	public async modules(): Promise<Module[]> {
+		this._factorio.stdin.write(`__DebugAdapter.modules()\n`);
+
+		await this._modules.wait(1000);
+
+		return this._modules.modules;
+	}
+
 	public async scopes(frameId: number): Promise<Scope[]> {
 		let subj = new Subject();
 		this._scopes.set(frameId, subj);
 		this._factorio.stdin.write(`__DebugAdapter.scopes(${frameId})\n`);
 
 		await subj.wait(1000);
-		let scopes = subj.scopes;
+		let scopes:Scope[] = subj.scopes;
 		this._scopes.delete(frameId);
 
 		return scopes;
@@ -213,19 +228,19 @@ export class FactorioModRuntime extends EventEmitter {
 		this._factorio.stdin.write(`__DebugAdapter.variables(${variablesReference})\n`);
 
 		await subj.wait(1000);
-		let vars = subj.vars;
+		let vars:Variable[] = subj.vars;
 		this._vars.delete(variablesReference);
 
 		return vars;
 	}
 
-	public async setVar(args: DebugProtocol.SetVariableArguments, seq: number): Promise<DebugProtocol.Variable> {
+	public async setVar(args: DebugProtocol.SetVariableArguments, seq: number): Promise<Variable> {
 		let subj = new Subject();
 		this._setvars.set(seq, subj);
 		this._factorio.stdin.write(`__DebugAdapter.setVariable(${args.variablesReference},[==[${args.name}]==],[==[${args.value}]==],${seq})\n`);
 
 		await subj.wait(1000);
-		let setvar = subj.setvar;
+		let setvar:Variable = subj.setvar;
 		this._setvars.delete(seq);
 
 		return setvar;

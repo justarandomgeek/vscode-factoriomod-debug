@@ -261,6 +261,19 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
 end
 stepIgnoreFuncs[__DebugAdapter.stackTrace] = true
 
+---@return Module[]
+function __DebugAdapter.modules()
+  local modules = {}
+  for name,version in pairs(game.active_mods) do
+    modules[#modules+1] = {
+      id = name, name = name,
+      version = version,
+    }
+  end
+  modules[#modules+1] = { id = "level", name = "level", }
+  print("DBGmodules: " .. game.table_to_json(modules))
+end
+
 ---@param frameId number
 ---@param name string
 ---@return number
