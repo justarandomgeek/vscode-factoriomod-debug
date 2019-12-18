@@ -543,6 +543,15 @@ function __DebugAdapter.variables(variablesReference)
       end
     end
   end
+  if #vars == 0 then
+    vars[1] = {
+      name = "empty",
+      value = "empty",
+      type = "empty",
+      variablesReference = 0,
+      presentationHint = { kind = "property", attributes = { "readOnly"} },
+    }
+  end
   print("DBGvars: " .. game.table_to_json({variablesReference = variablesReference, vars = vars}))
 end
 
