@@ -1,10 +1,13 @@
 -- this is a global so the vscode extension can get to it from debug.debug()
 __DebugAdapter = {}
+local stepIgnoreFuncs = {}
 
 local luaObjectInfo = require("__debugadapter__/luaobjectinfo.lua")
 
 local levelpath
 if script.mod_name == "level" then
+  ---@param modname string
+  ---@param basepath string
   function __DebugAdapter.levelPath(modname,basepath)
     levelpath = {
       modname = modname,
@@ -13,7 +16,8 @@ if script.mod_name == "level" then
   end
 end
 
-
+---@param source string
+---@return string
 local function normalizeLuaSource(source)
   local modname,filename = source:match("__(.+)__/(.+)")
   if not modname then
@@ -46,6 +50,7 @@ local function normalizeLuaSource(source)
     return string.format("MOD/%s_%s/%s",modname,modver,filename)
   end
 end
+stepIgnoreFuncs[normalizeLuaSource] = true
 
 local breakpoints = {}
 local variablesReferences = {}
@@ -54,12 +59,71 @@ local stepdepth = 0
 
 local Variable -- this will be filled in later with a function...
 
+local remoteStack
+
+-- hook remote.call so i can step into it across mods...
+
+---@param remoteUpStack StackFrame[]
+local function remoteStepIn(remotestep,remoteUpStack)
+  if remoteStack then
+    print(("WARN: %s"):format(serpent.line(remoteStack)))
+  end
+  remoteStack = remoteUpStack
+  if remotestep ~= "over" then
+    step = remotestep
+  end
+end
+stepIgnoreFuncs[remoteStepIn] = true
+
+local function remoteStepOut()
+  local s = step
+  step = nil
+  remoteStack = nil
+  return s
+end
+stepIgnoreFuncs[remoteStepOut] = true
+
+local origremote = remote
+local function remotestepcall(modname,method,...)
+  local remotename = "__debugadapter_"..modname
+  local remotehasdebug = origremote.interfaces[remotename]
+  if remotehasdebug then
+    origremote.call(remotename,"remoteStepIn",step, __DebugAdapter.stackTrace(-2, nil, true))
+  end
+  local result = {origremote.call(modname,method,...)}
+  if remotehasdebug then
+    step = origremote.call(remotename,"remoteStepOut")
+  end
+  return table.unpack(result)
+end
+stepIgnoreFuncs[remotestepcall] = true
+
+local function remoteindex(t,k)
+  if k == "call" then
+    return remotestepcall
+  else
+    return origremote[k]
+  end
+end
+stepIgnoreFuncs[remoteindex] = true
+
+local function remotenewindex() end
+stepIgnoreFuncs[remotenewindex] = true
+
+remote = { __original = origremote}
+setmetatable(remote,{
+  __index = remoteindex,
+  __newindex = remotenewindex,
+})
+
 function __DebugAdapter.attach()
   local getinfo = debug.getinfo
   local sub = string.sub
   local format = string.format
   local debugprompt = debug.debug
   debug.sethook(function(event,line)
+    local ignored = stepIgnoreFuncs[getinfo(2,"f").func]
+    if ignored then return end
     if event == "line" then
       local s = getinfo(2,"S").source
       -- startup logging gets all the serpent loads of `global`
@@ -154,18 +218,25 @@ end
 
 ---@param startFrame integer | nil
 ---@param levels integer | nil
+---@param forRemote boolean | nil
 ---@return StackFrame[]
-function __DebugAdapter.stackTrace(startFrame, levels)
+function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
   local offset = 5 -- 0 is getinfo, 1 is stackTrace, 2 is debug command, 3 is debug.debug, 4 is sethook callback, 5 is at breakpoint
   local i = (startFrame or 0) + offset
   local stackFrames = {}
   while true do
     local info = debug.getinfo(i,"nSlt")
     if not info then break end
+    local framename = info.name or "(name unavailable)"
+    if forRemote then
+      framename = ("[%s] %s"):format(script.mod_name, framename)
+    end
     local stackFrame = {
       id = i,
-      name = info.name,
+      name = framename,
       line = info.currentline,
+      moduleId = forRemote and script.mod_name,
+      presentationHint = forRemote and "subtle",
       source = {
         name = normalizeLuaSource(info.source),
         path = normalizeLuaSource(info.source),
@@ -175,9 +246,24 @@ function __DebugAdapter.stackTrace(startFrame, levels)
     i = i + 1
     if #stackFrames == levels then break end
   end
-  print("DBGstack: " .. game.table_to_json(stackFrames))
+  if remoteStack then
+    for _,frame in pairs(remoteStack) do
+      frame.id = i
+      stackFrames[#stackFrames+1] = frame
+      i = i + 1
+    end
+  end
+  if forRemote then
+    return stackFrames
+  else
+    print("DBGstack: " .. game.table_to_json(stackFrames))
+  end
 end
+stepIgnoreFuncs[__DebugAdapter.stackTrace] = true
 
+---@param frameId number
+---@param name string
+---@return number
 local function scopeVarRef(frameId,name)
   local id = #variablesReferences+1
   variablesReferences[id] = {
@@ -187,6 +273,9 @@ local function scopeVarRef(frameId,name)
   return id
 end
 
+---@param table table
+---@param mode string "pairs"|"ipairs"|"count"
+---@return number
 local function tableVarRef(table, mode)
   for id,varRef in pairs(variablesReferences) do
     if varRef.table == table then return id end
@@ -201,6 +290,9 @@ local function tableVarRef(table, mode)
   return id
 end
 
+---@param luaObject LuaObject
+---@param classname string
+---@return number
 local function luaObjectVarRef(luaObject,classname)
   if luaObjectInfo.noExpand[classname] then return 0 end
   for id,varRef in pairs(variablesReferences) do
@@ -215,20 +307,27 @@ local function luaObjectVarRef(luaObject,classname)
   return id
 end
 
----@param frameId integer
+---@param frameId number
 ---@return Scope[]
 function __DebugAdapter.scopes(frameId)
-  print("DBGscopes: " .. game.table_to_json({frameId = frameId, scopes = {
-    -- Global
-    { name = "Globals", variablesReference = tableVarRef(_G) },
-    -- Locals
-    { name = "Locals", variablesReference = scopeVarRef(frameId,"Locals") },
-    -- Upvalues
-    { name = "Upvalues", variablesReference = scopeVarRef(frameId,"Upvalues") },
-  }}))
+  if debug.getinfo(frameId,"f") then
+    print("DBGscopes: " .. game.table_to_json({frameId = frameId, scopes = {
+      -- Global
+      { name = "Globals", variablesReference = tableVarRef(_G) },
+      -- Locals
+      { name = "Locals", variablesReference = scopeVarRef(frameId,"Locals") },
+      -- Upvalues
+      { name = "Upvalues", variablesReference = scopeVarRef(frameId,"Upvalues") },
+    }}))
+  else
+    print("DBGscopes: " .. game.table_to_json({frameId = frameId, scopes = {
+      { name = "Remote Variables Unavaialbe", variablesReference = 0 },
+    }}))
+  end
 end
 
-
+---@param obj LuaObject
+---@return string
 local function LuaObjectType(obj)
   local t = rawget(obj, "luaObjectType")
   if t == nil then
@@ -237,7 +336,7 @@ local function LuaObjectType(obj)
     if not success then
       --[[Extract type from error message, LuaStruct errors have "Classname: " others have "Classname "]]
       t = string.sub(help, 1, string.find(help, ":? ") - 1)
-      --[[LuaStruct currently doens't identify what kind of struct, and has a different message... factorio PR2660 ]]
+      --[[LuaStruct currently doens't identify what kind of struct, and has a different message. Will be fixed in 0.18 ]]
       if t == "LuaStruct::luaIndex" then t = "LuaStruct" end
     else
       --[[Extract type from help message]]
@@ -523,6 +622,10 @@ function __DebugAdapter.evaluateInternal(frameId,context,expression,seq)
   return pcall(f)
 end
 
+---@param frameId number
+---@param context string
+---@param expression string
+---@param seq number
 function __DebugAdapter.evaluate(frameId,context,expression,seq)
   local success,result = __DebugAdapter.evaluateInternal(frameId+1,context,expression,seq)
   local evalresult
@@ -627,6 +730,8 @@ remote.add_interface("__debugadapter_" .. script.mod_name ,{
   attach = __DebugAdapter.attach,
   detach = __DebugAdapter.detach,
   setBreakpoints = __DebugAdapter.setBreakpoints,
+  remoteStepIn = remoteStepIn,
+  remoteStepOut = remoteStepOut,
 })
 
 return __DebugAdapter
