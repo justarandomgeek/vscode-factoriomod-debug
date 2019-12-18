@@ -60,15 +60,17 @@ local stepdepth = 0
 local Variable -- this will be filled in later with a function...
 
 local remoteStack
+local remoteFName
 
 -- hook remote.call so i can step into it across mods...
 
 ---@param remoteUpStack StackFrame[]
-local function remoteStepIn(remotestep,remoteUpStack)
+local function remoteStepIn(remotestep,remoteUpStack,fname)
   if remoteStack then
     print(("WARN: %s"):format(serpent.line(remoteStack)))
   end
   remoteStack = remoteUpStack
+  remoteFName = fname
   if remotestep ~= "over" then
     step = remotestep
   end
@@ -88,7 +90,7 @@ local function remotestepcall(modname,method,...)
   local remotename = "__debugadapter_"..modname
   local remotehasdebug = origremote.interfaces[remotename]
   if remotehasdebug then
-    origremote.call(remotename,"remoteStepIn",step, __DebugAdapter.stackTrace(-2, nil, true))
+    origremote.call(remotename,"remoteStepIn",step, __DebugAdapter.stackTrace(-2, nil, true), method)
   end
   local result = {origremote.call(modname,method,...)}
   if remotehasdebug then
@@ -228,6 +230,18 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
     local info = debug.getinfo(i,"nSlt")
     if not info then break end
     local framename = info.name or "(name unavailable)"
+    if not info.name then
+      local name,event = debug.getlocal(i,1)
+      if name == "event" and type(event) == "table" and event.name then
+        local evtname = ("event %d"):format(event.name)
+        for k,v in pairs(defines.events) do
+          if event.name == v then
+            evtname = k
+          end
+        end
+        framename = ("%s handler"):format(evtname)
+      end
+    end
     if forRemote then
       framename = ("[%s] %s"):format(script.mod_name, framename)
     end
@@ -246,7 +260,16 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
     i = i + 1
     if #stackFrames == levels then break end
   end
+
   if remoteStack then
+    if remoteFName then
+      if forRemote then
+        stackFrames[#stackFrames].name = ("[%s] %s"):format(script.mod_name, remoteFName)
+      else
+        stackFrames[#stackFrames].name = remoteFName
+      end
+
+    end
     for _,frame in pairs(remoteStack) do
       frame.id = i
       stackFrames[#stackFrames+1] = frame
