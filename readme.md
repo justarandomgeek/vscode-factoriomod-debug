@@ -10,3 +10,7 @@ This is a debug adapter for developing Factorio mods. It supports breakpoints, s
 * Select the debug environment "Factorio Mod Debug".
 * Adjust the paths as required.
 * Press the green 'play' button or F5 to start debugging.
+
+## Custom Debug Views
+
+When displaying tables in the Variables window, the debugger will check for metatables, and display them as a special member `<metatable>`. The default lineitem for a table can be overridden by the metamethod `__debugline`, which can be either a string or a function which takes the table as an argument and returns a string. The contents of the table can be overriden by the `__debugchildren` metamethod, which takes the table as an argument and returns an iterator that produces DebugAdapter.Variable[].

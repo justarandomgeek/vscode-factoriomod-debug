@@ -177,7 +177,7 @@ function __DebugAdapter.variables(variablesReference)
       -- use debug.getmetatable insead of getmetatable to get raw meta instead of __metatable result
       local mt = debug.getmetatable(varRef.table)
       if varRef.useCount then
-        --don't show __mt on these by default as they're mostly LuaObjects providing count iteration anyway
+        --don't show meta on these by default as they're mostly LuaObjects providing count iteration anyway
         if varRef.showMeta == true and mt then
           vars[#vars + 1]{
             name = "<metatable>",
