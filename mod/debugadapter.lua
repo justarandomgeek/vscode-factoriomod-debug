@@ -8,7 +8,6 @@ function __DebugAdapter.stepIgnore(f)
   stepIgnoreFuncs[f] = true
 end
 
-local luaObjectInfo = require("__debugadapter__/luaobjectinfo.lua")
 local variables = require("__debugadapter__/variables.lua")
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local remotestepping = require("__debugadapter__/remotestepping.lua")
