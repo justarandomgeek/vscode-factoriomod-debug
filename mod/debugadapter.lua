@@ -320,19 +320,37 @@ function __DebugAdapter.variables(variablesReference)
         i = i + 1
       end
     elseif varRef.type == "Table" then
+      -- use debug.getmetatable insead of getmetatable to get raw meta instead of __metatable result
+      local mt = debug.getmetatable(varRef.table)
       if varRef.useCount then
+        --don't show __mt on these by default as they're mostly LuaObjects providing count iteration anyway
+        if varRef.showMeta == true and mt then
+          vars[#vars + 1]{
+            name = "<metatable>",
+            value = "metatable",
+            type = "metatable",
+            variablesReference = variables.tableRef(mt),
+          }
+        end
         for i=1,#varRef.table do
           vars[#vars + 1] = variables.create(i,varRef.table[i])
         end
       else
-        local mt = getmetatable(varRef.table)
         if mt and mt.__debugchildren then
           for _,var in mt.__debugchildren(varRef.table) do
             vars[#vars + 1] = var
           end
         else
+          -- show metatables by default for table-like objects
+          if varRef.showMeta ~= false and mt then
+            vars[#vars + 1] = {
+              name = "<metatable>",
+              value = "metatable",
+              type = "metatable",
+              variablesReference = variables.tableRef(mt),
+            }
+          end
           local debugpairs = varRef.useIpairs and ipairs or pairs
-
           for k,v in debugpairs(varRef.table) do
             vars[#vars + 1] = variables.create(k,v)
           end
@@ -347,14 +365,14 @@ function __DebugAdapter.variables(variablesReference)
             value = "true",
             type = "boolean",
             variablesReference = 0,
-            presentationHint = { kind = "property", attributes = { "readOnly"} },
+            presentationHint = { kind = "property", attributes = { "readOnly" } },
           }
           vars[#vars + 1] = {
             name = [["valid_for_read"]],
             value = "false",
             type = "boolean",
             variablesReference = 0,
-            presentationHint = { kind = "property", attributes = { "readOnly"} },
+            presentationHint = { kind = "property", attributes = { "readOnly" } },
           }
         else
           local keys = luaObjectInfo.expandKeys[varRef.classname]
@@ -366,7 +384,7 @@ function __DebugAdapter.variables(variablesReference)
                 value = ("%d items"):format(#object),
                 type = varRef.classname .. "[]",
                 variablesReference = variables.tableRef(object, keyprops.iterMode),
-                presentationHint = { kind = "property", attributes = { "readOnly"} },
+                presentationHint = { kind = "property", attributes = { "readOnly" } },
               }
             else
               local success,value = pcall(function() return object[key] end)
@@ -389,18 +407,18 @@ function __DebugAdapter.variables(variablesReference)
           value = "false",
           type = "boolean",
           variablesReference = 0,
-          presentationHint = { kind = "property", attributes = { "readOnly"} },
+          presentationHint = { kind = "property", attributes = { "readOnly" } },
         }
       end
     end
   end
   if #vars == 0 then
     vars[1] = {
-      name = "empty",
+      name = "<empty>",
       value = "empty",
       type = "empty",
       variablesReference = 0,
-      presentationHint = { kind = "property", attributes = { "readOnly"} },
+      presentationHint = { kind = "property", attributes = { "readOnly" } },
     }
   end
   print("DBGvars: " .. game.table_to_json({variablesReference = variablesReference, vars = vars}))
