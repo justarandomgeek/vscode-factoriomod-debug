@@ -1,4 +1,24 @@
 return {
+  ---@param obj LuaObject
+  ---@return string
+  classname = function(obj)
+    local t = rawget(obj, "luaObjectType")
+    if t == nil then
+      --[[No way to avoid a pcall unfortunately]]
+      local success, help = pcall(function(obj) return obj.help() end, obj)
+      if not success then
+        --[[Extract type from error message, LuaStruct errors have "Classname: " others have "Classname "]]
+        t = string.sub(help, 1, string.find(help, ":? ") - 1)
+        --[[LuaStruct currently doens't identify what kind of struct, and has a different message. Will be fixed in 0.18 ]]
+        if t == "LuaStruct::luaIndex" then t = "LuaStruct" end
+      else
+        --[[Extract type from help message]]
+        t = string.sub(help, 10, string.find(help, ":") - 1)
+      end
+      rawset(obj, "luaObjectType", t)
+    end
+    return t
+  end,
   noExpand = {
     LuaChunkIterator = true,
     LuaLazyLoadedValue = true,

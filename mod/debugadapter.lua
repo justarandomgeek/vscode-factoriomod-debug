@@ -1,63 +1,19 @@
 -- this is a global so the vscode extension can get to it from debug.debug()
 __DebugAdapter = {}
 local stepIgnoreFuncs = {}
+function __DebugAdapter.stepIgnore(f)
+  stepIgnoreFuncs[f] = true
+end
 
 local luaObjectInfo = require("__debugadapter__/luaobjectinfo.lua")
+local variables = require("__debugadapter__/variables.lua")
 
-local levelpath
-if script.mod_name == "level" then
-  ---@param modname string
-  ---@param basepath string
-  function __DebugAdapter.levelPath(modname,basepath)
-    levelpath = {
-      modname = modname,
-      basepath = basepath,
-    }
-  end
-end
-
----@param source string
----@return string
-local function normalizeLuaSource(source)
-  local modname,filename = source:match("__(.+)__/(.+)")
-  if not modname then
-    --startup tracing sometimes gives absolute path of the scenario script, turn it back into the usual form...
-    filename = source:match("currently%-playing/(.+)")
-    if filename then
-      modname = "level"
-    end
-  end
-  -- scenario scripts may provide hints to where they came from...
-  if modname == "level" then
-    if levelpath then
-      modname = levelpath.modname
-      filename = levelpath.basepath .. filename
-    end
-  end
-
-  if modname == "level" then
-    -- we *still* can't identify level properly, so just give up...
-    return string.format("LEVEL/%s",filename)
-  elseif modname == "core" or modname == "base" then
-    -- these are under data path with no version in dir name
-    return string.format("DATA/%s/%s",modname,filename)
-  elseif modname == nil then
-    --something totally unrecognized?
-    return source
-  else
-    -- we found it! This will be a path relative to the `mods` directory.
-    local modver = game.active_mods[modname]
-    return string.format("MOD/%s_%s/%s",modname,modver,filename)
-  end
-end
-stepIgnoreFuncs[normalizeLuaSource] = true
+local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
+__DebugAdapter.stepIgnore(normalizeLuaSource)
 
 local breakpoints = {}
-local variablesReferences = {}
 local step = nil
 local stepdepth = 0
-
-local Variable -- this will be filled in later with a function...
 
 local remoteStack
 local remoteFName
@@ -75,7 +31,7 @@ local function remoteStepIn(remotestep,remoteUpStack,fname)
     step = remotestep
   end
 end
-stepIgnoreFuncs[remoteStepIn] = true
+__DebugAdapter.stepIgnore(remoteStepIn)
 
 local function remoteStepOut()
   local s = step
@@ -83,7 +39,7 @@ local function remoteStepOut()
   remoteStack = nil
   return s
 end
-stepIgnoreFuncs[remoteStepOut] = true
+__DebugAdapter.stepIgnore(remoteStepOut)
 
 local origremote = remote
 local function remotestepcall(remotename,method,...)
@@ -98,18 +54,28 @@ local function remotestepcall(remotename,method,...)
   end
   return table.unpack(result)
 end
-stepIgnoreFuncs[remotestepcall] = true
+__DebugAdapter.stepIgnore(remotestepcall)
 
 local function remotenewindex() end
-stepIgnoreFuncs[remotenewindex] = true
+__DebugAdapter.stepIgnore(remotenewindex)
 
 remote = {
   call = remotestepcall,
-  __original = origremote
+  __raw = origremote,
 }
 setmetatable(remote,{
   __index = origremote,
   __newindex = remotenewindex,
+  __debugline = function() return "LuaRemote Proxy" end,
+  __debugpairs = function() return pairs({
+    variables.create("interfaces",origremote.interfaces),
+    {
+      name = "__raw",
+      value = "LuaRemote",
+      type = "LuaRemote",
+      variablesReference = variables.luaObjectRef(origremote,"LuaRemote"),
+    },
+  }) end,
 })
 
 function __DebugAdapter.attach()
@@ -144,7 +110,7 @@ function __DebugAdapter.attach()
               local success,result = __DebugAdapter.evaluateInternal(frameId,"logpoint",b)
               local logpoint
               if success then
-                local varresult = Variable(nil,result)
+                local varresult = variables.create(nil,result)
                 logpoint = {
                   output = varresult.value,
                   variablesReference = varresult.variablesReference,
@@ -159,7 +125,7 @@ function __DebugAdapter.attach()
           end
         end
         -- cleanup variablesReferences
-        variablesReferences = {}
+        variables.refs = {}
       end
     --ignore "tail call" since it's just one of each
     elseif event == "call" then
@@ -280,7 +246,7 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
     print("DBGstack: " .. game.table_to_json(stackFrames))
   end
 end
-stepIgnoreFuncs[__DebugAdapter.stackTrace] = true
+__DebugAdapter.stepIgnore(__DebugAdapter.stackTrace)
 
 ---@return Module[]
 function __DebugAdapter.modules()
@@ -296,62 +262,16 @@ function __DebugAdapter.modules()
 end
 
 ---@param frameId number
----@param name string
----@return number
-local function scopeVarRef(frameId,name)
-  local id = #variablesReferences+1
-  variablesReferences[id] = {
-    type = name,
-    frameId = frameId,
-  }
-  return id
-end
-
----@param table table
----@param mode string "pairs"|"ipairs"|"count"
----@return number
-local function tableVarRef(table, mode)
-  for id,varRef in pairs(variablesReferences) do
-    if varRef.table == table then return id end
-  end
-  local id = #variablesReferences+1
-  variablesReferences[id] = {
-    type = "Table",
-    table = table,
-    useIpairs = mode == "ipairs",
-    useCount = mode == "count",
-  }
-  return id
-end
-
----@param luaObject LuaObject
----@param classname string
----@return number
-local function luaObjectVarRef(luaObject,classname)
-  if luaObjectInfo.noExpand[classname] then return 0 end
-  for id,varRef in pairs(variablesReferences) do
-    if varRef.object == luaObject then return id end
-  end
-  local id = #variablesReferences+1
-  variablesReferences[id] = {
-    type = "LuaObject",
-    object = luaObject,
-    classname = classname,
-  }
-  return id
-end
-
----@param frameId number
 ---@return Scope[]
 function __DebugAdapter.scopes(frameId)
   if debug.getinfo(frameId,"f") then
     print("DBGscopes: " .. game.table_to_json({frameId = frameId, scopes = {
       -- Global
-      { name = "Globals", variablesReference = tableVarRef(_G), expensive = true },
+      { name = "Globals", variablesReference = variables.tableRef(_G), expensive = true },
       -- Locals
-      { name = "Locals", variablesReference = scopeVarRef(frameId,"Locals") },
+      { name = "Locals", variablesReference = variables.scopeRef(frameId,"Locals") },
       -- Upvalues
-      { name = "Upvalues", variablesReference = scopeVarRef(frameId,"Upvalues") },
+      { name = "Upvalues", variablesReference = variables.scopeRef(frameId,"Upvalues") },
     }}))
   else
     print("DBGscopes: " .. game.table_to_json({frameId = frameId, scopes = {
@@ -360,94 +280,10 @@ function __DebugAdapter.scopes(frameId)
   end
 end
 
----@param obj LuaObject
----@return string
-local function LuaObjectType(obj)
-  local t = rawget(obj, "luaObjectType")
-  if t == nil then
-    --[[No way to avoid a pcall unfortunately]]
-    local success, help = pcall(function(obj) return obj.help() end, obj)
-    if not success then
-      --[[Extract type from error message, LuaStruct errors have "Classname: " others have "Classname "]]
-      t = string.sub(help, 1, string.find(help, ":? ") - 1)
-      --[[LuaStruct currently doens't identify what kind of struct, and has a different message. Will be fixed in 0.18 ]]
-      if t == "LuaStruct::luaIndex" then t = "LuaStruct" end
-    else
-      --[[Extract type from help message]]
-      t = string.sub(help, 10, string.find(help, ":") - 1)
-    end
-    rawset(obj, "luaObjectType", t)
-  end
-  return t
-end
-
----@param name any
----@param value any
----@return Variable
-Variable = function(name,value)
-  local namestr = serpent.line(name,{maxlevel = 1, nocode = true, metatostring=true})
-  local vtype = type(value)
-  if vtype == "table" then
-    -- only check __self and metatable, since top level objects (game, script, etc) don't have the magic string in .isluaobject
-    if type(value.__self) == "userdata" and getmetatable(value) == "private" then
-      vtype = LuaObjectType(value)
-      if vtype == "LuaCustomTable" then
-        return {
-          name = namestr,
-          value = ("%d items"):format(#value),
-          type = vtype,
-          variablesReference = tableVarRef(value),
-        }
-      else
-        local lineitem = luaObjectInfo.lineItem[vtype]
-        local val = vtype
-        if lineitem then
-          local success,result = pcall(lineitem,value)
-          if success then val = result end
-        end
-        return {
-          name = namestr,
-          value = val,
-          type = vtype,
-          variablesReference = luaObjectVarRef(value,vtype),
-        }
-      end
-    else
-      return {
-        name = namestr,
-        value = serpent.line(value,{maxlevel = 1, nocode = true, metatostring=true}),
-        type = vtype,
-        variablesReference = tableVarRef(value),
-      }
-    end
-  elseif vtype == "function" then
-    local info = debug.getinfo(value, "nS")
-    local funcdesc = "function"
-    if info.what == "C" then
-      funcdesc = "C function"
-    elseif info.what == "Lua" then
-      funcdesc = ("Lua function @%s:%d"):format(info.source and normalizeLuaSource(info.source),info.linedefined)
-    end
-    return {
-      name = namestr,
-      value = funcdesc,
-      type = vtype,
-      variablesReference = 0,
-    }
-  else
-    return {
-      name = namestr,
-      value = serpent.line(value),
-      type = vtype,
-      variablesReference = 0,
-    }
-  end
-end
-
 ---@param variablesReference integer
 ---@return Variable[]
 function __DebugAdapter.variables(variablesReference)
-  local varRef = variablesReferences[variablesReference]
+  local varRef = variables.refs[variablesReference]
   local vars = {}
   if varRef then
     if varRef.type == "Locals" then
@@ -458,14 +294,14 @@ function __DebugAdapter.variables(variablesReference)
         if name:sub(1,1) == "(" then
           name = ("%s %d)"):format(name:sub(1,-2),i)
         end
-        vars[#vars + 1] = Variable(name,value)
+        vars[#vars + 1] = variables.create(name,value)
         i = i + 1
       end
       i = -1
       while true do
         local name,value = debug.getlocal(varRef.frameId,i)
         if not name then break end
-        vars[#vars + 1] = Variable(("(*vararg %d)"):format(-i),value)
+        vars[#vars + 1] = variables.create(("(*vararg %d)"):format(-i),value)
         i = i - 1
       end
     elseif varRef.type == "Upvalues" then
@@ -474,17 +310,26 @@ function __DebugAdapter.variables(variablesReference)
       while true do
         local name,value = debug.getupvalue(func,i)
         if not name then break end
-        vars[#vars + 1] = Variable(name,value)
+        vars[#vars + 1] = variables.create(name,value)
         i = i + 1
       end
     elseif varRef.type == "Table" then
       if varRef.useCount then
         for i=1,#varRef.table do
-          vars[#vars + 1] = Variable(i,varRef.table[i])
+          vars[#vars + 1] = variables.create(i,varRef.table[i])
         end
       else
-        for k,v in (varRef.useIpairs and ipairs or pairs)(varRef.table) do
-          vars[#vars + 1] = Variable(k,v)
+        local mt = getmetatable(varRef.table)
+        if mt and mt.__debugchildren then
+          for _,var in mt.__debugchildren(varRef.table) do
+            vars[#vars + 1] = var
+          end
+        else
+          local debugpairs = varRef.useIpairs and ipairs or pairs
+
+          for k,v in debugpairs(varRef.table) do
+            vars[#vars + 1] = variables.create(k,v)
+          end
         end
       end
     elseif varRef.type == "LuaObject" then
@@ -514,13 +359,13 @@ function __DebugAdapter.variables(variablesReference)
                 name = "[]",
                 value = ("%d items"):format(#object),
                 type = varRef.classname .. "[]",
-                variablesReference = tableVarRef(object, keyprops.iterMode),
+                variablesReference = variables.tableRef(object, keyprops.iterMode),
                 presentationHint = { kind = "property", attributes = { "readOnly"} },
               }
             else
               local success,value = pcall(function() return object[key] end)
               if success and value ~= nil then
-                local var = Variable(key,value)
+                local var = variables.create(key,value)
                 var.presentationHint = var.presentationHint or {}
                 var.presentationHint.kind = "property"
                 if keyprops.readOnly then
@@ -675,7 +520,7 @@ function __DebugAdapter.evaluate(frameId,context,expression,seq)
   if info then
     local success,result = __DebugAdapter.evaluateInternal(frameId+1,context,expression,seq)
     if success then
-      evalresult = Variable(nil,result)
+      evalresult = variables.create(nil,result)
       evalresult.result = evalresult.value
       evalresult.name = nil
       evalresult.value = nil
@@ -694,7 +539,7 @@ end
 ---@param value string
 ---@param seq number
 function __DebugAdapter.setVariable(variablesReference, name, value, seq)
-  local varRef = variablesReferences[variablesReference]
+  local varRef = variables.refs[variablesReference]
   if varRef then
     if varRef.type == "Locals" then
       local i = 1
@@ -708,9 +553,9 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
           local goodvalue,newvalue = serpent.load(value,{safe=false})
           local success = pcall(debug.setlocal,varRef.frameId,i,newvalue)
           if goodvalue and success then
-            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = Variable(name,newvalue)}))
+            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(name,newvalue)}))
           else
-            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = Variable(name,oldvalue)}))
+            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(name,oldvalue)}))
           end
         end
         i = i + 1
@@ -724,9 +569,9 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
           local goodvalue,newvalue = serpent.load(value,{safe=false})
           local success = pcall(debug.setlocal,varRef.frameId,i,newvalue)
           if goodvalue and success then
-            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = Variable(name,newvalue)}))
+            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(name,newvalue)}))
           else
-            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = Variable(name,oldvalue)}))
+            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(name,oldvalue)}))
           end
         end
         i = i - 1
@@ -741,9 +586,9 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
           local goodvalue,newvalue = serpent.load(value,{safe=false})
           local success = pcall(debug.setupvalue, func,i,newvalue)
           if goodvalue and success then
-            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = Variable(name,newvalue)}))
+            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(name,newvalue)}))
           else
-            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = Variable(name,oldvalue)}))
+            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(name,oldvalue)}))
           end
         end
         i = i + 1
@@ -754,10 +599,10 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
       if goodname then
         local success = pcall(function() varRef.table[newname] = newvalue end)
         if goodvalue and success then
-          print("DBGsetvar: " .. game.table_to_json({seq = seq, body = Variable(newname,newvalue)}))
+          print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(newname,newvalue)}))
         else
           local _,oldvalue = pcall(function() return varRef.table[newname] end)
-          print("DBGsetvar: " .. game.table_to_json({seq = seq, body = Variable(newname,oldvalue)}))
+          print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(newname,oldvalue)}))
         end
       end
     elseif varRef.type == "LuaObject" then
@@ -766,7 +611,7 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
       if goodname and goodvalue then
         local success = pcall(function() varRef.object[newname] = newvalue end)
         local _,oldvalue = pcall(function() return varRef.object[newname] end)
-        print("DBGsetvar: " .. game.table_to_json({seq = seq, body = Variable(newname,oldvalue)}))
+        print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(newname,oldvalue)}))
       end
     end
   end
