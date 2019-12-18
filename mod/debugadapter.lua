@@ -357,7 +357,7 @@ function __DebugAdapter.scopes(frameId)
     }}))
   else
     print("DBGscopes: " .. game.table_to_json({frameId = frameId, scopes = {
-      { name = "Remote Variables Unavaialbe", variablesReference = 0 },
+      { name = "Remote Variables Unavailable", variablesReference = 0 },
     }}))
   end
 end
@@ -663,16 +663,21 @@ end
 ---@param expression string
 ---@param seq number
 function __DebugAdapter.evaluate(frameId,context,expression,seq)
-  local success,result = __DebugAdapter.evaluateInternal(frameId+1,context,expression,seq)
+  local info = debug.getinfo(frameId,"f")
   local evalresult
-  if success then
-    evalresult = Variable(nil,result)
-    evalresult.result = evalresult.value
-    evalresult.name = nil
-    evalresult.value = nil
-    evalresult.seq = seq
+  if info then
+    local success,result = __DebugAdapter.evaluateInternal(frameId+1,context,expression,seq)
+    if success then
+      evalresult = Variable(nil,result)
+      evalresult.result = evalresult.value
+      evalresult.name = nil
+      evalresult.value = nil
+      evalresult.seq = seq
+    else
+      evalresult = {result = result, type="error", variablesReference=0, seq=seq}
+    end
   else
-    evalresult = {result = result, type="error", variablesReference=0, seq=seq}
+    evalresult = {result = "Cannot Evaluate in Remote Frame", type="error", variablesReference=0, seq=seq}
   end
   print("DBGeval: " .. game.table_to_json(evalresult))
 end
