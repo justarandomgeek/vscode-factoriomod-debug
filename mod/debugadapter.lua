@@ -67,7 +67,7 @@ local remoteFName
 ---@param remoteUpStack StackFrame[]
 local function remoteStepIn(remotestep,remoteUpStack,fname)
   if remoteStack then
-    print(("WARN: %s"):format(serpent.line(remoteStack)))
+    print(("WARN: overwriting remote stack %s"):format(serpent.line(remoteStack)))
   end
   remoteStack = remoteUpStack
   remoteFName = fname
@@ -86,35 +86,29 @@ end
 stepIgnoreFuncs[remoteStepOut] = true
 
 local origremote = remote
-local function remotestepcall(modname,method,...)
-  local remotename = "__debugadapter_"..modname
-  local remotehasdebug = origremote.interfaces[remotename]
+local function remotestepcall(remotename,method,...)
+  local debugname = "__debugadapter_"..remotename -- assume remotename is modname for now...
+  local remotehasdebug = origremote.interfaces[debugname]
   if remotehasdebug then
-    origremote.call(remotename,"remoteStepIn",step, __DebugAdapter.stackTrace(-2, nil, true), method)
+    origremote.call(debugname,"remoteStepIn",step, __DebugAdapter.stackTrace(-2, nil, true), method)
   end
-  local result = {origremote.call(modname,method,...)}
+  local result = {origremote.call(remotename,method,...)}
   if remotehasdebug then
-    step = origremote.call(remotename,"remoteStepOut")
+    step = origremote.call(debugname,"remoteStepOut")
   end
   return table.unpack(result)
 end
 stepIgnoreFuncs[remotestepcall] = true
 
-local function remoteindex(t,k)
-  if k == "call" then
-    return remotestepcall
-  else
-    return origremote[k]
-  end
-end
-stepIgnoreFuncs[remoteindex] = true
-
 local function remotenewindex() end
 stepIgnoreFuncs[remotenewindex] = true
 
-remote = { __original = origremote}
+remote = {
+  call = remotestepcall,
+  __original = origremote
+}
 setmetatable(remote,{
-  __index = remoteindex,
+  __index = origremote,
   __newindex = remotenewindex,
 })
 
