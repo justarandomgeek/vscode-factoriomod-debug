@@ -23,6 +23,8 @@ local function normalizeLuaSource(source)
     end
   end
   -- scenario scripts may provide hints to where they came from...
+  -- cross-mod require doesn't allow __level__ so these can only ever be
+  -- seen within the `level` modstate, where the hint will be visible
   if modname == "level" then
     if levelpath then
     modname = levelpath.modname
