@@ -1,12 +1,25 @@
 local luaObjectInfo = require("__debugadapter__/luaobjectinfo.lua")
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 
-local variables = {
-  refs = {},
-
+-- Trying to expand the refs table causes some problems, so just hide it...
+local refsmeta = {
+  __debugline = "Debug Adapter Variable ID Cache",
+  __debugchildren = function(t) return pairs({
+    {
+      name = "<hidden>",
+      value = "hidden",
+      variablesReference = 0,
+    },
+  }) end,
 }
 
+local variables = {
+  refs = setmetatable({},refsmeta),
+}
 
+function variables.clear()
+  variables.refs = setmetatable({},refsmeta)
+end
 
 ---@param frameId number
 ---@param name string
@@ -89,7 +102,12 @@ function variables.create(name,value)
       local lineitem = serpent.line(value,{maxlevel = 1, nocode = true, metatostring=true})
       local mt = getmetatable(value)
       if mt and mt.__debugline then
-        lineitem = mt.__debugline(value)
+        local dltype = type(mt.__debugline)
+        if dltype == "function" then
+          lineitem = mt.__debugline(value)
+        elseif dltype == "string" then
+          lineitem = mt.__debugline
+        end
       end
       return {
         name = namestr,
@@ -120,6 +138,144 @@ function variables.create(name,value)
       variablesReference = 0,
     }
   end
+end
+
+---@param variablesReference integer
+---@return Variable[]
+function __DebugAdapter.variables(variablesReference)
+  local varRef = variables.refs[variablesReference]
+  local vars = {}
+  if varRef then
+    if varRef.type == "Locals" then
+      local i = 1
+      while true do
+        local name,value = debug.getlocal(varRef.frameId,i)
+        if not name then break end
+        if name:sub(1,1) == "(" then
+          name = ("%s %d)"):format(name:sub(1,-2),i)
+        end
+        vars[#vars + 1] = variables.create(name,value)
+        i = i + 1
+      end
+      i = -1
+      while true do
+        local name,value = debug.getlocal(varRef.frameId,i)
+        if not name then break end
+        vars[#vars + 1] = variables.create(("(*vararg %d)"):format(-i),value)
+        i = i - 1
+      end
+    elseif varRef.type == "Upvalues" then
+      local func = debug.getinfo(varRef.frameId,"f").func
+      local i = 1
+      while true do
+        local name,value = debug.getupvalue(func,i)
+        if not name then break end
+        vars[#vars + 1] = variables.create(name,value)
+        i = i + 1
+      end
+    elseif varRef.type == "Table" then
+      -- use debug.getmetatable insead of getmetatable to get raw meta instead of __metatable result
+      local mt = debug.getmetatable(varRef.table)
+      if varRef.useCount then
+        --don't show __mt on these by default as they're mostly LuaObjects providing count iteration anyway
+        if varRef.showMeta == true and mt then
+          vars[#vars + 1]{
+            name = "<metatable>",
+            value = "metatable",
+            type = "metatable",
+            variablesReference = variables.tableRef(mt),
+          }
+        end
+        for i=1,#varRef.table do
+          vars[#vars + 1] = variables.create(i,varRef.table[i])
+        end
+      else
+        if mt and mt.__debugchildren then
+          for _,var in mt.__debugchildren(varRef.table) do
+            vars[#vars + 1] = var
+          end
+        else
+          -- show metatables by default for table-like objects
+          if varRef.showMeta ~= false and mt then
+            vars[#vars + 1] = {
+              name = "<metatable>",
+              value = "metatable",
+              type = "metatable",
+              variablesReference = variables.tableRef(mt),
+            }
+          end
+          local debugpairs = varRef.useIpairs and ipairs or pairs
+          for k,v in debugpairs(varRef.table) do
+            vars[#vars + 1] = variables.create(k,v)
+          end
+        end
+      end
+    elseif varRef.type == "LuaObject" then
+      local object = varRef.object
+      if luaObjectInfo.alwaysValid[varRef.classname] or object.valid then
+        if varRef.classname == "LuaItemStack" and not object.valid_for_read then
+          vars[#vars + 1] = {
+            name = [["valid"]],
+            value = "true",
+            type = "boolean",
+            variablesReference = 0,
+            presentationHint = { kind = "property", attributes = { "readOnly" } },
+          }
+          vars[#vars + 1] = {
+            name = [["valid_for_read"]],
+            value = "false",
+            type = "boolean",
+            variablesReference = 0,
+            presentationHint = { kind = "property", attributes = { "readOnly" } },
+          }
+        else
+          local keys = luaObjectInfo.expandKeys[varRef.classname]
+          if not keys then print("Missing keys for class " .. varRef.classname) end
+          for key,keyprops in pairs(keys) do
+            if keyprops.thisAsTable then
+              vars[#vars + 1] = {
+                name = "[]",
+                value = ("%d items"):format(#object),
+                type = varRef.classname .. "[]",
+                variablesReference = variables.tableRef(object, keyprops.iterMode),
+                presentationHint = { kind = "property", attributes = { "readOnly" } },
+              }
+            else
+              local success,value = pcall(function() return object[key] end)
+              if success and value ~= nil then
+                local var = variables.create(key,value)
+                var.presentationHint = var.presentationHint or {}
+                var.presentationHint.kind = "property"
+                if keyprops.readOnly then
+                  var.presentationHint.attributes = var.presentationHint.attributes or {}
+                  var.presentationHint.attributes[#var.presentationHint.attributes + 1] = "readOnly"
+                end
+                vars[#vars + 1] = var
+              end
+            end
+          end
+        end
+      else
+        vars[#vars + 1] = {
+          name = [["valid"]],
+          value = "false",
+          type = "boolean",
+          variablesReference = 0,
+          presentationHint = { kind = "property", attributes = { "readOnly" } },
+        }
+      end
+    end
+  end
+  if #vars == 0 then
+    vars[1] = {
+      name = "<empty>",
+      value = "empty",
+      type = "empty",
+      variablesReference = 0,
+      presentationHint = { kind = "property", attributes = { "readOnly" } },
+    }
+  end
+  print("DBGvars: " .. game.table_to_json({variablesReference = variablesReference, vars = vars}))
 end
 
 return variables

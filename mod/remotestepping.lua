@@ -82,7 +82,7 @@ remote = {
 setmetatable(remote,{
   __index = origremote,
   __newindex = remotenewindex,
-  __debugline = function() return "LuaRemote Stepping Proxy" end,
+  __debugline = "LuaRemote Stepping Proxy",
   __debugchildren = function(t) return pairs({
     variables.create("interfaces",origremote.interfaces),
     {
