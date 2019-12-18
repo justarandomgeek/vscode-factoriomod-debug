@@ -20,16 +20,20 @@ local remoteFName
 
 -- hook remote.call so i can step into it across mods...
 
+---@param remotestep string | "next" | "in" | "over" | "out"
 ---@param remoteUpStack StackFrame[]
+---@param fname string
+
 local function remoteStepIn(remotestep,remoteUpStack,fname)
   if remoteStack then
     print(("WARN: overwriting remote stack %s"):format(serpent.line(remoteStack)))
   end
   remoteStack = remoteUpStack
   remoteFName = fname
-  if remotestep ~= "over" then
-    step = remotestep
+  if remotestep and (remotestep == "over" or remotestep == "out" or remotestep:match("^remote")) then
+    remotestep = "remote" .. remotestep
   end
+  step = remotestep
 end
 __DebugAdapter.stepIgnore(remoteStepIn)
 
@@ -37,6 +41,8 @@ local function remoteStepOut()
   local s = step
   step = nil
   remoteStack = nil
+  local remoteevent = s and s:match("^remote(.+)$")
+  if remoteevent then return remoteevent end
   return s
 end
 __DebugAdapter.stepIgnore(remoteStepOut)
@@ -66,11 +72,11 @@ remote = {
 setmetatable(remote,{
   __index = origremote,
   __newindex = remotenewindex,
-  __debugline = function() return "LuaRemote Proxy" end,
-  __debugpairs = function() return pairs({
+  __debugline = function() return "LuaRemote Stepping Proxy" end,
+  __debugchildren = function() return pairs({
     variables.create("interfaces",origremote.interfaces),
     {
-      name = "__raw",
+      name = "<raw>",
       value = "LuaRemote",
       type = "LuaRemote",
       variablesReference = variables.luaObjectRef(origremote,"LuaRemote"),
