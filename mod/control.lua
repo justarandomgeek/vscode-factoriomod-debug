@@ -1,3 +1,7 @@
+
+-- require DA to have a non-pcall require for syntax checking
+require('__debugadapter__/debugadapter.lua')
+
 local function callAll(funcname,...)
   local results = {}
   for name,version in pairs(game.active_mods) do

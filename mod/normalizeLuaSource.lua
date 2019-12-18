@@ -8,6 +8,7 @@ if script.mod_name == "level" then
       basepath = basepath,
     }
   end
+  __DebugAdapter.stepIgnore(__DebugAdapter.levelPath)
 end
 
 ---@param source string
@@ -44,5 +45,5 @@ local function normalizeLuaSource(source)
     return string.format("MOD/%s_%s/%s",modname,modver,filename)
   end
 end
-
+__DebugAdapter.stepIgnore(normalizeLuaSource)
 return normalizeLuaSource

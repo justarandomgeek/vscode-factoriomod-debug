@@ -1,88 +1,21 @@
 -- this is a global so the vscode extension can get to it from debug.debug()
 __DebugAdapter = {}
+
+--this has to be defined before requiring other files so they can mark functions as ignored
 local stepIgnoreFuncs = {}
+---@param f function
 function __DebugAdapter.stepIgnore(f)
   stepIgnoreFuncs[f] = true
 end
 
 local luaObjectInfo = require("__debugadapter__/luaobjectinfo.lua")
 local variables = require("__debugadapter__/variables.lua")
-
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
-__DebugAdapter.stepIgnore(normalizeLuaSource)
+local remotestepping = require("__debugadapter__/remotestepping.lua")
 
 local breakpoints = {}
-local step = nil
+local stepmode = nil
 local stepdepth = 0
-
-local remoteStack
-local remoteFName
-
--- hook remote.call so i can step into it across mods...
-
----@param remotestep string | "next" | "in" | "over" | "out"
----@param remoteUpStack StackFrame[]
----@param fname string
-
-local function remoteStepIn(remotestep,remoteUpStack,fname)
-  if remoteStack then
-    print(("WARN: overwriting remote stack %s"):format(serpent.line(remoteStack)))
-  end
-  remoteStack = remoteUpStack
-  remoteFName = fname
-  if remotestep and (remotestep == "over" or remotestep == "out" or remotestep:match("^remote")) then
-    remotestep = "remote" .. remotestep
-  end
-  step = remotestep
-end
-__DebugAdapter.stepIgnore(remoteStepIn)
-
-local function remoteStepOut()
-  local s = step
-  step = nil
-  remoteStack = nil
-  local remoteevent = s and s:match("^remote(.+)$")
-  if remoteevent then return remoteevent end
-  return s
-end
-__DebugAdapter.stepIgnore(remoteStepOut)
-
-local origremote = remote
-local function remotestepcall(remotename,method,...)
-  local debugname = "__debugadapter_"..remotename -- assume remotename is modname for now...
-  local remotehasdebug = origremote.interfaces[debugname]
-  if remotehasdebug then
-    origremote.call(debugname,"remoteStepIn",step, __DebugAdapter.stackTrace(-2, nil, true), method)
-  end
-  local result = {origremote.call(remotename,method,...)}
-  if remotehasdebug then
-    step = origremote.call(debugname,"remoteStepOut")
-  end
-  return table.unpack(result)
-end
-__DebugAdapter.stepIgnore(remotestepcall)
-
-local function remotenewindex() end
-__DebugAdapter.stepIgnore(remotenewindex)
-
-remote = {
-  call = remotestepcall,
-  __raw = origremote,
-}
-setmetatable(remote,{
-  __index = origremote,
-  __newindex = remotenewindex,
-  __debugline = function() return "LuaRemote Stepping Proxy" end,
-  __debugchildren = function() return pairs({
-    variables.create("interfaces",origremote.interfaces),
-    {
-      name = "<raw>",
-      value = "LuaRemote",
-      type = "LuaRemote",
-      variablesReference = variables.luaObjectRef(origremote,"LuaRemote"),
-    },
-  }) end,
-})
 
 function __DebugAdapter.attach()
   local getinfo = debug.getinfo
@@ -98,8 +31,8 @@ function __DebugAdapter.attach()
       -- serpent itself will also always show up as one of these
       if sub(s,1,1) == "@" then
         s = normalizeLuaSource(s)
-        if step == "in" or step == "next" or (step == "over" and stepdepth==0) then
-          step = nil
+        if stepmode == "in" or stepmode == "next" or (stepmode == "over" and stepdepth==0) then
+          stepmode = nil
           print(format("DBG: step %s:%d", s, line))
           debugprompt()
         else
@@ -107,6 +40,10 @@ function __DebugAdapter.attach()
           if filebreaks then
             local b = filebreaks[line]
             if b == true then
+              if (stepmode == "over") then
+                stepmode = nil
+                stepdepth = 0
+              end
               print(format("DBG: breakpoint %s:%d", s, line))
               debugprompt()
             elseif type(b) == "string" then
@@ -138,7 +75,7 @@ function __DebugAdapter.attach()
       local s = getinfo(2,"S").source
       if sub(s,1,1) == "@" then
         s = normalizeLuaSource(s)
-        if step == "over" or step == "out" then
+        if stepmode == "over" or stepmode == "out" then
           stepdepth = stepdepth + 1
         end
       end
@@ -146,11 +83,11 @@ function __DebugAdapter.attach()
       local s = getinfo(2,"S").source
       if sub(s,1,1) == "@" then
         s = normalizeLuaSource(s)
-        if step == "over" then
+        if stepmode == "over" then
           stepdepth = stepdepth - 1
-        elseif step == "out" then
+        elseif stepmode == "out" then
           if stepdepth == 0 then
-            step = "next"
+            stepmode = "next"
           end
           stepdepth = stepdepth - 1
         end
@@ -178,11 +115,25 @@ function __DebugAdapter.setBreakpoints(source,breaks)
   end
 end
 
-function __DebugAdapter.step(steptype)
-  step = steptype or "next"
-  stepdepth = 0
-  print("DBGstep")
+---@param steptype string "remote"*("next" | "in" | "over" | "out")
+---@param silent nil | boolean
+function __DebugAdapter.step(steptype,silent)
+  stepmode = steptype
+  if stepmode == "over" and stepdepth ~= 0 then
+    print(("over with existing depth! %d"):format(stepdepth))
+  end
+  if not silent then
+    print("DBGstep")
+  end
 end
+__DebugAdapter.stepIgnore(__DebugAdapter.step)
+
+---@return string "remote"*("next" | "in" | "over" | "out")
+function __DebugAdapter.currentStep()
+  return stepmode
+end
+__DebugAdapter.stepIgnore(__DebugAdapter.currentStep)
+
 
 ---@param startFrame integer | nil
 ---@param levels integer | nil
@@ -231,14 +182,15 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
     if #stackFrames == levels then break end
   end
 
+  local remoteStack = remotestepping.parentStack()
   if remoteStack then
+    local remoteFName = remotestepping.entryFunction()
     if remoteFName then
       if forRemote then
         stackFrames[#stackFrames].name = ("[%s] %s"):format(script.mod_name, remoteFName)
       else
         stackFrames[#stackFrames].name = remoteFName
       end
-
     end
     for _,frame in pairs(remoteStack) do
       frame.id = i
@@ -641,14 +593,17 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
   end
 end
 
--- in addition to the global, set up a remote so we can attach/detach/configure from DA's on_tick
-log("debugadapter registered for " .. script.mod_name)
-remote.add_interface("__debugadapter_" .. script.mod_name ,{
-  attach = __DebugAdapter.attach,
-  detach = __DebugAdapter.detach,
-  setBreakpoints = __DebugAdapter.setBreakpoints,
-  remoteStepIn = remoteStepIn,
-  remoteStepOut = remoteStepOut,
-})
+-- don't hook myself!
+if script.mod_name ~= "debugadapter" then
+  -- in addition to the global, set up a remote so we can attach/detach/configure from DA's on_tick
+  log("debugadapter registered for " .. script.mod_name)
+  remote.add_interface("__debugadapter_" .. script.mod_name ,{
+    attach = __DebugAdapter.attach,
+    detach = __DebugAdapter.detach,
+    setBreakpoints = __DebugAdapter.setBreakpoints,
+    remoteStepIn = remotestepping.stepIn,
+    remoteStepOut = remotestepping.stepOut,
+  })
+end
 
 return __DebugAdapter
