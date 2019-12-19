@@ -88,7 +88,7 @@ __DebugAdapter.stepIgnore(remotestepremove)
 local function remotenewindex() end
 __DebugAdapter.stepIgnore(remotenewindex)
 
-newremote = {
+local newremote = {
   call = remotestepcall,
   add_interface = remotestepadd,
   remove_interface = remotestepremove,
