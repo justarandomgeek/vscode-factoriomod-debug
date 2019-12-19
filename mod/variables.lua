@@ -4,13 +4,13 @@ local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 -- Trying to expand the refs table causes some problems, so just hide it...
 local refsmeta = {
   __debugline = "Debug Adapter Variable ID Cache",
-  __debugchildren = function(t) return pairs({
+  __debugchildren = function(t) return {
     {
       name = "<hidden>",
       value = "hidden",
       variablesReference = 0,
     },
-  }) end,
+  } end,
 }
 
 local variables = {
@@ -190,8 +190,8 @@ function __DebugAdapter.variables(variablesReference)
           vars[#vars + 1] = variables.create(i,varRef.table[i])
         end
       else
-        if mt and mt.__debugchildren then
-          for _,var in mt.__debugchildren(varRef.table) do
+        if mt and type(mt.__debugchildren) == "function" then
+          for _,var in pairs(mt.__debugchildren(varRef.table)) do
             vars[#vars + 1] = var
           end
         else
@@ -276,6 +276,89 @@ function __DebugAdapter.variables(variablesReference)
     }
   end
   print("DBGvars: " .. game.table_to_json({variablesReference = variablesReference, vars = vars}))
+end
+
+---@param variablesReference integer
+---@param name string
+---@param value string
+---@param seq number
+function __DebugAdapter.setVariable(variablesReference, name, value, seq)
+  local varRef = variables.refs[variablesReference]
+  if varRef then
+    if varRef.type == "Locals" then
+      local i = 1
+      while true do
+        local lname,oldvalue = debug.getlocal(varRef.frameId,i)
+        if not lname then break end
+        if lname:sub(1,1) == "(" then
+          lname = ("%s %d)"):format(lname:sub(1,-2),i)
+        end
+        if serpent.line(lname) == name then
+          local goodvalue,newvalue = serpent.load(value,{safe=false})
+          local success = pcall(debug.setlocal,varRef.frameId,i,newvalue)
+          if goodvalue and success then
+            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(name,newvalue)}))
+          else
+            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(name,oldvalue)}))
+          end
+        end
+        i = i + 1
+      end
+      i = -1
+      while true do
+        local vaname,oldvalue = debug.getlocal(varRef.frameId,i)
+        if not vaname then break end
+        vaname = ("(*vararg %d)"):format(-i)
+        if serpent.line(vaname) == name then
+          local goodvalue,newvalue = serpent.load(value,{safe=false})
+          local success = pcall(debug.setlocal,varRef.frameId,i,newvalue)
+          if goodvalue and success then
+            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(name,newvalue)}))
+          else
+            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(name,oldvalue)}))
+          end
+        end
+        i = i - 1
+      end
+    elseif varRef.type == "Upvalues" then
+      local func = debug.getinfo(varRef.frameId,"f").func
+      local i = 1
+      while true do
+        local upname,oldvalue = debug.getupvalue(func,i)
+        if not upname then break end
+        if serpent.line(upname) == name then
+          local goodvalue,newvalue = serpent.load(value,{safe=false})
+          local success = pcall(debug.setupvalue, func,i,newvalue)
+          if goodvalue and success then
+            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(name,newvalue)}))
+          else
+            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(name,oldvalue)}))
+          end
+        end
+        i = i + 1
+      end
+    elseif varRef.type == "Table" then
+      local goodvalue,newvalue = serpent.load(value,{safe=false})
+      local goodname,newname = serpent.load(name,{safe=false})
+      if goodname then
+        local success = pcall(function() varRef.table[newname] = newvalue end)
+        if goodvalue and success then
+          print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(newname,newvalue)}))
+        else
+          local _,oldvalue = pcall(function() return varRef.table[newname] end)
+          print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(newname,oldvalue)}))
+        end
+      end
+    elseif varRef.type == "LuaObject" then
+      local goodvalue,newvalue = serpent.load(value,{safe=false})
+      local goodname,newname = serpent.load(name,{safe=false}) -- special name "[]" isn't valid lua so it won't parse anyway
+      if goodname and goodvalue then
+        local success = pcall(function() varRef.object[newname] = newvalue end)
+        local _,oldvalue = pcall(function() return varRef.object[newname] end)
+        print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(newname,oldvalue)}))
+      end
+    end
+  end
 end
 
 return variables
