@@ -6,22 +6,21 @@ local variables = require("__debugadapter__/variables.lua")
 -- using the `__debugline` and `__debugchildren` metamethods.
 -- The original `remote` LuaRemote object is available at `remote.__raw`.
 
-local remotestepping = {
+local remotestepping = {}
 
-}
-
-local remoteStack
-local remoteFName
+local stacks = {}
 
 ---@return StackFrame[]
 function remotestepping.parentStack()
-  return remoteStack
+  local level = stacks[#stacks]
+  return level and level.stack
 end
 __DebugAdapter.stepIgnore(remotestepping.parentStack)
 
 ---@return string
 function remotestepping.entryFunction()
-  return remoteFName
+  local level = stacks[#stacks]
+  return level and level.name
 end
 __DebugAdapter.stepIgnore(remotestepping.entryFunction)
 
@@ -29,16 +28,13 @@ __DebugAdapter.stepIgnore(remotestepping.entryFunction)
 ---@param remoteUpStack StackFrame[]
 ---@param fname string
 function remotestepping.stepIn(parentstep,remoteUpStack,fname)
-  if remoteStack then
-    --TODO: stack of stacks, for cases like A->B->A->B
-    print(("WARN: overwriting remote stack %s"):format(serpent.line(remoteStack)))
-  end
-  remoteStack = remoteUpStack
-  remoteFName = fname
+  stacks[#stacks+1] = {
+    stack = remoteUpStack,
+    name = fname,
+  }
   if parentstep and (parentstep == "over" or parentstep == "out" or parentstep:match("^remote")) then
     parentstep = "remote" .. parentstep
   end
-  print(("child step before: %s"):format(parentstep))
   __DebugAdapter.step(parentstep,true)
 end
 __DebugAdapter.stepIgnore(remotestepping.stepIn)
@@ -46,7 +42,6 @@ __DebugAdapter.stepIgnore(remotestepping.stepIn)
 ---@return string "remote"*("next" | "in" | "over" | "out")
 function remotestepping.stepOut()
   local parentstep = __DebugAdapter.currentStep()
-  print(("child step after: %s"):format(parentstep))
   __DebugAdapter.step(nil,true)
   remoteStack = nil
   parentstep = parentstep and parentstep:match("^remote(.+)$") or parentstep
@@ -59,13 +54,11 @@ local function remotestepcall(remotename,method,...)
   local debugname = "__debugadapter_"..remotename -- assume remotename is modname for now...
   local remotehasdebug = origremote.interfaces[debugname]
   if remotehasdebug then
-    print(("parent step before: %s"):format(__DebugAdapter.currentStep()))
     origremote.call(debugname,"remoteStepIn",__DebugAdapter.currentStep(), __DebugAdapter.stackTrace(-2, nil, true), method)
   end
   local result = {origremote.call(remotename,method,...)}
   if remotehasdebug then
     local childstep = origremote.call(debugname,"remoteStepOut")
-    print(("parent step after: %s"):format(childstep))
     __DebugAdapter.step(childstep,true)
   end
   return table.unpack(result)
