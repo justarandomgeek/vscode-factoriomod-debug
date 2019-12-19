@@ -4,13 +4,7 @@ local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 -- Trying to expand the refs table causes some problems, so just hide it...
 local refsmeta = {
   __debugline = "Debug Adapter Variable ID Cache [{#self}]",
-  __debugchildren = function(t) return {
-    {
-      name = "<hidden>",
-      value = "hidden",
-      variablesReference = 0,
-    },
-  } end,
+  __debugchildren = false,
 }
 
 local variables = {
@@ -161,7 +155,10 @@ function variables.create(name,value)
   elseif vtype:sub(1,3) == "Lua" then
     variablesReference = variables.luaObjectRef(value,vtype)
   elseif vtype == "table" then
-    variablesReference = variables.tableRef(value)
+    local mt = debug.getmetatable(value)
+    if not mt or mt.__debugchildren ~= false then
+      variablesReference = variables.tableRef(value)
+    end
   end
     return {
       name = name,

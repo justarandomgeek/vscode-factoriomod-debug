@@ -26,8 +26,9 @@ function __DebugAdapter.attach()
       -- serpent itself will also always show up as one of these
       if sub(s,1,1) == "@" then
         s = normalizeLuaSource(s)
-        if stepmode == "in" or stepmode == "next" or (stepmode == "over" and stepdepth==0) then
+        if stepmode == "in" or stepmode == "next" or (stepmode == "over" and stepdepth<=0) then
           stepmode = nil
+          stepdepth = 0
           print(format("DBG: step %s:%d", s, line))
           debugprompt()
         else
@@ -76,8 +77,9 @@ function __DebugAdapter.attach()
         if stepmode == "over" then
           stepdepth = stepdepth - 1
         elseif stepmode == "out" then
-          if stepdepth == 0 then
+          if stepdepth <= 0 then
             stepmode = "next"
+            stepdepth = 0
           end
           stepdepth = stepdepth - 1
         end
@@ -109,8 +111,13 @@ end
 ---@param silent nil | boolean
 function __DebugAdapter.step(steptype,silent)
   stepmode = steptype
-  if stepmode == "over" and stepdepth ~= 0 then
-    print(("over with existing depth! %d"):format(stepdepth))
+  if stepmode == "over" or stepmode == "out" then
+    if not silent then
+      stepdepth = 0
+    end
+    if stepdepth ~= 0 then
+      print(("%s with existing depth! %d"):format(stepmode,stepdepth))
+    end
   end
   if not silent then
     print("DBGstep")
@@ -123,3 +130,12 @@ function __DebugAdapter.currentStep()
   return stepmode
 end
 __DebugAdapter.stepIgnore(__DebugAdapter.currentStep)
+
+return setmetatable({},{
+  __debugline = "Debug Adapter Stepping Module",
+  __debugchildren = function(t) return {
+    variables.create("<breakpoints>",breakpoints),
+    variables.create("<stepmode>",stepmode),
+    variables.create("<stepdepth>",stepdepth),
+  } end,
+})
