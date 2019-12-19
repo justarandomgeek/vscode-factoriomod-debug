@@ -4,7 +4,7 @@ local function evalmeta(frameId,alsoLookIn)
   local getinfo = debug.getinfo
   local getlocal = debug.getlocal
   local getupvalue = debug.getupvalue
-  local g = _G
+  local env = _ENV
   return {
     __index = function(t,k)
       -- go ahead and loop these back...
@@ -58,7 +58,7 @@ local function evalmeta(frameId,alsoLookIn)
       end
 
       --else forward to global lookup...
-      return g[k]
+      return env[k]
     end,
     __newindex = function(t,k,v)
       -- don't allow setting _ENV or _G in evals
@@ -120,7 +120,7 @@ local function evalmeta(frameId,alsoLookIn)
       end
 
       --else forward to global...
-      g[k] = v
+      env[k] = v
     end
   }
 end
@@ -130,7 +130,7 @@ end
 ---@param context string
 ---@param expression string
 function __DebugAdapter.evaluateInternal(frameId,alsoLookIn,context,expression)
-  local env = _G
+  local env = _ENV
   if frameId or alsoLookIn then
     env = setmetatable({},evalmeta(frameId,alsoLookIn))
   end
