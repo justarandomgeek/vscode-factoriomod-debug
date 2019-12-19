@@ -6,14 +6,14 @@
 	"description": "Debug Adapter for developing Factorio Mods",
 	"author": {
 		"name": "justarandomgeek",
-		"email": "factoriomod-debug@justarandomgeek.com"
+		"email": "justarandomgeek@live.com"
 	},
 	"license": "MIT",
 	"keywords": [
 		"multi-root ready"
 	],
 	"engines": {
-		"vscode": "^1.41.0"
+		"vscode": "^1.42.0"
 	},
 	"icon": "images/factoriomod-debug-icon.png",
 	"categories": [
@@ -39,7 +39,7 @@
 	"dependencies": {
 		"await-notify": "1.0.1",
 		"stream-splitter": "^0.3.2",
-		"vscode-debugadapter": "1.38.0-pre.1"
+		"vscode-debugadapter": "1.38.0-pre.4"
 	},
 	"devDependencies": {
 		"@types/node": "10.12.12",
@@ -93,9 +93,9 @@
 						"type": "factoriomod",
 						"request": "launch",
 						"name": "Factorio Mod Debug",
-						"modsPath" : "%appdata%/Factorio/mods",
-						"dataPath" : "d:/factorio/Factorio_0.17/data",
-						"factorioPath" : "d:/factorio/Factorio_0.17/bin/x64/factorio.exe"
+						"modsPath": "%appdata%/Factorio/mods",
+						"dataPath": "d:/factorio/Factorio_0.17/data",
+						"factorioPath": "d:/factorio/Factorio_0.17/bin/x64/factorio.exe"
 					}
 				],
 				"configurationSnippets": [
@@ -106,9 +106,9 @@
 							"type": "factoriomod",
 							"request": "launch",
 							"name": "Factorio Mod Debug",
-							"modsPath" : "%appdata%/Factorio/mods",
-							"dataPath" : "d:/factorio/Factorio_0.17/data",
-							"factorioPath" : "d:/factorio/Factorio_0.17/bin/x64/factorio.exe"
+							"modsPath": "%appdata%/Factorio/mods",
+							"dataPath": "d:/factorio/Factorio_0.17/data",
+							"factorioPath": "d:/factorio/Factorio_0.17/bin/x64/factorio.exe"
 						}
 					}
 				]
