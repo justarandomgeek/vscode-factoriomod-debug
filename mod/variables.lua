@@ -93,15 +93,16 @@ function variables.describe(value,short)
     else -- non-LuaObject tables
       local mt = debug.getmetatable(value)
       if mt and mt.__debugline then -- it knows how to make a line for itself...
-        local dltype = type(mt.__debugline)
+        local debugline = mt.__debugline
+        local dltype = type(debugline)
         if dltype == "function" then
           -- don't crash a debug session for a bad user-provided formatter...
-          local success,result = pcall(mt.__debugline,value,short)
+          local success,result = pcall(debugline,value,short)
           if success then
             lineitem = result
           end
         elseif dltype == "string" then
-          lineitem = __DebugAdapter.stringInterp(mt.__debugline,nil,value,"metadebugline")
+          lineitem = __DebugAdapter.stringInterp(debugline,nil,value,"metadebugline")
         end
       else
         if short then
@@ -113,7 +114,7 @@ function variables.describe(value,short)
             lineitem = "{}"
           end
         else
-          -- generate { shortdescribe(key) = shortdescribe(value) }
+          -- generate { shortdescribe(key)=shortdescribe(value), ... }
           if next(value) then
             local innerpairs = { "{ " }
             for k,v in pairs(value) do
