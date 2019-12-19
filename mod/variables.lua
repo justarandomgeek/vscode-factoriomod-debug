@@ -70,8 +70,9 @@ function variables.luaObjectRef(luaObject,classname)
 end
 
 ---@param value any
+---@param short nil | boolean
 ---@return string, string
-function variables.describe(value)
+function variables.describe(value,short)
   local lineitem
   local vtype = type(value)
   if vtype == "table" then
@@ -79,12 +80,12 @@ function variables.describe(value)
     if type(value.__self) == "userdata" and getmetatable(value) == "private" then
       vtype = luaObjectInfo.classname(value)
       if vtype == "LuaCustomTable" then
-          lineitem = ("%d items"):format(#value)
+          lineitem = ("%d item%s"):format(#value, #value~=1 and "s" or "" )
       else
         local lineitemfunc = luaObjectInfo.lineItem[vtype]
         lineitem = vtype
         if lineitemfunc then
-          local success,result = pcall(lineitemfunc,value)
+          local success,result = pcall(lineitemfunc,value,short)
           if success then lineitem = result end
         end
       end
@@ -93,21 +94,45 @@ function variables.describe(value)
       if mt and mt.__debugline then -- it knows how to make a line for itself...
         local dltype = type(mt.__debugline)
         if dltype == "function" then
-          lineitem = mt.__debugline(value)
+          lineitem = mt.__debugline(value,short)
         elseif dltype == "string" then
           lineitem = mt.__debugline
         end
       else
-        lineitem = serpent.line(value,{maxlevel = 1, nocode = true, metatostring=true})
+        if short then
+          if next(value) or mt then
+            -- this table has contents or other nontrivial behavior
+            lineitem = "{<...>}"
+          else
+            -- this is an empty table!
+            lineitem = "{}"
+          end
+        else
+          -- generate { shortdescribe(key) = shortdescribe(value) }
+          if next(value) then
+            local innerpairs = { "{ " }
+            for k,v in pairs(value) do
+              innerpairs[#innerpairs + 1] = ([[[%s]=%s, ]]):format(
+                select(2,variables.describe(k,true)), select(2,variables.describe(v,true)))
+            end
+            innerpairs[#innerpairs + 1] = "}"
+            lineitem = table.concat(innerpairs)
+          else
+            -- this is an empty table!
+            lineitem = "{}"
+          end
+        end
       end
     end
   elseif vtype == "function" then
     local info = debug.getinfo(value, "nS")
-    lineitem = "<function>" -- is it possible to have a function that's not C or Lua?
-    if info.what == "C" then
-      lineitem = "<C function>"
-    elseif info.what == "Lua" then
-      lineitem = ("<Lua function @%s:%d>"):format(info.source and normalizeLuaSource(info.source),info.linedefined)
+    lineitem = "<function>"
+    if not short then
+      if info.what == "C" then
+        lineitem = "<C function>"
+      elseif info.what == "Lua" then
+        lineitem = ("<Lua function @%s:%d>"):format(info.source and normalizeLuaSource(info.source),info.linedefined)
+      end
     end
   elseif vtype == "userdata" then
     lineitem = "<userdata>"
@@ -236,7 +261,7 @@ function __DebugAdapter.variables(variablesReference)
             if keyprops.thisAsTable then
               vars[#vars + 1] = {
                 name = "[]",
-                value = ("%d items"):format(#object),
+                value = ("%d item%s"):format(#object, #object~=1 and "s" or ""),
                 type = varRef.classname .. "[]",
                 variablesReference = variables.tableRef(object, keyprops.iterMode, false),
                 presentationHint = { kind = "property", attributes = { "readOnly" } },
@@ -245,6 +270,9 @@ function __DebugAdapter.variables(variablesReference)
               local success,value = pcall(function() return object[key] end)
               if success and value ~= nil then
                 local var = variables.create(key,value)
+                if keyprops.countLine then
+                  var.value = ("%d item%s"):format(#value, #value~=1 and "s" or "")
+                end
                 var.presentationHint = var.presentationHint or {}
                 var.presentationHint.kind = "property"
                 if keyprops.readOnly then
