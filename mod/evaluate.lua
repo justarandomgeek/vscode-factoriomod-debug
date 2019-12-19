@@ -125,7 +125,6 @@ function __DebugAdapter.evaluate(frameId,context,expression,seq)
     if success then
       evalresult = variables.create(nil,result)
       evalresult.result = evalresult.value
-      evalresult.name = nil
       evalresult.value = nil
       evalresult.seq = seq
     else

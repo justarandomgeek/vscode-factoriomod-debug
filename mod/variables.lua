@@ -149,11 +149,10 @@ function variables.describe(value,short)
   return vtype,lineitem
 end
 
----@param name any
+---@param name string
 ---@param value any
 ---@return Variable
 function variables.create(name,value)
-  local nametype,namestr = variables.describe(name)
   local vtype,lineitem = variables.describe(value)
   local variablesReference = 0
   if vtype == "LuaCustomTable" then
@@ -164,7 +163,7 @@ function variables.create(name,value)
     variablesReference = variables.tableRef(value)
   end
     return {
-      name = namestr,
+      name = name,
       value = lineitem,
       type = vtype,
       variablesReference = variablesReference,
@@ -218,7 +217,7 @@ function __DebugAdapter.variables(variablesReference)
           }
         end
         for i=1,#varRef.table do
-          vars[#vars + 1] = variables.create(i,varRef.table[i])
+          vars[#vars + 1] = variables.create(tostring(i),varRef.table[i])
         end
       else
         if mt and type(mt.__debugchildren) == "function" then
@@ -248,7 +247,7 @@ function __DebugAdapter.variables(variablesReference)
           end
           local debugpairs = varRef.useIpairs and ipairs or pairs
           for k,v in debugpairs(varRef.table) do
-            vars[#vars + 1] = variables.create(k,v)
+            vars[#vars + 1] = variables.create(select(2,variables.describe(k,true)),v)
           end
         end
       end
@@ -286,7 +285,7 @@ function __DebugAdapter.variables(variablesReference)
               -- Not all keys are valid on all LuaObjects of a given type. Just skip the errors (or nils)
               local success,value = pcall(function() return object[key] end)
               if success and value ~= nil then
-                local var = variables.create(key,value)
+                local var = variables.create(select(2,variables.describe(key,true)),value)
                 if keyprops.countLine then
                   var.value = ("%d item%s"):format(#value, #value~=1 and "s" or "")
                 end
@@ -339,7 +338,7 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
         if lname:sub(1,1) == "(" then
           lname = ("%s %d)"):format(lname:sub(1,-2),i)
         end
-        if serpent.line(lname) == name then
+        if lname == name then
           local goodvalue,newvalue = serpent.load(value,{safe=false})
           if goodvalue then
             debug.setlocal(varRef.frameId,i,newvalue)
@@ -355,7 +354,7 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
         local vaname,oldvalue = debug.getlocal(varRef.frameId,i)
         if not vaname then break end
         vaname = ("(*vararg %d)"):format(-i)
-        if serpent.line(vaname) == name then
+        if vaname == name then
           local goodvalue,newvalue = serpent.load(value,{safe=false})
           if goodvalue then
             debug.setlocal(varRef.frameId,i,newvalue)

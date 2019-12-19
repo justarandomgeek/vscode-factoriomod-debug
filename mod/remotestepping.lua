@@ -99,13 +99,8 @@ setmetatable(newremote,{
   __newindex = remotenewindex,
   __debugline = "LuaRemote Stepping Proxy",
   __debugchildren = function(t) return {
-    variables.create("interfaces",origremote.interfaces),
-    {
-      name = "<raw>",
-      value = "LuaRemote",
-      type = "LuaRemote",
-      variablesReference = variables.luaObjectRef(origremote,"LuaRemote"),
-    },
+    variables.create([["interfaces"]],origremote.interfaces),
+    variables.create("<raw>",origremote),
     {
       name = "<stacks>",
       value = "<stacks>",
