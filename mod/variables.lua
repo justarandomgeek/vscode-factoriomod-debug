@@ -50,7 +50,7 @@ end
 ---@param classname string
 ---@return number
 function variables.luaObjectRef(luaObject,classname)
-  if luaObjectInfo.noExpand[classname] then return 0 end
+  if not luaObjectInfo.expandKeys[classname] then return 0 end
   for id,varRef in pairs(variables.refs) do
     if varRef.object == luaObject then return id end
   end

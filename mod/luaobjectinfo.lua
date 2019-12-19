@@ -19,15 +19,6 @@ return {
     end
     return t
   end,
-  noExpand = {
-    LuaChunkIterator = true,
-    LuaLazyLoadedValue = true,
-    LuaProfiler = true,
-    LuaRandomGenerator = true,
-    LuaRCON = true,
-    LuaRendering = true,
-    LuaStruct = true,
-  },
   alwaysValid = {
     LuaRemote = true,
     LuaCommandProcessor = true,
