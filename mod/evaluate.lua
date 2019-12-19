@@ -153,7 +153,7 @@ function __DebugAdapter.stringInterp(str,frameId,alsoLookIn,context)
       expr = sub(expr,2,-2)
       local success,result = __DebugAdapter.evaluateInternal(frameId and frameId+3,alsoLookIn,context or "interp",expr)
       if success then
-        return select(2,variables.describe(result))
+        return variables.describe(result)
       else
         return "<error>"
       end

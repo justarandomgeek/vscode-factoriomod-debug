@@ -118,7 +118,7 @@ function variables.describe(value,short)
             local innerpairs = { "{ " }
             for k,v in pairs(value) do
               innerpairs[#innerpairs + 1] = ([[[%s]=%s, ]]):format(
-                select(2,variables.describe(k,true)), select(2,variables.describe(v,true)))
+                variables.describe(k,true), variables.describe(v,true))
             end
             innerpairs[#innerpairs + 1] = "}"
             lineitem = table.concat(innerpairs)
@@ -146,14 +146,14 @@ function variables.describe(value,short)
   else -- boolean, number, nil
     lineitem = tostring(value)
   end
-  return vtype,lineitem
+  return lineitem,vtype
 end
 
 ---@param name string
 ---@param value any
 ---@return Variable
 function variables.create(name,value)
-  local vtype,lineitem = variables.describe(value)
+  local lineitem,vtype = variables.describe(value)
   local variablesReference = 0
   if vtype == "LuaCustomTable" then
     variablesReference = variables.tableRef(value,"pairs",false)
@@ -247,7 +247,7 @@ function __DebugAdapter.variables(variablesReference)
           end
           local debugpairs = varRef.useIpairs and ipairs or pairs
           for k,v in debugpairs(varRef.table) do
-            vars[#vars + 1] = variables.create(select(2,variables.describe(k,true)),v)
+            vars[#vars + 1] = variables.create(variables.describe(k,true),v)
           end
         end
       end
@@ -285,7 +285,7 @@ function __DebugAdapter.variables(variablesReference)
               -- Not all keys are valid on all LuaObjects of a given type. Just skip the errors (or nils)
               local success,value = pcall(function() return object[key] end)
               if success and value ~= nil then
-                local var = variables.create(select(2,variables.describe(key,true)),value)
+                local var = variables.create(variables.describe(key,true),value)
                 if keyprops.countLine then
                   var.value = ("%d item%s"):format(#value, #value~=1 and "s" or "")
                 end
