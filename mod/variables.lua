@@ -85,6 +85,7 @@ function variables.describe(value,short)
         local lineitemfunc = luaObjectInfo.lineItem[vtype]
         lineitem = vtype
         if lineitemfunc then
+          -- don't crash a debug session for a bad formatter...
           local success,result = pcall(lineitemfunc,value,short)
           if success then lineitem = result end
         end
@@ -94,7 +95,11 @@ function variables.describe(value,short)
       if mt and mt.__debugline then -- it knows how to make a line for itself...
         local dltype = type(mt.__debugline)
         if dltype == "function" then
-          lineitem = mt.__debugline(value,short)
+          -- don't crash a debug session for a bad user-provided formatter...
+          local success,result = pcall(mt.__debugline,value,short)
+          if success then
+            lineitem = result
+          end
         elseif dltype == "string" then
           lineitem = mt.__debugline
         end
@@ -217,8 +222,19 @@ function __DebugAdapter.variables(variablesReference)
         end
       else
         if mt and type(mt.__debugchildren) == "function" then
-          for _,var in pairs(mt.__debugchildren(varRef.table)) do
-            vars[#vars + 1] = var
+          -- don't crash a debug session for a bad user-provided formatter...
+          local success,children = pcall(mt.__debugchildren,varRef.table)
+          if success then
+            for _,var in pairs(children) do
+              vars[#vars + 1] = var
+            end
+          else
+            vars[#vars + 1] = {
+              name = "<__debugchildren error>",
+              value = children,
+              type = "error",
+              variablesReference = 0,
+            }
           end
         else
           -- show metatables by default for table-like objects
@@ -267,6 +283,7 @@ function __DebugAdapter.variables(variablesReference)
                 presentationHint = { kind = "property", attributes = { "readOnly" } },
               }
             else
+              -- Not all keys are valid on all LuaObjects of a given type. Just skip the errors (or nils)
               local success,value = pcall(function() return object[key] end)
               if success and value ~= nil then
                 local var = variables.create(key,value)
@@ -324,8 +341,8 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
         end
         if serpent.line(lname) == name then
           local goodvalue,newvalue = serpent.load(value,{safe=false})
-          local success = pcall(debug.setlocal,varRef.frameId,i,newvalue)
-          if goodvalue and success then
+          if goodvalue then
+            debug.setlocal(varRef.frameId,i,newvalue)
             print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(name,newvalue)}))
           else
             print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(name,oldvalue)}))
@@ -340,8 +357,8 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
         vaname = ("(*vararg %d)"):format(-i)
         if serpent.line(vaname) == name then
           local goodvalue,newvalue = serpent.load(value,{safe=false})
-          local success = pcall(debug.setlocal,varRef.frameId,i,newvalue)
-          if goodvalue and success then
+          if goodvalue then
+            debug.setlocal(varRef.frameId,i,newvalue)
             print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(name,newvalue)}))
           else
             print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(name,oldvalue)}))
@@ -357,8 +374,8 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
         if not upname then break end
         if serpent.line(upname) == name then
           local goodvalue,newvalue = serpent.load(value,{safe=false})
-          local success = pcall(debug.setupvalue, func,i,newvalue)
-          if goodvalue and success then
+          if goodvalue then
+            debug.setupvalue(func,i,newvalue)
             print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(name,newvalue)}))
           else
             print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(name,oldvalue)}))
@@ -366,25 +383,17 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
         end
         i = i + 1
       end
-    elseif varRef.type == "Table" then
-      local goodvalue,newvalue = serpent.load(value,{safe=false})
-      local goodname,newname = serpent.load(name,{safe=false})
-      if goodname then
-        local success = pcall(function() varRef.table[newname] = newvalue end)
-        if goodvalue and success then
-          print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(newname,newvalue)}))
-        else
-          local _,oldvalue = pcall(function() return varRef.table[newname] end)
-          print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(newname,oldvalue)}))
-        end
-      end
-    elseif varRef.type == "LuaObject" then
+    elseif varRef.type == "Table" or varRef.type == "LuaObject" then
       local goodvalue,newvalue = serpent.load(value,{safe=false})
       local goodname,newname = serpent.load(name,{safe=false}) -- special name "[]" isn't valid lua so it won't parse anyway
       if goodname and goodvalue then
-        local success = pcall(function() varRef.object[newname] = newvalue end)
-        local _,oldvalue = pcall(function() return varRef.object[newname] end)
-        print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(newname,oldvalue)}))
+        -- this could fail if table has __newindex or LuaObject property is read only or wrong type, etc
+        pcall(function() varRef.object[newname] = newvalue end)
+
+        -- it could even fail silently, or coerce the value to another type,
+        -- so fetch the value back instead of assuming it set...
+        local _,resultvalue = pcall(function() return varRef.object[newname] end)
+        print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(newname,resultvalue)}))
       end
     end
   end
