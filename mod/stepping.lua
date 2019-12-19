@@ -45,19 +45,14 @@ function __DebugAdapter.attach()
               -- parse and print logMessage as an expression in the scope of the breakpoint
               -- 0 is getinfo, 1 is sethook callback, 2 is at breakpoint
               local frameId = 3
-              local success,result = __DebugAdapter.evaluateInternal(frameId,"logpoint",b)
-              local logpoint
-              if success then
-                local varresult = variables.create(nil,result)
-                logpoint = {
-                  output = varresult.value,
-                  variablesReference = varresult.variablesReference,
-                  filePath = s,
-                  line = line,
-                }
-              else
-                logpoint = {output = result, filePath = s, line = line }
-              end
+              local result = __DebugAdapter.stringInterp(b,frameId,nil,"logpoint")
+              local varresult = variables.create(nil,result)
+              local logpoint = {
+                output = varresult.value,
+                variablesReference = varresult.variablesReference,
+                filePath = s,
+                line = line,
+              }
               print("DBGlogpoint: " .. game.table_to_json(logpoint))
             end
           end

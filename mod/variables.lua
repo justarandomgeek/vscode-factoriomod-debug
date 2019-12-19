@@ -3,7 +3,7 @@ local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 
 -- Trying to expand the refs table causes some problems, so just hide it...
 local refsmeta = {
-  __debugline = "Debug Adapter Variable ID Cache",
+  __debugline = "Debug Adapter Variable ID Cache [{#self}]",
   __debugchildren = function(t) return {
     {
       name = "<hidden>",
@@ -101,7 +101,7 @@ function variables.describe(value,short)
             lineitem = result
           end
         elseif dltype == "string" then
-          lineitem = mt.__debugline
+          lineitem = __DebugAdapter.stringInterp(mt.__debugline,nil,value,"metadebugline")
         end
       else
         if short then
