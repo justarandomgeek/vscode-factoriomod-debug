@@ -371,7 +371,7 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
       while true do
         local upname,oldvalue = debug.getupvalue(func,i)
         if not upname then break end
-        if serpent.line(upname) == name then
+        if upname == name then
           local goodvalue,newvalue = serpent.load(value,{safe=false})
           if goodvalue then
             debug.setupvalue(func,i,newvalue)
