@@ -35,8 +35,9 @@ end
 
 ---@param table table
 ---@param mode string "pairs"|"ipairs"|"count"
+---@param showMeta nil | boolean
 ---@return number
-function variables.tableRef(table, mode)
+function variables.tableRef(table, mode, showMeta)
   for id,varRef in pairs(variables.refs) do
     if varRef.table == table then return id end
   end
@@ -46,6 +47,7 @@ function variables.tableRef(table, mode)
     table = table,
     useIpairs = mode == "ipairs",
     useCount = mode == "count",
+    showMeta = showMeta,
   }
   return id
 end
@@ -82,7 +84,7 @@ function variables.create(name,value)
           name = namestr,
           value = ("%d items"):format(#value),
           type = vtype,
-          variablesReference = variables.tableRef(value),
+          variablesReference = variables.tableRef(value,"pairs",false),
         }
       else
         local lineitem = luaObjectInfo.lineItem[vtype]
@@ -237,7 +239,7 @@ function __DebugAdapter.variables(variablesReference)
                 name = "[]",
                 value = ("%d items"):format(#object),
                 type = varRef.classname .. "[]",
-                variablesReference = variables.tableRef(object, keyprops.iterMode),
+                variablesReference = variables.tableRef(object, keyprops.iterMode, false),
                 presentationHint = { kind = "property", attributes = { "readOnly" } },
               }
             else
