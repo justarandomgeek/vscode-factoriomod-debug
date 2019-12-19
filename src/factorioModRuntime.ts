@@ -9,12 +9,6 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 const { Subject } = require('await-notify');
 import StreamSplitter = require('stream-splitter');
 
-export interface FactorioPaths {
-	_modsPath?: string; // absolute path of `mods` directory
-	_dataPath?: string; // absolute path of `data` directory
-	_factorioPath: string; // aboslute path of factorio binary to launch
-}
-
 export class FactorioModRuntime extends EventEmitter {
 
 	private _breakPoints = new Map<string, DebugProtocol.SourceBreakpoint[]>();
