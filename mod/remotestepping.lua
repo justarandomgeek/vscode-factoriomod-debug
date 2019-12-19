@@ -8,7 +8,9 @@ local variables = require("__debugadapter__/variables.lua")
 
 local remotestepping = {}
 
+local origremote = remote
 local stacks = {}
+local myRemotes = {}
 
 ---@return StackFrame[]
 function remotestepping.parentStack()
@@ -43,21 +45,21 @@ __DebugAdapter.stepIgnore(remotestepping.stepIn)
 function remotestepping.stepOut()
   local parentstep = __DebugAdapter.currentStep()
   __DebugAdapter.step(nil,true)
-  remoteStack = nil
+  stacks[#stacks] = nil
   parentstep = parentstep and parentstep:match("^remote(.+)$") or parentstep
   return parentstep
 end
 __DebugAdapter.stepIgnore(remotestepping.stepOut)
 
-local origremote = remote
 local function remotestepcall(remotename,method,...)
-  local debugname = "__debugadapter_"..remotename -- assume remotename is modname for now...
-  local remotehasdebug = origremote.interfaces[debugname]
-  if remotehasdebug then
+  -- if whois doesn't know who owns it, they must not have debug registered...
+  local debugname = origremote.call("debugadapter","whois",remotename)
+  if debugname then
+    debugname = "__debugadapter_" .. debugname
     origremote.call(debugname,"remoteStepIn",__DebugAdapter.currentStep(), __DebugAdapter.stackTrace(-2, nil, true), method)
   end
   local result = {origremote.call(remotename,method,...)}
-  if remotehasdebug then
+  if debugname then
     local childstep = origremote.call(debugname,"remoteStepOut")
     __DebugAdapter.step(childstep,true)
   end
@@ -65,14 +67,34 @@ local function remotestepcall(remotename,method,...)
 end
 __DebugAdapter.stepIgnore(remotestepcall)
 
+
+function remotestepping.interfaces()
+  return myRemotes
+end
+__DebugAdapter.stepIgnore(remotestepping.interfaces)
+
+local function remotestepadd(remotename,funcs)
+  myRemotes[remotename] = true
+  origremote.add_interface(remotename,funcs)
+end
+__DebugAdapter.stepIgnore(remotestepadd)
+
+local function remotestepremove(remotename)
+  myRemotes[remotename] = nil
+  return origremote.remove_interface(remotename)
+end
+__DebugAdapter.stepIgnore(remotestepremove)
+
 local function remotenewindex() end
 __DebugAdapter.stepIgnore(remotenewindex)
 
-remote = {
+newremote = {
   call = remotestepcall,
+  add_interface = remotestepadd,
+  remove_interface = remotestepremove,
   __raw = origremote,
 }
-setmetatable(remote,{
+setmetatable(newremote,{
   __index = origremote,
   __newindex = remotenewindex,
   __debugline = "LuaRemote Stepping Proxy",
@@ -84,7 +106,23 @@ setmetatable(remote,{
       type = "LuaRemote",
       variablesReference = variables.luaObjectRef(origremote,"LuaRemote"),
     },
+    {
+      name = "<stacks>",
+      value = "<stacks>",
+      type = "StackFrame[]",
+      variablesReference = variables.tableRef(stacks),
+    },
+    {
+      name = "<myRemotes>",
+      value = "<myRemotes>",
+      type = "keys",
+      variablesReference = variables.tableRef(myRemotes),
+    },
   } end,
 })
+
+if script.mod_name ~= "debugadapter" then
+  remote = newremote
+end
 
 return remotestepping

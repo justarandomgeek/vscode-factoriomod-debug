@@ -124,6 +124,7 @@ if script.mod_name ~= "debugadapter" then
     setBreakpoints = __DebugAdapter.setBreakpoints,
     remoteStepIn = remotestepping.stepIn,
     remoteStepOut = remotestepping.stepOut,
+    remoteStepInterfaces = remotestepping.interfaces
   })
 end
 

@@ -43,6 +43,17 @@ local function modules()
   print("EVTmodules: " .. game.table_to_json(modules))
 end
 
+local function whois(remotename)
+  local interfaces = callAll("remoteStepInterfaces")
+  if interfaces[remotename] and interfaces[remotename][remotename] then return remotename end
+  for modname,modinterfaces in pairs(interfaces) do
+    if modinterfaces[remotename] then
+      return modname
+    end
+  end
+  return nil
+end
+
 script.on_init(function()
   attach()
   modules()
@@ -75,4 +86,5 @@ remote.add_interface("debugadapter",{
   attach = attach,
   detach = detach,
   updateBreakpoints = updateBreakpoints,
+  whois = whois,
 })
