@@ -74,7 +74,6 @@ export class FactorioModRuntime extends EventEmitter {
 		const stdout = this._factorio.stdout.pipe(StreamSplitter("\n"));
 		stdout.on("token", function(chunk:any){
 			let chunkstr = chunk.toString().trim();
-			console.log(chunkstr);
 			if (chunkstr.startsWith("DBG: ")) {
 				let event = chunkstr.substring(5).trim();
 				if (event === "on_first_tick") {
