@@ -120,11 +120,11 @@ function variables.create(name,value)
     end
   elseif vtype == "function" then
     local info = debug.getinfo(value, "nS")
-    local funcdesc = "function"
+    local funcdesc = "<function>" -- is it possible to have a function that's not C or Lua?
     if info.what == "C" then
-      funcdesc = "C function"
+      funcdesc = "<C function>"
     elseif info.what == "Lua" then
-      funcdesc = ("Lua function @%s:%d"):format(info.source and normalizeLuaSource(info.source),info.linedefined)
+      funcdesc = ("<Lua function @%s:%d>"):format(info.source and normalizeLuaSource(info.source),info.linedefined)
     end
     return {
       name = namestr,
