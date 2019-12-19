@@ -339,12 +339,12 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
           lname = ("%s %d)"):format(lname:sub(1,-2),i)
         end
         if lname == name then
-          local goodvalue,newvalue = serpent.load(value,{safe=false})
+          local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
           if goodvalue then
             debug.setlocal(varRef.frameId,i,newvalue)
-            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(name,newvalue)}))
+            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(nil,newvalue)}))
           else
-            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(name,oldvalue)}))
+            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(nil,oldvalue)}))
           end
         end
         i = i + 1
@@ -355,12 +355,12 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
         if not vaname then break end
         vaname = ("(*vararg %d)"):format(-i)
         if vaname == name then
-          local goodvalue,newvalue = serpent.load(value,{safe=false})
+          local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
           if goodvalue then
             debug.setlocal(varRef.frameId,i,newvalue)
-            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(name,newvalue)}))
+            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(nil,newvalue)}))
           else
-            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(name,oldvalue)}))
+            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(nil,oldvalue)}))
           end
         end
         i = i - 1
@@ -372,19 +372,22 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
         local upname,oldvalue = debug.getupvalue(func,i)
         if not upname then break end
         if upname == name then
-          local goodvalue,newvalue = serpent.load(value,{safe=false})
+          local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
           if goodvalue then
             debug.setupvalue(func,i,newvalue)
-            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(name,newvalue)}))
+            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(nil,newvalue)}))
           else
-            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(name,oldvalue)}))
+            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(nil,oldvalue)}))
           end
         end
         i = i + 1
       end
     elseif varRef.type == "Table" or varRef.type == "LuaObject" then
-      local goodvalue,newvalue = serpent.load(value,{safe=false})
-      local goodname,newname = serpent.load(name,{safe=false}) -- special name "[]" isn't valid lua so it won't parse anyway
+      -- special names "[]" and others aren't valid lua so it won't parse anyway
+      local goodname,newname = __DebugAdapter.evaluateInternal(nil,nil,"setvar",name)
+
+      local alsoLookIn = varRef.object or varRef.table
+      local goodvalue,newvalue = __DebugAdapter.evaluateInternal(nil,alsoLookIn,"setvar",value)
       if goodname and goodvalue then
         -- this could fail if table has __newindex or LuaObject property is read only or wrong type, etc
         pcall(function() varRef.object[newname] = newvalue end)
@@ -392,7 +395,7 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
         -- it could even fail silently, or coerce the value to another type,
         -- so fetch the value back instead of assuming it set...
         local _,resultvalue = pcall(function() return varRef.object[newname] end)
-        print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(newname,resultvalue)}))
+        print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(nil,resultvalue)}))
       end
     end
   end
