@@ -42,9 +42,9 @@ return {
     LuaPlayer = function(obj) return ([==[LuaPlayer{ name="%s", index=%d }]==]):format(obj.name,obj.index) end,
     LuaSurface = function(obj) return ([==[LuaSurface{ name="%s", index=%d }]==]):format(obj.name,obj.index) end,
     LuaForce = function(obj) return ([==[LuaForce{ name="%s", index=%d }]==]):format(obj.name,obj.index) end,
-    LuaGuiElement = function(obj) return ([==[LuaGuiElement{ name="%s", type="%s" index=%d }]==]):format(obj.name,obj.type,obj.index) end,
+    LuaGuiElement = function(obj) return ([==[LuaGuiElement{ name="%s", type="%s", index=%d }]==]):format(obj.name,obj.type,obj.index) end,
     LuaStyle = function(obj) return ([==[LuaStyle{ name="%s" }]==]):format(obj.name,obj.index) end,
-    LuaEntity = function(obj) return ([==[LuaEntity{ name="%s", type="%s" unit_number=%d }]==]):format(obj.name,obj.type,obj.unit_number or 0) end,
+    LuaEntity = function(obj) return ([==[LuaEntity{ name="%s", type="%s", unit_number=%d }]==]):format(obj.name,obj.type,obj.unit_number or 0) end,
   },
   expandKeys = {
     LuaAISettings = {
