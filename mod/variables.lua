@@ -102,7 +102,7 @@ function variables.create(name,value)
       end
     else
       local lineitem = serpent.line(value,{maxlevel = 1, nocode = true, metatostring=true})
-      local mt = getmetatable(value)
+      local mt = debug.getmetatable(value)
       if mt and mt.__debugline then
         local dltype = type(mt.__debugline)
         if dltype == "function" then
