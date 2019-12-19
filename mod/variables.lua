@@ -69,77 +69,76 @@ function variables.luaObjectRef(luaObject,classname)
   return id
 end
 
----@param name any
 ---@param value any
----@return Variable
-function variables.create(name,value)
-  local namestr = serpent.line(name,{maxlevel = 1, nocode = true, metatostring=true})
+---@return string, string
+function variables.describe(value)
+  local lineitem
   local vtype = type(value)
   if vtype == "table" then
     -- only check __self and metatable, since top level objects (game, script, etc) don't have the magic string in .isluaobject
     if type(value.__self) == "userdata" and getmetatable(value) == "private" then
       vtype = luaObjectInfo.classname(value)
       if vtype == "LuaCustomTable" then
-        return {
-          name = namestr,
-          value = ("%d items"):format(#value),
-          type = vtype,
-          variablesReference = variables.tableRef(value,"pairs",false),
-        }
+          lineitem = ("%d items"):format(#value)
       else
-        local lineitem = luaObjectInfo.lineItem[vtype]
-        local val = vtype
-        if lineitem then
-          local success,result = pcall(lineitem,value)
-          if success then val = result end
+        local lineitemfunc = luaObjectInfo.lineItem[vtype]
+        lineitem = vtype
+        if lineitemfunc then
+          local success,result = pcall(lineitemfunc,value)
+          if success then lineitem = result end
         end
-        return {
-          name = namestr,
-          value = val,
-          type = vtype,
-          variablesReference = variables.luaObjectRef(value,vtype),
-        }
       end
-    else
-      local lineitem = serpent.line(value,{maxlevel = 1, nocode = true, metatostring=true})
+    else -- non-LuaObject tables
       local mt = debug.getmetatable(value)
-      if mt and mt.__debugline then
+      if mt and mt.__debugline then -- it knows how to make a line for itself...
         local dltype = type(mt.__debugline)
         if dltype == "function" then
           lineitem = mt.__debugline(value)
         elseif dltype == "string" then
           lineitem = mt.__debugline
         end
+      else
+        lineitem = serpent.line(value,{maxlevel = 1, nocode = true, metatostring=true})
       end
-      return {
-        name = namestr,
-        value = lineitem,
-        type = vtype,
-        variablesReference = variables.tableRef(value),
-      }
     end
   elseif vtype == "function" then
     local info = debug.getinfo(value, "nS")
-    local funcdesc = "<function>" -- is it possible to have a function that's not C or Lua?
+    lineitem = "<function>" -- is it possible to have a function that's not C or Lua?
     if info.what == "C" then
-      funcdesc = "<C function>"
+      lineitem = "<C function>"
     elseif info.what == "Lua" then
-      funcdesc = ("<Lua function @%s:%d>"):format(info.source and normalizeLuaSource(info.source),info.linedefined)
+      lineitem = ("<Lua function @%s:%d>"):format(info.source and normalizeLuaSource(info.source),info.linedefined)
     end
-    return {
-      name = namestr,
-      value = funcdesc,
-      type = vtype,
-      variablesReference = 0,
-    }
-  else
-    return {
-      name = namestr,
-      value = serpent.line(value),
-      type = vtype,
-      variablesReference = 0,
-    }
+  elseif vtype == "userdata" then
+    lineitem = "<userdata>"
+  elseif vtype == "string" then
+    lineitem = ([["%s"]]):format(value)
+  else -- boolean, number, nil
+    lineitem = tostring(value)
   end
+  return vtype,lineitem
+end
+
+---@param name any
+---@param value any
+---@return Variable
+function variables.create(name,value)
+  local nametype,namestr = variables.describe(name)
+  local vtype,lineitem = variables.describe(value)
+  local variablesReference = 0
+  if vtype == "LuaCustomTable" then
+    variablesReference = variables.tableRef(value,"pairs",false)
+  elseif vtype:sub(1,3) == "Lua" then
+    variablesReference = variables.luaObjectRef(value,vtype)
+  elseif vtype == "table" then
+    variablesReference = variables.tableRef(value)
+  end
+    return {
+      name = namestr,
+      value = lineitem,
+      type = vtype,
+      variablesReference = variablesReference,
+    }
 end
 
 ---@param variablesReference integer
