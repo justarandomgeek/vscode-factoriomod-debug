@@ -18,24 +18,25 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
   local i = (startFrame or 0) + offset
   local stackFrames = {}
   while true do
-    local info = debug.getinfo(i,"nSltf")
+    local info = debug.getinfo(i,"nSlutf")
     if not info then break end
     local framename = info.name or "(name unavailable)"
     if not info.name then
-      local name,event = debug.getlocal(i,1)
-      if type(event) == "table" and type(event.name) == "number"
-        and script.get_event_handler(event.name) == info.func then
-        local evtname = ("event %d"):format(event.name)
-        for k,v in pairs(defines.events) do
-          if event.name == v then
-            evtname = k
+      if info.nparams == 1 and not info.isvararg then
+        local name,event = debug.getlocal(i,1)
+        if type(event) == "table" and type(event.name) == "number"
+          and script.get_event_handler(event.name) == info.func then
+          local evtname = ("event %d"):format(event.name)
+          for k,v in pairs(defines.events) do
+            if event.name == v then
+              evtname = k
+            end
           end
+          framename = ("%s handler"):format(evtname)
         end
-        framename = ("%s handler"):format(evtname)
-      elseif name == nil then
-        if script.get_event_handler(defines.events.on_tick) == info.func then
-          framename = "on_tick handler"
-        end
+      elseif info.nparams == 0 and not info.isvararg and
+          script.get_event_handler(defines.events.on_tick) == info.func then
+        framename = "on_tick handler"
       end
     end
     if forRemote then
