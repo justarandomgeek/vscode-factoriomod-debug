@@ -132,7 +132,7 @@ end
 __DebugAdapter.stepIgnore(__DebugAdapter.currentStep)
 
 return setmetatable({},{
-  __debugline = "Debug Adapter Stepping Module",
+  __debugline = "<Debug Adapter Stepping Module>",
   __debugchildren = function(t) return {
     variables.create("<breakpoints>",breakpoints),
     variables.create("<stepmode>",stepmode),

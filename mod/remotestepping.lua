@@ -97,7 +97,7 @@ local newremote = {
 setmetatable(newremote,{
   __index = origremote,
   __newindex = remotenewindex,
-  __debugline = "LuaRemote Stepping Proxy",
+  __debugline = "<LuaRemote Stepping Proxy>",
   __debugchildren = function(t) return {
     variables.create([["interfaces"]],origremote.interfaces),
     variables.create("<raw>",origremote),

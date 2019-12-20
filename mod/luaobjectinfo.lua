@@ -29,13 +29,13 @@ return {
     LuaGameScript = true,
   },
   lineItem = {
-    LuaItemStack = function(obj) return ([==[LuaItemStack{ name="%s", count=%d }]==]):format(obj.name,obj.count) end,
-    LuaPlayer = function(obj) return ([==[LuaPlayer{ name="%s", index=%d }]==]):format(obj.name,obj.index) end,
-    LuaSurface = function(obj) return ([==[LuaSurface{ name="%s", index=%d }]==]):format(obj.name,obj.index) end,
-    LuaForce = function(obj) return ([==[LuaForce{ name="%s", index=%d }]==]):format(obj.name,obj.index) end,
-    LuaGuiElement = function(obj) return ([==[LuaGuiElement{ name="%s", type="%s", index=%d }]==]):format(obj.name,obj.type,obj.index) end,
-    LuaStyle = function(obj) return ([==[LuaStyle{ name="%s" }]==]):format(obj.name,obj.index) end,
-    LuaEntity = function(obj) return ([==[LuaEntity{ name="%s", type="%s", unit_number=%d }]==]):format(obj.name,obj.type,obj.unit_number or 0) end,
+    LuaItemStack = [[<LuaItemStack>(name={name}, count={count})]],
+    LuaPlayer = [[<LuaPlayer>(name={name}, index={index})]],
+    LuaSurface = [[<LuaSurface>(name={name}, index={index})]],
+    LuaForce = [[<LuaForce>(name={name}, index={index})]],
+    LuaGuiElement = [[<LuaGuiElement>(name={name}, type={type}, index={index})]],
+    LuaStyle = [[<LuaStyle>(name={name})]],
+    LuaEntity = [[<LuaEntity>(name={name}, type={type}, unit_number={unit_number})]],
   },
   expandKeys = {
     LuaAISettings = {

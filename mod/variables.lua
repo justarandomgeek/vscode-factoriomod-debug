@@ -3,7 +3,7 @@ local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 
 -- Trying to expand the refs table causes some problems, so just hide it...
 local refsmeta = {
-  __debugline = "Debug Adapter Variable ID Cache [{#self}]",
+  __debugline = "<Debug Adapter Variable ID Cache [{#self}]>",
   __debugchildren = false,
 }
 
@@ -76,13 +76,17 @@ function variables.describe(value,short)
       if vtype == "LuaCustomTable" then
           lineitem = ("%d item%s"):format(#value, #value~=1 and "s" or "" )
       else
-        local lineitemfunc = luaObjectInfo.lineItem[vtype]
-        lineitem = vtype
-        if lineitemfunc then
+        local lineitemfmt = luaObjectInfo.lineItem[vtype]
+        lineitem = ("<%s>"):format(vtype)
+        local litype = type(lineitemfmt)
+        if litype == "function" then
           -- don't crash a debug session for a bad formatter...
-          local success,result = pcall(lineitemfunc,value,short)
+          local success,result = pcall(lineitemfmt,value,short)
           if success then lineitem = result end
+        elseif litype == "string" then
+          lineitem = __DebugAdapter.stringInterp(lineitemfmt,nil,value,"luaobjectline")
         end
+
       end
     else -- non-LuaObject tables
       local mt = debug.getmetatable(value)
