@@ -7,18 +7,26 @@ local refsmeta = {
   __debugchildren = false,
 }
 
+--- Debug Adapter variables module
 local variables = {
   refs = setmetatable({},refsmeta),
 }
 
+--- Clear all existing variable references, when stepping invalidates them
 function variables.clear()
   variables.refs = setmetatable({},refsmeta)
 end
 
+--- Generate a variablesReference for `name` at frame `frameId`
 ---@param frameId number
 ---@param name string
 ---@return number
 function variables.scopeRef(frameId,name)
+  for id,varRef in pairs(variables.refs) do
+    if varRef.type == name and varRef.frameId == frameId then
+      return id
+    end
+  end
   local id = #variables.refs+1
   variables.refs[id] = {
     type = name,
@@ -27,6 +35,7 @@ function variables.scopeRef(frameId,name)
   return id
 end
 
+--- Generate a variablesReference for a table-like object
 ---@param table table
 ---@param mode string "pairs"|"ipairs"|"count"
 ---@param showMeta nil | boolean
@@ -46,6 +55,7 @@ function variables.tableRef(table, mode, showMeta)
   return id
 end
 
+--- Generate a variablesReference for a LuaObject
 ---@param luaObject LuaObject
 ---@param classname string
 ---@return number
@@ -63,9 +73,12 @@ function variables.luaObjectRef(luaObject,classname)
   return id
 end
 
+--- Generates a description for `value`.
+--- Also returns data type as second return.
 ---@param value any
 ---@param short nil | boolean
----@return string, string
+---@return string
+---@return string
 function variables.describe(value,short)
   local lineitem
   local vtype = type(value)
@@ -152,6 +165,7 @@ function variables.describe(value,short)
   return lineitem,vtype
 end
 
+--- Generate a default debug view for `value` named `name`
 ---@param name string
 ---@param value any
 ---@return Variable
@@ -176,6 +190,7 @@ function variables.create(name,value)
     }
 end
 
+--- DebugAdapter VariablesRequest
 ---@param variablesReference integer
 ---@return Variable[]
 function __DebugAdapter.variables(variablesReference)
@@ -329,6 +344,7 @@ function __DebugAdapter.variables(variablesReference)
   print("DBGvars: " .. game.table_to_json({variablesReference = variablesReference, vars = vars}))
 end
 
+--- DebugAdapter SetVariablesRequest
 ---@param variablesReference integer
 ---@param name string
 ---@param value string
