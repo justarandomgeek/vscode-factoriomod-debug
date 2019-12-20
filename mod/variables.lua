@@ -20,7 +20,7 @@ end
 --- Generate a variablesReference for `name` at frame `frameId`
 ---@param frameId number
 ---@param name string
----@return number
+---@return number variablesReference
 function variables.scopeRef(frameId,name)
   for id,varRef in pairs(variables.refs) do
     if varRef.type == name and varRef.frameId == frameId then
@@ -39,7 +39,7 @@ end
 ---@param table table
 ---@param mode string "pairs"|"ipairs"|"count"
 ---@param showMeta nil | boolean
----@return number
+---@return number variablesReference
 function variables.tableRef(table, mode, showMeta)
   for id,varRef in pairs(variables.refs) do
     if varRef.table == table then return id end
@@ -58,7 +58,7 @@ end
 --- Generate a variablesReference for a LuaObject
 ---@param luaObject LuaObject
 ---@param classname string
----@return number
+---@return number variablesReference
 function variables.luaObjectRef(luaObject,classname)
   if not luaObjectInfo.expandKeys[classname] then return 0 end
   for id,varRef in pairs(variables.refs) do
@@ -77,8 +77,8 @@ end
 --- Also returns data type as second return.
 ---@param value any
 ---@param short nil | boolean
----@return string
----@return string
+---@return string lineitem
+---@return string datatype
 function variables.describe(value,short)
   local lineitem
   local vtype = type(value)
@@ -166,7 +166,7 @@ function variables.describe(value,short)
 end
 
 --- Generate a default debug view for `value` named `name`
----@param name string
+---@param name string | nil
 ---@param value any
 ---@return Variable
 function variables.create(name,value)

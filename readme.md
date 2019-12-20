@@ -43,12 +43,12 @@ This provides various helper methods for preparing variable lineitems and expans
 --- Also returns data type as second return.
 ---@param value any
 ---@param short nil | boolean
----@return string
----@return string
+---@return string lineitem
+---@return string datatype
 function variables.describe(value,short)
 
 --- Generate a default debug view for `value` named `name`
----@param name string
+---@param name string | nil
 ---@param value any
 ---@return Variable
 function variables.create(name,value)
@@ -56,20 +56,20 @@ function variables.create(name,value)
 --- Generate a variablesReference for `name` at frame `frameId`
 ---@param frameId number
 ---@param name string
----@return number
+---@return number variablesReference
 function variables.scopeRef(frameId,name)
 
 --- Generate a variablesReference for a table-like object
 ---@param table table
 ---@param mode string "pairs"|"ipairs"|"count"
 ---@param showMeta nil | boolean
----@return number
+---@return number variablesReference
 function variables.tableRef(table, mode, showMeta)
 
 --- Generate a variablesReference for a LuaObject
 ---@param luaObject LuaObject
 ---@param classname string
----@return number
+---@return number variablesReference
 function variables.luaObjectRef(luaObject,classname)
 ```
 
