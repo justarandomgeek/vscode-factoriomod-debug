@@ -146,6 +146,12 @@ function __DebugAdapter.evaluateInternal(frameId,alsoLookIn,context,expression)
   return pcall(f)
 end
 
+
+---@param str string
+---@param frameId number | nil
+---@param alsoLookIn table | nil
+---@param context string
+---@return string
 function __DebugAdapter.stringInterp(str,frameId,alsoLookIn,context)
   local sub = string.sub
   return string.gsub(str,"(%b{})",
