@@ -31,35 +31,63 @@ function __DebugAdapter.attach()
           stepdepth = 0
           print(format("DBG: step %s:%d", s, line))
           debugprompt()
+          -- cleanup variablesReferences
+          variables.clear()
         else
           local filebreaks = breakpoints[s]
           if filebreaks then
             local b = filebreaks[line]
-            if b == true then
-              if (stepmode == "over") then
-                stepmode = nil
-                stepdepth = 0
-              end
-              print(format("DBG: breakpoint %s:%d", s, line))
-              debugprompt()
-            elseif type(b) == "string" then
-              -- parse and print logMessage as an expression in the scope of the breakpoint
+            if b then
               -- 0 is getinfo, 1 is sethook callback, 2 is at breakpoint
               local frameId = 3
-              local result = __DebugAdapter.stringInterp(b,frameId,nil,"logpoint")
-              local varresult = variables.create(nil,result)
-              local logpoint = {
-                output = varresult.value,
-                variablesReference = varresult.variablesReference,
-                filePath = s,
-                line = line,
-              }
-              print("DBGlogpoint: " .. game.table_to_json(logpoint))
+
+              -- check b.condition and b.hitConditon
+              local isHit = true
+
+              if b.condition then
+                local success,conditionResult = __DebugAdapter.evaluateInternal(frameId,nil,"breakpoint",b.condition)
+                if success then
+                  isHit = conditionResult
+                end
+              end
+
+              if b.hitCondition then
+                if isHit then -- only counts if condition was true
+                  b.hits = (b.hits or 0) + 1
+                  local success,hitResult = __DebugAdapter.evaluateInternal(frameId,nil,"breakpoint",b.hitCondition)
+                  if success and type(hitResult) == "number" and b.hits < hitResult then
+                    isHit = false
+                  end
+                end
+              end
+
+              if isHit then
+                if b.logMessage then
+                  -- parse and print logMessage as an expression in the scope of the breakpoint
+                  local result = __DebugAdapter.stringInterp(b,frameId,nil,"logpoint")
+                  local varresult = variables.create(nil,result)
+                  local logpoint = {
+                    output = varresult.value,
+                    variablesReference = varresult.variablesReference,
+                    filePath = s,
+                    line = line,
+                  }
+                  print("DBGlogpoint: " .. game.table_to_json(logpoint))
+                else
+                  if (stepmode == "over") then
+                    stepmode = nil
+                    stepdepth = 0
+                  end
+                  print(format("DBG: breakpoint %s:%d", s, line))
+                  debugprompt()
+                  -- cleanup variablesReferences
+                  variables.clear()
+                end
+                b.hits = nil
+              end
             end
           end
         end
-        -- cleanup variablesReferences
-        variables.clear()
       end
     --ignore "tail call" since it's just one of each
     elseif event == "call" then
@@ -100,7 +128,7 @@ function __DebugAdapter.setBreakpoints(source,breaks)
     local filebreaks = {}
     breakpoints[source] = filebreaks
     for _,bp in pairs(breaks) do
-      filebreaks[bp.line] = bp.logMessage or true
+      filebreaks[bp.line] = bp
     end
   else
     breakpoints[source] = nil
