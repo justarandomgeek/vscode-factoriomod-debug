@@ -1,7 +1,3 @@
-/*---------------------------------------------------------
- * Copyright (C) Microsoft Corporation. All rights reserved.
- *--------------------------------------------------------*/
-
 import { EventEmitter } from 'events';
 import { spawn, ChildProcess } from 'child_process';
 import { Breakpoint, Scope, Variable, StackFrame, Module } from 'vscode-debugadapter';
