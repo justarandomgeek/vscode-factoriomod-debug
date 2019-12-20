@@ -39,6 +39,9 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
         framename = "on_tick handler"
       end
     end
+    if info.istailcall then
+      framename = ("[tail calls...] %s"):format(framename)
+    end
     if forRemote then
       framename = ("[%s] %s"):format(script.mod_name, framename)
     end
