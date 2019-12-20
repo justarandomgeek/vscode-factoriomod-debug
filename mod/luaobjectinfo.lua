@@ -29,13 +29,13 @@ return {
     LuaGameScript = true,
   },
   lineItem = {
-    LuaItemStack = [[<LuaItemStack>(name={name}, count={count})]],
-    LuaPlayer = [[<LuaPlayer>(name={name}, index={index})]],
-    LuaSurface = [[<LuaSurface>(name={name}, index={index})]],
-    LuaForce = [[<LuaForce>(name={name}, index={index})]],
-    LuaGuiElement = [[<LuaGuiElement>(name={name}, type={type}, index={index})]],
-    LuaStyle = [[<LuaStyle>(name={name})]],
-    LuaEntity = [[<LuaEntity>(name={name}, type={type}, unit_number={unit_number})]],
+    LuaItemStack = [[<LuaItemStack>{[}name={name}, count={count}{]}]],
+    LuaPlayer = [[<LuaPlayer>{[}name={name}, index={index}{]}]],
+    LuaSurface = [[<LuaSurface>{[}name={name}, index={index}{]}]],
+    LuaForce = [[<LuaForce>{[}name={name}, index={index}{]}]],
+    LuaGuiElement = [[<LuaGuiElement>{[}name={name}, type={type}, index={index}{]}]],
+    LuaStyle = [[<LuaStyle>{[}name={name}{]}]],
+    LuaEntity = [[<LuaEntity>{[}name={name}, type={type}, unit_number={unit_number}{]}]],
   },
   expandKeys = {
     LuaAISettings = {
