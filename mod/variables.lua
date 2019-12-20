@@ -98,9 +98,13 @@ function variables.describe(value,short)
           local success,result = pcall(debugline,value,short)
           if success then
             lineitem = result
+          else
+            lineitem = "<__debugline error>"
           end
         elseif dltype == "string" and not short then
           lineitem = __DebugAdapter.stringInterp(debugline,nil,value,"metadebugline")
+        else
+          lineitem = "{<...>}"
         end
       else
         if short then
