@@ -83,7 +83,7 @@ function variables.describe(value,short)
           -- don't crash a debug session for a bad formatter...
           local success,result = pcall(lineitemfmt,value,short)
           if success then lineitem = result end
-        elseif litype == "string" then
+        elseif litype == "string" and not short then
           lineitem = __DebugAdapter.stringInterp(lineitemfmt,nil,value,"luaobjectline")
         end
 
@@ -99,7 +99,7 @@ function variables.describe(value,short)
           if success then
             lineitem = result
           end
-        elseif dltype == "string" then
+        elseif dltype == "string" and not short then
           lineitem = __DebugAdapter.stringInterp(debugline,nil,value,"metadebugline")
         end
       else
