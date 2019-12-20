@@ -28,7 +28,7 @@
 		"url": "https://github.com/justarandomgeek/vscode-factoriomod-debug/issues"
 	},
 	"scripts": {
-		"prepublish": "tsc -p ./src",
+		"prepare": "tsc -p ./src",
 		"compile": "tsc -p ./src",
 		"tslint": "tslint ./src/**/*.ts",
 		"watch": "tsc -w -p ./src",
