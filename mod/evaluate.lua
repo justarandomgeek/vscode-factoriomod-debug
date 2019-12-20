@@ -129,6 +129,8 @@ end
 ---@param alsoLookIn table | nil
 ---@param context string
 ---@param expression string
+---@return boolean
+---@return any
 function __DebugAdapter.evaluateInternal(frameId,alsoLookIn,context,expression)
   local env = _ENV
   if frameId or alsoLookIn then
