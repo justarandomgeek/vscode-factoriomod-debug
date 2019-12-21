@@ -64,7 +64,7 @@ function __DebugAdapter.attach()
               if isHit then
                 if b.logMessage then
                   -- parse and print logMessage as an expression in the scope of the breakpoint
-                  local result = __DebugAdapter.stringInterp(b,frameId,nil,"logpoint")
+                  local result = __DebugAdapter.stringInterp(b.logMessage,frameId,nil,"logpoint")
                   local varresult = variables.create(nil,result)
                   local logpoint = {
                     output = varresult.value,
