@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.17.1
+
+* docs improvements
+* tail calls in stack trace
+* provide escapes `{[}` -> `{` and `{]}` -> `}` in interpolated strings
+* support condition and hitCondition in breakpoints
+* improved escaping of various strings
+* don't allow setting `self` (the current object) inside string interpolation for debug lineitems
+* describe main chunk functions
+* mask dostring full-source chunk names as "=(dostring)"
+
 ## 0.17.0
 
 * Initial Release
