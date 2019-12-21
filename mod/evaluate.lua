@@ -65,6 +65,9 @@ local function evalmeta(frameId,alsoLookIn)
       if k == "_ENV" or k == "_G" then return end
 
       if alsoLookIn then
+        if k == "self" then
+          return -- don't allow setting `self`
+        end
         -- this might be a LuaObject and throw on bad lookups...
         local success,result = pcall(function() return alsoLookIn[k] end)
         if success and result then
