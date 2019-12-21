@@ -14,6 +14,9 @@ end
 ---@param source string
 ---@return string
 local function normalizeLuaSource(source)
+  local first = source:sub(1,1)
+  if first == "=" then return source end
+  if first ~= "@" then return "=(dostring)" end
   local modname,filename = source:match("__(.+)__/(.+)")
   if not modname then
     --startup tracing sometimes gives absolute path of the scenario script, turn it back into the usual form...
