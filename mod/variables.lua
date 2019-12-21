@@ -458,7 +458,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
       end
     elseif varRef.type == "LuaObject" then
       local object = varRef.object
-      if luaObjectInfo.alwaysValid[varRef.classname] or object.valid then
+      if luaObjectInfo.alwaysValid[varRef.classname:match("^([^.]+).?")] or object.valid then
         if varRef.classname == "LuaItemStack" and not object.valid_for_read then
           vars[#vars + 1] = {
             name = [["valid"]],
