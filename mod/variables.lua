@@ -158,7 +158,7 @@ function variables.describe(value,short)
   elseif vtype == "userdata" then
     lineitem = "<userdata>"
   elseif vtype == "string" then
-    lineitem = ("%q"):format(value):gsub("\010","n"):gsub("\026","\\026")
+    lineitem = ("%q"):format(value)
   else -- boolean, number, nil
     lineitem = tostring(value)
   end
