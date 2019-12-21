@@ -223,10 +223,18 @@ export class FactorioModRuntime extends EventEmitter {
 		return vars;
 	}
 
+	private luaBlockQuote(instring:string){
+		const blockpad = "=".repeat((instring.match(/\]=*\]/g)||[])
+			.map((matchstr)=>{return matchstr.length - 1})
+			.reduce((prev,curr)=>{return Math.max(prev,curr)},0));
+		return `[${blockpad}[${instring}]${blockpad}]`;
+
+	}
+
 	public async setVar(args: DebugProtocol.SetVariableArguments, seq: number): Promise<Variable> {
 		let subj = new Subject();
 		this._setvars.set(seq, subj);
-		this._factorio.stdin.write(`__DebugAdapter.setVariable(${args.variablesReference},[==[${args.name}]==],[==[${args.value}]==],${seq})\n`);
+		this._factorio.stdin.write(`__DebugAdapter.setVariable(${args.variablesReference},${this.luaBlockQuote(args.name)},${this.luaBlockQuote(args.value)},${seq})\n`);
 
 		await subj.wait(1000);
 		let setvar:Variable = subj.setvar;
@@ -244,7 +252,7 @@ export class FactorioModRuntime extends EventEmitter {
 
 		let subj = new Subject();
 		this._evals.set(seq, subj);
-		this._factorio.stdin.write(`__DebugAdapter.evaluate(${args.frameId},"${args.context}",[==[${args.expression}]==],${seq})\n`);
+		this._factorio.stdin.write(`__DebugAdapter.evaluate(${args.frameId},"${args.context}",${this.luaBlockQuote(args.expression)},${seq})\n`);
 
 		await subj.wait(1000);
 		let evalresult = subj.evalresult;
@@ -262,7 +270,7 @@ export class FactorioModRuntime extends EventEmitter {
 			}
 		});
 		this._breakPointsChanged.clear();
-		this._factorio.stdin.write(`remote.call("debugadapter", "updateBreakpoints", [==[${JSON.stringify(changes)}]==])\n`);
+		this._factorio.stdin.write(`remote.call("debugadapter", "updateBreakpoints", ${this.luaBlockQuote(JSON.stringify(changes))})\n`);
 	}
 
 	/*
