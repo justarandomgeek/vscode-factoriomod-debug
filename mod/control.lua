@@ -32,15 +32,15 @@ local function updateBreakpoints(changedsources)
 end
 
 local function modules()
-  local modules = {}
+  local mods = {}
   for name,version in pairs(game.active_mods) do
-    modules[#modules+1] = {
+    mods[#mods+1] = {
       id = name, name = name,
       version = version,
     }
   end
-  modules[#modules+1] = { id = "level", name = "level", }
-  print("EVTmodules: " .. game.table_to_json(modules))
+  mods[#mods+1] = { id = "level", name = "level", }
+  print("EVTmodules: " .. game.table_to_json(mods))
 end
 
 local function whois(remotename)
