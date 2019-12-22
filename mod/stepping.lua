@@ -20,6 +20,7 @@ function __DebugAdapter.attach()
   debug.sethook(function(event,line)
     local ignored = stepIgnoreFuncs[getinfo(2,"f").func]
     if ignored then return end
+    if not game then return end --TODO: remove this when normalizeLuaSource switches to script.active_mods in 0.18
     if event == "line" then
       local s = getinfo(2,"S").source
       -- startup logging gets all the serpent loads of `global`

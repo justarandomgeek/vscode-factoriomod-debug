@@ -46,7 +46,7 @@ local function normalizeLuaSource(source)
     return source
   else
     -- we found it! This will be a path relative to the `mods` directory.
-    local modver = game.active_mods[modname]
+    local modver = game.active_mods[modname] --TODO: script.active_mods in 0.18, allow stepping before `game`
     return string.format("MOD/%s_%s/%s",modname,modver,filename)
   end
 end
