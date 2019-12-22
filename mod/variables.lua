@@ -12,6 +12,49 @@ local variables = {
   refs = setmetatable({},refsmeta),
 }
 
+
+local gmeta = getmetatable(_ENV)
+if not gmeta then
+  gmeta = {}
+  setmetatable(_ENV,gmeta)
+end
+local globalbuiltins={
+  _G = "builtin", assert = "builtin", collectgarbage = "builtin", error = "builtin", getmetatable = "builtin",
+  ipairs = "builtin", load = "builtin", loadstring = "builtin", next = "builtin", pairs = "builtin", pcall = "builtin",
+  print = "builtin", rawequal = "builtin", rawlen = "builtin", rawget = "builtin", rawset = "builtin", select = "builtin",
+  setmetatable = "builtin", tonumber = "builtin", tostring = "builtin", type = "builtin", xpcall = "builtin", _VERSION = "builtin",
+  unpack = "builtin", table = "builtin", string = "builtin", bit32 = "builtin", math = "builtin", debug = "builtin", serpent = "builtin",
+  log = "builtin", table_size = "builtin", package = "builtin", require = "builtin",
+
+  remote = "factorio", commands = "factorio", settings = "factorio", rcon = "factorio", rendering = "factorio",
+  script = "factorio", defines = "factorio", game = "factorio", global = "factorio"
+}
+gmeta.__debugline = "<Global Self Reference>"
+gmeta.__debugchildren = function(t,extra)
+  local vars = {}
+  if not extra then
+    vars[#vars + 1] =  {
+      name = "<Lua Builtin Globals>",
+      value = "<Lua Builtin Globals>",
+      type = "<Lua Builtin Globals>",
+      variablesReference = variables.tableRef(t,nil,false,"builtin"),
+    }
+    vars[#vars + 1] =  {
+      name = "<Factorio API>",
+      value = "<Factorio API>",
+      type = "<Factorio API>",
+      variablesReference = variables.tableRef(t,nil,false,"factorio"),
+    }
+
+  end
+  for k,v in pairs(t) do
+    if globalbuiltins[k] == extra then -- nil for top level, true for "show hidden"
+      vars[#vars + 1] = variables.create(variables.describe(k,true),v)
+    end
+  end
+  return vars
+end
+
 --- Clear all existing variable references, when stepping invalidates them
 function variables.clear()
   variables.refs = setmetatable({},refsmeta)
@@ -20,10 +63,11 @@ end
 --- Generate a variablesReference for `name` at frame `frameId`
 ---@param frameId number
 ---@param name string
+---@param showTemps boolean | nil
 ---@return number variablesReference
-function variables.scopeRef(frameId,name)
+function variables.scopeRef(frameId,name,showTemps)
   for id,varRef in pairs(variables.refs) do
-    if varRef.type == name and varRef.frameId == frameId then
+    if varRef.type == name and varRef.frameId == frameId and (varRef.showTemps or false) == showTemps then
       return id
     end
   end
@@ -31,6 +75,7 @@ function variables.scopeRef(frameId,name)
   variables.refs[id] = {
     type = name,
     frameId = frameId,
+    showTemps = showTemps,
   }
   return id
 end
@@ -39,18 +84,21 @@ end
 ---@param table table
 ---@param mode string "pairs"|"ipairs"|"count"
 ---@param showMeta nil | boolean
+---@param extra any
 ---@return number variablesReference
-function variables.tableRef(table, mode, showMeta)
+function variables.tableRef(table, mode, showMeta, extra)
   for id,varRef in pairs(variables.refs) do
-    if varRef.table == table then return id end
+    if varRef.type == "Table" and varRef.table == table and (varRef.mode or "pairs") == mode and varRef.showMeta == showMeta then
+      return id
+    end
   end
   local id = #variables.refs+1
   variables.refs[id] = {
     type = "Table",
     table = table,
-    useIpairs = mode == "ipairs",
-    useCount = mode == "count",
+    mode = mode,
     showMeta = showMeta,
+    extra = extra
   }
   return id
 end
@@ -62,7 +110,7 @@ end
 function variables.luaObjectRef(luaObject,classname)
   if not luaObjectInfo.expandKeys[classname] then return 0 end
   for id,varRef in pairs(variables.refs) do
-    if varRef.object == luaObject then return id end
+    if varRef.type == "LuaObject" and varRef.object == luaObject then return id end
   end
   local id = #variables.refs+1
   variables.refs[id] = {
@@ -200,6 +248,11 @@ function variables.create(name,value)
     }
 end
 
+local itermode = {
+  pairs = pairs,
+  ipairs = ipairs,
+}
+
 --- DebugAdapter VariablesRequest
 ---@param variablesReference integer
 ---@return Variable[]
@@ -208,14 +261,21 @@ function __DebugAdapter.variables(variablesReference)
   local vars = {}
   if varRef then
     if varRef.type == "Locals" then
+      local showTemps = varRef.showTemps or false
+      if not showTemps then
+        vars[#vars + 1] = { name = "<temporaries>", value = "<temporaries>", variablesReference = variables.scopeRef(varRef.frameId,"Locals",true) }
+      end
       local i = 1
       while true do
         local name,value = debug.getlocal(varRef.frameId,i)
         if not name then break end
+        local rawname = name
         if name:sub(1,1) == "(" then
           name = ("%s %d)"):format(name:sub(1,-2),i)
         end
-        vars[#vars + 1] = variables.create(name,value)
+        if showTemps == ( rawname == "(*temporary)" ) then
+          vars[#vars + 1] = variables.create(name,value)
+        end
         i = i + 1
       end
       i = -1
@@ -237,7 +297,7 @@ function __DebugAdapter.variables(variablesReference)
     elseif varRef.type == "Table" then
       -- use debug.getmetatable insead of getmetatable to get raw meta instead of __metatable result
       local mt = debug.getmetatable(varRef.table)
-      if varRef.useCount then
+      if varRef.mode == "count" then
         --don't show meta on these by default as they're mostly LuaObjects providing count iteration anyway
         if varRef.showMeta == true and mt then
           vars[#vars + 1]{
@@ -253,7 +313,7 @@ function __DebugAdapter.variables(variablesReference)
       else
         if mt and type(mt.__debugchildren) == "function" then
           -- don't crash a debug session for a bad user-provided formatter...
-          local success,children = pcall(mt.__debugchildren,varRef.table)
+          local success,children = pcall(mt.__debugchildren,varRef.table,varRef.extra)
           if success then
             for _,var in pairs(children) do
               vars[#vars + 1] = var
@@ -276,9 +336,19 @@ function __DebugAdapter.variables(variablesReference)
               variablesReference = variables.tableRef(mt),
             }
           end
-          local debugpairs = varRef.useIpairs and ipairs or pairs
-          for k,v in debugpairs(varRef.table) do
-            vars[#vars + 1] = variables.create(variables.describe(k,true),v)
+
+          local debugpairs = itermode[varRef.mode or "pairs"]
+          if debugpairs then
+            for k,v in debugpairs(varRef.table) do
+              vars[#vars + 1] = variables.create(variables.describe(k,true),v)
+            end
+          else
+            vars[#vars + 1] = {
+              name = "<table varRef error>",
+              value = "missing iterator for table varRef mode ".. varRef.mode,
+              type = "error",
+              variablesReference = 0,
+            }
           end
         end
       end

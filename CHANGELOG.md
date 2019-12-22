@@ -5,6 +5,9 @@
 * more improved escaping
 * search for mods inside vscode workspace first, then modsPath
 * top level scope for factorio `global`
+* filter temporaries to special child of Local scope
+* filter "built in" globals to special child of Global scope
+
 
 ## 0.17.1
 
