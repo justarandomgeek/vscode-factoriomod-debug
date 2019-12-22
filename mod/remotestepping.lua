@@ -56,7 +56,7 @@ __DebugAdapter.stepIgnore(remotestepping.stepOut)
 local unpack = table.unpack
 local function remotestepcall(remotename,method,...)
   local call = origremote.call
-  if not game then
+  if not game then -- remove this in 0.18 with script.active_mods
     -- if game isn't ready we can't prepare stack traces yet, so just call directly...
     return call(remotename,method,...)
   end

@@ -3,6 +3,8 @@
 ## 0.17.3
 
 * don't remove leading '/' from workspace paths on non-windows
+* better path guess on mac
+* don't try to instrument remote.call during on_load
 
 ## 0.17.2
 
