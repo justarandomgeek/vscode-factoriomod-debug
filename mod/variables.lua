@@ -375,8 +375,10 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
           if goodvalue then
             debug.setlocal(varRef.frameId,i,newvalue)
             print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(nil,newvalue)}))
+            return
           else
             print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(nil,oldvalue)}))
+            return
           end
         end
         i = i + 1
@@ -391,8 +393,10 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
           if goodvalue then
             debug.setlocal(varRef.frameId,i,newvalue)
             print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(nil,newvalue)}))
+            return
           else
             print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(nil,oldvalue)}))
+            return
           end
         end
         i = i - 1
@@ -408,8 +412,10 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
           if goodvalue then
             debug.setupvalue(func,i,newvalue)
             print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(nil,newvalue)}))
+            return
           else
             print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(nil,oldvalue)}))
+            return
           end
         end
         i = i + 1
@@ -428,6 +434,7 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
         -- so fetch the value back instead of assuming it set...
         local _,resultvalue = pcall(function() return varRef.object[newname] end)
         print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(nil,resultvalue)}))
+        return
       end
     end
   end
