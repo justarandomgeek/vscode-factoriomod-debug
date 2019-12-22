@@ -129,12 +129,20 @@ function variables.describe(value,short)
             lineitem = "{}"
           end
         else
-          -- generate { shortdescribe(key)=shortdescribe(value), ... }
+          -- generate { [shortdescribe(key)]=shortdescribe(value), ... }
+          -- but omit consecutive numeric indexes { shortdescribe(value), ... }
+          local inext = 1
           if next(value) then
             local innerpairs = { "{ " }
             for k,v in pairs(value) do
-              innerpairs[#innerpairs + 1] = ([[[%s]=%s, ]]):format(
-                variables.describe(k,true), variables.describe(v,true))
+              if k == inext then
+                innerpairs[#innerpairs + 1] = ([[%s, ]]):format(variables.describe(v,true))
+                inext = inext + 1
+              else
+                inext = nil
+                innerpairs[#innerpairs + 1] = ([[[%s]=%s, ]]):format(
+                  variables.describe(k,true), variables.describe(v,true))
+              end
             end
             innerpairs[#innerpairs + 1] = "}"
             lineitem = table.concat(innerpairs)

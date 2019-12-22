@@ -10,6 +10,7 @@
 * don't allow setting `self` (the current object) inside string interpolation for debug lineitems
 * describe main chunk functions
 * mask dostring full-source chunk names as "=(dostring)"
+* omit numeric keys when possible in table describe
 
 ## 0.17.0
 
