@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.17.2
+
+* more improved escaping
+
 ## 0.17.1
 
 * docs improvements
