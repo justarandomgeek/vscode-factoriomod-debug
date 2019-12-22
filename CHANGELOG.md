@@ -4,6 +4,7 @@
 
 * more improved escaping
 * search for mods inside vscode workspace first, then modsPath
+* top level scope for factorio `global`
 
 ## 0.17.1
 

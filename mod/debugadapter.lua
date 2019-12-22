@@ -104,7 +104,8 @@ function __DebugAdapter.scopes(frameId)
   if debug.getinfo(frameId,"f") then
     print("DBGscopes: " .. game.table_to_json({frameId = frameId, scopes = {
       -- Global
-      { name = "Globals", variablesReference = variables.tableRef(_ENV) },
+      { name = "Lua Globals", variablesReference = variables.tableRef(_ENV) },
+      { name = "Factorio global", variablesReference = variables.tableRef(global) },
       -- Locals
       { name = "Locals", variablesReference = variables.scopeRef(frameId,"Locals") },
       -- Upvalues
