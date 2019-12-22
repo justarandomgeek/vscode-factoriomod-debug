@@ -1,10 +1,15 @@
 --this has to be defined before requiring other files so they can mark functions as ignored
 local stepIgnoreFuncs = {}
 ---@param f function
-function __DebugAdapter.stepIgnore(f)
+local __DebugAdapter = __DebugAdapter
+local function stepIgnore(f)
   stepIgnoreFuncs[f] = true
 end
+__DebugAdapter.stepIgnore = stepIgnore
 
+local require = require
+local debug = debug
+local print = print
 local variables = require("__debugadapter__/variables.lua")
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 
@@ -14,9 +19,12 @@ local stepdepth = 0
 
 function __DebugAdapter.attach()
   local getinfo = debug.getinfo
+  local string = string
   local sub = string.sub
   local format = string.format
   local debugprompt = debug.debug
+  local evaluateInternal = __DebugAdapter.evaluateInternal
+  local stringInterp = __DebugAdapter.stringInterp
   debug.sethook(function(event,line)
     local ignored = stepIgnoreFuncs[getinfo(2,"f").func]
     if ignored then return end
@@ -27,7 +35,8 @@ function __DebugAdapter.attach()
       -- serpent itself will also always show up as one of these
       if sub(s,1,1) == "@" then
         s = normalizeLuaSource(s)
-        if stepmode == "in" or stepmode == "next" or (stepmode == "over" and stepdepth<=0) then
+        local smode = stepmode
+        if smode == "in" or smode == "next" or (smode == "over" and stepdepth<=0) then
           stepmode = nil
           stepdepth = 0
           print(format("DBG: step %s:%d", s, line))
@@ -46,7 +55,7 @@ function __DebugAdapter.attach()
               local isHit = true
 
               if b.condition then
-                local success,conditionResult = __DebugAdapter.evaluateInternal(frameId,nil,"breakpoint",b.condition)
+                local success,conditionResult = evaluateInternal(frameId,nil,"breakpoint",b.condition)
                 if success then
                   isHit = conditionResult
                 end
@@ -55,7 +64,7 @@ function __DebugAdapter.attach()
               if b.hitCondition then
                 if isHit then -- only counts if condition was true
                   b.hits = (b.hits or 0) + 1
-                  local success,hitResult = __DebugAdapter.evaluateInternal(frameId,nil,"breakpoint",b.hitCondition)
+                  local success,hitResult = evaluateInternal(frameId,nil,"breakpoint",b.hitCondition)
                   if success and type(hitResult) == "number" and b.hits < hitResult then
                     isHit = false
                   end
@@ -65,7 +74,7 @@ function __DebugAdapter.attach()
               if isHit then
                 if b.logMessage then
                   -- parse and print logMessage as an expression in the scope of the breakpoint
-                  local result = __DebugAdapter.stringInterp(b.logMessage,frameId,nil,"logpoint")
+                  local result = stringInterp(b.logMessage,frameId,nil,"logpoint")
                   local varresult = variables.create(nil,result)
                   local logpoint = {
                     output = varresult.value,
@@ -95,7 +104,8 @@ function __DebugAdapter.attach()
       local s = getinfo(2,"S").source
       if sub(s,1,1) == "@" then
         s = normalizeLuaSource(s)
-        if stepmode == "over" or stepmode == "out" then
+        local smode = stepmode
+        if smode == "over" or smode == "out" then
           stepdepth = stepdepth + 1
         end
       end
@@ -103,14 +113,16 @@ function __DebugAdapter.attach()
       local s = getinfo(2,"S").source
       if sub(s,1,1) == "@" then
         s = normalizeLuaSource(s)
-        if stepmode == "over" then
+        local smode = stepmode
+        if smode == "over" then
           stepdepth = stepdepth - 1
-        elseif stepmode == "out" then
-          if stepdepth <= 0 then
+        elseif smode == "out" then
+          local sdepth = stepdepth
+          if sdepth <= 0 then
             stepmode = "next"
-            stepdepth = 0
+            sdepth = 0
           end
-          stepdepth = stepdepth - 1
+          stepdepth = sdepth - 1
         end
       end
     end
@@ -140,31 +152,32 @@ end
 ---@param silent nil | boolean
 function __DebugAdapter.step(steptype,silent)
   stepmode = steptype
-  if stepmode == "over" or stepmode == "out" then
+  if steptype == "over" or steptype == "out" then
     if not silent then
       stepdepth = 0
     end
     if stepdepth ~= 0 then
-      print(("%s with existing depth! %d"):format(stepmode,stepdepth))
+      print(("%s with existing depth! %d"):format(steptype,stepdepth))
     end
   end
   if not silent then
     print("DBGstep")
   end
 end
-__DebugAdapter.stepIgnore(__DebugAdapter.step)
+stepIgnore(__DebugAdapter.step)
 
 ---@return string "remote"*("next" | "in" | "over" | "out")
 function __DebugAdapter.currentStep()
   return stepmode
 end
-__DebugAdapter.stepIgnore(__DebugAdapter.currentStep)
+stepIgnore(__DebugAdapter.currentStep)
 
+local vcreate = variables.create
 return setmetatable({},{
   __debugline = "<Debug Adapter Stepping Module>",
   __debugchildren = function(t) return {
-    variables.create("<breakpoints>",breakpoints),
-    variables.create("<stepmode>",stepmode),
-    variables.create("<stepdepth>",stepdepth),
+    vcreate("<breakpoints>",breakpoints),
+    vcreate("<stepmode>",stepmode),
+    vcreate("<stepdepth>",stepdepth),
   } end,
 })
