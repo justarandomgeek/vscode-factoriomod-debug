@@ -11,6 +11,7 @@
 * describe main chunk functions
 * mask dostring full-source chunk names as "=(dostring)"
 * omit numeric keys when possible in table describe
+* add `__DebugAdapter.dumpBreakpoints` to manually list breapoints
 
 ## 0.17.0
 
