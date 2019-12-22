@@ -226,7 +226,9 @@ export class FactorioModRuntime extends EventEmitter {
 	private luaBlockQuote(instring:string){
 		const blockpad = "=".repeat((instring.match(/\]=*\]/g)||[])
 			.map((matchstr)=>{return matchstr.length - 1})
-			.reduce((prev,curr)=>{return Math.max(prev,curr)},0));
+			.reduce((prev,curr)=>{return Math.max(prev,curr)},
+			// force one pad if the string ends with a square bracket as it will be confused with the close bracket
+			instring.endsWith("]") ? 1 : 0));
 		return `[${blockpad}[${instring}]${blockpad}]`;
 
 	}
