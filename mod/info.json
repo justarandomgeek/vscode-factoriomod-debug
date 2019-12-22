@@ -1,6 +1,6 @@
 {
     "name": "debugadapter",
-    "version": "0.17.0",
+    "version": "0.17.1",
     "factorio_version": "0.17",
     "title": "Debug Adapter for Factorio Mods",
     "author": "justarandomgeek",
@@ -9,4 +9,3 @@
     "description": "An implementation of Debug Adapter Protocol for mods. For use with the associated vscode extension. This is a developer tool, not meant for actual gameplay. It is intentionally desync unsafe. Do not use it in multiplayer.",
     "dependencies": ["base"]
   }
-  
