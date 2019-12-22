@@ -6,9 +6,24 @@ local function evalmeta(frameId,alsoLookIn)
   local getupvalue = debug.getupvalue
   local env = _ENV
   return {
+    __debugline = function(t,short)
+      if short then
+        return "<Eval Env>"
+      end
+      local envname
+      if frameId then
+        envname = (envname or " for") .. " frame " .. frameId
+      end
+      if alsoLookIn then
+        envname = (envname or " for") .. " " .. variables.describe(alsoLookIn,true)
+      end
+
+      return ("<Evaluate Environment%s>"):format(envname or "")
+    end,
     __index = function(t,k)
       -- go ahead and loop these back...
       if k == "_ENV" or k == "_G" then return t end
+      if k == "__self" then return nil end
 
       if alsoLookIn then
         if k == "self" then
@@ -23,37 +38,43 @@ local function evalmeta(frameId,alsoLookIn)
 
       if frameId then
         -- find how deep we are, if the expression includes defining new functions and calling them...
-        local i = 1
-        local offset = 3
+        -- if this table lives longer than the expression (by being returned), this will end up failing
+        -- to locate teh correct stack and fall back to only the global lookups
+        local i = 0
+        local offset
         while true do
-          local func = getinfo(i,"f").func
-          if func == __DebugAdapter.evaluateInternal then
-            offset = i - 1
-            break
+          local info = getinfo(i,"f")
+          if info then
+            local func = info.func
+            if func == __DebugAdapter.evaluateInternal then
+              offset = i - 1
+              break
+            end
           end
           i = i + 1
         end
+        if offset then
+          local frame = frameId + offset
+          --check for local at frameId
+          i = 1
+          while true do
+            local name,value = getlocal(frame,i)
+            if not name then break end
+            if name:sub(1,1) ~= "(" then
+              if name == k then return value end
+            end
+            i = i + 1
+          end
 
-        local frame = frameId + offset
-        --check for local at frameId
-        i = 1
-        while true do
-          local name,value = getlocal(frame,i)
-          if not name then break end
-          if name:sub(1,1) ~= "(" then
+          --check for upvalue at frameId
+          local func = getinfo(frame,"f").func
+          i = 1
+          while true do
+            local name,value = getupvalue(func,i)
+            if not name then break end
             if name == k then return value end
+            i = i + 1
           end
-          i = i + 1
-        end
-
-        --check for upvalue at frameId
-        local func = getinfo(frame,"f").func
-        i = 1
-        while true do
-          local name,value = getupvalue(func,i)
-          if not name then break end
-          if name == k then return value end
-          i = i + 1
         end
       end
 
@@ -63,6 +84,7 @@ local function evalmeta(frameId,alsoLookIn)
     __newindex = function(t,k,v)
       -- don't allow setting _ENV or _G in evals
       if k == "_ENV" or k == "_G" then return end
+      if k == "__self" then return end
 
       if alsoLookIn then
         if k == "self" then
@@ -81,44 +103,48 @@ local function evalmeta(frameId,alsoLookIn)
       if frameId then
         -- find how deep we are, if the expression includes defining new functions and calling them...
         local i = 1
-        local offset = 3
+        local offset
         while true do
-          local func = getinfo(i,"f").func
-          if func == __DebugAdapter.evaluateInternal then
-            offset = i - 1
-            break
-          end
-          i = i + 1
-        end
-
-        local frame = frameId + offset
-        --check for local at frameId
-        i = 1
-        while true do
-          local name = getlocal(frame,i)
-          if not name then break end
-          if name:sub(1,1) ~= "(" then
-            if name == k then
-              debug.setlocal(frame,i,v)
-              return
+          local info = getinfo(i,"f")
+          if info then
+            local func = info.func
+            if func == __DebugAdapter.evaluateInternal then
+              offset = i - 1
+              break
             end
           end
           i = i + 1
         end
-
-        --check for upvalue at frameId
-        local func = getinfo(frame,"f").func
-        i = 1
-        while true do
-          local name = getupvalue(func,i)
-          if not name then break end
-          if not name == "_ENV" then
-            if name == k then
-              debug.setupvalue(func,i,v)
-              return
+        if offset then
+          local frame = frameId + offset
+          --check for local at frameId
+          i = 1
+          while true do
+            local name = getlocal(frame,i)
+            if not name then break end
+            if name:sub(1,1) ~= "(" then
+              if name == k then
+                debug.setlocal(frame,i,v)
+                return
+              end
             end
+            i = i + 1
           end
-          i = i + 1
+
+          --check for upvalue at frameId
+          local func = getinfo(frame,"f").func
+          i = 1
+          while true do
+            local name = getupvalue(func,i)
+            if not name then break end
+            if not name == "_ENV" then
+              if name == k then
+                debug.setupvalue(func,i,v)
+                return
+              end
+            end
+            i = i + 1
+          end
         end
       end
 
