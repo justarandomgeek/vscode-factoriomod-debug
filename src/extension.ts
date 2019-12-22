@@ -5,6 +5,7 @@ import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken 
 import { FactorioModDebugSession } from './factorioModDebug';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 
 export function activate(context: vscode.ExtensionContext) {
 	const provider = new FactorioModConfigurationProvider();
@@ -37,11 +38,20 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 		}
 
 		// if data path is not set, assume factorio path dir/../../data, verify dir exists
+		// except on macs, then it's only one layer...
 		if (!config.dataPath){
-			config.dataPath = path.posix.normalize(path.resolve(path.dirname(config.factorioPath), "../../data" ));
+			if (os.platform() == "darwin")
+			{
+				config.dataPath = path.posix.normalize(path.resolve(path.dirname(config.factorioPath), "../data" ));
+			}
+			else
+			{
+				config.dataPath = path.posix.normalize(path.resolve(path.dirname(config.factorioPath), "../../data" ));
+			}
 		}
 		// if mods path is not set, assume factorio path dir/../../mods, verify dir exists
-		if (!config.modsPath){
+		// except on macs, it's not there.
+		if (!config.modsPath && os.platform() != "darwin"){
 			const modspath = path.posix.normalize(path.resolve(path.dirname(config.factorioPath), "../../mods" ));
 			if (fs.existsSync(modspath))
 			{
