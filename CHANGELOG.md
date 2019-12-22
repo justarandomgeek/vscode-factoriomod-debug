@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.17.3
+
+* don't remove leading '/' from workspace paths on non-windows
+
 ## 0.17.2
 
 * more improved escaping

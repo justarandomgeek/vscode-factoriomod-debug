@@ -7,6 +7,7 @@ import StreamSplitter = require('stream-splitter');
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 
 interface modpaths{
 	fspath: string;
@@ -335,7 +336,7 @@ export class FactorioModRuntime extends EventEmitter {
 	private updateInfoJson(uri:vscode.Uri)
 	{
 		let jsonpath = uri.path
-		if (jsonpath.startsWith("/")) {jsonpath = jsonpath.substr(1)}
+		if (os.platform() == "win32" && jsonpath.startsWith("/")) {jsonpath = jsonpath.substr(1)}
 		const moddata = JSON.parse(fs.readFileSync(jsonpath, "utf8"))
 		this.modinfo.push({
 			fspath: path.dirname(jsonpath),
