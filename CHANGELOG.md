@@ -3,6 +3,7 @@
 ## 0.17.2
 
 * more improved escaping
+* search for mods inside vscode workspace first, then modsPath
 
 ## 0.17.1
 
