@@ -188,8 +188,14 @@ function variables.describe(value,short)
                 inext = inext + 1
               else
                 inext = nil
-                innerpairs[#innerpairs + 1] = ([[[%s]=%s, ]]):format(
-                  variables.describe(k,true), variables.describe(v,true))
+                if type(k) == "string" and k:match("^[a-zA-Z_][a-zA-Z_]*$") then
+                  innerpairs[#innerpairs + 1] = ([[%s=%s, ]]):format(
+                    k, variables.describe(v,true))
+                else
+                  innerpairs[#innerpairs + 1] = ([[[%s]=%s, ]]):format(
+                    variables.describe(k,true), variables.describe(v,true))
+                end
+
               end
             end
             innerpairs[#innerpairs + 1] = "}"

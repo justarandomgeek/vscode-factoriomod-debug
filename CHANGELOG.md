@@ -8,6 +8,7 @@
 * filter temporaries to special child of Local scope
 * filter "built in" globals to special child of Global scope
 * fix display of eval _ENV
+* unquote string keys when possible in table describe
 
 ## 0.17.1
 
