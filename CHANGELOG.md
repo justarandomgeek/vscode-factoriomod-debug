@@ -7,7 +7,7 @@
 * top level scope for factorio `global`
 * filter temporaries to special child of Local scope
 * filter "built in" globals to special child of Global scope
-
+* fix display of eval _ENV
 
 ## 0.17.1
 
