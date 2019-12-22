@@ -4,6 +4,14 @@ import { Breakpoint, Scope, Variable, StackFrame, Module } from 'vscode-debugada
 import { DebugProtocol } from 'vscode-debugprotocol';
 const { Subject } = require('await-notify');
 import StreamSplitter = require('stream-splitter');
+import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
+
+interface modpaths{
+	fspath: string;
+	modpath: string;
+}
 
 export class FactorioModRuntime extends EventEmitter {
 
@@ -24,19 +32,38 @@ export class FactorioModRuntime extends EventEmitter {
 
 	private _deferredevent: string;
 
-	private modsPath: string; // absolute path of `mods` directory
+	private modsPath?: string; // absolute path of `mods` directory
 	private dataPath: string; // absolute path of `data` directory
+
+	private modinfoready = new Subject();
+	private modinfo = new Array<modpaths>();
+	private infoWatcher:vscode.FileSystemWatcher;
 
 	constructor() {
 		super();
+		vscode.workspace.findFiles('**/info.json')
+			.then(infos=>{infos.forEach(this.updateInfoJson,this);})
+			.then(()=>{this.modinfoready.notify()});
+		this.infoWatcher = vscode.workspace.createFileSystemWatcher('**/info.json');
+		this.infoWatcher.onDidChange(this.updateInfoJson,this)
+		this.infoWatcher.onDidCreate((info)=>{
+			this.removeInfoJson(info);
+			this.updateInfoJson(info);
+		},this)
+		this.infoWatcher.onDidDelete(this.removeInfoJson,this)
 	}
 
 	/**
 	 * Start executing the given program.
 	 */
-	public start(factorioPath: string, modsPath: string, dataPath: string) {
-		this.modsPath = modsPath.replace(/\\/g,"/");
+	public async start(factorioPath: string, dataPath: string, modsPath?: string) {
+		if (modsPath)
+		{
+			this.modsPath = modsPath.replace(/\\/g,"/");
+		}
 		this.dataPath = dataPath.replace(/\\/g,"/");
+
+		await this.modinfoready.wait(1000);
 
 		let renamedbps = new Map<string, DebugProtocol.SourceBreakpoint[]>();
 		this._breakPointsChanged.clear();
@@ -304,24 +331,54 @@ export class FactorioModRuntime extends EventEmitter {
 		this._breakAddresses.clear();
 	}
 
-	// private methods
+
+	private updateInfoJson(uri:vscode.Uri)
+	{
+		let jsonpath = uri.path
+		if (jsonpath.startsWith("/")) {jsonpath = jsonpath.substr(1)}
+		const moddata = JSON.parse(fs.readFileSync(jsonpath, "utf8"))
+		this.modinfo.push({
+			fspath: path.dirname(jsonpath),
+			modpath: `MOD/${moddata.name}_${moddata.version}`
+		});
+	}
+	private removeInfoJson(uri:vscode.Uri)
+	{
+		let jsonpath = uri.path;
+		if (jsonpath.startsWith("/")) {
+			jsonpath = jsonpath.substr(1);
+		}
+		this.modinfo = this.modinfo.filter((modinfo)=>{modinfo.fspath != path.dirname(jsonpath)});
+	}
 
 	public convertClientPathToDebugger(clientPath: string): string
 	{
 		clientPath = clientPath.replace(/\\/g,"/");
 
-		if (this.dataPath)
+		let modinfo = this.modinfo.find((m)=>{return clientPath.startsWith(m.fspath);});
+		if(modinfo)
 		{
-			clientPath = clientPath.replace(this.dataPath,"DATA");
+			return clientPath.replace(modinfo.fspath,modinfo.modpath)
 		}
-		if (this.modsPath)
+
+		if (this.dataPath && clientPath.startsWith(this.dataPath))
 		{
-			clientPath = clientPath.replace(this.modsPath,"MOD");
+			return clientPath.replace(this.dataPath,"DATA");
+		}
+		if (this.modsPath && clientPath.startsWith(this.modsPath))
+		{
+			return clientPath.replace(this.modsPath,"MOD");
 		}
 		return clientPath;
 	}
 	public convertDebuggerPathToClient(debuggerPath: string): string
 	{
+		let modinfo = this.modinfo.find((m)=>{return debuggerPath.startsWith(m.modpath);});
+		if(modinfo)
+		{
+			return debuggerPath.replace(modinfo.modpath,modinfo.fspath)
+		}
+
 		if (this.modsPath && debuggerPath.startsWith("MOD"))
 		{
 			return this.modsPath + debuggerPath.substring(3);

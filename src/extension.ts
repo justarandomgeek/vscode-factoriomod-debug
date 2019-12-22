@@ -42,7 +42,11 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 		}
 		// if mods path is not set, assume factorio path dir/../../mods, verify dir exists
 		if (!config.modsPath){
-			config.modsPath = path.posix.normalize(path.resolve(path.dirname(config.factorioPath), "../../mods" ));
+			const modspath = path.posix.normalize(path.resolve(path.dirname(config.factorioPath), "../../mods" ));
+			if (fs.existsSync(modspath))
+			{
+				config.modsPath = modspath;
+			}
 		}
 
 		return config;
