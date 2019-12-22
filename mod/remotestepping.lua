@@ -8,6 +8,8 @@ local variables = require("__debugadapter__/variables.lua")
 
 local remotestepping = {}
 
+local __DebugAdapter = __DebugAdapter
+
 local origremote = remote
 local stacks = {}
 local myRemotes = {}
@@ -51,19 +53,21 @@ function remotestepping.stepOut()
 end
 __DebugAdapter.stepIgnore(remotestepping.stepOut)
 
+local unpack = table.unpack
 local function remotestepcall(remotename,method,...)
   -- if whois doesn't know who owns it, they must not have debug registered...
-  local debugname = origremote.call("debugadapter","whois",remotename)
+  local call = origremote.call
+  local debugname = call("debugadapter","whois",remotename)
   if debugname then
     debugname = "__debugadapter_" .. debugname
-    origremote.call(debugname,"remoteStepIn",__DebugAdapter.currentStep(), __DebugAdapter.stackTrace(-2, nil, true), method)
+    call(debugname,"remoteStepIn",__DebugAdapter.currentStep(), __DebugAdapter.stackTrace(-2, nil, true), method)
   end
-  local result = {origremote.call(remotename,method,...)}
+  local result = {call(remotename,method,...)}
   if debugname then
-    local childstep = origremote.call(debugname,"remoteStepOut")
+    local childstep = call(debugname,"remoteStepOut")
     __DebugAdapter.step(childstep,true)
   end
-  return table.unpack(result)
+  return unpack(result)
 end
 __DebugAdapter.stepIgnore(remotestepcall)
 
