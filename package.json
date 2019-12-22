@@ -93,8 +93,6 @@
 						"type": "factoriomod",
 						"request": "launch",
 						"name": "Factorio Mod Debug",
-						"modsPath": "%appdata%/Factorio/mods",
-						"dataPath": "d:/factorio/Factorio_0.17/data",
 						"factorioPath": "d:/factorio/Factorio_0.17/bin/x64/factorio.exe"
 					}
 				],
@@ -106,8 +104,6 @@
 							"type": "factoriomod",
 							"request": "launch",
 							"name": "Factorio Mod Debug",
-							"modsPath": "%appdata%/Factorio/mods",
-							"dataPath": "d:/factorio/Factorio_0.17/data",
 							"factorioPath": "d:/factorio/Factorio_0.17/bin/x64/factorio.exe"
 						}
 					}
