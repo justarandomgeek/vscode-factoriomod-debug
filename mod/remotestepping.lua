@@ -55,8 +55,12 @@ __DebugAdapter.stepIgnore(remotestepping.stepOut)
 
 local unpack = table.unpack
 local function remotestepcall(remotename,method,...)
-  -- if whois doesn't know who owns it, they must not have debug registered...
   local call = origremote.call
+  if not game then
+    -- if game isn't ready we can't prepare stack traces yet, so just call directly...
+    return call(remotename,method,...)
+  end
+  -- if whois doesn't know who owns it, they must not have debug registered...
   local debugname = call("debugadapter","whois",remotename)
   if debugname then
     debugname = "__debugadapter_" .. debugname
