@@ -75,116 +75,115 @@ export class FactorioModRuntime extends EventEmitter {
 		});
 		this._breakPoints = renamedbps;
 		this._factorio = spawn(factorioPath);
-		let runtime = this;
-		this._factorio.on("exit", function(code:number, signal:string){
-			runtime.sendEvent('end');
+		this._factorio.on("exit", (code:number, signal:string) => {
+			this.sendEvent('end');
 		});
-		this._factorio.stderr.on("data", function(chunk:any){
+		this._factorio.stderr.on("data", (chunk:any) => {
 			let chunkstr : string = chunk.toString();
 			chunkstr = chunkstr.replace(/lua_debug>/g,"");
 			chunkstr = chunkstr.trim();
 			if (chunkstr.length > 0 )
 			{
 				//raise this as a stderr "Output" event
-				runtime.sendEvent('output', chunkstr, "stderr");
+				this.sendEvent('output', chunkstr, "stderr");
 			}
 		});
 		const stdout = this._factorio.stdout.pipe(StreamSplitter("\n"));
-		stdout.on("token", function(chunk:any){
+		stdout.on("token", (chunk:any) => {
 			let chunkstr = chunk.toString().trim();
 			if (chunkstr.startsWith("DBG: ")) {
 				let event = chunkstr.substring(5).trim();
 				if (event === "on_first_tick") {
 					//on the first tick, update all breakpoints no matter what...
-					runtime._deferredevent = "continue";
-					runtime.updateBreakpoints(true);
+					this._deferredevent = "continue";
+					this.updateBreakpoints(true);
 				} else if (event === "on_tick") {
 					//if on_tick, then update breakpoints if needed and continue
-					if(runtime._breakPointsChanged.size === 0)
+					if(this._breakPointsChanged.size === 0)
 					{
-						runtime.continue();
+						this.continue();
 					} else {
-						runtime._deferredevent = "continue";
-						runtime.updateBreakpoints();
+						this._deferredevent = "continue";
+						this.updateBreakpoints();
 					}
 				} else if (event === "on_init") {
 					//if on_init, set initial breakpoints and continue
-					runtime._deferredevent = "continue";
-					runtime.updateBreakpoints(true);
+					this._deferredevent = "continue";
+					this.updateBreakpoints(true);
 				} else if (event === "on_load") {
 					//on_load can't set initial breakpoints
-					runtime.continue();
+					this.continue();
 				} else if (event.startsWith("step")) {
 					// notify stoponstep
-					if(runtime._breakPointsChanged.size === 0)
+					if(this._breakPointsChanged.size === 0)
 					{
-						runtime.sendEvent('stopOnStep');
+						this.sendEvent('stopOnStep');
 					} else {
-						runtime._deferredevent = 'stopOnStep';
-						runtime.updateBreakpoints();
+						this._deferredevent = 'stopOnStep';
+						this.updateBreakpoints();
 					}
 				} else if (event.startsWith("breakpoint")) {
 					// notify stop on breakpoint
-					if(runtime._breakPointsChanged.size === 0)
+					if(this._breakPointsChanged.size === 0)
 					{
-						runtime.sendEvent('stopOnBreakpoint');
+						this.sendEvent('stopOnBreakpoint');
 					} else {
-						runtime._deferredevent = 'stopOnBreakpoint';
-						runtime.updateBreakpoints();
+						this._deferredevent = 'stopOnBreakpoint';
+						this.updateBreakpoints();
 					}
 				} else {
 					// unexpected event?
 					console.log("unexpected event: " + event);
-					runtime.continue();
+					this.continue();
 				}
 			} else if (chunkstr.startsWith("DBGlogpoint: ")) {
 				const logpoint = JSON.parse(chunkstr.substring(13).trim());
-				runtime.sendEvent('output', logpoint.output, "console", logpoint.filePath, logpoint.line, logpoint.variablesReference);
+				this.sendEvent('output', logpoint.output, "console", logpoint.filePath, logpoint.line, logpoint.variablesReference);
 			} else if (chunkstr.startsWith("DBGstack: ")) {
-				runtime._stack.trace = JSON.parse(chunkstr.substring(10).trim());
-				runtime._stack.notify();
+				this._stack.trace = JSON.parse(chunkstr.substring(10).trim());
+				this._stack.notify();
 			} else if (chunkstr.startsWith("DBGmodules: ")) {
-				runtime._modules.modules = JSON.parse(chunkstr.substring(12).trim());
-				runtime._modules.notify();
+				this._modules.modules = JSON.parse(chunkstr.substring(12).trim());
+				this._modules.notify();
 			} else if (chunkstr.startsWith("EVTmodules: ")) {
 				const modules = JSON.parse(chunkstr.substring(12).trim());
-				runtime.sendEvent('modules',modules);
+				this.sendEvent('modules',modules);
 			} else if (chunkstr.startsWith("DBGscopes: ")) {
 				const scopes = JSON.parse(chunkstr.substring(11).trim());
-				let subj = runtime._scopes.get(scopes.frameId);
+				let subj = this._scopes.get(scopes.frameId);
 				subj.scopes = scopes.scopes;
 				subj.notify();
 			} else if (chunkstr.startsWith("DBGvars: ")) {
 				const vars = JSON.parse(chunkstr.substring(9).trim());
-				let subj = runtime._vars.get(vars.variablesReference);
+				let subj = this._vars.get(vars.variablesReference);
 				subj.vars = vars.vars;
 				subj.notify();
 			} else if (chunkstr.startsWith("DBGsetvar: ")) {
 				const result = JSON.parse(chunkstr.substring(11).trim());
-				let subj = runtime._setvars.get(result.seq);
+				let subj = this._setvars.get(result.seq);
 				subj.setvar = result.body;
 				subj.notify();
 			} else if (chunkstr.startsWith("DBGeval: ")) {
 				const evalresult = JSON.parse(chunkstr.substring(9).trim());
-				let subj = runtime._evals.get(evalresult.seq);
+				let subj = this._evals.get(evalresult.seq);
 				subj.evalresult = evalresult;
 				subj.notify();
 			} else if (chunkstr.startsWith("DBGsetbp")) {
 				// do whatever event was put off to update breakpoints
-				switch (runtime._deferredevent)
+				switch (this._deferredevent)
 				{
 					case "continue":
-						runtime.continue();
+						this.continue();
 						break;
 					default:
-						runtime.sendEvent(runtime._deferredevent);
+						this.sendEvent(this._deferredevent);
 						break;
 				}
 			} else if (chunkstr.startsWith("DBGstep")) {
-				runtime._step.notify();
+				this._step.notify();
 			} else {
 				//raise this as a stdout "Output" event
-				runtime.sendEvent('output', chunkstr, "stdout");
+				this.sendEvent('output', chunkstr, "stdout");
 			}
 		});
 	}
