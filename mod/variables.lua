@@ -300,13 +300,13 @@ function __DebugAdapter.variables(variablesReference)
       end
 
       if mode == "varargs" then
-      i = -1
-      while true do
-        local name,value = debug.getlocal(varRef.frameId,i)
-        if not name then break end
-        vars[#vars + 1] = variables.create(("(*vararg %d)"):format(-i),value)
-        i = i - 1
-      end
+        i = -1
+        while true do
+          local name,value = debug.getlocal(varRef.frameId,i)
+          if not name then break end
+          vars[#vars + 1] = variables.create(("(*vararg %d)"):format(-i),value)
+          i = i - 1
+        end
       elseif not mode then
         local info = debug.getinfo(varRef.frameId,"u")
         if info.isvararg then
@@ -465,45 +465,45 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
   if varRef then
     if varRef.type == "Locals" then
       if varRef.mode ~= "varargs" then
-      local i = 1
-      while true do
-        local lname,oldvalue = debug.getlocal(varRef.frameId,i)
-        if not lname then break end
-        if lname:sub(1,1) == "(" then
-          lname = ("%s %d)"):format(lname:sub(1,-2),i)
-        end
-        if lname == name then
-          local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
-          if goodvalue then
-            debug.setlocal(varRef.frameId,i,newvalue)
-            print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,newvalue)}))
-            return
-          else
-            print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,oldvalue)}))
-            return
+        local i = 1
+        while true do
+          local lname,oldvalue = debug.getlocal(varRef.frameId,i)
+          if not lname then break end
+          if lname:sub(1,1) == "(" then
+            lname = ("%s %d)"):format(lname:sub(1,-2),i)
           end
+          if lname == name then
+            local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
+            if goodvalue then
+              debug.setlocal(varRef.frameId,i,newvalue)
+              print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,newvalue)}))
+              return
+            else
+              print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,oldvalue)}))
+              return
+            end
+          end
+          i = i + 1
         end
-        i = i + 1
-      end
       else
         local i = -1
-      while true do
-        local vaname,oldvalue = debug.getlocal(varRef.frameId,i)
-        if not vaname then break end
-        vaname = ("(*vararg %d)"):format(-i)
-        if vaname == name then
-          local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
-          if goodvalue then
-            debug.setlocal(varRef.frameId,i,newvalue)
-            print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,newvalue)}))
-            return
-          else
-            print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,oldvalue)}))
-            return
+        while true do
+          local vaname,oldvalue = debug.getlocal(varRef.frameId,i)
+          if not vaname then break end
+          vaname = ("(*vararg %d)"):format(-i)
+          if vaname == name then
+            local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
+            if goodvalue then
+              debug.setlocal(varRef.frameId,i,newvalue)
+              print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,newvalue)}))
+              return
+            else
+              print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,oldvalue)}))
+              return
+            end
           end
+          i = i - 1
         end
-        i = i - 1
-      end
       end
     elseif varRef.type == "Upvalues" then
       local func = debug.getinfo(varRef.frameId,"f").func
@@ -527,16 +527,18 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
     elseif varRef.type == "Table" or varRef.type == "LuaObject" then
       -- special names "[]" and others aren't valid lua so it won't parse anyway
       local goodname,newname = __DebugAdapter.evaluateInternal(nil,nil,"setvar",name)
-
-      local alsoLookIn = varRef.object or varRef.table
-      local goodvalue,newvalue = __DebugAdapter.evaluateInternal(nil,alsoLookIn,"setvar",value)
-      if goodname and goodvalue then
-        -- this could fail if table has __newindex or LuaObject property is read only or wrong type, etc
-        pcall(function() varRef.object[newname] = newvalue end)
+      if goodname then
+        local alsoLookIn = varRef.object or varRef.table
+        local goodvalue,newvalue = __DebugAdapter.evaluateInternal(nil,alsoLookIn,"setvar",value)
+        if goodvalue then
+          -- this could fail if table has __newindex or LuaObject property is read only or wrong type, etc
+          pcall(function() alsoLookIn[newname] = newvalue end)
+        end
 
         -- it could even fail silently, or coerce the value to another type,
         -- so fetch the value back instead of assuming it set...
-        local _,resultvalue = pcall(function() return varRef.object[newname] end)
+        -- also, refresh the value even if we didn't update it
+        local _,resultvalue = pcall(function() return alsoLookIn[newname] end)
         print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,resultvalue)}))
         return
       end
