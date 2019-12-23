@@ -1,6 +1,7 @@
 -- this is a global so the vscode extension can get to it from debug.debug()
 __DebugAdapter = {}
-
+local __DebugAdapter = __DebugAdapter
+local require = require
 --this has to be first before requiring other files so they can mark functions as ignored
 require("__debugadapter__/stepping.lua")
 
@@ -8,6 +9,13 @@ local variables = require("__debugadapter__/variables.lua")
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local remotestepping = require("__debugadapter__/remotestepping.lua")
 require("__debugadapter__/evaluate.lua")
+
+local script = script
+local defines = defines
+local debug = debug
+local type = type
+local print = print
+local pairs = pairs
 
 ---@param startFrame integer | nil
 ---@param levels integer | nil

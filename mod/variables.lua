@@ -1,5 +1,16 @@
+local require = require
 local luaObjectInfo = require("__debugadapter__/luaobjectinfo.lua")
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
+
+local __DebugAdapter = __DebugAdapter
+local debug = debug
+local table = table
+local setmetatable = setmetatable
+local next = next
+local pairs = pairs
+local print = print
+local pcall = pcall
+local type = type
 
 -- Trying to expand the refs table causes some problems, so just hide it...
 local refsmeta = {

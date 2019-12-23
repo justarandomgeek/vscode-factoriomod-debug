@@ -7,9 +7,13 @@ local function stepIgnore(f)
 end
 __DebugAdapter.stepIgnore = stepIgnore
 
-local require = require
 local debug = debug
+local string = string
+local require = require
 local print = print
+local pairs = pairs
+local type = type
+
 local variables = require("__debugadapter__/variables.lua")
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 
@@ -19,7 +23,6 @@ local stepdepth = 0
 
 function __DebugAdapter.attach()
   local getinfo = debug.getinfo
-  local string = string
   local sub = string.sub
   local format = string.format
   local debugprompt = debug.debug

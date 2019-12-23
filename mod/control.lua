@@ -1,17 +1,24 @@
-
 -- require DA to have a non-pcall require for syntax checking
 require('__debugadapter__/debugadapter.lua')
 
+local script = script
+local remote = remote
+local debug = debug
+local print = print
+local pairs = pairs
+
 local function callAll(funcname,...)
   local results = {}
+  local call = remote.call
+  local interfaces = remote.interfaces
   for name,version in pairs(game.active_mods) do
     local remotename = "__debugadapter_" .. name
-    if remote.interfaces[remotename] then
-      results[name] = remote.call(remotename,funcname,...)
+    if interfaces[remotename] then
+      results[name] = call(remotename,funcname,...)
     end
   end
-  if remote.interfaces["__debugadapter_level"] then
-    results["level"] = remote.call("__debugadapter_level",funcname,...)
+  if interfaces["__debugadapter_level"] then
+    results["level"] = call("__debugadapter_level",funcname,...)
   end
   return results
 end

@@ -9,6 +9,9 @@ local variables = require("__debugadapter__/variables.lua")
 local remotestepping = {}
 
 local __DebugAdapter = __DebugAdapter
+local script = script
+local setmetatable = setmetatable
+local unpack = table.unpack
 
 local origremote = remote
 local stacks = {}
@@ -53,7 +56,7 @@ function remotestepping.stepOut()
 end
 __DebugAdapter.stepIgnore(remotestepping.stepOut)
 
-local unpack = table.unpack
+
 local function remotestepcall(remotename,method,...)
   local call = origremote.call
   if not game then -- remove this in 0.18 with script.active_mods

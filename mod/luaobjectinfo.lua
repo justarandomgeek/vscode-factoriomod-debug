@@ -1,3 +1,7 @@
+local string = string
+local rawget = rawget
+local pcall = pcall
+
 return {
   ---@param obj LuaObject
   ---@return string

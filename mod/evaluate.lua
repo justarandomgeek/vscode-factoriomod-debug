@@ -1,4 +1,11 @@
 local variables = require("__debugadapter__/variables.lua")
+local __DebugAdapter = __DebugAdapter
+local debug = debug
+local string = string
+local print = print
+local pcall = pcall
+local setmetatable = setmetatable
+local load = load
 
 local function evalmeta(frameId,alsoLookIn)
   local getinfo = debug.getinfo

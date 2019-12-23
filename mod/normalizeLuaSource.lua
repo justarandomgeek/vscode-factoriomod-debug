@@ -1,3 +1,6 @@
+local __DebugAdapter = __DebugAdapter
+local string = string
+
 local levelpath
 if script.mod_name == "level" then
   ---@param modname string
