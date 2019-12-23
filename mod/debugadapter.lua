@@ -30,7 +30,9 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
     local info = debug.getinfo(i,"nSlutf")
     if not info then break end
     local framename = info.name or "(name unavailable)"
-    if not info.name then
+    if info.what == "main" then
+      framename = "(main chunk)"
+    elseif not info.name then
       if info.nparams == 1 and not info.isvararg then
         local name,event = debug.getlocal(i,1)
         if type(event) == "table" and type(event.name) == "number"
