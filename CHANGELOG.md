@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.17.4
+
+* include for loop internals in `<temporaries>` section
+
 ## 0.17.3
 
 * don't remove leading '/' from workspace paths on non-windows

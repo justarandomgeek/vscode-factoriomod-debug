@@ -275,11 +275,11 @@ function __DebugAdapter.variables(variablesReference)
       while true do
         local name,value = debug.getlocal(varRef.frameId,i)
         if not name then break end
-        local rawname = name
-        if name:sub(1,1) == "(" then
-          name = ("%s %d)"):format(name:sub(1,-2),i)
-        end
-        if showTemps == ( rawname == "(*temporary)" ) then
+        local isTemp = name:sub(1,1) == "("
+        if showTemps == isTemp then
+          if isTemp then
+            name = ("%s %d)"):format(name:sub(1,-2),i)
+          end
           vars[#vars + 1] = variables.create(name,value)
         end
         i = i + 1
