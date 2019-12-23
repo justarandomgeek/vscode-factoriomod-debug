@@ -75,11 +75,11 @@ end
 --- Generate a variablesReference for `name` at frame `frameId`
 ---@param frameId number
 ---@param name string
----@param showTemps boolean | nil
+---@param mode string|nil "temps" | "vararg"
 ---@return number variablesReference
-function variables.scopeRef(frameId,name,showTemps)
+function variables.scopeRef(frameId,name,mode)
   for id,varRef in pairs(variables.refs) do
-    if varRef.type == name and varRef.frameId == frameId and (varRef.showTemps or false) == showTemps then
+    if varRef.type == name and varRef.frameId == frameId and varRef.mode == mode then
       return id
     end
   end
@@ -87,7 +87,7 @@ function variables.scopeRef(frameId,name,showTemps)
   variables.refs[id] = {
     type = name,
     frameId = frameId,
-    showTemps = showTemps,
+    mode = mode,
   }
   return id
 end
@@ -279,16 +279,15 @@ function __DebugAdapter.variables(variablesReference)
   local vars = {}
   if varRef then
     if varRef.type == "Locals" then
-      local showTemps = varRef.showTemps or false
-      if not showTemps then
-        vars[#vars + 1] = { name = "<temporaries>", value = "<temporaries>", variablesReference = variables.scopeRef(varRef.frameId,"Locals",true) }
-      end
+      local mode = varRef.mode
+      local hasTemps =  false
       local i = 1
       while true do
         local name,value = debug.getlocal(varRef.frameId,i)
         if not name then break end
         local isTemp = name:sub(1,1) == "("
-        if showTemps == isTemp then
+        if isTemp then hasTemps = true end
+        if (mode == "temps" and isTemp) or (not mode and not isTemp) then
           if isTemp then
             name = ("%s %d)"):format(name:sub(1,-2),i)
           end
@@ -296,12 +295,26 @@ function __DebugAdapter.variables(variablesReference)
         end
         i = i + 1
       end
+      if not mode and hasTemps then
+        table.insert(vars,1,{ name = "<temporaries>", value = "<temporaries>", variablesReference = variables.scopeRef(varRef.frameId,"Locals","temps") })
+      end
+
+      if mode == "varargs" then
       i = -1
       while true do
         local name,value = debug.getlocal(varRef.frameId,i)
         if not name then break end
         vars[#vars + 1] = variables.create(("(*vararg %d)"):format(-i),value)
         i = i - 1
+      end
+      elseif not mode then
+        local info = debug.getinfo(varRef.frameId,"u")
+        if info.isvararg then
+          local varargidx = info.nparams + 1
+          if hasTemps then varargidx = varargidx + 1 end
+
+          table.insert(vars,varargidx,{ name = "<varargs>", value = "<varargs>", variablesReference = variables.scopeRef(varRef.frameId,"Locals","varargs") })
+        end
       end
     elseif varRef.type == "Upvalues" then
       local func = debug.getinfo(varRef.frameId,"f").func
