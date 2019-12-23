@@ -111,8 +111,9 @@ export class FactorioModRuntime extends EventEmitter {
 					this._deferredevent = "continue";
 					this.updateBreakpoints(true);
 				} else if (event === "on_load") {
-					//on_load can't set initial breakpoints
-					this.continue();
+					//on_load set initial breakpoints and continue
+					this._deferredevent = "continue";
+					this.updateBreakpoints(true);
 				} else if (event.startsWith("step")) {
 					// notify stoponstep
 					if(this._breakPointsChanged.size === 0)
