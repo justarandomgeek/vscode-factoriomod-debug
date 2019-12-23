@@ -291,15 +291,23 @@ export class FactorioModRuntime extends EventEmitter {
 	}
 
 	private async updateBreakpoints(updateAll:boolean = false) {
-		let changes = {};
+		let changes = "{";
 		this._breakPoints.forEach((breakpoints:DebugProtocol.SourceBreakpoint[], filename:string) => {
 			if (updateAll || this._breakPointsChanged.has(filename))
 			{
-				changes[filename] = breakpoints;
+				const breakpointsbody = breakpoints
+				.map((sb)=>{
+					const condition = sb.condition && `condition=${this.luaBlockQuote(sb.condition)}, ` || ""
+					const hitCondition = sb.hitCondition && `hitCondition=${this.luaBlockQuote(sb.hitCondition)}, ` || ""
+					const logMessage = sb.logMessage && `logMessage=${this.luaBlockQuote(sb.logMessage)}, ` || ""
+					return `{ line=${sb.line}, ${condition}${hitCondition}${logMessage}}`;  })
+				.reduce((prev,curr)=>{return prev + "," + curr});
+				changes += `["${filename}"] = {${breakpointsbody}},`;
 			}
 		});
+		changes += "}"
 		this._breakPointsChanged.clear();
-		this._factorio.stdin.write(`remote.call("debugadapter", "updateBreakpoints", ${this.luaBlockQuote(JSON.stringify(changes))})\n`);
+		this._factorio.stdin.write(`remote.call("debugadapter", "updateBreakpoints", ${changes})\n`);
 	}
 
 	/*

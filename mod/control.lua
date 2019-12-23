@@ -32,7 +32,7 @@ local function detach()
 end
 
 local function updateBreakpoints(changedsources)
-  for source,breakpoints in pairs(game.json_to_table(changedsources)) do
+  for source,breakpoints in pairs(changedsources) do
     callAll("setBreakpoints",source,breakpoints)
   end
   print("DBGsetbp")
