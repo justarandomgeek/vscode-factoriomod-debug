@@ -4,6 +4,22 @@
 local function LuaObject() end
 
 
+---@class Breakpoint
+---@field id number | nil
+---@field verified boolean
+---@field source Source | nil
+---@field line number | nil
+---@field name string | nil
+---@field path string | nil
+local function Breakpoint() end
+
+---@class SourceBreakpoint
+---@field line number | nil
+---@field condition string | nil
+---@field hitCondition string | nil
+---@field logMessage string | nil
+local function SourceBreakpoint() end
+
 ---@class Source
 ---@field name string | nil
 ---@field path string | nil

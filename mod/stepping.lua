@@ -152,7 +152,7 @@ function __DebugAdapter.setBreakpoints(source,breaks)
 end
 
 ---@param source string
----@return Breakpoint | Breakpoint[]
+---@return Breakpoint[] | Breakpoint
 function __DebugAdapter.dumpBreakpoints(source)
   if source then
     return breakpoints[source]
@@ -162,7 +162,7 @@ function __DebugAdapter.dumpBreakpoints(source)
 end
 
 ---@param steptype string "remote"*("next" | "in" | "over" | "out")
----@param silent nil | boolean
+---@param silent boolean | nil
 function __DebugAdapter.step(steptype,silent)
   stepmode = steptype
   if steptype == "over" or steptype == "out" then
