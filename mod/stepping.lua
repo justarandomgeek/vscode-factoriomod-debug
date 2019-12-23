@@ -7,6 +7,9 @@ local function stepIgnore(f)
 end
 __DebugAdapter.stepIgnore = stepIgnore
 
+-- capture the raw object early, before remotestepping hooks it
+local remote = remote
+
 local debug = debug
 local string = string
 local require = require
