@@ -33,6 +33,7 @@
 		"tslint": "tslint ./src/**/*.ts",
 		"watch": "tsc -w -p ./src",
 		"postinstall": "node ./node_modules/vscode/bin/install",
+		"vscode:prepublish": ".\\mod\\makerelease.sh",
 		"package": "vsce package",
 		"publish": "vsce publish"
 	},
