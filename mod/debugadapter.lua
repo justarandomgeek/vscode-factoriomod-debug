@@ -142,6 +142,11 @@ if script.mod_name ~= "debugadapter" then
     remoteStepOut = remotestepping.stepOut,
     remoteStepInterfaces = remotestepping.interfaces
   })
+
+  --TODO: attach on init setting?
+  __DebugAdapter.attach()
+  print("DBG: on_parse")
+  debug.debug()
 end
 
 return __DebugAdapter

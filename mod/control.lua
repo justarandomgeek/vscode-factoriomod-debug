@@ -66,16 +66,15 @@ script.on_init(function()
   debug.debug()
 end)
 
-local attachOnFirstTick
 script.on_load(function()
-  attachOnFirstTick = true
+  attach()
+  modules()
   print("DBG: on_load")
   debug.debug()
 end)
 
 local firsttick = true
 script.on_event(defines.events.on_tick,function()
-  if attachOnFirstTick then attachOnFirstTick = false attach() end
   if firsttick then
     firsttick = false
     modules()
