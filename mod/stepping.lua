@@ -152,6 +152,20 @@ function __DebugAdapter.setBreakpoints(source,breaks)
   end
 end
 
+---@param changedsources table<string,SourceBreakpoint[]>
+function __DebugAdapter.updateBreakpoints(changedsources)
+  -- pass it around to everyone if possible, else just set it here...
+  -- TODO: check for script and main chunk instead of game - will match settings/data stage, and control.lua init
+  if game then
+    remote.call("debugadapter", "updateBreakpoints", changedsources)
+  else
+    for source,changedbreaks in pairs(changedsources) do
+      __DebugAdapter.setBreakpoints(source,changedbreaks)
+    end
+    print("DBGsetbp")
+  end
+end
+
 ---@param source string
 ---@return Breakpoint[] | Breakpoint
 function __DebugAdapter.dumpBreakpoints(source)

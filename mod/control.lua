@@ -34,6 +34,7 @@ local function updateBreakpoints(changedsources)
   end
   print("DBGsetbp")
 end
+__DebugAdapter.updateBreakpoints = updateBreakpoints
 
 local function modules()
   local mods = {}

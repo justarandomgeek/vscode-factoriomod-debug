@@ -295,19 +295,22 @@ export class FactorioModRuntime extends EventEmitter {
 		this._breakPoints.forEach((breakpoints:DebugProtocol.SourceBreakpoint[], filename:string) => {
 			if (updateAll || this._breakPointsChanged.has(filename))
 			{
-				const breakpointsbody = breakpoints
-				.map((sb)=>{
-					const condition = sb.condition && `condition=${this.luaBlockQuote(sb.condition)}, ` || ""
-					const hitCondition = sb.hitCondition && `hitCondition=${this.luaBlockQuote(sb.hitCondition)}, ` || ""
-					const logMessage = sb.logMessage && `logMessage=${this.luaBlockQuote(sb.logMessage)}, ` || ""
-					return `{ line=${sb.line}, ${condition}${hitCondition}${logMessage}}`;  })
-				.reduce((prev,curr)=>{return prev + "," + curr});
-				changes += `["${filename}"] = {${breakpointsbody}},`;
+				const breakpointsarray = breakpoints.map((sb)=>{
+					const condition = sb.condition && `,condition=${this.luaBlockQuote(sb.condition)}` || ""
+					const hitCondition = sb.hitCondition && `,hitCondition=${this.luaBlockQuote(sb.hitCondition)}` || ""
+					const logMessage = sb.logMessage && `,logMessage=${this.luaBlockQuote(sb.logMessage)}` || ""
+					return `{line=${sb.line}${condition}${hitCondition}${logMessage}}`;  });
+				let breakpointsbody = ""
+				if (breakpointsarray)
+				{
+					breakpointsbody = breakpointsarray.reduce((prev,curr)=>{return prev + "," + curr});
+				}
+				changes += `["${filename}"]={${breakpointsbody}},`;
 			}
 		});
 		changes += "}"
 		this._breakPointsChanged.clear();
-		this._factorio.stdin.write(`remote.call("debugadapter", "updateBreakpoints", ${changes})\n`);
+		this._factorio.stdin.write(`__DebugAdapter.updateBreakpoints(${changes})\n`,"utf8");
 	}
 
 	/*
