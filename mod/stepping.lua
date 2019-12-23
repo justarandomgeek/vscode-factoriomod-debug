@@ -16,6 +16,7 @@ local type = type
 
 local variables = require("__debugadapter__/variables.lua")
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
+local json = require("__debugadapter__/json.lua")
 
 local breakpoints = {}
 local stepmode = nil
@@ -85,7 +86,7 @@ function __DebugAdapter.attach()
                     filePath = s,
                     line = line,
                   }
-                  print("DBGlogpoint: " .. game.table_to_json(logpoint))
+                  print("DBGlogpoint: " .. json.encode(logpoint))
                 else
                   if (stepmode == "over") then
                     stepmode = nil

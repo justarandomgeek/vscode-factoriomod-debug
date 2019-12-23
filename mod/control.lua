@@ -1,6 +1,7 @@
 -- require DA to have a non-pcall require for syntax checking
 require('__debugadapter__/debugadapter.lua')
 
+local json = require('__debugadapter__/json.lua')
 local script = script
 local remote = remote
 local debug = debug
@@ -47,7 +48,7 @@ local function modules()
     }
   end
   mods[#mods+1] = { id = "level", name = "level", }
-  print("EVTmodules: " .. game.table_to_json(mods))
+  print("EVTmodules: " .. json.encode(mods))
 end
 
 local function whois(remotename)

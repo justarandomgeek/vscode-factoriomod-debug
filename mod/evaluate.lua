@@ -1,4 +1,5 @@
 local variables = require("__debugadapter__/variables.lua")
+local json = require("__debugadapter__/json.lua")
 local __DebugAdapter = __DebugAdapter
 local debug = debug
 local string = string
@@ -227,5 +228,5 @@ function __DebugAdapter.evaluate(frameId,context,expression,seq)
   else
     evalresult = {result = "Cannot Evaluate in Remote Frame", type="error", variablesReference=0, seq=seq}
   end
-  print("DBGeval: " .. game.table_to_json(evalresult))
+  print("DBGeval: " .. json.encode(evalresult))
 end

@@ -9,6 +9,7 @@ local variables = require("__debugadapter__/variables.lua")
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local remotestepping = require("__debugadapter__/remotestepping.lua")
 require("__debugadapter__/evaluate.lua")
+local json = require('__debugadapter__/json.lua')
 
 local script = script
 local defines = defines
@@ -88,7 +89,7 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
   if forRemote then
     return stackFrames
   else
-    print("DBGstack: " .. game.table_to_json(stackFrames))
+    print("DBGstack: " .. json.encode(stackFrames))
   end
 end
 __DebugAdapter.stepIgnore(__DebugAdapter.stackTrace)
@@ -103,14 +104,14 @@ function __DebugAdapter.modules()
     }
   end
   modules[#modules+1] = { id = "level", name = "level", }
-  print("DBGmodules: " .. game.table_to_json(modules))
+  print("DBGmodules: " .. json.encode(modules))
 end
 
 ---@param frameId number
 ---@return Scope[]
 function __DebugAdapter.scopes(frameId)
   if debug.getinfo(frameId,"f") then
-    print("DBGscopes: " .. game.table_to_json({frameId = frameId, scopes = {
+    print("DBGscopes: " .. json.encode({frameId = frameId, scopes = {
       -- Global
       { name = "Lua Globals", variablesReference = variables.tableRef(_ENV) },
       { name = "Factorio global", variablesReference = variables.tableRef(global) },
@@ -120,7 +121,7 @@ function __DebugAdapter.scopes(frameId)
       { name = "Upvalues", variablesReference = variables.scopeRef(frameId,"Upvalues") },
     }}))
   else
-    print("DBGscopes: " .. game.table_to_json({frameId = frameId, scopes = {
+    print("DBGscopes: " .. json.encode({frameId = frameId, scopes = {
       { name = "Remote Variables Unavailable", variablesReference = 0 },
     }}))
   end

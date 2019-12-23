@@ -1,6 +1,7 @@
 local require = require
 local luaObjectInfo = require("__debugadapter__/luaobjectinfo.lua")
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
+local json = require("__debugadapter__/json.lua")
 
 local __DebugAdapter = __DebugAdapter
 local debug = debug
@@ -438,7 +439,7 @@ function __DebugAdapter.variables(variablesReference)
       presentationHint = { kind = "property", attributes = { "readOnly" } },
     }
   end
-  print("DBGvars: " .. game.table_to_json({variablesReference = variablesReference, vars = vars}))
+  print("DBGvars: " .. json.encode({variablesReference = variablesReference, vars = vars}))
 end
 
 --- DebugAdapter SetVariablesRequest
@@ -461,10 +462,10 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
           local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
           if goodvalue then
             debug.setlocal(varRef.frameId,i,newvalue)
-            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(nil,newvalue)}))
+            print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,newvalue)}))
             return
           else
-            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(nil,oldvalue)}))
+            print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,oldvalue)}))
             return
           end
         end
@@ -479,10 +480,10 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
           local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
           if goodvalue then
             debug.setlocal(varRef.frameId,i,newvalue)
-            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(nil,newvalue)}))
+            print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,newvalue)}))
             return
           else
-            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(nil,oldvalue)}))
+            print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,oldvalue)}))
             return
           end
         end
@@ -498,10 +499,10 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
           local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
           if goodvalue then
             debug.setupvalue(func,i,newvalue)
-            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(nil,newvalue)}))
+            print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,newvalue)}))
             return
           else
-            print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(nil,oldvalue)}))
+            print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,oldvalue)}))
             return
           end
         end
@@ -520,7 +521,7 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
         -- it could even fail silently, or coerce the value to another type,
         -- so fetch the value back instead of assuming it set...
         local _,resultvalue = pcall(function() return varRef.object[newname] end)
-        print("DBGsetvar: " .. game.table_to_json({seq = seq, body = variables.create(nil,resultvalue)}))
+        print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,resultvalue)}))
         return
       end
     end
