@@ -11,15 +11,11 @@ local pairs = pairs
 local function callAll(funcname,...)
   local results = {}
   local call = remote.call
-  local interfaces = remote.interfaces
-  for name,version in pairs(game.active_mods) do
-    local remotename = "__debugadapter_" .. name
-    if interfaces[remotename] then
-      results[name] = call(remotename,funcname,...)
+  for remotename,_ in pairs(remote.interfaces) do
+    local modname = remotename:match("^__debugadapter_(.+)$")
+    if modname then
+      results[modname] = call(remotename,funcname,...)
     end
-  end
-  if interfaces["__debugadapter_level"] then
-    results["level"] = call("__debugadapter_level",funcname,...)
   end
   return results
 end
