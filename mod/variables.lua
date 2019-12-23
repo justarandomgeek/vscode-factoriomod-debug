@@ -464,6 +464,7 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
   local varRef = variables.refs[variablesReference]
   if varRef then
     if varRef.type == "Locals" then
+      if varRef.mode ~= "varargs" then
       local i = 1
       while true do
         local lname,oldvalue = debug.getlocal(varRef.frameId,i)
@@ -484,7 +485,8 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
         end
         i = i + 1
       end
-      i = -1
+      else
+        local i = -1
       while true do
         local vaname,oldvalue = debug.getlocal(varRef.frameId,i)
         if not vaname then break end
@@ -501,6 +503,7 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
           end
         end
         i = i - 1
+      end
       end
     elseif varRef.type == "Upvalues" then
       local func = debug.getinfo(varRef.frameId,"f").func
