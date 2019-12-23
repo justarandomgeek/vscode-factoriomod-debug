@@ -3,6 +3,7 @@
 ## 0.17.4
 
 * include for loop internals in `<temporaries>` section
+* bring my own json to remove many dependancies on `game` object
 
 ## 0.17.3
 
