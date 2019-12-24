@@ -130,6 +130,23 @@ function __DebugAdapter.scopes(frameId)
   end
 end
 
+---@param expr string
+---@param alsoLookIn table
+function __DebugAdapter.print(expr,alsoLookIn)
+  local result = __DebugAdapter.stringInterp(expr,3,alsoLookIn,"print")
+  local body = {
+    category = "console",
+    output = result,
+  };
+  if game then
+    local info = debug.getinfo(2,"lS")
+    body.line = info.currentline
+    body.source = normalizeLuaSource(info.source)
+  end
+  print("DBGprint: " .. json.encode(body) .. "\n")
+end
+__DebugAdapter.stepIgnore(__DebugAdapter.print)
+
 -- don't hook myself!
 if script.mod_name ~= "debugadapter" then
   -- in addition to the global, set up a remote so we can attach/detach/configure from DA's on_tick

@@ -311,6 +311,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	//---- helpers
 
 	private createSource(filePath: string): Source {
-		return new Source(basename(filePath), this.convertDebuggerPathToClient(filePath), undefined, undefined, 'factoriomod-adapter-data');
+		return new Source(basename(filePath), this.convertDebuggerPathToClient(filePath));
 	}
 }

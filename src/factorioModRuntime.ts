@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import { spawn, ChildProcess } from 'child_process';
-import { Breakpoint, Scope, Variable, StackFrame, Module } from 'vscode-debugadapter';
+import { Breakpoint, Scope, Variable, StackFrame, Module,} from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 const { Subject } = require('await-notify');
 import StreamSplitter = require('stream-splitter');
@@ -245,6 +245,9 @@ export class FactorioModRuntime extends EventEmitter {
 			} else if (chunkstr.startsWith("DBGlogpoint: ")) {
 				const logpoint = JSON.parse(chunkstr.substring(13).trim());
 				this.sendEvent('output', logpoint.output, "console", logpoint.filePath, logpoint.line, logpoint.variablesReference);
+			} else if (chunkstr.startsWith("DBGprint: ")) {
+				const body = JSON.parse(chunkstr.substring(10).trim());
+				this.sendEvent('output', body.output, "console", body.source, body.line);
 			} else if (chunkstr.startsWith("DBGstack: ")) {
 				this._stack.trace = JSON.parse(chunkstr.substring(10).trim());
 				this._stack.notify();
