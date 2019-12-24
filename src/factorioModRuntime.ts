@@ -190,7 +190,8 @@ export class FactorioModRuntime extends EventEmitter {
 		this._factorio.on("exit", (code:number, signal:string) => {
 			this.sendEvent('end');
 		});
-		this._factorio.stderr.on("data", (chunk:any) => {
+		const stderr = this._factorio.stdout.pipe(StreamSplitter("\n"));
+		stderr.on("token", (chunk:any) => {
 			let chunkstr : string = chunk.toString();
 			chunkstr = chunkstr.replace(/lua_debug>/g,"");
 			chunkstr = chunkstr.trim();

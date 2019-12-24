@@ -10,6 +10,7 @@
 * varargs sorted into special child of Local scope, after fixed args
 * automatically install and enable/disable mod
 * works if `require`d into data or settings stage
+* accumulate stderr until newline, then strip debug prompts and return non-empty strings
 
 ## 0.17.3
 
