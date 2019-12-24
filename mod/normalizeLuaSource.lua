@@ -2,7 +2,7 @@ local __DebugAdapter = __DebugAdapter
 local string = string
 
 local levelpath
-if script.mod_name == "level" then
+if script and script.mod_name == "level" then
   ---@param modname string
   ---@param basepath string
   function __DebugAdapter.levelPath(modname,basepath)
@@ -58,7 +58,7 @@ local function normalizeLuaSource(source)
     return source
   else
     -- we found it! This will be a path relative to the `mods` directory.
-    local modver = game.active_mods[modname] --TODO: script.active_mods in 0.18, allow stepping before `game`
+    local modver = (mods or game.active_mods)[modname] --TODO: script.active_mods in 0.18, allow stepping before `game`
     local result = string.format("MOD/%s_%s/%s",modname,modver,filename)
     knownSources[source] = result
     return result

@@ -7,7 +7,10 @@ require("__debugadapter__/stepping.lua")
 
 local variables = require("__debugadapter__/variables.lua")
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
-local remotestepping = require("__debugadapter__/remotestepping.lua")
+local remotestepping
+if script then -- don't attempt to hook in data stage
+  remotestepping = require("__debugadapter__/remotestepping.lua")
+end
 require("__debugadapter__/evaluate.lua")
 local json = require('__debugadapter__/json.lua')
 
@@ -32,7 +35,7 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
     local framename = info.name or "(name unavailable)"
     if info.what == "main" then
       framename = "(main chunk)"
-    elseif not info.name then
+    elseif not info.name and script then
       if info.nparams == 1 and not info.isvararg then
         local name,event = debug.getlocal(i,1)
         if type(event) == "table" and type(event.name) == "number"
@@ -73,20 +76,22 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
     if #stackFrames == levels then break end
   end
 
-  local remoteStack = remotestepping.parentStack()
-  if remoteStack then
-    local remoteFName = remotestepping.entryFunction()
-    if remoteFName then
-      if forRemote then
-        stackFrames[#stackFrames].name = ("[%s] %s"):format(script.mod_name, remoteFName)
-      else
-        stackFrames[#stackFrames].name = remoteFName
+  if remotestepping then
+    local remoteStack = remotestepping.parentStack()
+    if remoteStack then
+      local remoteFName = remotestepping.entryFunction()
+      if remoteFName then
+        if forRemote then
+          stackFrames[#stackFrames].name = ("[%s] %s"):format(script.mod_name, remoteFName)
+        else
+          stackFrames[#stackFrames].name = remoteFName
+        end
       end
-    end
-    for _,frame in pairs(remoteStack) do
-      frame.id = i
-      stackFrames[#stackFrames+1] = frame
-      i = i + 1
+      for _,frame in pairs(remoteStack) do
+        frame.id = i
+        stackFrames[#stackFrames+1] = frame
+        i = i + 1
+      end
     end
   end
   if forRemote then
@@ -100,7 +105,7 @@ __DebugAdapter.stepIgnore(__DebugAdapter.stackTrace)
 ---@return Module[]
 function __DebugAdapter.modules()
   local modules = {}
-  for name,version in pairs(game.active_mods) do
+  for name,version in pairs(mods or game.active_mods) do
     modules[#modules+1] = {
       id = name, name = name,
       version = version,
@@ -114,15 +119,19 @@ end
 ---@return Scope[]
 function __DebugAdapter.scopes(frameId)
   if debug.getinfo(frameId,"f") then
-    print("DBGscopes: " .. json.encode({frameId = frameId, scopes = {
-      -- Global
-      { name = "Lua Globals", variablesReference = variables.tableRef(_ENV) },
-      { name = "Factorio global", variablesReference = variables.tableRef(global) },
-      -- Locals
-      { name = "Locals", variablesReference = variables.scopeRef(frameId,"Locals") },
-      -- Upvalues
-      { name = "Upvalues", variablesReference = variables.scopeRef(frameId,"Upvalues") },
-    }}))
+    local scopes = {}
+    -- Global
+    scopes[#scopes+1] = { name = "Lua Globals", variablesReference = variables.tableRef(_ENV) }
+    if global then
+      scopes[#scopes+1] = { name = "Factorio global", variablesReference = variables.tableRef(global) }
+    end
+    -- Locals
+    scopes[#scopes+1] = { name = "Locals", variablesReference = variables.scopeRef(frameId,"Locals") }
+    -- Upvalues
+    scopes[#scopes+1] = { name = "Upvalues", variablesReference = variables.scopeRef(frameId,"Upvalues") }
+
+
+    print("DBGscopes: " .. json.encode({frameId = frameId, scopes = scopes}))
   else
     print("DBGscopes: " .. json.encode({frameId = frameId, scopes = {
       { name = "Remote Variables Unavailable", variablesReference = 0 },
@@ -138,17 +147,21 @@ function __DebugAdapter.print(expr,alsoLookIn)
     category = "console",
     output = result,
   };
-  if game then
+  if game or mods then
     local info = debug.getinfo(2,"lS")
     body.line = info.currentline
     body.source = normalizeLuaSource(info.source)
   end
-  print("DBGprint: " .. json.encode(body) .. "\n")
+  print("DBGprint: " .. json.encode(body))
 end
 __DebugAdapter.stepIgnore(__DebugAdapter.print)
 
--- don't hook myself!
-if script.mod_name ~= "debugadapter" then
+if data then
+  log("debugadapter registered for data")
+  __DebugAdapter.attach()
+  print("DBG: on_data")
+  debug.debug()
+elseif script.mod_name ~= "debugadapter" then -- don't hook myself!
   -- in addition to the global, set up a remote so we can attach/detach/configure from DA's on_tick
   -- and pass stepping state around remote calls
   log("debugadapter registered for " .. script.mod_name)

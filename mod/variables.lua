@@ -39,7 +39,8 @@ local globalbuiltins={
   log = "builtin", table_size = "builtin", package = "builtin", require = "builtin",
 
   remote = "factorio", commands = "factorio", settings = "factorio", rcon = "factorio", rendering = "factorio",
-  script = "factorio", defines = "factorio", game = "factorio", global = "factorio"
+  script = "factorio", defines = "factorio", game = "factorio", global = "factorio", mods = "factorio", data = "factorio", util = "factorio",
+
 }
 gmeta.__debugline = "<Global Self Reference>"
 gmeta.__debugchildren = function(t,extra)

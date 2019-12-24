@@ -207,6 +207,10 @@ export class FactorioModRuntime extends EventEmitter {
 						this._deferredevent = "continue";
 						this.updateBreakpoints();
 					}
+				} else if (event === "on_data") {
+					//control.lua main chunk - force all breakpoints each time this comes up because it can only set them locally
+					this._deferredevent = "continue";
+					this.updateBreakpoints(true);
 				} else if (event === "on_parse") {
 					//control.lua main chunk - force all breakpoints each time this comes up because it can only set them locally
 					this._deferredevent = "continue";
