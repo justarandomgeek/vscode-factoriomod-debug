@@ -68,7 +68,7 @@ end)
 
 script.on_load(function()
   attach()
-  modules()
+  --modules() --TODO: 0.18 script.active_mods
   print("DBG: on_load")
   debug.debug()
 end)
