@@ -4,7 +4,6 @@ This is a debug adapter for developing Factorio mods. It supports breakpoints, s
 
 ## Using Factorio Mod Debug
 
-* Install the **Debug Adapter** mod in Factorio
 * Install the **Factorio Mod Debug** extension in VS Code.
 * Switch to the debug viewlet and select "Add Configuration..."
 * Select the debug environment "Factorio Mod Debug".

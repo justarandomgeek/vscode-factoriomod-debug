@@ -8,6 +8,7 @@
 * name `(main chunk)` in stack traces
 * set breakpoints earlier (still can't attach before `game` is available though)
 * varargs sorted into special child of Local scope, after fixed args
+* automatically install and enable/disable mod
 
 ## 0.17.3
 
