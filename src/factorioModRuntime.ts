@@ -13,6 +13,7 @@ import * as os from 'os';
 interface modentry{
 	name: string;
 	enabled: boolean;
+	version?: string;
 }
 interface modlist{
 	mods: modentry[];
