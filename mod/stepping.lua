@@ -155,11 +155,28 @@ function __DebugAdapter.setBreakpoints(source,breaks)
   end
 end
 
+local function isMainChunk()
+  local i = 2 -- no need to check getinfo or isMainChunk
+  local what
+  local getinfo = debug.getinfo
+  while true do
+    local info = getinfo(i,"S")
+    if info then
+      what = info.what
+      i = i + 1
+    else
+      break
+    end
+  end
+  return what == "main"
+end
+
 ---@param changedsources table<string,SourceBreakpoint[]>
 function __DebugAdapter.updateBreakpoints(changedsources)
   -- pass it around to everyone if possible, else just set it here...
-  -- TODO: check for script and main chunk instead of game - will match settings/data stage, and control.lua init
-  if game then
+  -- remote.call is only legal from within events, game catches all but on_load
+  -- during on_load, script exists and the root of the stack is no longer the main chunk
+  if game or script and not isMainChunk() then
     remote.call("debugadapter", "updateBreakpoints", changedsources)
   else
     for source,changedbreaks in pairs(changedsources) do
