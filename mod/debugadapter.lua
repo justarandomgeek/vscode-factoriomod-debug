@@ -56,6 +56,7 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
     if forRemote then
       framename = ("[%s] %s"):format(script.mod_name, framename)
     end
+    local source = normalizeLuaSource(info.source)
     local stackFrame = {
       id = i,
       name = framename,
@@ -63,8 +64,8 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
       moduleId = forRemote and script.mod_name,
       presentationHint = forRemote and "subtle",
       source = {
-        name = normalizeLuaSource(info.source),
-        path = normalizeLuaSource(info.source),
+        name = source,
+        path = source,
       }
     }
     stackFrames[#stackFrames+1] = stackFrame
