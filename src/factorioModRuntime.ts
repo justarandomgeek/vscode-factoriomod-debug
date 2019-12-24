@@ -425,11 +425,11 @@ export class FactorioModRuntime extends EventEmitter {
 					const logMessage = sb.logMessage && `,logMessage=${this.luaBlockQuote(sb.logMessage)}` || ""
 					return `{line=${sb.line}${condition}${hitCondition}${logMessage}}`;  });
 				let breakpointsbody = ""
-				if (breakpointsarray)
+				if (breakpointsarray && breakpointsarray.length > 0)
 				{
 					breakpointsbody = breakpointsarray.reduce((prev,curr)=>{return prev + "," + curr});
 				}
-				changes += `["${filename}"]={${breakpointsbody}},`;
+				changes += `[(${this.luaBlockQuote(filename)})]={${breakpointsbody}},`;
 			}
 		});
 		changes += "}"
