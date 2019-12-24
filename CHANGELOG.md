@@ -11,6 +11,8 @@
 * automatically install and enable/disable mod
 * works if `require`d into data or settings stage
 * accumulate stderr until newline, then strip debug prompts and return non-empty strings
+* better handling of paths
+* "Factorio Mod Debug" output channel listing various info about what paths it found
 
 ## 0.17.3
 

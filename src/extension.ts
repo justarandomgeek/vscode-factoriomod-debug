@@ -37,11 +37,20 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 			});
 		}
 
-		// if data path is not set, assume factorio path dir/../../data, verify dir exists
-		// except on macs, then it's only one layer...
-		if (!config.dataPath){
+		if (config.dataPath)
+		{
+			let dataPath = path.posix.normalize(config.dataPath);
+			if (dataPath.endsWith("/") || dataPath.endsWith("\\"))
+			{
+				dataPath = dataPath.replace(/[\\\/]+$/,"")
+			}
+		}
+		else
+		{
+			// if data path is not set, assume factorio path dir/../../data, verify dir exists
 			if (os.platform() == "darwin")
 			{
+				// except on macs, then it's only one layer...
 				config.dataPath = path.posix.normalize(path.resolve(path.dirname(config.factorioPath), "../data" ));
 			}
 			else
@@ -49,9 +58,23 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 				config.dataPath = path.posix.normalize(path.resolve(path.dirname(config.factorioPath), "../../data" ));
 			}
 		}
+
+		if (config.modsPath)
+		{
+			let modspath = path.posix.normalize(config.modsPath);
+			if (modspath.endsWith("/") || modspath.endsWith("\\"))
+			{
+				modspath = modspath.replace(/[\\\/]+$/,"")
+			}
+			if (fs.existsSync(modspath))
+			{
+				config.modsPath = modspath;
+			}
+		}
 		// if mods path is not set, assume factorio path dir/../../mods, verify dir exists
 		// except on macs, it's not there.
-		if (!config.modsPath && os.platform() != "darwin"){
+		else if (os.platform() != "darwin")
+		{
 			const modspath = path.posix.normalize(path.resolve(path.dirname(config.factorioPath), "../../mods" ));
 			if (fs.existsSync(modspath))
 			{

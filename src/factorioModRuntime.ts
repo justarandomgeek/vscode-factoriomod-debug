@@ -63,8 +63,11 @@ export class FactorioModRuntime extends EventEmitter {
 	private modinfo = new Array<modpaths>();
 	private infoWatcher:vscode.FileSystemWatcher;
 
+	private output:vscode.OutputChannel;
+
 	constructor() {
 		super();
+		this.output = vscode.window.createOutputChannel("Factorio Mod Debug");
 		vscode.workspace.findFiles('**/info.json')
 			.then(infos=>{infos.forEach(this.updateInfoJson,this);})
 			.then(()=>{this.modinfoready.notify()});
@@ -85,9 +88,10 @@ export class FactorioModRuntime extends EventEmitter {
 		{
 			this.modsPath = modsPath.replace(/\\/g,"/");
 			// check for folder or symlink and leave it alone, if zip update if mine is newer
-			const modlistpath = path.resolve(modsPath,"./mod-list.json")
+			const modlistpath = path.resolve(this.modsPath,"./mod-list.json")
 			if (fs.existsSync(modlistpath))
 			{
+				this.output.appendLine(`using modsPath ${this.modsPath}`);
 				let mods = fs.readdirSync(this.modsPath,"utf8");
 				mods = mods.filter((mod)=>{
 					return mod.startsWith("debugadapter")
@@ -103,7 +107,7 @@ export class FactorioModRuntime extends EventEmitter {
 						const infopath = path.resolve(extpath, "./modpackage/info.json")
 						const dainfo:modinfo = JSON.parse(fs.readFileSync(infopath, "utf8"))
 						fs.copyFileSync(zippath,path.resolve(modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
-						this.sendEvent('output', `installed ${dainfo.name}_${dainfo.version}.zip`, "stdout");
+						this.output.appendLine(`installed ${dainfo.name}_${dainfo.version}.zip`);
 					}
 				}
 				else if (mods.length == 1)
@@ -137,20 +141,20 @@ export class FactorioModRuntime extends EventEmitter {
 								const zippath = path.resolve(extpath, "./modpackage/debugadapter.zip")
 								fs.unlinkSync(path.resolve(modsPath,mods[0]))
 								fs.copyFileSync(zippath,path.resolve(modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
-								this.sendEvent('output', `updated ${mods[0]} to ${dainfo.name}_${dainfo.version}.zip`, "stdout");
+								this.output.appendLine(`updated ${mods[0]} to ${dainfo.name}_${dainfo.version}.zip`);
 							} else {
-								this.sendEvent('output', `using existing ${mods[0]}`, "stdout");
+								this.output.appendLine(`using existing ${mods[0]}`);
 							}
 						}
 					}
 					else
 					{
-						this.sendEvent('output', "existing debugadapter in modsPath is not a zip", "stderr");
+						this.output.appendLine("existing debugadapter in modsPath is not a zip");
 					}
 				}
 				else
 				{
-					this.sendEvent('output', "multiple debugadapters in modsPath", "stderr");
+					this.output.appendLine("multiple debugadapters in modsPath");
 				}
 				// enable in json
 				let modlist:modlist = JSON.parse(fs.readFileSync(modlistpath, "utf8"))
@@ -159,6 +163,7 @@ export class FactorioModRuntime extends EventEmitter {
 					if (modentry.name == "debugadapter") {
 						isInList = true;
 						modentry.enabled = true;
+						modentry.version = undefined;
 					};
 					return modentry;
 				});
@@ -166,16 +171,18 @@ export class FactorioModRuntime extends EventEmitter {
 					modlist.mods.push({name:"debugadapter",enabled:true})
 				}
 				fs.writeFileSync(modlistpath, JSON.stringify(modlist), "utf8")
-				this.sendEvent('output', `enabled in mod-list.json`, "stdout");
+				this.output.appendLine(`debugadapter enabled in mod-list.json`);
 			} else {
-				this.sendEvent('output', "modsPath does not contain mod-list.json", "stderr");
+				this.output.appendLine("modsPath does not contain mod-list.json");
+				this.modsPath = undefined
 			}
 
 		} else {
 			// warn that i can't check/add debugadapter
-			this.sendEvent('output', "Cannot install/verify mod without modsPath", "stderr");
+			this.output.appendLine("Cannot install/verify mod without modsPath");
 		}
 		this.dataPath = dataPath.replace(/\\/g,"/");
+		this.output.appendLine(`using dataPath ${this.dataPath}`);
 
 		await this.modinfoready.wait(1000);
 
@@ -256,7 +263,7 @@ export class FactorioModRuntime extends EventEmitter {
 					}
 				} else {
 					// unexpected event?
-					console.log("unexpected event: " + event);
+					this.output.appendLine("unexpected event: " + event);
 					this.continue();
 				}
 			} else if (chunkstr.startsWith("DBGlogpoint: ")) {
@@ -330,7 +337,7 @@ export class FactorioModRuntime extends EventEmitter {
 					return modentry;
 				});
 				fs.writeFileSync(modlistpath, JSON.stringify(modlist), "utf8")
-				this.sendEvent('output', `disabled in mod-list.json`, "stdout");
+				this.output.appendLine(`debugadapter disabled in mod-list.json`);
 			}
 		}
 	}
@@ -490,10 +497,12 @@ export class FactorioModRuntime extends EventEmitter {
 		let jsonpath = uri.path
 		if (os.platform() == "win32" && jsonpath.startsWith("/")) {jsonpath = jsonpath.substr(1)}
 		const moddata = JSON.parse(fs.readFileSync(jsonpath, "utf8"))
-		this.modinfo.push({
+		const mp = {
 			fspath: path.dirname(jsonpath),
 			modpath: `MOD/${moddata.name}_${moddata.version}`
-		});
+		};
+		this.modinfo.push(mp);
+		this.output.appendLine(`using mod in workspace ${JSON.stringify(mp)}`)
 	}
 	private removeInfoJson(uri:vscode.Uri)
 	{
@@ -502,6 +511,7 @@ export class FactorioModRuntime extends EventEmitter {
 			jsonpath = jsonpath.substr(1);
 		}
 		this.modinfo = this.modinfo.filter((modinfo)=>{modinfo.fspath != path.dirname(jsonpath)});
+		this.output.appendLine(`removed mod in workspace ${path.dirname(jsonpath)}`)
 	}
 
 	public convertClientPathToDebugger(clientPath: string): string
@@ -522,6 +532,8 @@ export class FactorioModRuntime extends EventEmitter {
 		{
 			return clientPath.replace(this.modsPath,"MOD");
 		}
+
+		this.output.appendLine(`unable to translate path ${clientPath}`)
 		return clientPath;
 	}
 	public convertDebuggerPathToClient(debuggerPath: string): string
