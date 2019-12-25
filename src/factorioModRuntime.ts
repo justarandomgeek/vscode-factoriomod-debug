@@ -58,6 +58,7 @@ export class FactorioModRuntime extends EventEmitter {
 
 	private modsPath?: string; // absolute path of `mods` directory
 	private dataPath: string; // absolute path of `data` directory
+	private manageMod?: boolean;
 
 	private workspaceModInfoReady = new Subject();
 	private workspaceModInfo = new Array<modpaths>();
@@ -87,7 +88,8 @@ export class FactorioModRuntime extends EventEmitter {
 	/**
 	 * Start executing the given program.
 	 */
-	public async start(factorioPath: string, dataPath: string, modsPath?: string) {
+	public async start(factorioPath: string, dataPath: string, modsPath?: string, manageMod?: boolean) {
+		this.manageMod = manageMod;
 		await this.workspaceModListsReady.wait(1000);
 		if (this.workspaceModLists.length > 1)
 		{
@@ -108,86 +110,94 @@ export class FactorioModRuntime extends EventEmitter {
 			if (fs.existsSync(modlistpath))
 			{
 				this.output.appendLine(`using modsPath ${this.modsPath}`);
-				let mods = fs.readdirSync(this.modsPath,"utf8");
-				mods = mods.filter((mod)=>{
-					return mod.startsWith("debugadapter")
-				})
-				if (mods.length == 0)
+				if(manageMod === false)
 				{
-					// install zip from package
-					const ext = vscode.extensions.getExtension("justarandomgeek.factoriomod-debug")
-					if (ext)
-					{
-						const extpath = ext.extensionPath
-						const zippath = path.resolve(extpath, "./modpackage/debugadapter.zip")
-						const infopath = path.resolve(extpath, "./modpackage/info.json")
-						const dainfo:modinfo = JSON.parse(fs.readFileSync(infopath, "utf8"))
-						fs.copyFileSync(zippath,path.resolve(modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
-						this.output.appendLine(`installed ${dainfo.name}_${dainfo.version}.zip`);
-					}
+					this.output.appendLine(`automatic management of debugadapter mod disabled`);
 				}
-				else if (mods.length == 1)
+				else
 				{
-					if (mods[0].endsWith(".zip"))
+
+					let mods = fs.readdirSync(this.modsPath,"utf8");
+					mods = mods.filter((mod)=>{
+						return mod.startsWith("debugadapter")
+					})
+					if (mods.length == 0)
 					{
-						// check version ??
+						// install zip from package
 						const ext = vscode.extensions.getExtension("justarandomgeek.factoriomod-debug")
 						if (ext)
 						{
 							const extpath = ext.extensionPath
-
+							const zippath = path.resolve(extpath, "./modpackage/debugadapter.zip")
 							const infopath = path.resolve(extpath, "./modpackage/info.json")
 							const dainfo:modinfo = JSON.parse(fs.readFileSync(infopath, "utf8"))
+							fs.copyFileSync(zippath,path.resolve(modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
+							this.output.appendLine(`installed ${dainfo.name}_${dainfo.version}.zip`);
+						}
+					}
+					else if (mods.length == 1)
+					{
+						if (mods[0].endsWith(".zip"))
+						{
+							// check version ??
+							const ext = vscode.extensions.getExtension("justarandomgeek.factoriomod-debug")
+							if (ext)
+							{
+								const extpath = ext.extensionPath
 
-							const existingVersion = mods[0].match(/_([0-9]+)\.([0-9]+)\.([0-9]+)\.zip/)
-							const extensionVersion = dainfo.version.match(/^([0-9]+)\.([0-9]+)\.([0-9]+)$/)
+								const infopath = path.resolve(extpath, "./modpackage/info.json")
+								const dainfo:modinfo = JSON.parse(fs.readFileSync(infopath, "utf8"))
 
-							if(
-								existingVersion && extensionVersion && (
-								Number(extensionVersion[1]) > Number(existingVersion[1]) || (
-									Number(extensionVersion[1]) == Number(existingVersion[1]) &&
-									Number(extensionVersion[2]) > Number(existingVersion[2]) || (
-										Number(extensionVersion[2]) == Number(existingVersion[2]) &&
-										Number(extensionVersion[3]) > Number(existingVersion[3])
+								const existingVersion = mods[0].match(/_([0-9]+)\.([0-9]+)\.([0-9]+)\.zip/)
+								const extensionVersion = dainfo.version.match(/^([0-9]+)\.([0-9]+)\.([0-9]+)$/)
+
+								if(
+									existingVersion && extensionVersion && (
+									Number(extensionVersion[1]) > Number(existingVersion[1]) || (
+										Number(extensionVersion[1]) == Number(existingVersion[1]) &&
+										Number(extensionVersion[2]) > Number(existingVersion[2]) || (
+											Number(extensionVersion[2]) == Number(existingVersion[2]) &&
+											Number(extensionVersion[3]) > Number(existingVersion[3])
+											)
 										)
 									)
 								)
-							)
-							{
-								const zippath = path.resolve(extpath, "./modpackage/debugadapter.zip")
-								fs.unlinkSync(path.resolve(modsPath,mods[0]))
-								fs.copyFileSync(zippath,path.resolve(modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
-								this.output.appendLine(`updated ${mods[0]} to ${dainfo.name}_${dainfo.version}.zip`);
-							} else {
-								this.output.appendLine(`using existing ${mods[0]}`);
+								{
+									const zippath = path.resolve(extpath, "./modpackage/debugadapter.zip")
+									fs.unlinkSync(path.resolve(modsPath,mods[0]))
+									fs.copyFileSync(zippath,path.resolve(modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
+									this.output.appendLine(`updated ${mods[0]} to ${dainfo.name}_${dainfo.version}.zip`);
+								} else {
+									this.output.appendLine(`using existing ${mods[0]}`);
+								}
 							}
+						}
+						else
+						{
+							this.output.appendLine("existing debugadapter in modsPath is not a zip");
 						}
 					}
 					else
 					{
-						this.output.appendLine("existing debugadapter in modsPath is not a zip");
+						this.output.appendLine("multiple debugadapters in modsPath");
 					}
+					// enable in json
+					let modlist:modlist = JSON.parse(fs.readFileSync(modlistpath, "utf8"))
+					let isInList = false
+					modlist.mods.map((modentry)=>{
+						if (modentry.name == "debugadapter") {
+							isInList = true;
+							modentry.enabled = true;
+							modentry.version = undefined;
+						};
+						return modentry;
+					});
+					if (!isInList){
+						modlist.mods.push({name:"debugadapter",enabled:true})
+					}
+					fs.writeFileSync(modlistpath, JSON.stringify(modlist), "utf8")
+					this.output.appendLine(`debugadapter enabled in mod-list.json`);
 				}
-				else
-				{
-					this.output.appendLine("multiple debugadapters in modsPath");
-				}
-				// enable in json
-				let modlist:modlist = JSON.parse(fs.readFileSync(modlistpath, "utf8"))
-				let isInList = false
-				modlist.mods.map((modentry)=>{
-					if (modentry.name == "debugadapter") {
-						isInList = true;
-						modentry.enabled = true;
-						modentry.version = undefined;
-					};
-					return modentry;
-				});
-				if (!isInList){
-					modlist.mods.push({name:"debugadapter",enabled:true})
-				}
-				fs.writeFileSync(modlistpath, JSON.stringify(modlist), "utf8")
-				this.output.appendLine(`debugadapter enabled in mod-list.json`);
 			} else {
 				this.output.appendLine("modsPath does not contain mod-list.json");
 				this.modsPath = undefined
@@ -345,15 +355,22 @@ export class FactorioModRuntime extends EventEmitter {
 			const modlistpath = path.resolve(modsPath,"./mod-list.json")
 			if (fs.existsSync(modlistpath))
 			{
-				let modlist:modlist = JSON.parse(fs.readFileSync(modlistpath, "utf8"))
-				modlist.mods.map((modentry)=>{
-					if (modentry.name == "debugadapter") {
-						modentry.enabled = false;
-					};
-					return modentry;
-				});
-				fs.writeFileSync(modlistpath, JSON.stringify(modlist), "utf8")
-				this.output.appendLine(`debugadapter disabled in mod-list.json`);
+				if(this.manageMod === false)
+				{
+					this.output.appendLine(`automatic management of debugadapter mod disabled`);
+				}
+				else
+				{
+					let modlist:modlist = JSON.parse(fs.readFileSync(modlistpath, "utf8"))
+					modlist.mods.map((modentry)=>{
+						if (modentry.name == "debugadapter") {
+							modentry.enabled = false;
+						};
+						return modentry;
+					});
+					fs.writeFileSync(modlistpath, JSON.stringify(modlist), "utf8")
+					this.output.appendLine(`debugadapter disabled in mod-list.json`);
+				}
 			}
 		}
 		this.output.dispose()

@@ -85,6 +85,11 @@
 							"dataPath": {
 								"type": "string",
 								"description": "Absolute path to Factorio data directory."
+							},
+							"manageMod": {
+								"type": "boolean",
+								"description": "Enable automatic management of the debugadapter mod",
+								"default": true
 							}
 						}
 					}

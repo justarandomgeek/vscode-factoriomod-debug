@@ -13,6 +13,7 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 	factorioPath: string; // absolute path of factorio binary to launch
 	modsPath?: string; // absolute path of `mods` directory
 	dataPath: string; // absolute path of `data` directory
+	manageMod?: boolean;
 
 	/** enable logging the Debug Adapter Protocol */
 	trace?: boolean;
@@ -155,7 +156,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		await this._configurationDone.wait(1000);
 
 		// start the program in the runtime
-		this._runtime.start(args.factorioPath, args.dataPath, args.modsPath);
+		this._runtime.start(args.factorioPath, args.dataPath, args.modsPath, args.manageMod);
 
 
 		this.sendResponse(response);
