@@ -13,6 +13,7 @@
 * accumulate stderr until newline, then strip debug prompts and return non-empty strings
 * better handling of paths
 * "Factorio Mod Debug" output channel listing various info about what paths it found
+* detect `mod-list.json` inside workspace and use its location as modsPath
 
 ## 0.17.3
 

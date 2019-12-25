@@ -59,8 +59,10 @@ export class FactorioModRuntime extends EventEmitter {
 	private modsPath?: string; // absolute path of `mods` directory
 	private dataPath: string; // absolute path of `data` directory
 
-	private modinfoready = new Subject();
-	private modinfo = new Array<modpaths>();
+	private workspaceModInfoReady = new Subject();
+	private workspaceModInfo = new Array<modpaths>();
+	private workspaceModListsReady = new Subject();
+	private workspaceModLists = new Array<vscode.Uri>();
 	private infoWatcher:vscode.FileSystemWatcher;
 
 	private output:vscode.OutputChannel;
@@ -68,9 +70,11 @@ export class FactorioModRuntime extends EventEmitter {
 	constructor() {
 		super();
 		this.output = vscode.window.createOutputChannel("Factorio Mod Debug");
+		vscode.workspace.findFiles("**/mod-list.json")
+			.then((modlists)=>{this.workspaceModLists = modlists; this.workspaceModListsReady.notify()})
 		vscode.workspace.findFiles('**/info.json')
 			.then(infos=>{infos.forEach(this.updateInfoJson,this);})
-			.then(()=>{this.modinfoready.notify()});
+			.then(()=>{this.workspaceModInfoReady.notify()});
 		this.infoWatcher = vscode.workspace.createFileSystemWatcher('**/info.json');
 		this.infoWatcher.onDidChange(this.updateInfoJson,this)
 		this.infoWatcher.onDidCreate((info)=>{
@@ -84,7 +88,19 @@ export class FactorioModRuntime extends EventEmitter {
 	 * Start executing the given program.
 	 */
 	public async start(factorioPath: string, dataPath: string, modsPath?: string) {
-		if (modsPath) //TODO: look for mod-list.json in workspace too and try from there?
+		await this.workspaceModListsReady.wait(1000);
+		if (this.workspaceModLists.length > 1)
+		{
+			this.output.appendLine(`multiple mod-list.json in workspace`);
+		}
+		else if (this.workspaceModLists.length == 1)
+		{
+			const workspaceModList = this.workspaceModLists[0].path
+			this.output.appendLine(`found mod-list.json in workspace: ${workspaceModList}`);
+			modsPath = path.dirname(workspaceModList);
+			if (os.platform() == "win32" && modsPath.startsWith("/")) {modsPath = modsPath.substr(1)}
+		}
+		if (modsPath)
 		{
 			this.modsPath = modsPath.replace(/\\/g,"/");
 			// check for folder or symlink and leave it alone, if zip update if mine is newer
@@ -184,7 +200,7 @@ export class FactorioModRuntime extends EventEmitter {
 		this.dataPath = dataPath.replace(/\\/g,"/");
 		this.output.appendLine(`using dataPath ${this.dataPath}`);
 
-		await this.modinfoready.wait(1000);
+		await this.workspaceModInfoReady.wait(1000);
 
 		let renamedbps = new Map<string, DebugProtocol.SourceBreakpoint[]>();
 		this._breakPointsChanged.clear();
@@ -501,7 +517,7 @@ export class FactorioModRuntime extends EventEmitter {
 			fspath: path.dirname(jsonpath),
 			modpath: `MOD/${moddata.name}_${moddata.version}`
 		};
-		this.modinfo.push(mp);
+		this.workspaceModInfo.push(mp);
 		this.output.appendLine(`using mod in workspace ${JSON.stringify(mp)}`)
 	}
 	private removeInfoJson(uri:vscode.Uri)
@@ -510,7 +526,7 @@ export class FactorioModRuntime extends EventEmitter {
 		if (jsonpath.startsWith("/")) {
 			jsonpath = jsonpath.substr(1);
 		}
-		this.modinfo = this.modinfo.filter((modinfo)=>{modinfo.fspath != path.dirname(jsonpath)});
+		this.workspaceModInfo = this.workspaceModInfo.filter((modinfo)=>{modinfo.fspath != path.dirname(jsonpath)});
 		this.output.appendLine(`removed mod in workspace ${path.dirname(jsonpath)}`)
 	}
 
@@ -518,7 +534,7 @@ export class FactorioModRuntime extends EventEmitter {
 	{
 		clientPath = clientPath.replace(/\\/g,"/");
 
-		let modinfo = this.modinfo.find((m)=>{return clientPath.startsWith(m.fspath);});
+		let modinfo = this.workspaceModInfo.find((m)=>{return clientPath.startsWith(m.fspath);});
 		if(modinfo)
 		{
 			return clientPath.replace(modinfo.fspath,modinfo.modpath)
@@ -538,7 +554,7 @@ export class FactorioModRuntime extends EventEmitter {
 	}
 	public convertDebuggerPathToClient(debuggerPath: string): string
 	{
-		let modinfo = this.modinfo.find((m)=>{return debuggerPath.startsWith(m.modpath);});
+		let modinfo = this.workspaceModInfo.find((m)=>{return debuggerPath.startsWith(m.modpath);});
 		if(modinfo)
 		{
 			return debuggerPath.replace(modinfo.modpath,modinfo.fspath)
