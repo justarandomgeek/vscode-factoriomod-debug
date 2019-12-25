@@ -20,6 +20,8 @@ local debug = debug
 local type = type
 local print = print
 local pairs = pairs
+local devents = defines.events
+local deon_tick = devents.on_tick
 
 ---@param startFrame integer | nil
 ---@param levels integer | nil
@@ -38,18 +40,20 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
     elseif not info.name and script then
       if info.nparams == 1 and not info.isvararg then
         local name,event = debug.getlocal(i,1)
-        if type(event) == "table" and type(event.name) == "number"
-          and script.get_event_handler(event.name) == info.func then
-          local evtname = ("event %d"):format(event.name)
-          for k,v in pairs(defines.events) do
-            if event.name == v then
-              evtname = k
+        if type(event) == "table" then
+          local eventid = event.name
+          if type(eventid) == "number" and script.get_event_handler(eventid) == info.func then
+            local evtname = ("event %d"):format(eventid)
+            for k,v in pairs(devents) do
+              if eventid == v then
+                evtname = k
+              end
             end
+            framename = ("%s handler"):format(evtname)
           end
-          framename = ("%s handler"):format(evtname)
         end
       elseif info.nparams == 0 and not info.isvararg and
-          script.get_event_handler(defines.events.on_tick) == info.func then
+          script.get_event_handler(deon_tick) == info.func then
         framename = "on_tick handler"
       end
     end
