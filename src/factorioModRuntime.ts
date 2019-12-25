@@ -356,6 +356,7 @@ export class FactorioModRuntime extends EventEmitter {
 				this.output.appendLine(`debugadapter disabled in mod-list.json`);
 			}
 		}
+		this.output.dispose()
 	}
 
 	/**
