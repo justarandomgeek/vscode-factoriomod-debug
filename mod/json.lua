@@ -1,7 +1,15 @@
 local json = {}
-local table = table
-local math = math
 local string = string
+local sformat = string.format
+local sbyte = string.byte
+local tconcat = table.concat
+local mhuge = math.huge
+local rawget = rawget
+local next = next
+local pairs = pairs
+local ipairs = ipairs
+local tostring = tostring
+local type = type
 
 local function encode_nil()
   return "null"
@@ -12,7 +20,7 @@ local escape_char_map = {
   [ "\f" ] = "\\f", [ "\n" ] = "\\n", [ "\r" ] = "\\r",
   [ "\t" ] = "\\t", }
 local function escape_char(c)
-  return escape_char_map[c] or string.format("\\u%04x", c:byte())
+  return escape_char_map[c] or sformat("\\u%04x", sbyte(c))
 end
 
 local function encode_string(val)
@@ -23,12 +31,12 @@ local function encode_number(val)
   -- Check for NaN, -inf and inf
   if val ~= val then
     return "0/0"
-  elseif val <= -math.huge then
+  elseif val <= -mhuge then
     return "-1/0"
-  elseif val >= math.huge then
+  elseif val >= mhuge then
     return "1/0"
   else
-    return string.format("%.14g", val)
+    return sformat("%.14g", val)
   end
 end
 
@@ -47,33 +55,30 @@ local function encode_table(val, stack)
   if rawget(val, 1) ~= nil or next(val) == nil then
     -- Treat as array -- check keys are valid and it is not sparse
     is_array = true
-    local n = 0
-    for k in pairs(val) do
-      if type(k) ~= "number" then
+    local n = 1
+    for k,v in pairs(val) do
+      if k ~= n then
         is_array = false
         break
       end
+      res[k] = encode(v, stack)
       n = n + 1
-    end
-    if n ~= #val then
-      is_array = false
     end
   end
 
   if is_array then
     -- Encode
-    for i, v in ipairs(val) do
-      table.insert(res, encode(v, stack))
-    end
     stack[val] = nil
-    return "[" .. table.concat(res, ",") .. "]"
+    return "[" .. tconcat(res, ",") .. "]"
   else
     -- Treat as an object
+    local i = 1
     for k, v in pairs(val) do
-      table.insert(res, encode(tostring(k), stack) .. ":" .. encode(v, stack))
+      res[i] = encode(tostring(k), stack) .. ":" .. encode(v, stack)
+      i = i + 1
     end
     stack[val] = nil
-    return "{" .. table.concat(res, ",") .. "}"
+    return "{" .. tconcat(res, ",") .. "}"
   end
 end
 
