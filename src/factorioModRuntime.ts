@@ -130,9 +130,16 @@ export class FactorioModRuntime extends EventEmitter {
 							const extpath = ext.extensionPath
 							const zippath = path.resolve(extpath, "./modpackage/debugadapter.zip")
 							const infopath = path.resolve(extpath, "./modpackage/info.json")
-							const dainfo:modinfo = JSON.parse(fs.readFileSync(infopath, "utf8"))
-							fs.copyFileSync(zippath,path.resolve(modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
-							this.output.appendLine(`installed ${dainfo.name}_${dainfo.version}.zip`);
+							if(fs.existsSync(zippath) && fs.existsSync(infopath))
+							{
+								const dainfo:modinfo = JSON.parse(fs.readFileSync(infopath, "utf8"))
+								fs.copyFileSync(zippath,path.resolve(modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
+								this.output.appendLine(`installed ${dainfo.name}_${dainfo.version}.zip`);
+							}
+							else
+							{
+								this.output.appendLine(`debugadapter mod package missing in extension`);
+							}
 						}
 					}
 					else if (mods.length == 1)
@@ -146,29 +153,37 @@ export class FactorioModRuntime extends EventEmitter {
 								const extpath = ext.extensionPath
 
 								const infopath = path.resolve(extpath, "./modpackage/info.json")
-								const dainfo:modinfo = JSON.parse(fs.readFileSync(infopath, "utf8"))
+								const zippath = path.resolve(extpath, "./modpackage/debugadapter.zip")
+								if(fs.existsSync(zippath) && fs.existsSync(infopath))
+								{
 
-								const existingVersion = mods[0].match(/_([0-9]+)\.([0-9]+)\.([0-9]+)\.zip/)
-								const extensionVersion = dainfo.version.match(/^([0-9]+)\.([0-9]+)\.([0-9]+)$/)
+									const dainfo:modinfo = JSON.parse(fs.readFileSync(infopath, "utf8"))
 
-								if(
-									existingVersion && extensionVersion && (
-									Number(extensionVersion[1]) > Number(existingVersion[1]) || (
-										Number(extensionVersion[1]) == Number(existingVersion[1]) &&
-										Number(extensionVersion[2]) > Number(existingVersion[2]) || (
-											Number(extensionVersion[2]) == Number(existingVersion[2]) &&
-											Number(extensionVersion[3]) > Number(existingVersion[3])
+									const existingVersion = mods[0].match(/_([0-9]+)\.([0-9]+)\.([0-9]+)\.zip/)
+									const extensionVersion = dainfo.version.match(/^([0-9]+)\.([0-9]+)\.([0-9]+)$/)
+
+									if(
+										existingVersion && extensionVersion && (
+										Number(extensionVersion[1]) > Number(existingVersion[1]) || (
+											Number(extensionVersion[1]) == Number(existingVersion[1]) &&
+											Number(extensionVersion[2]) > Number(existingVersion[2]) || (
+												Number(extensionVersion[2]) == Number(existingVersion[2]) &&
+												Number(extensionVersion[3]) > Number(existingVersion[3])
+												)
 											)
 										)
 									)
-								)
+									{
+										fs.unlinkSync(path.resolve(modsPath,mods[0]))
+										fs.copyFileSync(zippath,path.resolve(modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
+										this.output.appendLine(`updated ${mods[0]} to ${dainfo.name}_${dainfo.version}.zip`);
+									} else {
+										this.output.appendLine(`using existing ${mods[0]}`);
+									}
+								}
+								else
 								{
-									const zippath = path.resolve(extpath, "./modpackage/debugadapter.zip")
-									fs.unlinkSync(path.resolve(modsPath,mods[0]))
-									fs.copyFileSync(zippath,path.resolve(modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
-									this.output.appendLine(`updated ${mods[0]} to ${dainfo.name}_${dainfo.version}.zip`);
-								} else {
-									this.output.appendLine(`using existing ${mods[0]}`);
+									this.output.appendLine(`debugadapter mod package missing in extension`);
 								}
 							}
 						}
