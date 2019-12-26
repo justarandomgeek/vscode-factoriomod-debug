@@ -118,6 +118,7 @@ function __DebugAdapter.modules()
   modules[#modules+1] = { id = "level", name = "level", }
   print("DBGmodules: " .. json.encode(modules))
 end
+__DebugAdapter.stepIgnore(__DebugAdapter.modules)
 
 ---@param frameId number
 ---@return Scope[]
@@ -142,6 +143,7 @@ function __DebugAdapter.scopes(frameId)
     }}))
   end
 end
+__DebugAdapter.stepIgnore(__DebugAdapter.scopes)
 
 ---@param expr string
 ---@param alsoLookIn table

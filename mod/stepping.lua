@@ -136,10 +136,12 @@ function __DebugAdapter.attach()
     end
   end,"clr")
 end
+stepIgnore(__DebugAdapter.attach)
 
 function __DebugAdapter.detach()
   debug.sethook()
 end
+stepIgnore(__DebugAdapter.detach)
 
 ---@param source string
 ---@param breaks SourceBreakpoint[]
@@ -155,6 +157,7 @@ function __DebugAdapter.setBreakpoints(source,breaks)
     breakpoints[source] = nil
   end
 end
+stepIgnore(__DebugAdapter.setBreakpoints)
 
 local function isMainChunk()
   local i = 2 -- no need to check getinfo or isMainChunk
@@ -171,6 +174,7 @@ local function isMainChunk()
   end
   return what == "main"
 end
+stepIgnore(isMainChunk)
 
 ---@param changedsources table<string,SourceBreakpoint[]>
 function __DebugAdapter.updateBreakpoints(changedsources)
@@ -186,6 +190,7 @@ function __DebugAdapter.updateBreakpoints(changedsources)
     print("DBGsetbp")
   end
 end
+stepIgnore(__DebugAdapter.updateBreakpoints)
 
 ---@param source string
 ---@return Breakpoint[] | Breakpoint
@@ -196,6 +201,7 @@ function __DebugAdapter.dumpBreakpoints(source)
     return breakpoints
   end
 end
+stepIgnore(__DebugAdapter.dumpBreakpoints)
 
 ---@param steptype string "remote"*("next" | "in" | "over" | "out")
 ---@param silent boolean | nil
@@ -222,11 +228,13 @@ end
 stepIgnore(__DebugAdapter.currentStep)
 
 local vcreate = variables.create
-return setmetatable({},{
+local vmeta = {
   __debugline = "<Debug Adapter Stepping Module>",
   __debugchildren = function(t) return {
     vcreate("<breakpoints>",breakpoints),
     vcreate("<stepmode>",stepmode),
     vcreate("<stepdepth>",stepdepth),
   } end,
-})
+}
+stepIgnore(vmeta.__debugchildren)
+return setmetatable({},vmeta)

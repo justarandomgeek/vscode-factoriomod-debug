@@ -99,17 +99,8 @@ __DebugAdapter.stepIgnore(remotestepremove)
 local function remotenewindex() end
 __DebugAdapter.stepIgnore(remotenewindex)
 
-local newremote = {
-  call = remotestepcall,
-  add_interface = remotestepadd,
-  remove_interface = remotestepremove,
-  __raw = origremote,
-}
-setmetatable(newremote,{
-  __index = origremote,
-  __newindex = remotenewindex,
-  __debugline = "<LuaRemote Stepping Proxy>",
-  __debugchildren = function(t) return {
+local function remotedebugchildren(t)
+  return {
     variables.create([["interfaces"]],origremote.interfaces),
     variables.create("<raw>",origremote),
     {
@@ -124,8 +115,23 @@ setmetatable(newremote,{
       type = "keys",
       variablesReference = variables.tableRef(myRemotes),
     },
-  } end,
+  }
+end
+__DebugAdapter.stepIgnore(remotedebugchildren)
+
+local newremote = {
+  call = remotestepcall,
+  add_interface = remotestepadd,
+  remove_interface = remotestepremove,
+  __raw = origremote,
+}
+setmetatable(newremote,{
+  __index = origremote,
+  __newindex = remotenewindex,
+  __debugline = "<LuaRemote Stepping Proxy>",
+  __debugchildren = remotedebugchildren,
 })
+
 
 if script.mod_name ~= "debugadapter" then
   remote = newremote

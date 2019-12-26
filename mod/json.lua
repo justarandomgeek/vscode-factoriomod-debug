@@ -99,6 +99,7 @@ function encode(value, stack)
     return [["<badtype>"]]
   end
 end
+__DebugAdapter.stepIgnore(encode)
 
 json.encode = encode
 return json
