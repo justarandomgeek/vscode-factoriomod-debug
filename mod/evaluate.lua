@@ -13,7 +13,7 @@ local function evalmeta(frameId,alsoLookIn)
   local getlocal = debug.getlocal
   local getupvalue = debug.getupvalue
   local env = _ENV
-  return {
+  local em = {
     __debugline = function(t,short)
       if short then
         return "<Eval Env>"
@@ -160,7 +160,12 @@ local function evalmeta(frameId,alsoLookIn)
       env[k] = v
     end
   }
+  __DebugAdapter.stepIgnore(em.__debugline)
+  __DebugAdapter.stepIgnore(em.__index)
+  __DebugAdapter.stepIgnore(em.__newindex)
+  return em
 end
+__DebugAdapter.stepIgnore(evalmeta)
 
 ---@param frameId number | nil
 ---@param alsoLookIn table | nil
@@ -184,6 +189,7 @@ function __DebugAdapter.evaluateInternal(frameId,alsoLookIn,context,expression)
 
   return pcall(f)
 end
+__DebugAdapter.stepIgnore(__DebugAdapter.evaluateInternal)
 
 
 ---@param str string
@@ -207,6 +213,7 @@ function __DebugAdapter.stringInterp(str,frameId,alsoLookIn,context)
       return expr
     end)
 end
+__DebugAdapter.stepIgnore(__DebugAdapter.stringInterp)
 
 ---@param frameId number
 ---@param context string
@@ -230,3 +237,4 @@ function __DebugAdapter.evaluate(frameId,context,expression,seq)
   end
   print("DBGeval: " .. json.encode(evalresult))
 end
+__DebugAdapter.stepIgnore(__DebugAdapter.evaluate)
