@@ -5,6 +5,7 @@ local __DebugAdapter = __DebugAdapter
 local function stepIgnore(f)
   stepIgnoreFuncs[f] = true
 end
+stepIgnore(stepIgnore)
 __DebugAdapter.stepIgnore = stepIgnore
 
 -- capture the raw object early, before remotestepping hooks it
