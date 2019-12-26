@@ -1,5 +1,8 @@
 local __DebugAdapter = __DebugAdapter
 local string = string
+local sformat = string.format
+local ssub = string.sub
+local smatch = string.match
 
 local levelpath
 if script and script.mod_name == "level" then
@@ -14,20 +17,23 @@ if script and script.mod_name == "level" then
   __DebugAdapter.stepIgnore(__DebugAdapter.levelPath)
 end
 
+local mods = mods -- capture mods in datastage, or fill in game.active_mods later for control...
+                  -- TODO: `or script.active_mods` in 0.18
 local knownSources = {}
 
 ---@param source string
 ---@return string
 local function normalizeLuaSource(source)
-  local first = source:sub(1,1)
+  local first = ssub(source,1,1)
   if first == "=" then return source end
   if first ~= "@" then return "=(dostring)" end
   local known = knownSources[source]
   if known then return known end
-  local modname,filename = source:match("__(.+)__/(.+)")
+  local smatch = smatch
+  local modname,filename = smatch(source,"__(.+)__/(.+)")
   if not modname then
     --startup tracing sometimes gives absolute path of the scenario script, turn it back into the usual form...
-    filename = source:match("currently%-playing/(.+)")
+    filename = smatch(source,"currently%-playing/(.+)")
     if filename then
     modname = "level"
     end
@@ -44,12 +50,12 @@ local function normalizeLuaSource(source)
 
   if modname == "level" then
     -- we *still* can't identify level properly, so just give up...
-    local result = string.format("LEVEL/%s",filename)
+    local result = sformat("LEVEL/%s",filename)
     knownSources[source] = result
     return result
   elseif modname == "core" or modname == "base" then
     -- these are under data path with no version in dir name
-    local result = string.format("DATA/%s/%s",modname,filename)
+    local result = sformat("DATA/%s/%s",modname,filename)
     knownSources[source] = result
     return result
   elseif modname == nil then
@@ -58,8 +64,9 @@ local function normalizeLuaSource(source)
     return source
   else
     -- we found it! This will be a path relative to the `mods` directory.
-    local modver = (mods or game.active_mods)[modname] --TODO: script.active_mods in 0.18, allow stepping before `game`
-    local result = string.format("MOD/%s_%s/%s",modname,modver,filename)
+    if not mods then mods = game.active_mods end --TODO: script.active_mods in 0.18, allow stepping before `game`
+    local modver = mods[modname]
+    local result = sformat("MOD/%s_%s/%s",modname,modver,filename)
     knownSources[source] = result
     return result
   end
