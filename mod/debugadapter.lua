@@ -180,7 +180,6 @@ elseif script.mod_name ~= "debugadapter" then -- don't hook myself!
     remoteStepInterfaces = remotestepping.interfaces
   })
 
-  --TODO: attach on init setting?
   __DebugAdapter.attach()
   print("DBG: on_parse")
   debug.debug()
