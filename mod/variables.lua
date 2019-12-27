@@ -67,11 +67,13 @@ gmeta.__debugchildren = function(t,extra)
   end
   return vars
 end
+__DebugAdapter.stepIgnore(gmeta.__debugchildren)
 
 --- Clear all existing variable references, when stepping invalidates them
 function variables.clear()
   variables.refs = setmetatable({},refsmeta)
 end
+__DebugAdapter.stepIgnore(variables.clear)
 
 --- Generate a variablesReference for `name` at frame `frameId`
 ---@param frameId number
@@ -92,6 +94,7 @@ function variables.scopeRef(frameId,name,mode)
   }
   return id
 end
+__DebugAdapter.stepIgnore(variables.scopeRef)
 
 --- Generate a variablesReference for a table-like object
 ---@param table table
@@ -115,6 +118,7 @@ function variables.tableRef(table, mode, showMeta, extra)
   }
   return id
 end
+__DebugAdapter.stepIgnore(variables.tableRef)
 
 --- Generate a variablesReference for a LuaObject
 ---@param luaObject LuaObject
@@ -133,6 +137,7 @@ function variables.luaObjectRef(luaObject,classname)
   }
   return id
 end
+__DebugAdapter.stepIgnore(variables.luaObjectRef)
 
 --- Generates a description for `value`.
 --- Also returns data type as second return.
@@ -241,6 +246,7 @@ function variables.describe(value,short)
   end
   return lineitem,vtype
 end
+__DebugAdapter.stepIgnore(variables.describe)
 
 --- Generate a default debug view for `value` named `name`
 ---@param name string | nil
@@ -266,6 +272,7 @@ function variables.create(name,value)
       variablesReference = variablesReference,
     }
 end
+__DebugAdapter.stepIgnore(variables.create)
 
 local itermode = {
   pairs = pairs,
@@ -455,6 +462,7 @@ function __DebugAdapter.variables(variablesReference)
   end
   print("DBGvars: " .. json.encode({variablesReference = variablesReference, vars = vars}))
 end
+__DebugAdapter.stepIgnore(__DebugAdapter.variables)
 
 --- DebugAdapter SetVariablesRequest
 ---@param variablesReference integer
@@ -546,5 +554,6 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
     end
   end
 end
+__DebugAdapter.stepIgnore(__DebugAdapter.setVariable)
 
 return variables
