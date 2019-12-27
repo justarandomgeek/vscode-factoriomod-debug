@@ -14,6 +14,7 @@ local type = type
 local function encode_nil()
   return "null"
 end
+__DebugAdapter.stepIgnore(encode_nil)
 
 local escape_char_map = {
   [ "\\" ] = "\\\\", [ "\"" ] = "\\\"", [ "\b" ] = "\\b",
@@ -22,10 +23,12 @@ local escape_char_map = {
 local function escape_char(c)
   return escape_char_map[c] or sformat("\\u%04x", sbyte(c))
 end
+__DebugAdapter.stepIgnore(escape_char)
 
 local function encode_string(val)
   return '"' .. val:gsub('[%z\1-\31\\"]', escape_char) .. '"'
 end
+__DebugAdapter.stepIgnore(encode_string)
 
 local function encode_number(val)
   -- Check for NaN, -inf and inf
@@ -39,6 +42,7 @@ local function encode_number(val)
     return sformat("%.14g", val)
   end
 end
+__DebugAdapter.stepIgnore(encode_number)
 
 local encode;
 
@@ -81,6 +85,7 @@ local function encode_table(val, stack)
     return "{" .. tconcat(res, ",") .. "}"
   end
 end
+__DebugAdapter.stepIgnore(encode_table)
 
 local type_encode = {
   ["nil"] = encode_nil,
