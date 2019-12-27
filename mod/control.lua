@@ -1,6 +1,9 @@
 -- require DA to have a non-pcall require for syntax checking
 require('__debugadapter__/debugadapter.lua')
 
+
+local datastring = require("__debugadapter__/datastring.lua")
+local ReadBreakpoints = datastring.ReadBreakpoints
 local json = require('__debugadapter__/json.lua')
 local script = script
 local remote = remote
@@ -28,11 +31,9 @@ local function detach()
   callAll("detach")
 end
 
-local function updateBreakpoints(changedsources)
-  for source,breakpoints in pairs(changedsources) do
-    callAll("setBreakpoints",source,breakpoints)
-  end
-  print("DBGsetbp")
+local function updateBreakpoints(change)
+  local source,changedbreaks = ReadBreakpoints(change)
+  callAll("setBreakpoints",source,changedbreaks)
 end
 __DebugAdapter.updateBreakpoints = updateBreakpoints
 

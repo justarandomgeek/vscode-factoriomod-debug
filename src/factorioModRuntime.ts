@@ -8,6 +8,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { Buffer } from 'buffer';
 
 
 interface modentry{
@@ -53,8 +54,6 @@ export class FactorioModRuntime extends EventEmitter {
 	private _setvars = new Map<number, any>();
 	private _evals = new Map<number, any>();
 	private _step = new Subject();
-
-	private _deferredevent: string;
 
 	private modsPath?: string; // absolute path of `mods` directory
 	private dataPath: string; // absolute path of `data` directory
@@ -257,51 +256,45 @@ export class FactorioModRuntime extends EventEmitter {
 				let event = chunkstr.substring(5).trim();
 				if (event === "on_first_tick") {
 					//on the first tick, update all breakpoints no matter what...
-					this._deferredevent = "continue";
 					this.updateBreakpoints(true);
+					this.continue();
 				} else if (event === "on_tick") {
 					//if on_tick, then update breakpoints if needed and continue
-					if(this._breakPointsChanged.size === 0)
+					if(this._breakPointsChanged.size !== 0)
 					{
-						this.continue();
-					} else {
-						this._deferredevent = "continue";
 						this.updateBreakpoints();
 					}
+					this.continue();
 				} else if (event === "on_data") {
 					//control.lua main chunk - force all breakpoints each time this comes up because it can only set them locally
-					this._deferredevent = "continue";
 					this.updateBreakpoints(true);
+					this.continue();
 				} else if (event === "on_parse") {
 					//control.lua main chunk - force all breakpoints each time this comes up because it can only set them locally
-					this._deferredevent = "continue";
 					this.updateBreakpoints(true);
+					this.continue();
 				} else if (event === "on_init") {
 					//if on_init, set initial breakpoints and continue
-					this._deferredevent = "continue";
 					this.updateBreakpoints(true);
+					this.continue();
 				} else if (event === "on_load") {
 					//on_load set initial breakpoints and continue
-					this._deferredevent = "continue";
 					this.updateBreakpoints(true);
+					this.continue();
 				} else if (event.startsWith("step")) {
 					// notify stoponstep
-					if(this._breakPointsChanged.size === 0)
+					if(this._breakPointsChanged.size !== 0)
 					{
-						this.sendEvent('stopOnStep');
-					} else {
-						this._deferredevent = 'stopOnStep';
 						this.updateBreakpoints();
 					}
+					this.sendEvent('stopOnStep');
 				} else if (event.startsWith("breakpoint")) {
 					// notify stop on breakpoint
-					if(this._breakPointsChanged.size === 0)
+					if(this._breakPointsChanged.size !== 0)
 					{
-						this.sendEvent('stopOnBreakpoint');
-					} else {
-						this._deferredevent = 'stopOnBreakpoint';
 						this.updateBreakpoints();
 					}
+					this.sendEvent('stopOnBreakpoint');
 				} else {
 					// unexpected event?
 					this.output.appendLine("unexpected event: " + event);
@@ -342,17 +335,6 @@ export class FactorioModRuntime extends EventEmitter {
 				let subj = this._evals.get(evalresult.seq);
 				subj.evalresult = evalresult;
 				subj.notify();
-			} else if (chunkstr.startsWith("DBGsetbp")) {
-				// do whatever event was put off to update breakpoints
-				switch (this._deferredevent)
-				{
-					case "continue":
-						this.continue();
-						break;
-					default:
-						this.sendEvent(this._deferredevent);
-						break;
-				}
 			} else if (chunkstr.startsWith("DBGstep")) {
 				this._step.notify();
 			} else {
@@ -448,20 +430,20 @@ export class FactorioModRuntime extends EventEmitter {
 		return vars;
 	}
 
-	private luaBlockQuote(instring:string){
-		const blockpad = "=".repeat((instring.match(/\]=*\]/g)||[])
+	private luaBlockQuote(inbuff:Buffer){
+		const blockpad = "=".repeat((inbuff.toString().match(/\]=*\]/g)||[])
 			.map((matchstr)=>{return matchstr.length - 1})
 			.reduce((prev,curr)=>{return Math.max(prev,curr)},
 			// force one pad if the string ends with a square bracket as it will be confused with the close bracket
-			instring.endsWith("]") ? 1 : 0));
-		return `[${blockpad}[${instring}]${blockpad}]`;
+			inbuff.toString().endsWith("]") ? 1 : 0));
 
+		return Buffer.concat([Buffer.from(`[${blockpad}[`), inbuff, Buffer.from(`]${blockpad}]`) ]);
 	}
 
 	public async setVar(args: DebugProtocol.SetVariableArguments, seq: number): Promise<Variable> {
 		let subj = new Subject();
 		this._setvars.set(seq, subj);
-		this._factorio.stdin.write(`__DebugAdapter.setVariable(${args.variablesReference},${this.luaBlockQuote(args.name)},${this.luaBlockQuote(args.value)},${seq})\n`);
+		this._factorio.stdin.write(`__DebugAdapter.setVariable(${args.variablesReference},${this.luaBlockQuote(Buffer.from(args.name))},${this.luaBlockQuote(Buffer.from(args.value))},${seq})\n`);
 
 		await subj.wait(1000);
 		let setvar:Variable = subj.setvar;
@@ -479,7 +461,7 @@ export class FactorioModRuntime extends EventEmitter {
 
 		let subj = new Subject();
 		this._evals.set(seq, subj);
-		this._factorio.stdin.write(`__DebugAdapter.evaluate(${args.frameId},"${args.context}",${this.luaBlockQuote(args.expression)},${seq})\n`);
+		this._factorio.stdin.write(`__DebugAdapter.evaluate(${args.frameId},"${args.context}",${this.luaBlockQuote(Buffer.from(args.expression.replace("\n"," ")))},${seq})\n`);
 
 		await subj.wait(1000);
 		let evalresult = subj.evalresult;
@@ -488,27 +470,159 @@ export class FactorioModRuntime extends EventEmitter {
 		return evalresult;
 	}
 
-	private async updateBreakpoints(updateAll:boolean = false) {
-		let changes = "{";
+	private encodeVarInt(val:number) : Buffer {
+
+		if (val == 10)
+		{
+			// escape \n
+			val = 0xFFFFFFFF
+		}
+		let prefix
+		let firstmask
+		let startshift
+		let bsize
+
+		if (val < 0x80)
+		{
+			//[[1 byte]]
+			return Buffer.from([val])
+		}
+		else if (val < 0x0800)
+		{
+			//[[2 bytes]]
+			bsize = 2
+			prefix = 0xc0
+			firstmask = 0x1f
+			startshift = 6
+		}
+		else if (val < 0x10000)
+		{
+			//[[3 bytes]]
+			bsize = 3
+			prefix = 0xe0
+			firstmask = 0x0f
+			startshift = 12
+		}
+		else if (val < 0x200000)
+		{
+			//[[4 bytes]]
+			bsize = 4
+			prefix = 0xf0
+			firstmask = 0x07
+			startshift = 18
+		}
+		else if (val < 0x4000000)
+		{
+			//[[5 bytes]]
+			bsize = 5
+			prefix = 0xf8
+			firstmask = 0x03
+			startshift = 24
+		}
+		else
+		{
+			//[[6 bytes]]
+			bsize = 6
+			prefix = 0xfc
+			firstmask = 0x03
+			startshift = 30
+		}
+
+		let buff = Buffer.alloc(bsize)
+		buff[0] = (prefix|((val>>startshift)&firstmask))
+		for (let shift = startshift-6, i=1; shift >= 0; shift -= 6, i++) {
+			buff[i] = (0x80|((val>>shift)&0x3f))
+		}
+		return buff
+	}
+
+	private encodeString(strval:string)
+	{
+		const sbuff = Buffer.from(strval,"utf8")
+		const slength = this.encodeVarInt(sbuff.length)
+		return Buffer.concat([slength,sbuff])
+	}
+
+	private encodeBreakpoint(bp: DebugProtocol.SourceBreakpoint) : Buffer {
+		let linebuff = this.encodeVarInt(bp.line)
+		let hasExtra = 0
+		let extras = new Array<Buffer>();
+
+		if (bp.condition)
+		{
+			hasExtra |= 1;
+			extras.push(this.encodeString(bp.condition.replace("\n"," ")))
+		}
+
+		if (bp.hitCondition)
+		{
+			hasExtra |= 2;
+			extras.push(this.encodeString(bp.hitCondition.replace("\n"," ")))
+		}
+
+		if (bp.logMessage)
+		{
+			hasExtra |= 4;
+			extras.push(this.encodeString(bp.logMessage.replace("\n"," ")))
+		}
+
+		return Buffer.concat([linebuff,Buffer.from([hasExtra]),Buffer.concat(extras)])
+	}
+
+	private encodeBreakpoints(filename:string,breaks:DebugProtocol.SourceBreakpoint[]) : Buffer {
+		const fnbuff = this.encodeString(filename)
+
+		const plainbps = breaks.filter(bp => !bp.condition && !bp.hitCondition && !bp.logMessage).map(bp => bp.line)
+		let plainbuff : Buffer;
+		if (plainbps.length == 0)
+		{
+			plainbuff = Buffer.from([0xff]);
+		}
+		else if (plainbps.length == 10)
+		{
+			let countbuff = Buffer.from([0xfe]);
+			plainbuff = Buffer.concat([countbuff,Buffer.concat(plainbps.map(line => this.encodeVarInt(line)))]);
+		}
+		else
+		{
+			let countbuff = Buffer.from([plainbps.length]);
+			plainbuff = Buffer.concat([countbuff,Buffer.concat(plainbps.map(line => this.encodeVarInt(line)))]);
+		}
+
+		const complexbps = breaks.filter(bp => bp.condition || bp.hitCondition || bp.logMessage)
+		let complexbuff : Buffer;
+		if (complexbps.length == 0)
+		{
+			complexbuff = Buffer.from([0xff]);
+		}
+		else if (complexbps.length == 10)
+		{
+			let countbuff = Buffer.from([0xfe]);
+			complexbuff = Buffer.concat([countbuff,Buffer.concat(complexbps.map(bp => this.encodeBreakpoint(bp)))]);
+		}
+		else
+		{
+			let countbuff = Buffer.from([complexbps.length]);
+			complexbuff = Buffer.concat([countbuff,Buffer.concat(complexbps.map(bp => this.encodeBreakpoint(bp)))]);
+		}
+
+		return Buffer.concat([fnbuff,plainbuff,complexbuff])
+	}
+	private updateBreakpoints(updateAll:boolean = false) {
+		let changes = Array<Buffer>();
+
 		this._breakPoints.forEach((breakpoints:DebugProtocol.SourceBreakpoint[], filename:string) => {
 			if (updateAll || this._breakPointsChanged.has(filename))
 			{
-				const breakpointsarray = breakpoints.map((sb)=>{
-					const condition = sb.condition && `,condition=${this.luaBlockQuote(sb.condition)}` || ""
-					const hitCondition = sb.hitCondition && `,hitCondition=${this.luaBlockQuote(sb.hitCondition)}` || ""
-					const logMessage = sb.logMessage && `,logMessage=${this.luaBlockQuote(sb.logMessage)}` || ""
-					return `{line=${sb.line}${condition}${hitCondition}${logMessage}}`;  });
-				let breakpointsbody = ""
-				if (breakpointsarray && breakpointsarray.length > 0)
-				{
-					breakpointsbody = breakpointsarray.reduce((prev,curr)=>{return prev + "," + curr});
-				}
-				changes += `[(${this.luaBlockQuote(filename)})]={${breakpointsbody}},`;
+				changes.push(Buffer.concat([
+					Buffer.from("__DebugAdapter.updateBreakpoints("),
+					this.luaBlockQuote(this.encodeBreakpoints(filename,breakpoints)),
+					Buffer.from(")\n")
+				]));
 			}
 		});
-		changes += "}"
 		this._breakPointsChanged.clear();
-		this._factorio.stdin.write(`__DebugAdapter.updateBreakpoints(${changes})\n`,"utf8");
+		this._factorio.stdin.write(Buffer.concat(changes));
 	}
 
 	/*

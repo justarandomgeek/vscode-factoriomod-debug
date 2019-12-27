@@ -3,6 +3,7 @@
 ## 0.17.5
 
 * mark various internals as stepIgnore
+* binary format for breakpoints, divided up one file per command, to fit better in 250 char limit of debug.debug()
 
 ## 0.17.4
 

@@ -21,6 +21,8 @@ local type = type
 local variables = require("__debugadapter__/variables.lua")
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local json = require("__debugadapter__/json.lua")
+local datastring = require("__debugadapter__/datastring.lua")
+local ReadBreakpoints = datastring.ReadBreakpoints
 
 local breakpoints = {}
 local stepmode = nil
@@ -176,18 +178,16 @@ local function isMainChunk()
 end
 stepIgnore(isMainChunk)
 
----@param changedsources table<string,SourceBreakpoint[]>
-function __DebugAdapter.updateBreakpoints(changedsources)
+---@param change string
+function __DebugAdapter.updateBreakpoints(change)
   -- pass it around to everyone if possible, else just set it here...
   -- remote.call is only legal from within events, game catches all but on_load
   -- during on_load, script exists and the root of the stack is no longer the main chunk
   if game or script and not isMainChunk() then
-    remote.call("debugadapter", "updateBreakpoints", changedsources)
+    remote.call("debugadapter", "updateBreakpoints", change)
   else
-    for source,changedbreaks in pairs(changedsources) do
-      __DebugAdapter.setBreakpoints(source,changedbreaks)
-    end
-    print("DBGsetbp")
+    local source,changedbreaks = ReadBreakpoints(change)
+    __DebugAdapter.setBreakpoints(source,changedbreaks)
   end
 end
 stepIgnore(__DebugAdapter.updateBreakpoints)
