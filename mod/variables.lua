@@ -75,8 +75,8 @@ end
 
 --- Generate a variablesReference for `name` at frame `frameId`
 ---@param frameId number
----@param name string
----@param mode string|nil "temps" | "vararg"
+---@param name string = "Locals" | "Upvalues"
+---@param mode string|nil = "temps" | "varargs"
 ---@return number variablesReference
 function variables.scopeRef(frameId,name,mode)
   for id,varRef in pairs(variables.refs) do
