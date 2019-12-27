@@ -60,12 +60,6 @@ function variables.describe(value,short)
 ---@return Variable
 function variables.create(name,value)
 
---- Generate a variablesReference for `name` at frame `frameId`
----@param frameId number
----@param name string
----@return number variablesReference
-function variables.scopeRef(frameId,name)
-
 --- Generate a variablesReference for a table-like object
 ---@param table table
 ---@param mode string "pairs"|"ipairs"|"count"
