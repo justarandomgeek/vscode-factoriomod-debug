@@ -4,6 +4,7 @@
 
 * mark various internals as stepIgnore
 * binary format for breakpoints, divided up one file per command, to fit better in 250 char limit of debug.debug()
+* more consistently update breakpoints before resuming execution
 
 ## 0.17.4
 

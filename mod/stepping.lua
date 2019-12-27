@@ -204,19 +204,16 @@ end
 stepIgnore(__DebugAdapter.dumpBreakpoints)
 
 ---@param steptype string "remote"*("next" | "in" | "over" | "out")
----@param silent boolean | nil
-function __DebugAdapter.step(steptype,silent)
+---@param internal boolean | nil
+function __DebugAdapter.step(steptype,internal)
   stepmode = steptype
   if steptype == "over" or steptype == "out" then
-    if not silent then
+    if not internal then
       stepdepth = 0
     end
     if stepdepth ~= 0 then
       print(("%s with existing depth! %d"):format(steptype,stepdepth))
     end
-  end
-  if not silent then
-    print("DBGstep")
   end
 end
 stepIgnore(__DebugAdapter.step)

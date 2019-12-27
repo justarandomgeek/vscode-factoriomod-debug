@@ -53,7 +53,6 @@ export class FactorioModRuntime extends EventEmitter {
 	private _vars = new Map<number, any>();
 	private _setvars = new Map<number, any>();
 	private _evals = new Map<number, any>();
-	private _step = new Subject();
 
 	private modsPath?: string; // absolute path of `mods` directory
 	private dataPath: string; // absolute path of `data` directory
@@ -256,31 +255,22 @@ export class FactorioModRuntime extends EventEmitter {
 				let event = chunkstr.substring(5).trim();
 				if (event === "on_first_tick") {
 					//on the first tick, update all breakpoints no matter what...
-					this.updateBreakpoints(true);
-					this.continue();
+					this.continue(true);
 				} else if (event === "on_tick") {
 					//if on_tick, then update breakpoints if needed and continue
-					if(this._breakPointsChanged.size !== 0)
-					{
-						this.updateBreakpoints();
-					}
 					this.continue();
 				} else if (event === "on_data") {
 					//control.lua main chunk - force all breakpoints each time this comes up because it can only set them locally
-					this.updateBreakpoints(true);
-					this.continue();
+					this.continue(true);
 				} else if (event === "on_parse") {
 					//control.lua main chunk - force all breakpoints each time this comes up because it can only set them locally
-					this.updateBreakpoints(true);
-					this.continue();
+					this.continue(true);
 				} else if (event === "on_init") {
 					//if on_init, set initial breakpoints and continue
-					this.updateBreakpoints(true);
-					this.continue();
+					this.continue(true);
 				} else if (event === "on_load") {
 					//on_load set initial breakpoints and continue
-					this.updateBreakpoints(true);
-					this.continue();
+					this.continue(true);
 				} else if (event.startsWith("step")) {
 					// notify stoponstep
 					if(this._breakPointsChanged.size !== 0)
@@ -335,8 +325,6 @@ export class FactorioModRuntime extends EventEmitter {
 				let subj = this._evals.get(evalresult.seq);
 				subj.evalresult = evalresult;
 				subj.notify();
-			} else if (chunkstr.startsWith("DBGstep")) {
-				this._step.notify();
 			} else {
 				//raise this as a stdout "Output" event
 				this.sendEvent('output', chunkstr, "stdout");
@@ -376,15 +364,24 @@ export class FactorioModRuntime extends EventEmitter {
 	/**
 	 * Continue execution to the end/beginning.
 	 */
-	public continue() {
-		this.run(undefined);
+	public continue(updateAllBreakpoints?:boolean) {
+		if(updateAllBreakpoints || this._breakPointsChanged.size !== 0)
+		{
+			this.updateBreakpoints(updateAllBreakpoints);
+		}
+		this._factorio.stdin.write("cont\n");
 	}
 
 	/**
 	 * Step to the next/previous non empty line.
 	 */
 	public step(event = 'in') {
-		this.run(event);
+		if(this._breakPointsChanged.size !== 0)
+		{
+			this.updateBreakpoints();
+		}
+		this._factorio.stdin.write(`__DebugAdapter.step("${event}")\n`);
+		this._factorio.stdin.write("cont\n");
 	}
 
 	/**
@@ -718,22 +715,6 @@ export class FactorioModRuntime extends EventEmitter {
 		}
 
 		return debuggerPath;
-	}
-
-	/**
-	 * Run through the file.
-	 * If stepEvent is specified only run a single step and emit the stepEvent.
-	 */
-	private run(stepEvent?: string) {
-		if(stepEvent)
-		{
-			this._factorio.stdin.write(`__DebugAdapter.step("${stepEvent}")\n`);
-			this._step.wait(1000).then(()=>{this._factorio.stdin.write("cont\n");});
-		}
-		else
-		{
-			this._factorio.stdin.write("cont\n");
-		}
 	}
 
 	private sendEvent(event: string, ... args: any[]) {
