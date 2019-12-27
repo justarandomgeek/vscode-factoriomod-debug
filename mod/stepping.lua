@@ -113,7 +113,6 @@ function __DebugAdapter.attach()
     elseif event == "call" then
       local s = getinfo(2,"S").source
       if sub(s,1,1) == "@" then
-        s = normalizeLuaSource(s)
         local smode = stepmode
         if smode == "over" or smode == "out" then
           stepdepth = stepdepth + 1
@@ -122,7 +121,6 @@ function __DebugAdapter.attach()
     elseif event == "return" then
       local s = getinfo(2,"S").source
       if sub(s,1,1) == "@" then
-        s = normalizeLuaSource(s)
         local smode = stepmode
         if smode == "over" then
           stepdepth = stepdepth - 1
