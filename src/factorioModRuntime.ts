@@ -428,11 +428,13 @@ export class FactorioModRuntime extends EventEmitter {
 	}
 
 	private luaBlockQuote(inbuff:Buffer){
+		const tailmatch = inbuff.toString().match(/\]=*$/)
 		const blockpad = "=".repeat((inbuff.toString().match(/\]=*\]/g)||[])
 			.map((matchstr)=>{return matchstr.length - 1})
 			.reduce((prev,curr)=>{return Math.max(prev,curr)},
-			// force one pad if the string ends with a square bracket as it will be confused with the close bracket
-			inbuff.toString().endsWith("]") ? 1 : 0));
+			// force extra pad if the string ends with a square bracket followed by zero or more equals
+			// as it will be confused with the close bracket
+			tailmatch ? tailmatch[0].length : 0));
 
 		return Buffer.concat([Buffer.from(`[${blockpad}[`), inbuff, Buffer.from(`]${blockpad}]`) ]);
 	}
