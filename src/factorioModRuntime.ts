@@ -475,6 +475,8 @@ export class FactorioModRuntime extends EventEmitter {
 		{
 			// escape \n
 			val = 0xFFFFFFFF
+		} else if (val == 26) {
+			val = 0xFFFFFFFE
 		}
 		let prefix
 		let firstmask
@@ -582,6 +584,11 @@ export class FactorioModRuntime extends EventEmitter {
 			let countbuff = Buffer.from([0xfe]);
 			plainbuff = Buffer.concat([countbuff,Buffer.concat(plainbps.map(line => this.encodeVarInt(line)))]);
 		}
+		else if (plainbps.length == 26)
+		{
+			let countbuff = Buffer.from([0xfd]);
+			plainbuff = Buffer.concat([countbuff,Buffer.concat(plainbps.map(line => this.encodeVarInt(line)))]);
+		}
 		else
 		{
 			let countbuff = Buffer.from([plainbps.length]);
@@ -597,6 +604,11 @@ export class FactorioModRuntime extends EventEmitter {
 		else if (complexbps.length == 10)
 		{
 			let countbuff = Buffer.from([0xfe]);
+			complexbuff = Buffer.concat([countbuff,Buffer.concat(complexbps.map(bp => this.encodeBreakpoint(bp)))]);
+		}
+		else if (complexbps.length == 26)
+		{
+			let countbuff = Buffer.from([0xfd]);
 			complexbuff = Buffer.concat([countbuff,Buffer.concat(complexbps.map(bp => this.encodeBreakpoint(bp)))]);
 		}
 		else

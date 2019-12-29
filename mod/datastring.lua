@@ -47,6 +47,7 @@ local function ReadVarInt(str,index)
 
         -- escape \n
         if val == 0xFFFFFFFF then val = 10 end
+        if val == 0xFFFFFFFE then val = 26 end
 
         return val,index+seq
     end
@@ -171,6 +172,7 @@ local function ReadBreakpoints(strdata)
     local bps = {}
 
     val,i = sbyte(strdata,i),i+1
+    if val == 0xfd then val = 26 end
     if val == 0xfe then val = 10 end
     if val ~= 0xff then
         for j = 1,val,1 do
@@ -180,6 +182,7 @@ local function ReadBreakpoints(strdata)
     end
 
     val,i = sbyte(strdata,i),i+1
+    if val == 0xfd then val = 26 end
     if val == 0xfe then val = 10 end
     if val ~= 0xff then
         for j = 1,val,1 do
