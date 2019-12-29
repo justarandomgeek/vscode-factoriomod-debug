@@ -255,14 +255,39 @@ __DebugAdapter.stepIgnore(variables.describe)
 function variables.create(name,value)
   local lineitem,vtype = variables.describe(value)
   local variablesReference = 0
+  local namedVariables
+  local indexedVariables
   if vtype == "LuaCustomTable" then
     variablesReference = variables.tableRef(value,"pairs",false)
+    -- get the "first" one to see which kind of index they are
+    -- some LuaCustomTable use integer keys, some use string keys.
+    -- some allow mixed for lookup, but the iterator gives ints for those.
+    local k,v = pairs(value)(value,nil,nil)
+    if k == 1 then
+      indexedVariables = #value + 1 --vscode assumes indexes start at 0, so pad one extra
+    else
+      namedVariables = #value
+    end
   elseif vtype:sub(1,3) == "Lua" then
     variablesReference = variables.luaObjectRef(value,vtype)
   elseif vtype == "table" then
     local mt = debug.getmetatable(value)
-    if not mt or mt.__debugchildren ~= false then
+    if not mt or mt.__debugchildren == nil then
       variablesReference = variables.tableRef(value)
+      namedVariables = 0
+      indexedVariables = #value
+      local namesStartAfter = indexedVariables
+      if namesStartAfter == 0 then
+        namesStartAfter = nil
+      else
+        indexedVariables = indexedVariables + 1 --vscode assumes indexes start at 0, so pad one extra
+      end
+      for k,v in next,value,namesStartAfter do
+        namedVariables = namedVariables + 1
+      end
+    elseif mt.__debugchildren then -- mt and ...
+      variablesReference = variables.tableRef(value)
+      -- children counts for mt children?
     end
   end
     return {
@@ -270,6 +295,8 @@ function variables.create(name,value)
       value = lineitem,
       type = vtype,
       variablesReference = variablesReference,
+      indexedVariables = indexedVariables,
+      namedVariables = namedVariables,
     }
 end
 __DebugAdapter.stepIgnore(variables.create)
@@ -281,8 +308,12 @@ local itermode = {
 
 --- DebugAdapter VariablesRequest
 ---@param variablesReference integer
+---@param seq number
+---@param filter nil | 'indexed' | 'named';
+---@param start nil | number
+---@param count nil | number
 ---@return Variable[]
-function __DebugAdapter.variables(variablesReference)
+function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
   local varRef = variables.refs[variablesReference]
   local vars = {}
   if varRef then
@@ -346,7 +377,19 @@ function __DebugAdapter.variables(variablesReference)
             variablesReference = variables.tableRef(mt),
           }
         end
-        for i=1,#varRef.table do
+        local stop = #varRef.table
+        if filter == "indexed" then
+          if not start or start == 0 then
+            start = 1
+          end
+          local wouldstop = start + (count - 1)
+          if wouldstop < stop then
+            stop = wouldstop
+          end
+        else
+          start = 1
+        end
+        for i=start,stop do
           vars[#vars + 1] = variables.create(tostring(i),varRef.table[i])
         end
       else
@@ -378,8 +421,30 @@ function __DebugAdapter.variables(variablesReference)
 
           local debugpairs = itermode[varRef.mode or "pairs"]
           if debugpairs then
-            for k,v in debugpairs(varRef.table) do
+            local f,t,firstk = debugpairs(varRef.table)
+            local maxindex = #varRef.table
+            if filter == "indexed" then
+              if not start or start == 0 then
+                start = 1
+                count = count and (count - 1)
+              end
+              firstk = start - 1
+              if firstk == 0 then firstk = nil end
+            elseif filter == "named" then
+              if maxindex > 0 then
+                firstk = maxindex
+              end
+              -- skip ahead some names? limit them? vscode does not currently ask for limited names
+            end
+            for k,v in f,t,firstk do
+              if filter == "indexed" and (type(k) ~= "number" or k > maxindex) then
+                break
+              end
               vars[#vars + 1] = variables.create(variables.describe(k,true),v)
+              if count then
+                count = count - 1
+                if count == 0 then break end
+              end
             end
           else
             vars[#vars + 1] = {
@@ -419,6 +484,7 @@ function __DebugAdapter.variables(variablesReference)
                 value = ("%d item%s"):format(#object, #object~=1 and "s" or ""),
                 type = varRef.classname .. "[]",
                 variablesReference = variables.tableRef(object, keyprops.iterMode, false),
+                indexedVariables = #object + 1,
                 presentationHint = { kind = "property", attributes = { "readOnly" } },
               }
             else
@@ -460,7 +526,7 @@ function __DebugAdapter.variables(variablesReference)
       presentationHint = { kind = "property", attributes = { "readOnly" } },
     }
   end
-  print("DBGvars: " .. json.encode({variablesReference = variablesReference, vars = vars}))
+  print("DBGvars: " .. json.encode({variablesReference = variablesReference, seq = seq, vars = vars}))
 end
 __DebugAdapter.stepIgnore(__DebugAdapter.variables)
 

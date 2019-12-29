@@ -232,7 +232,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 
 	protected async variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments, request?: DebugProtocol.Request) {
-		const vars = await this._runtime.vars(args.variablesReference);
+		const vars = await this._runtime.vars(args.variablesReference,response.request_seq,args.filter,args.start,args.count);
 		response.body = { variables: vars };
 		this.sendResponse(response);
 	}

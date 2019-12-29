@@ -312,7 +312,7 @@ export class FactorioModRuntime extends EventEmitter {
 				subj.notify();
 			} else if (chunkstr.startsWith("DBGvars: ")) {
 				const vars = JSON.parse(chunkstr.substring(9).trim());
-				let subj = this._vars.get(vars.variablesReference);
+				let subj = this._vars.get(vars.seq);
 				subj.vars = vars.vars;
 				subj.notify();
 			} else if (chunkstr.startsWith("DBGsetvar: ")) {
@@ -415,14 +415,14 @@ export class FactorioModRuntime extends EventEmitter {
 		return scopes;
 	}
 
-	public async vars(variablesReference: number): Promise<Variable[]> {
+	public async vars(variablesReference: number, seq: number, filter?: string, start?: number, count?: number): Promise<Variable[]> {
 		let subj = new Subject();
-		this._vars.set(variablesReference, subj);
-		this._factorio.stdin.write(`__DebugAdapter.variables(${variablesReference})\n`);
+		this._vars.set(seq, subj);
+		this._factorio.stdin.write(`__DebugAdapter.variables(${variablesReference},${seq},${filter? `"${filter}"`:"nil"},${start || "nil"},${count || "nil"})\n`);
 
 		await subj.wait(1000);
 		let vars:Variable[] = subj.vars;
-		this._vars.delete(variablesReference);
+		this._vars.delete(seq);
 
 		return vars;
 	}
