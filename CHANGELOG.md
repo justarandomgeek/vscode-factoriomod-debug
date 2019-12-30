@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.17.6
+
+* correctly bracket strings ending in partial close brackets
+* paged display of large array-like objects
+* escape 26 in breakpoints
+
 ## 0.17.5
 
 * mark various internals as stepIgnore
