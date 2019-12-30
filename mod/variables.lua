@@ -381,6 +381,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
         if filter == "indexed" then
           if not start or start == 0 then
             start = 1
+            count = count - 1
           end
           local wouldstop = start + (count - 1)
           if wouldstop < stop then
