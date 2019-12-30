@@ -44,12 +44,23 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
           local eventid = event.name
           if type(eventid) == "number" and script.get_event_handler(eventid) == info.func then
             local evtname = ("event %d"):format(eventid)
-            for k,v in pairs(devents) do
-              if eventid == v then
-                evtname = k
+            local input_name = event.input_name
+            if type(input_name) == "string" then
+              -- custom-input
+              evtname = input_name
+            else
+              -- normal game events
+              for k,v in pairs(devents) do
+                if eventid == v then
+                  evtname = k
+                  break
+                end
               end
             end
             framename = ("%s handler"):format(evtname)
+          elseif type(eventid) == "string" then
+            -- commands from LuaCommandProcessor
+            framename = ("command /%s"):format(eventid)
           end
         end
       elseif info.nparams == 0 and not info.isvararg and

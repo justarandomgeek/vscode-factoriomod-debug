@@ -7,6 +7,7 @@
 * escape 26 in breakpoints
 * disable profiler and coverage when enabling debugadapter
 * disable debugadapter mod on "Run Without Debugging"
+* better display of custom commands and custom-input event handlers
 
 ## 0.17.5
 
