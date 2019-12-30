@@ -33,9 +33,21 @@ return {
     LuaRendering = true,
     LuaBootstrap = true,
     LuaGameScript = true,
+    LuaMapSettings = true,
+    LuaDifficultySettings = true,
   },
   lineItem = {
-    LuaItemStack = [[<LuaItemStack>{[}name={name}, count={count}{]}]],
+    LuaItemStack = function(value,short)
+      if value.valid_for_read then
+        if not short then
+          return __DebugAdapter.stringInterp([[<LuaItemStack>{[}name={name}, count={count}{]}]],nil,value)
+        else
+          return [[<LuaItemStack>]]
+        end
+      else
+        return [[<Empty LuaItemStack>]]
+      end
+    end,
     LuaPlayer = [[<LuaPlayer>{[}name={name}, index={index}{]}]],
     LuaSurface = [[<LuaSurface>{[}name={name}, index={index}{]}]],
     LuaForce = [[<LuaForce>{[}name={name}, index={index}{]}]],

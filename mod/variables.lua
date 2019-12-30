@@ -155,17 +155,20 @@ function variables.describe(value,short)
       if vtype == "LuaCustomTable" then
           lineitem = ("%d item%s"):format(#value, #value~=1 and "s" or "" )
       else
-        local lineitemfmt = luaObjectInfo.lineItem[vtype]
-        lineitem = ("<%s>"):format(vtype)
-        local litype = type(lineitemfmt)
-        if litype == "function" then
-          -- don't crash a debug session for a bad formatter...
-          local success,result = pcall(lineitemfmt,value,short)
-          if success then lineitem = result end
-        elseif litype == "string" and not short then
-          lineitem = __DebugAdapter.stringInterp(lineitemfmt,nil,value,"luaobjectline")
+        if luaObjectInfo.alwaysValid[vtype] or value.valid then
+          local lineitemfmt = luaObjectInfo.lineItem[vtype]
+          lineitem = ("<%s>"):format(vtype)
+          local litype = type(lineitemfmt)
+          if litype == "function" then
+            -- don't crash a debug session for a bad formatter...
+            local success,result = pcall(lineitemfmt,value,short)
+            if success then lineitem = result end
+          elseif litype == "string" and not short then
+            lineitem = __DebugAdapter.stringInterp(lineitemfmt,nil,value,"luaobjectline")
+          end
+        else
+          lineitem = ("<Invalid %s>"):format(vtype)
         end
-
       end
     else -- non-LuaObject tables
       local mt = debug.getmetatable(value)
