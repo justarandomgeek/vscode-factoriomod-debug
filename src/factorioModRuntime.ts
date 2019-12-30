@@ -86,7 +86,7 @@ export class FactorioModRuntime extends EventEmitter {
 	/**
 	 * Start executing the given program.
 	 */
-	public async start(factorioPath: string, dataPath: string, modsPath?: string, manageMod?: boolean) {
+	public async start(factorioPath: string, dataPath: string, modsPath?: string, manageMod?: boolean, noDebug?: boolean) {
 		this.manageMod = manageMod;
 		await this.workspaceModListsReady.wait(1000);
 		if (this.workspaceModLists.length > 1)
@@ -119,65 +119,22 @@ export class FactorioModRuntime extends EventEmitter {
 					mods = mods.filter((mod)=>{
 						return mod.startsWith("debugadapter")
 					})
-					if (mods.length == 0)
+					if (!noDebug)
 					{
-						// install zip from package
-						const ext = vscode.extensions.getExtension("justarandomgeek.factoriomod-debug")
-						if (ext)
+						if (mods.length == 0)
 						{
-							const extpath = ext.extensionPath
-							const zippath = path.resolve(extpath, "./modpackage/debugadapter.zip")
-							const infopath = path.resolve(extpath, "./modpackage/info.json")
-							if(fs.existsSync(zippath) && fs.existsSync(infopath))
-							{
-								const dainfo:modinfo = JSON.parse(fs.readFileSync(infopath, "utf8"))
-								fs.copyFileSync(zippath,path.resolve(modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
-								this.output.appendLine(`installed ${dainfo.name}_${dainfo.version}.zip`);
-							}
-							else
-							{
-								this.output.appendLine(`debugadapter mod package missing in extension`);
-							}
-						}
-					}
-					else if (mods.length == 1)
-					{
-						if (mods[0].endsWith(".zip"))
-						{
-							// check version ??
+							// install zip from package
 							const ext = vscode.extensions.getExtension("justarandomgeek.factoriomod-debug")
 							if (ext)
 							{
 								const extpath = ext.extensionPath
-
-								const infopath = path.resolve(extpath, "./modpackage/info.json")
 								const zippath = path.resolve(extpath, "./modpackage/debugadapter.zip")
+								const infopath = path.resolve(extpath, "./modpackage/info.json")
 								if(fs.existsSync(zippath) && fs.existsSync(infopath))
 								{
-
 									const dainfo:modinfo = JSON.parse(fs.readFileSync(infopath, "utf8"))
-
-									const existingVersion = mods[0].match(/_([0-9]+)\.([0-9]+)\.([0-9]+)\.zip/)
-									const extensionVersion = dainfo.version.match(/^([0-9]+)\.([0-9]+)\.([0-9]+)$/)
-
-									if(
-										existingVersion && extensionVersion && (
-										Number(extensionVersion[1]) > Number(existingVersion[1]) || (
-											Number(extensionVersion[1]) == Number(existingVersion[1]) &&
-											Number(extensionVersion[2]) > Number(existingVersion[2]) || (
-												Number(extensionVersion[2]) == Number(existingVersion[2]) &&
-												Number(extensionVersion[3]) > Number(existingVersion[3])
-												)
-											)
-										)
-									)
-									{
-										fs.unlinkSync(path.resolve(modsPath,mods[0]))
-										fs.copyFileSync(zippath,path.resolve(modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
-										this.output.appendLine(`updated ${mods[0]} to ${dainfo.name}_${dainfo.version}.zip`);
-									} else {
-										this.output.appendLine(`using existing ${mods[0]}`);
-									}
+									fs.copyFileSync(zippath,path.resolve(modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
+									this.output.appendLine(`installed ${dainfo.name}_${dainfo.version}.zip`);
 								}
 								else
 								{
@@ -185,31 +142,101 @@ export class FactorioModRuntime extends EventEmitter {
 								}
 							}
 						}
+						else if (mods.length == 1)
+						{
+							if (mods[0].endsWith(".zip"))
+							{
+								// check version ??
+								const ext = vscode.extensions.getExtension("justarandomgeek.factoriomod-debug")
+								if (ext)
+								{
+									const extpath = ext.extensionPath
+
+									const infopath = path.resolve(extpath, "./modpackage/info.json")
+									const zippath = path.resolve(extpath, "./modpackage/debugadapter.zip")
+									if(fs.existsSync(zippath) && fs.existsSync(infopath))
+									{
+
+										const dainfo:modinfo = JSON.parse(fs.readFileSync(infopath, "utf8"))
+
+										const existingVersion = mods[0].match(/_([0-9]+)\.([0-9]+)\.([0-9]+)\.zip/)
+										const extensionVersion = dainfo.version.match(/^([0-9]+)\.([0-9]+)\.([0-9]+)$/)
+
+										if(
+											existingVersion && extensionVersion && (
+											Number(extensionVersion[1]) > Number(existingVersion[1]) || (
+												Number(extensionVersion[1]) == Number(existingVersion[1]) &&
+												Number(extensionVersion[2]) > Number(existingVersion[2]) || (
+													Number(extensionVersion[2]) == Number(existingVersion[2]) &&
+													Number(extensionVersion[3]) > Number(existingVersion[3])
+													)
+												)
+											)
+										)
+										{
+											fs.unlinkSync(path.resolve(modsPath,mods[0]))
+											fs.copyFileSync(zippath,path.resolve(modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
+											this.output.appendLine(`updated ${mods[0]} to ${dainfo.name}_${dainfo.version}.zip`);
+										} else {
+											this.output.appendLine(`using existing ${mods[0]}`);
+										}
+									}
+									else
+									{
+										this.output.appendLine(`debugadapter mod package missing in extension`);
+									}
+								}
+							}
+							else
+							{
+								this.output.appendLine("existing debugadapter in modsPath is not a zip");
+							}
+						}
 						else
 						{
-							this.output.appendLine("existing debugadapter in modsPath is not a zip");
+							this.output.appendLine("multiple debugadapters in modsPath");
+						}
+					}
+					// enable in json
+					let modlist:modlist = JSON.parse(fs.readFileSync(modlistpath, "utf8"))
+
+					if (noDebug)
+					{
+						let isInList = false
+						modlist.mods.map((modentry)=>{
+							if (modentry.name == "debugadapter") {
+								isInList = true;
+								modentry.enabled = false;
+								modentry.version = undefined;
+							};
+							return modentry;
+						});
+						if (!isInList){
+							modlist.mods.push({name:"debugadapter",enabled:false})
 						}
 					}
 					else
 					{
-						this.output.appendLine("multiple debugadapters in modsPath");
-					}
-					// enable in json
-					let modlist:modlist = JSON.parse(fs.readFileSync(modlistpath, "utf8"))
-					let isInList = false
-					modlist.mods.map((modentry)=>{
-						if (modentry.name == "debugadapter") {
-							isInList = true;
-							modentry.enabled = true;
-							modentry.version = undefined;
-						};
-						return modentry;
-					});
-					if (!isInList){
-						modlist.mods.push({name:"debugadapter",enabled:true})
+						let isInList = false
+						modlist.mods.map((modentry)=>{
+							if (modentry.name == "debugadapter") {
+								isInList = true;
+								modentry.enabled = true;
+								modentry.version = undefined;
+							} else if(modentry.name == "coverage" || modentry.name == "profiler"){
+								if (modentry.enabled) {
+									this.output.appendLine(`incompatible mod "${modentry.name}" disabled`);
+								}
+								modentry.enabled = false;
+							};
+							return modentry;
+						});
+						if (!isInList){
+							modlist.mods.push({name:"debugadapter",enabled:true})
+						}
 					}
 					fs.writeFileSync(modlistpath, JSON.stringify(modlist), "utf8")
-					this.output.appendLine(`debugadapter enabled in mod-list.json`);
+					this.output.appendLine(`debugadapter ${noDebug?"disabled":"enabled"} in mod-list.json`);
 				}
 			} else {
 				this.output.appendLine("modsPath does not contain mod-list.json");

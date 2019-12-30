@@ -7,5 +7,5 @@
     "homepage": "",
     "contact": "",
     "description": "An implementation of Debug Adapter Protocol for mods. For use with the associated vscode extension. This is a developer tool, not meant for actual gameplay. It is intentionally desync unsafe. Do not use it in multiplayer.",
-    "dependencies": ["base"]
+    "dependencies": ["base", "!coverage", "!profiler"]
   }

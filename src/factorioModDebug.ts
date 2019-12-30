@@ -156,7 +156,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		await this._configurationDone.wait(1000);
 
 		// start the program in the runtime
-		this._runtime.start(args.factorioPath, args.dataPath, args.modsPath, args.manageMod);
+		this._runtime.start(args.factorioPath, args.dataPath, args.modsPath, args.manageMod, args.noDebug);
 
 
 		this.sendResponse(response);

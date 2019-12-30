@@ -5,6 +5,8 @@
 * correctly bracket strings ending in partial close brackets
 * paged display of large array-like objects
 * escape 26 in breakpoints
+* disable profiler and coverage when enabling debugadapter
+* disable debugadapter mod on "Run Without Debugging"
 
 ## 0.17.5
 
