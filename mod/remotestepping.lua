@@ -13,6 +13,7 @@ local script = script
 local setmetatable = setmetatable
 local unpack = table.unpack
 
+---@type LuaRemote
 local origremote = remote
 local stacks = {}
 local myRemotes = {}

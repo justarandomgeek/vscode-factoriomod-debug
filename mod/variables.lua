@@ -309,7 +309,7 @@ local itermode = {
 --- DebugAdapter VariablesRequest
 ---@param variablesReference integer
 ---@param seq number
----@param filter nil | 'indexed' | 'named';
+---@param filter nil | string ('indexed' | 'named')
 ---@param start nil | number
 ---@param count nil | number
 ---@return Variable[]

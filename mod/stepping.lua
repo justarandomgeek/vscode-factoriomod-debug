@@ -24,6 +24,7 @@ local json = require("__debugadapter__/json.lua")
 local datastring = require("__debugadapter__/datastring.lua")
 local ReadBreakpoints = datastring.ReadBreakpoints
 
+---@type table<string,table<number,SourceBreakpoint>>
 local breakpoints = {}
 local stepmode = nil
 local stepdepth = 0
@@ -145,7 +146,6 @@ stepIgnore(__DebugAdapter.detach)
 
 ---@param source string
 ---@param breaks SourceBreakpoint[]
----@return Breakpoint[]
 function __DebugAdapter.setBreakpoints(source,breaks)
   if breaks then
     local filebreaks = {}

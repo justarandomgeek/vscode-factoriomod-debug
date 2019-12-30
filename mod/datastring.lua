@@ -137,6 +137,7 @@ __DebugAdapter.stepIgnore(ReadString)
 ---@return SourceBreakpoint breakpoint
 ---@return number nextIndex
 local function ReadSourceBreakpoint(strdata,i)
+    ---@type SourceBreakpoint
     local bp = {}
 
     bp.line,i = ReadVarInt(strdata,i)
@@ -169,6 +170,7 @@ local function ReadBreakpoints(strdata)
     local filename
     filename,i = ReadString(strdata,i)
 
+    ---@type SourceBreakpoint[]
     local bps = {}
 
     val,i = sbyte(strdata,i),i+1
@@ -177,6 +179,7 @@ local function ReadBreakpoints(strdata)
     if val ~= 0xff then
         for j = 1,val,1 do
             val,i = ReadVarInt(strdata,i)
+            ---@type SourceBreakpoint
             bps[#bps+1] = { line = val }
         end
     end

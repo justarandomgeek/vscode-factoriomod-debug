@@ -11,6 +11,9 @@ local debug = debug
 local print = print
 local pairs = pairs
 
+--- call a remote function in all registered mods
+---@param funcname string Name of remote function to call
+---@return table<string,any> Results indexed by mod name
 local function callAll(funcname,...)
   local results = {}
   local call = remote.call
