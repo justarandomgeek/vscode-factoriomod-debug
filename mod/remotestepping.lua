@@ -85,15 +85,15 @@ function remotestepping.interfaces()
 end
 __DebugAdapter.stepIgnore(remotestepping.interfaces)
 
-local function remotestepadd(remotename,funcs)
+local function remotestepadd(remotename,funcs,...)
   myRemotes[remotename] = true
-  origremote.add_interface(remotename,funcs)
+  return origremote.add_interface(remotename,funcs,...)
 end
 __DebugAdapter.stepIgnore(remotestepadd)
 
-local function remotestepremove(remotename)
+local function remotestepremove(remotename,...)
   myRemotes[remotename] = nil
-  return origremote.remove_interface(remotename)
+  return origremote.remove_interface(remotename,...)
 end
 __DebugAdapter.stepIgnore(remotestepremove)
 
