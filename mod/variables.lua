@@ -249,6 +249,7 @@ function variables.describe(value,short)
   end
   return lineitem,vtype
 end
+__DebugAdapter.describe = variables.describe
 __DebugAdapter.stepIgnore(variables.describe)
 
 --- Generate a default debug view for `value` named `name`

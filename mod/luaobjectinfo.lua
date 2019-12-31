@@ -1,3 +1,4 @@
+local __DebugAdapter = __DebugAdapter
 local string = string
 local rawget = rawget
 local pcall = pcall
@@ -23,6 +24,34 @@ local function classname(obj)
   return t
 end
 __DebugAdapter.stepIgnore(classname)
+
+local luaObjectLines = {
+  ---@param stack LuaItemStack
+  ---@param short boolean | nil
+  LuaItemStack = function(stack,short)
+    if stack.valid_for_read then
+      if not short then
+        return __DebugAdapter.stringInterp([[<LuaItemStack>{[}name={name}, count={count}{]}]],nil,stack)
+      else
+        return [[<LuaItemStack>]]
+      end
+    else
+      return [[<Empty LuaItemStack>]]
+    end
+  end,
+  LuaPlayer = [[<LuaPlayer>{[}name={name}, index={index}{]}]],
+  LuaSurface = [[<LuaSurface>{[}name={name}, index={index}{]}]],
+  LuaForce = [[<LuaForce>{[}name={name}, index={index}{]}]],
+  LuaGuiElement = [[<LuaGuiElement>{[}name={name}, type={type}, index={index}{]}]],
+  LuaStyle = [[<LuaStyle>{[}name={name}{]}]],
+  LuaEntity = [[<LuaEntity>{[}name={name}, type={type}, unit_number={unit_number}{]}]],
+}
+for _,f in pairs(luaObjectLines) do
+  if type(f) == "function" then
+    __DebugAdapter.stepIgnore(f)
+  end
+end
+
 return {
   classname = classname,
   alwaysValid = {
@@ -35,26 +64,9 @@ return {
     LuaGameScript = true,
     LuaMapSettings = true,
     LuaDifficultySettings = true,
+    LuaGameViewSettings = true,
   },
-  lineItem = {
-    LuaItemStack = function(value,short)
-      if value.valid_for_read then
-        if not short then
-          return __DebugAdapter.stringInterp([[<LuaItemStack>{[}name={name}, count={count}{]}]],nil,value)
-        else
-          return [[<LuaItemStack>]]
-        end
-      else
-        return [[<Empty LuaItemStack>]]
-      end
-    end,
-    LuaPlayer = [[<LuaPlayer>{[}name={name}, index={index}{]}]],
-    LuaSurface = [[<LuaSurface>{[}name={name}, index={index}{]}]],
-    LuaForce = [[<LuaForce>{[}name={name}, index={index}{]}]],
-    LuaGuiElement = [[<LuaGuiElement>{[}name={name}, type={type}, index={index}{]}]],
-    LuaStyle = [[<LuaStyle>{[}name={name}{]}]],
-    LuaEntity = [[<LuaEntity>{[}name={name}, type={type}, unit_number={unit_number}{]}]],
-  },
+  lineItem = luaObjectLines,
   expandKeys = {
     LuaAISettings = {
       allow_destroy_when_commands_fail = {},
