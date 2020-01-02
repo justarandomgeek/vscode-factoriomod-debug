@@ -8,6 +8,7 @@
 * disable profiler and coverage when enabling debugadapter
 * disable debugadapter mod on "Run Without Debugging"
 * better display of custom commands and custom-input event handlers
+* reorder scopes in Variables window to be generally innermost to outermost
 
 ## 0.17.5
 

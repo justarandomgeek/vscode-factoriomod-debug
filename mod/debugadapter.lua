@@ -135,17 +135,18 @@ __DebugAdapter.stepIgnore(__DebugAdapter.modules)
 ---@return Scope[]
 function __DebugAdapter.scopes(frameId)
   if debug.getinfo(frameId,"f") then
+    ---@type Scope[]
     local scopes = {}
-    -- Global
-    scopes[#scopes+1] = { name = "Lua Globals", variablesReference = variables.tableRef(_ENV) }
+    -- Locals
+    scopes[#scopes+1] = { name = "Locals", variablesReference = variables.scopeRef(frameId,"Locals"), }
+    -- Upvalues
+    scopes[#scopes+1] = { name = "Upvalues", variablesReference = variables.scopeRef(frameId,"Upvalues") }
+    -- Factorio `global`
     if global then
       scopes[#scopes+1] = { name = "Factorio global", variablesReference = variables.tableRef(global) }
     end
-    -- Locals
-    scopes[#scopes+1] = { name = "Locals", variablesReference = variables.scopeRef(frameId,"Locals") }
-    -- Upvalues
-    scopes[#scopes+1] = { name = "Upvalues", variablesReference = variables.scopeRef(frameId,"Upvalues") }
-
+    -- Lua Globals
+    scopes[#scopes+1] = { name = "Lua Globals", variablesReference = variables.tableRef(_ENV) }
 
     print("DBGscopes: " .. json.encode({frameId = frameId, scopes = scopes}))
   else
