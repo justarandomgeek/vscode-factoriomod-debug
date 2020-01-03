@@ -24,6 +24,7 @@ local bor = bit32.bor
 local lshift = bit32.lshift
 local rshift = bit32.rshift
 
+local stepIgnore = __DebugAdapter and __DebugAdapter.stepIgnore or function() end
 
 
 --- reads an int from str starting at index.
@@ -52,7 +53,7 @@ local function ReadVarInt(str,index)
         return val,index+seq
     end
 end
-__DebugAdapter.stepIgnore(ReadVarInt)
+stepIgnore(ReadVarInt)
 
 --- convert an int to a string containing the encoded value
 ---@param val number
@@ -130,7 +131,7 @@ local function ReadString(strdata,i)
     local strout = ssub(strdata,i,val-1)
     return strout,val
 end
-__DebugAdapter.stepIgnore(ReadString)
+stepIgnore(ReadString)
 
 ---@param strdata string
 ---@param i number
@@ -156,7 +157,7 @@ local function ReadSourceBreakpoint(strdata,i)
 
     return bp,i
 end
-__DebugAdapter.stepIgnore(ReadSourceBreakpoint)
+stepIgnore(ReadSourceBreakpoint)
 
 ---@param strdata string
 ---@return string filename
@@ -197,7 +198,7 @@ local function ReadBreakpoints(strdata)
 
     return filename,bps
 end
-__DebugAdapter.stepIgnore(ReadBreakpoints)
+stepIgnore(ReadBreakpoints)
 
 return {
     ReadVarInt = ReadVarInt,
