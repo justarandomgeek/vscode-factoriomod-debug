@@ -203,7 +203,7 @@ export class FactorioModRuntime extends EventEmitter {
 							if (noDebug)
 							{
 								let isInList = false
-								modlist.mods.map((modentry)=>{
+								modlist.mods = modlist.mods.map((modentry)=>{
 									if (modentry.name == dainfo.name) {
 										isInList = true;
 										return {name:modentry.name,enabled:false}
@@ -217,7 +217,7 @@ export class FactorioModRuntime extends EventEmitter {
 							else
 							{
 								let isInList = false
-								modlist.mods.map((modentry)=>{
+								modlist.mods = modlist.mods.map((modentry)=>{
 									if (modentry.name == dainfo.name) {
 										isInList = true;
 										return {name:modentry.name,enabled:true,version:dainfo.version}
