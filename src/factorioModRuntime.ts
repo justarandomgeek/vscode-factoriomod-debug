@@ -487,7 +487,7 @@ export class FactorioModRuntime extends EventEmitter {
 
 		let subj = new Subject();
 		this._evals.set(seq, subj);
-		this._factorio.stdin.write(`__DebugAdapter.evaluate(${args.frameId},"${args.context}",${this.luaBlockQuote(Buffer.from(args.expression.replace("\n"," ")))},${seq})\n`);
+		this._factorio.stdin.write(`__DebugAdapter.evaluate(${args.frameId},"${args.context}",${this.luaBlockQuote(Buffer.from(args.expression.replace(/\n/g," ")))},${seq})\n`);
 
 		await subj.wait(1000);
 		let evalresult = subj.evalresult;
