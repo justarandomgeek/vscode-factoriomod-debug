@@ -37,36 +37,6 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
     local framename = info.name or "(name unavailable)"
     if info.what == "main" then
       framename = "(main chunk)"
-    elseif not info.name and script then
-      if info.nparams == 1 and not info.isvararg then
-        local name,event = debug.getlocal(i,1)
-        if type(event) == "table" then
-          local eventid = event.name
-          if type(eventid) == "number" and script.get_event_handler(eventid) == info.func then
-            local evtname = ("event %d"):format(eventid)
-            local input_name = event.input_name
-            if type(input_name) == "string" then
-              -- custom-input
-              evtname = input_name
-            else
-              -- normal game events
-              for k,v in pairs(devents) do
-                if eventid == v then
-                  evtname = k
-                  break
-                end
-              end
-            end
-            framename = ("%s handler"):format(evtname)
-          elseif type(eventid) == "string" then
-            -- commands from LuaCommandProcessor
-            framename = ("command /%s"):format(eventid)
-          end
-        end
-      elseif info.nparams == 0 and not info.isvararg and
-          script.get_event_handler(deon_tick) == info.func then
-        framename = "on_tick handler"
-      end
     end
     if info.istailcall then
       framename = ("[tail calls...] %s"):format(framename)
@@ -91,10 +61,26 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
     if #stackFrames == levels then break end
   end
 
+  local remoteStack,remoteFName
   if remotestepping then
-    local remoteStack = remotestepping.parentStack()
+    -- read state for instrumented remote calls
+    remoteStack,remoteFName = remotestepping.parentState()
     if remoteStack then
-      local remoteFName = remotestepping.entryFunction()
+      if forRemote then
+        stackFrames[#stackFrames].name = ("[%s] %s"):format(script.mod_name, remoteFName)
+      else
+        stackFrames[#stackFrames].name = remoteFName
+      end
+      for _,frame in pairs(remoteStack) do
+        frame.id = i
+        stackFrames[#stackFrames+1] = frame
+        i = i + 1
+      end
+    else
+      -- check for non-instrumeted remote calls...
+      local id = stackFrames[#stackFrames].id
+      local info = debug.getinfo(id,"f")
+      remoteFname = remotestepping.isRemote(info.func)
       if remoteFName then
         if forRemote then
           stackFrames[#stackFrames].name = ("[%s] %s"):format(script.mod_name, remoteFName)
@@ -102,18 +88,81 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
           stackFrames[#stackFrames].name = remoteFName
         end
       end
-      for _,frame in pairs(remoteStack) do
-        frame.id = i
-        stackFrames[#stackFrames+1] = frame
-        i = i + 1
-      end
     end
   end
-  if forRemote then
-    return stackFrames
-  else
+  if script and not remoteFName then
+    -- Try to identify the entry point, if it wasn't a remote.call (identified above)
+    -- other possible entry points (in control stage):
+    --   main chunks (identified above as "(main chunk)")
+    --     control.lua init and any files it requires
+    --     dostring(globaldump) for loading global from save (no break)
+    --     migrations
+    --     /c __modname__ command
+    --   serpent.dump(global,{numformat="%a"}) for saving/crc check (no break)
+    --   event handlers (identify by event table, verify with get_event_handler)
+    --   /command handlers (identify by event table)
+    --   special events:
+    --     on_init (not identifiable yet)
+    --     on_load (script and not game and not mainchunk)
+    --     on_configuration_changed (not identifiable yet... match event table?)
+    --     on_nth_tick (identify by event table)
+
+    ---@type StackFrame
+    local lastframe = stackFrames[#stackFrames]
+    local framename = lastframe.name
+    local id = lastframe.id
+    local info = debug.getinfo(id,"Sutf")
+    if info.what ~= "main" then
+      if not game then
+        framename = "on_load handler"
+      elseif not info.vararg then
+        if info.nparams == 1 then
+          local name,event = debug.getlocal(id,1)
+          if type(event) == "table" and debug.getmetatable(event) == nil then
+            local eventid = event.name
+            if type(eventid) == "number" and script.get_event_handler(eventid) == info.func then
+              local evtname = ("event %d"):format(eventid)
+              local input_name = event.input_name
+              if type(input_name) == "string" then
+                -- custom-input
+                evtname = input_name
+              else
+                -- normal game events
+                for k,v in pairs(devents) do
+                  if eventid == v then
+                    evtname = k
+                    break
+                  end
+                end
+              end
+              framename = ("%s handler"):format(evtname)
+            elseif type(eventid) == "string" then
+              -- commands from LuaCommandProcessor
+              framename = ("command /%s"):format(eventid)
+            else
+              local nth = eventid.nth_tick
+              if type(nth) == "number" then
+                framename = ("on_nth_tick handler %d"):format(nth)
+              end
+            end
+          end
+        elseif info.nparams == 0 and script.get_event_handler(deon_tick) == info.func then
+          framename = "on_tick handler"
+        end
+      end
+      if info.istailcall then
+        framename = ("[tail calls...] %s"):format(framename)
+      end
+      if forRemote then
+        framename = ("[%s] %s"):format(script.mod_name, framename)
+      end
+      lastframe.name = framename
+    end
+  end
+  if not forRemote then
     print("DBGstack: " .. json.encode(stackFrames))
   end
+  return stackFrames
 end
 __DebugAdapter.stepIgnore(__DebugAdapter.stackTrace)
 

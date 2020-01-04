@@ -19,18 +19,14 @@ local stacks = {}
 local myRemotes = {}
 
 ---@return StackFrame[]
-function remotestepping.parentStack()
-  local level = stacks[#stacks]
-  return level and level.stack
-end
-__DebugAdapter.stepIgnore(remotestepping.parentStack)
-
 ---@return string
-function remotestepping.entryFunction()
+function remotestepping.parentState()
   local level = stacks[#stacks]
-  return level and level.name
+  if level then
+    return level.stack, level.name
+  end
 end
-__DebugAdapter.stepIgnore(remotestepping.entryFunction)
+__DebugAdapter.stepIgnore(remotestepping.parentState)
 
 ---@param parentstep string "remote"*("next" | "in" | "over" | "out")
 ---@param remoteUpStack StackFrame[]
@@ -81,12 +77,29 @@ __DebugAdapter.stepIgnore(remotestepcall)
 
 
 function remotestepping.interfaces()
-  return myRemotes
+  local interfaces = {}
+  for name in pairs(myRemotes) do
+    interfaces[name] = true
+  end
+  return interfaces
 end
 __DebugAdapter.stepIgnore(remotestepping.interfaces)
 
+function remotestepping.isRemote(func)
+  -- it would be nice to pre-calculate all this, but changing the functions in a
+  -- remote table at runtime is actually valid, so an old result may not be correct!
+  for name,interface in pairs(myRemotes) do
+    for fname,f in pairs(interface) do
+      if f == func then
+        return fname,name
+      end
+    end
+  end
+end
+__DebugAdapter.stepIgnore(remotestepping.isRemote)
+
 local function remotestepadd(remotename,funcs,...)
-  myRemotes[remotename] = true
+  myRemotes[remotename] = funcs
   return origremote.add_interface(remotename,funcs,...)
 end
 __DebugAdapter.stepIgnore(remotestepadd)
