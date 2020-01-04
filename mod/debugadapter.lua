@@ -104,7 +104,7 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
     --   special events:
     --     on_init (not identifiable yet)
     --     on_load (script and not game and not mainchunk)
-    --     on_configuration_changed (not identifiable yet... match event table?)
+    --     on_configuration_changed (identify by event table)
     --     on_nth_tick (identify by event table)
 
     ---@type StackFrame
@@ -140,9 +140,12 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
               -- commands from LuaCommandProcessor
               framename = ("command /%s"):format(eventid)
             else
-              local nth = eventid.nth_tick
+              local nth = event.nth_tick
               if type(nth) == "number" then
                 framename = ("on_nth_tick handler %d"):format(nth)
+              elseif type(event.mod_changes) == "table" and type(event.mod_startup_settings_changed) == "boolean"
+                and type(event.migration_applied) == "boolean" then
+                  framename = "on_configuration_changed handler"
               end
             end
           end
