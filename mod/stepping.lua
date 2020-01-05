@@ -8,8 +8,8 @@ end
 stepIgnore(stepIgnore)
 __DebugAdapter.stepIgnore = stepIgnore
 
--- capture the raw object early, before remotestepping hooks it
-local remote = remote
+-- capture the raw object, before remotestepping hooks it or through the hook
+local remote = rawget(remote,"__raw") or remote
 
 local debug = debug
 local string = string
