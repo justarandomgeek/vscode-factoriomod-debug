@@ -65,6 +65,7 @@ return {
     LuaMapSettings = true,
     LuaDifficultySettings = true,
     LuaGameViewSettings = true,
+    LuaStruct = true,
   },
   lineItem = luaObjectLines,
   expandKeys = {
