@@ -28,62 +28,74 @@ function remotestepping.parentState()
 end
 __DebugAdapter.stepIgnore(remotestepping.parentState)
 
+--- Transfer stepping state and perform the call. Vararg arguments will be forwarded to the
+--- remote function, and any return value from the remote will be returned with the new stepping state in a table.
 ---@param parentstep string "remote"*("next" | "in" | "over" | "out")
----@param remoteUpStack StackFrame[]
+---@param parentstack StackFrame[]
+---@param remotename string
 ---@param fname string
-function remotestepping.stepIn(parentstep,remoteUpStack,fname)
+---@return table
+function remotestepping.callInner(parentstep,parentstack,remotename,fname,...)
   stacks[#stacks+1] = {
-    stack = remoteUpStack,
+    stack = parentstack,
     name = fname,
   }
   if parentstep and (parentstep == "over" or parentstep == "out" or parentstep:match("^remote")) then
     parentstep = "remote" .. parentstep
   end
   __DebugAdapter.step(parentstep,true)
-end
-__DebugAdapter.stepIgnore(remotestepping.stepIn)
 
----@return string "remote"*("next" | "in" | "over" | "out")
-function remotestepping.stepOut()
-  local parentstep = __DebugAdapter.currentStep()
+  local func = myRemotes[remotename][fname]
+  assert(type(func) == "function","attempted to step into invalid remote function " .. remotename .. "." .. fname)
+  local result = {func(...)}
+
+  parentstep = __DebugAdapter.currentStep()
   __DebugAdapter.step(nil,true)
   stacks[#stacks] = nil
   parentstep = parentstep and parentstep:match("^remote(.+)$") or parentstep
-  return parentstep
+  --TODO: if multiple returns are actually supported in the future, change to `parentstep,unpack(result)`
+  return {step=parentstep,result=result},true
 end
-__DebugAdapter.stepIgnore(remotestepping.stepOut)
+__DebugAdapter.stepIgnore(remotestepping.callInner)
 
 
+--- Replacement for LuaRemote::call() which passes stepping state along with the call.
+--- Signature and returns are the same as original LuaRemote::call()
 local function remotestepcall(remotename,method,...)
   local call = origremote.call
   if not game then -- remove this in 0.18 with script.active_mods
     -- if game isn't ready we can't prepare stack traces yet, so just call directly...
     return call(remotename,method,...)
   end
-  -- if whois doesn't know who owns it, they must not have debug registered...
+  -- find out who owns it, if they have debug registered...
   local debugname = call("debugadapter","whois",remotename)
   if debugname then
     debugname = "__debugadapter_" .. debugname
-    call(debugname,"remoteStepIn",__DebugAdapter.currentStep(), __DebugAdapter.stackTrace(-2, nil, true), method)
-  end
-  local result = {call(remotename,method,...)}
-  if debugname then
-    local childstep = call(debugname,"remoteStepOut")
+    --TODO: if multiple returns are added, capture them all and change the unpack for return
+    local result,multreturn = call(debugname,"remoteCallInner",
+      __DebugAdapter.currentStep(), __DebugAdapter.stackTrace(-2, nil, true),
+      remotename, method, ...)
+
+    local childstep = result.step
     __DebugAdapter.step(childstep,true)
+    if multreturn then
+      return unpack(result.result)
+    else
+      return result.result[1]
+    end
+
+  else
+    -- if whois doesn't know who owns it, they must not have debug registered...
+    return call(remotename,method,...)
   end
-  return unpack(result)
 end
 __DebugAdapter.stepIgnore(remotestepcall)
 
 
-function remotestepping.interfaces()
-  local interfaces = {}
-  for name in pairs(myRemotes) do
-    interfaces[name] = true
-  end
-  return interfaces
+function remotestepping.hasInterface(name)
+  return myRemotes[name] ~= nil
 end
-__DebugAdapter.stepIgnore(remotestepping.interfaces)
+__DebugAdapter.stepIgnore(remotestepping.hasInterface)
 
 function remotestepping.isRemote(func)
   -- it would be nice to pre-calculate all this, but changing the functions in a

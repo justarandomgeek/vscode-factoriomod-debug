@@ -53,14 +53,30 @@ local function modules()
   print("EVTmodules: " .. json.encode(mods))
 end
 
+local whoiscache = {}
 local function whois(remotename)
-  local interfaces = callAll("remoteStepInterfaces")
-  if interfaces[remotename] and interfaces[remotename][remotename] then return remotename end
-  for modname,modinterfaces in pairs(interfaces) do
-    if modinterfaces[remotename] then
-      return modname
+  local interfaces = remote.interfaces
+  local call = remote.call
+
+  remotename = whoiscache[remotename] or remotename
+  local debugname = "__debugadapter_"..remotename
+  if interfaces[debugname] then
+    if call(debugname,"remoteHasInterface",remotename) then
+      whoiscache[remotename] = remotename
+      return remotename
     end
   end
+
+  for interfacename,_ in pairs(interfaces) do
+    local modname = interfacename:match("^__debugadapter_(.+)$")
+    if modname then
+      if call(interfacename,"remoteHasInterface",remotename) then
+        whoiscache[remotename] = modname
+        return modname
+      end
+    end
+  end
+
   return nil
 end
 

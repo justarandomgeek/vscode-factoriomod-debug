@@ -66,6 +66,10 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
     -- read state for instrumented remote calls
     remoteStack,remoteFName = remotestepping.parentState()
     if remoteStack then
+      -- in an instrumented remote.call, there's an extra frame for remotestepping.callInner
+      -- delete the extra, rename the remote function, and then copy the parent stack over...
+      stackFrames[#stackFrames] = nil
+      i = i - 1
       if forRemote then
         stackFrames[#stackFrames].name = ("[%s] %s"):format(script.mod_name, remoteFName)
       else
@@ -239,9 +243,8 @@ elseif script.mod_name ~= "debugadapter" then -- don't hook myself!
     attach = __DebugAdapter.attach,
     detach = __DebugAdapter.detach,
     setBreakpoints = __DebugAdapter.setBreakpoints,
-    remoteStepIn = remotestepping.stepIn,
-    remoteStepOut = remotestepping.stepOut,
-    remoteStepInterfaces = remotestepping.interfaces
+    remoteCallInner = remotestepping.callInner,
+    remoteHasInterface = remotestepping.hasInterface
   })
 
   __DebugAdapter.attach()
