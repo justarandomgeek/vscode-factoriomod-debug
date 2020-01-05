@@ -58,12 +58,12 @@ local function whois(remotename)
   local interfaces = remote.interfaces
   local call = remote.call
 
-  remotename = whoiscache[remotename] or remotename
-  local debugname = "__debugadapter_"..remotename
+  local firstguess = whoiscache[remotename] or remotename
+  local debugname = "__debugadapter_"..firstguess
   if interfaces[debugname] then
-    if call(debugname,"remoteHasInterface",remotename) then
-      whoiscache[remotename] = remotename
-      return remotename
+    if call(debugname,"remoteHasInterface",firstguess) then
+      whoiscache[remotename] = firstguess
+      return firstguess
     end
   end
 
