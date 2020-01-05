@@ -47,7 +47,7 @@ function remotestepping.callInner(parentstep,parentstack,remotename,fname,...)
 
   local func = myRemotes[remotename][fname]
   local function err(message)
-    return debug.traceback(message,1)
+    return debug.traceback(message,2)
   end
   local result = {xpcall(func,err,...)}
 
@@ -82,7 +82,7 @@ local function remotestepcall(remotename,method,...)
     result = result.result
 
     if not result[1] then
-      error(debug.traceback("Error when running interface function " .. remotename .. "." .. method .. ": " .. result[2]), -1)
+      error(debug.traceback(string.format("Error when running interface function %s.%s: %s", remotename, method, tostring(result[2])),2), -1)
     end
 
     __DebugAdapter.step(childstep,true)
