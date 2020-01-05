@@ -99,8 +99,8 @@ local function evalmeta(frameId,alsoLookIn)
           return -- don't allow setting `self`
         end
         -- this might be a LuaObject and throw on bad lookups...
-        local success,result = pcall(function() return alsoLookIn[k] end)
-        if success and result then
+        local success = pcall(function() return alsoLookIn[k] end)
+        if success then
           -- attempt to set, this may throw on bad assignment to LuaObject, but we want to pass that up usually
           alsoLookIn[k] = v
           return
