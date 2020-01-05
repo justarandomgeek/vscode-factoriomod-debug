@@ -46,8 +46,10 @@ function remotestepping.callInner(parentstep,parentstack,remotename,fname,...)
   __DebugAdapter.step(parentstep,true)
 
   local func = myRemotes[remotename][fname]
-  assert(type(func) == "function","attempted to step into invalid remote function " .. remotename .. "." .. fname)
-  local result = {func(...)}
+  local function err(message)
+    return debug.traceback(message,1)
+  end
+  local result = {xpcall(func,err,...)}
 
   parentstep = __DebugAdapter.currentStep()
   __DebugAdapter.step(nil,true)
@@ -77,11 +79,17 @@ local function remotestepcall(remotename,method,...)
       remotename, method, ...)
 
     local childstep = result.step
+    result = result.result
+
+    if not result[1] then
+      error(debug.traceback("Error when running interface function " .. remotename .. "." .. method .. ": " .. result[2]), -1)
+    end
+
     __DebugAdapter.step(childstep,true)
     if multreturn then
-      return unpack(result.result)
+      return unpack(result,2)
     else
-      return result.result[1]
+      return result[2]
     end
 
   else
