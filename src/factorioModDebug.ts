@@ -211,7 +211,10 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 		response.body = { stackFrames: stk.map(
 			(frame) =>{
-				frame.source.path = this.convertDebuggerPathToClient(frame.source.path);
+				if (frame && frame.source && frame.source.path)
+				{
+					frame.source.path = this.convertDebuggerPathToClient(frame.source.path);
+				}
 				return frame;
 			}
 		) };
