@@ -206,9 +206,7 @@ function __DebugAdapter.scopes(frameId)
 
     print("DBGscopes: " .. json.encode({frameId = frameId, scopes = scopes}))
   else
-    print("DBGscopes: " .. json.encode({frameId = frameId, scopes = {
-      { name = "Remote Variables Unavailable", variablesReference = 0 },
-    }}))
+    print("DBGscopes: " .. json.encode({frameId = frameId, scopes = {}}))
   end
 end
 __DebugAdapter.stepIgnore(__DebugAdapter.scopes)
