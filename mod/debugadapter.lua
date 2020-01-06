@@ -66,10 +66,11 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
     -- read state for instrumented remote calls
     remoteStack,remoteFName = remotestepping.parentState()
     if remoteStack then
-      -- in an instrumented remote.call, there's an extra frame for remotestepping.callInner
-      -- delete the extra, rename the remote function, and then copy the parent stack over...
+      -- in an instrumented remote.call, there's an extra frame for remotestepping.callInner and one for xpcall.
+      -- delete the extras, rename the remote function, and then copy the parent stack over...
+      -- this leaves a gap in `i`. Maybe later allow expanding hidden frames?
       stackFrames[#stackFrames] = nil
-      i = i - 1
+      stackFrames[#stackFrames] = nil
       if forRemote then
         stackFrames[#stackFrames].name = ("[%s] %s"):format(script.mod_name, remoteFName)
       else
