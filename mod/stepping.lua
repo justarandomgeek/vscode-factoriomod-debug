@@ -1,5 +1,7 @@
 --this has to be defined before requiring other files so they can mark functions as ignored
 local stepIgnoreFuncs = {}
+-- make it weak keys so it doesn't keep an otherwise-dead function around
+setmetatable(stepIgnoreFuncs,{__mode="k"})
 ---@param f function
 local __DebugAdapter = __DebugAdapter
 local function stepIgnore(f)
