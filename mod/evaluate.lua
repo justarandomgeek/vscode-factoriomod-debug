@@ -203,6 +203,25 @@ function __DebugAdapter.stringInterp(str,frameId,alsoLookIn,context)
     function(expr)
       if expr == "{[}" then return "{" end
       if expr == "{]}" then return "}" end
+      if expr == "{...}" then
+        -- expand a comma separated list of short described varargs
+        if not frameId then return "<error>" end
+        frameId = frameId + 2
+        local info = debug.getinfo(frameId,"u")
+        if info and info.isvararg then
+          local i = -1
+          local args = {}
+          while true do
+            local name,value = debug.getlocal(frameId,i)
+            if not name then break end
+            args[#args + 1] = variables.describe(value,true)
+            i = i - 1
+          end
+          return table.concat(args,", ")
+        else
+          return "<error>"
+        end
+      end
       expr = sub(expr,2,-2)
       local success,result = __DebugAdapter.evaluateInternal(frameId and frameId+3,alsoLookIn,context or "interp",expr)
       if success then
