@@ -10,6 +10,19 @@ end
 stepIgnore(stepIgnore)
 __DebugAdapter.stepIgnore = stepIgnore
 
+local function stepIgnoreAll(t)
+  for k,v in pairs(t) do
+    if type(k) == "function" then
+      stepIgnore(k)
+    end
+    if type(v) == "function" then
+      stepIgnore(v)
+    end
+  end
+end
+stepIgnore(stepIgnoreAll)
+__DebugAdapter.stepIgnoreAll = stepIgnoreAll
+
 -- capture the raw object, before remotestepping hooks it or through the hook
 local remote = rawget(remote,"__raw") or remote
 

@@ -46,11 +46,7 @@ local luaObjectLines = {
   LuaStyle = [[<LuaStyle>{[}name={name}{]}]],
   LuaEntity = [[<LuaEntity>{[}name={name}, type={type}, unit_number={unit_number}{]}]],
 }
-for _,f in pairs(luaObjectLines) do
-  if type(f) == "function" then
-    __DebugAdapter.stepIgnore(f)
-  end
-end
+__DebugAdapter.stepIgnoreAll(luaObjectLines)
 
 return {
   classname = classname,
