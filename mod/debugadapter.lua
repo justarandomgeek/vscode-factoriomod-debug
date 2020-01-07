@@ -76,6 +76,14 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
       else
         stackFrames[#stackFrames].name = remoteFName
       end
+      local stackFrame = {
+        id = i,
+        name = "remote.call context switch",
+        presentationHint = "label",
+        line = 0,
+      }
+      stackFrames[#stackFrames+1] = stackFrame
+      i = i + 1
       for _,frame in pairs(remoteStack) do
         frame.id = i
         stackFrames[#stackFrames+1] = frame
