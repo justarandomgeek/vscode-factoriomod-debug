@@ -130,7 +130,7 @@ local function remotestepremove(remotename,...)
 end
 __DebugAdapter.stepIgnore(remotestepremove)
 
-local function remotenewindex() end
+local function remotenewindex(t,k,v) origremote[k] = v end
 __DebugAdapter.stepIgnore(remotenewindex)
 
 local function remotedebugchildren(t)
