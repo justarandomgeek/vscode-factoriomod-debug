@@ -162,7 +162,7 @@ local newremote = {
 setmetatable(newremote,{
   __index = origremote,
   __newindex = remotenewindex,
-  __debugline = "<LuaRemote Stepping Proxy>",
+  __debugline = "<LuaRemote Debug Proxy>",
   __debugchildren = remotedebugchildren,
 })
 
