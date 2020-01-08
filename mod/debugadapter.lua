@@ -45,17 +45,20 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
       framename = ("[%s] %s"):format(script.mod_name, framename)
     end
     local source = normalizeLuaSource(info.source)
+    local isCFunc = info.what == "C"
     local stackFrame = {
       id = i,
       name = framename,
-      line = info.currentline,
+      line = isCFunc and 0 or info.currentline,
       moduleId = forRemote and script.mod_name,
       presentationHint = forRemote and "subtle",
-      source = {
+    }
+    if not isCFunc then
+      stackFrame.source = {
         name = source,
         path = source,
       }
-    }
+    end
     stackFrames[#stackFrames+1] = stackFrame
     i = i + 1
     if #stackFrames == levels then break end
