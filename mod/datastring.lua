@@ -49,6 +49,7 @@ local function ReadVarInt(str,index)
         -- escape \n
         if val == 0xFFFFFFFF then val = 10 end
         if val == 0xFFFFFFFE then val = 26 end
+        if val == 0xFFFFFFFD then val = 13 end
 
         return val,index+seq
     end
@@ -145,6 +146,7 @@ local function ReadSourceBreakpoint(strdata,i)
     local mask = sbyte(strdata,i)
     i = i + 1
 
+    -- 0x18 reseved in mask to prevent creating reserved bytes 10/13/26
     if band(mask,0x01) ~= 0 then
         bp.condition,i = ReadString(strdata,i)
     end
@@ -175,6 +177,7 @@ local function ReadBreakpoints(strdata)
     local bps = {}
 
     val,i = sbyte(strdata,i),i+1
+    if val == 0xfc then val = 13 end
     if val == 0xfd then val = 26 end
     if val == 0xfe then val = 10 end
     if val ~= 0xff then
@@ -186,6 +189,7 @@ local function ReadBreakpoints(strdata)
     end
 
     val,i = sbyte(strdata,i),i+1
+    if val == 0xfc then val = 13 end
     if val == 0xfd then val = 26 end
     if val == 0xfe then val = 10 end
     if val ~= 0xff then
