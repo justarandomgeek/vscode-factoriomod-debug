@@ -14,7 +14,10 @@ local setmetatable = setmetatable
 local unpack = table.unpack
 
 ---@type LuaRemote
-local origremote = remote
+local oldremote = remote
+local newremote = {
+  __raw = oldremote,
+}
 local stacks = {}
 local myRemotes = {}
 
@@ -26,7 +29,6 @@ function remotestepping.parentState()
     return level.stack, level.name
   end
 end
-__DebugAdapter.stepIgnore(remotestepping.parentState)
 
 --- Transfer stepping state and perform the call. Vararg arguments will be forwarded to the
 --- remote function, and any return value from the remote will be returned with the new stepping state in a table.
@@ -58,13 +60,11 @@ function remotestepping.callInner(parentstep,parentstack,remotename,fname,...)
   --TODO: if multiple returns are actually supported in the future, change to `parentstep,unpack(result)`
   return {step=parentstep,result=result},true
 end
-__DebugAdapter.stepIgnore(remotestepping.callInner)
-
 
 --- Replacement for LuaRemote::call() which passes stepping state along with the call.
 --- Signature and returns are the same as original LuaRemote::call()
-local function remotestepcall(remotename,method,...)
-  local call = origremote.call
+function newremote.call(remotename,method,...)
+  local call = oldremote.call
   if not game then -- remove this in 0.18 with script.active_mods
     -- if game isn't ready we can't prepare stack traces yet, so just call directly...
     return call(remotename,method,...)
@@ -97,13 +97,10 @@ local function remotestepcall(remotename,method,...)
     return call(remotename,method,...)
   end
 end
-__DebugAdapter.stepIgnore(remotestepcall)
-
 
 function remotestepping.hasInterface(name)
   return myRemotes[name] ~= nil
 end
-__DebugAdapter.stepIgnore(remotestepping.hasInterface)
 
 function remotestepping.isRemote(func)
   -- it would be nice to pre-calculate all this, but changing the functions in a
@@ -116,59 +113,48 @@ function remotestepping.isRemote(func)
     end
   end
 end
-__DebugAdapter.stepIgnore(remotestepping.isRemote)
 
-local function remotestepadd(remotename,funcs,...)
+function newremote.add_interface(remotename,funcs,...)
   myRemotes[remotename] = funcs
-  return origremote.add_interface(remotename,funcs,...)
+  return oldremote.add_interface(remotename,funcs,...)
 end
-__DebugAdapter.stepIgnore(remotestepadd)
 
-local function remotestepremove(remotename,...)
+function newremote.remove_interface(remotename,...)
   myRemotes[remotename] = nil
-  return origremote.remove_interface(remotename,...)
+  return oldremote.remove_interface(remotename,...)
 end
-__DebugAdapter.stepIgnore(remotestepremove)
 
-local function remotenewindex(t,k,v) origremote[k] = v end
-__DebugAdapter.stepIgnore(remotenewindex)
-
-local function remotedebugchildren(t)
-  return {
-    variables.create([["interfaces"]],origremote.interfaces),
-    variables.create("<raw>",origremote),
-    {
-      name = "<stacks>",
-      value = "<stacks>",
-      type = "StackFrame[]",
-      variablesReference = variables.tableRef(stacks),
-    },
-    {
-      name = "<myRemotes>",
-      value = "<myRemotes>",
-      type = "keys",
-      variablesReference = variables.tableRef(myRemotes),
-    },
-  }
-end
-__DebugAdapter.stepIgnore(remotedebugchildren)
-
-local newremote = {
-  call = remotestepcall,
-  add_interface = remotestepadd,
-  remove_interface = remotestepremove,
-  __raw = origremote,
-}
-setmetatable(newremote,{
-  __index = origremote,
-  __newindex = remotenewindex,
+local remotemeta = {
+  __index = oldremote,
+  __newindex = function(t,k,v) oldremote[k] = v end,
   __debugline = "<LuaRemote Debug Proxy>",
-  __debugchildren = remotedebugchildren,
-})
+  __debugchildren = function(t)
+    return {
+      variables.create([["interfaces"]],oldremote.interfaces),
+      variables.create("<raw>",oldremote),
+      {
+        name = "<stacks>",
+        value = "<stacks>",
+        type = "StackFrame[]",
+        variablesReference = variables.tableRef(stacks),
+      },
+      {
+        name = "<myRemotes>",
+        value = "<myRemotes>",
+        type = "keys",
+        variablesReference = variables.tableRef(myRemotes),
+      },
+    }
+  end,
+}
+__DebugAdapter.stepIgnoreAll(newremote)
+__DebugAdapter.stepIgnoreAll(remotemeta)
+setmetatable(newremote,remotemeta)
 
 
 if script.mod_name ~= "debugadapter" then
   remote = newremote
 end
 
+__DebugAdapter.stepIgnoreAll(remotestepping)
 return remotestepping
