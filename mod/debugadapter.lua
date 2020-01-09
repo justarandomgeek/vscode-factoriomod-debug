@@ -183,7 +183,6 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
   end
   return stackFrames
 end
-__DebugAdapter.stepIgnore(__DebugAdapter.stackTrace)
 
 ---@return Module[]
 function __DebugAdapter.modules()
@@ -197,7 +196,6 @@ function __DebugAdapter.modules()
   modules[#modules+1] = { id = "level", name = "level", }
   print("DBGmodules: " .. json.encode(modules))
 end
-__DebugAdapter.stepIgnore(__DebugAdapter.modules)
 
 ---@param frameId number
 ---@return Scope[]
@@ -221,7 +219,6 @@ function __DebugAdapter.scopes(frameId)
     print("DBGscopes: " .. json.encode({frameId = frameId, scopes = {}}))
   end
 end
-__DebugAdapter.stepIgnore(__DebugAdapter.scopes)
 
 ---@param expr string
 ---@param alsoLookIn table
@@ -238,8 +235,8 @@ function __DebugAdapter.print(expr,alsoLookIn)
   end
   print("DBGprint: " .. json.encode(body))
 end
-__DebugAdapter.stepIgnore(__DebugAdapter.print)
 
+__DebugAdapter.stepIgnoreAll(__DebugAdapter)
 if data then
   log("debugadapter registered for data")
   __DebugAdapter.attach()

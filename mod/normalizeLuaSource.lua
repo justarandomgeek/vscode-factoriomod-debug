@@ -14,7 +14,6 @@ if script and script.mod_name == "level" then
       basepath = basepath,
     }
   end
-  __DebugAdapter.stepIgnore(__DebugAdapter.levelPath)
 end
 
 local mods = mods -- capture mods in datastage, or fill in game.active_mods later for control...

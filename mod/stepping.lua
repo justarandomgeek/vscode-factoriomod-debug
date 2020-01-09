@@ -152,12 +152,10 @@ function __DebugAdapter.attach()
     end
   end,"clr")
 end
-stepIgnore(__DebugAdapter.attach)
 
 function __DebugAdapter.detach()
   debug.sethook()
 end
-stepIgnore(__DebugAdapter.detach)
 
 ---@param source string
 ---@param breaks SourceBreakpoint[]
@@ -172,7 +170,6 @@ function __DebugAdapter.setBreakpoints(source,breaks)
     breakpoints[source] = nil
   end
 end
-stepIgnore(__DebugAdapter.setBreakpoints)
 
 local function isMainChunk()
   local i = 2 -- no need to check getinfo or isMainChunk
@@ -203,7 +200,6 @@ function __DebugAdapter.updateBreakpoints(change)
     __DebugAdapter.setBreakpoints(source,changedbreaks)
   end
 end
-stepIgnore(__DebugAdapter.updateBreakpoints)
 
 ---@param source string
 ---@return Breakpoint[] | Breakpoint
@@ -214,7 +210,6 @@ function __DebugAdapter.dumpBreakpoints(source)
     return breakpoints
   end
 end
-stepIgnore(__DebugAdapter.dumpBreakpoints)
 
 ---@param steptype string "remote"*("next" | "in" | "over" | "out")
 ---@param internal boolean | nil
@@ -229,13 +224,11 @@ function __DebugAdapter.step(steptype,internal)
     end
   end
 end
-stepIgnore(__DebugAdapter.step)
 
 ---@return string "remote"*("next" | "in" | "over" | "out")
 function __DebugAdapter.currentStep()
   return stepmode
 end
-stepIgnore(__DebugAdapter.currentStep)
 
 local vcreate = variables.create
 local vmeta = {
@@ -246,5 +239,5 @@ local vmeta = {
     vcreate("<stepdepth>",stepdepth),
   } end,
 }
-stepIgnore(vmeta.__debugchildren)
+stepIgnoreAll(vmeta)
 return setmetatable({},vmeta)

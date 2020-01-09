@@ -73,7 +73,6 @@ __DebugAdapter.stepIgnore(gmeta.__debugchildren)
 function variables.clear()
   variables.refs = setmetatable({},refsmeta)
 end
-__DebugAdapter.stepIgnore(variables.clear)
 
 --- Generate a variablesReference for `name` at frame `frameId`
 ---@param frameId number
@@ -94,7 +93,6 @@ function variables.scopeRef(frameId,name,mode)
   }
   return id
 end
-__DebugAdapter.stepIgnore(variables.scopeRef)
 
 --- Generate a variablesReference for a table-like object
 ---@param table table
@@ -118,7 +116,6 @@ function variables.tableRef(table, mode, showMeta, extra)
   }
   return id
 end
-__DebugAdapter.stepIgnore(variables.tableRef)
 
 --- Generate a variablesReference for a LuaObject
 ---@param luaObject LuaObject
@@ -137,7 +134,6 @@ function variables.luaObjectRef(luaObject,classname)
   }
   return id
 end
-__DebugAdapter.stepIgnore(variables.luaObjectRef)
 
 --- Generates a description for `value`.
 --- Also returns data type as second return.
@@ -250,7 +246,6 @@ function variables.describe(value,short)
   return lineitem,vtype
 end
 __DebugAdapter.describe = variables.describe
-__DebugAdapter.stepIgnore(variables.describe)
 
 --- Generate a default debug view for `value` named `name`
 ---@param name string | nil
@@ -303,7 +298,6 @@ function variables.create(name,value)
       namedVariables = namedVariables,
     }
 end
-__DebugAdapter.stepIgnore(variables.create)
 
 local itermode = {
   pairs = pairs,
@@ -533,7 +527,6 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
   end
   print("DBGvars: " .. json.encode({variablesReference = variablesReference, seq = seq, vars = vars}))
 end
-__DebugAdapter.stepIgnore(__DebugAdapter.variables)
 
 --- DebugAdapter SetVariablesRequest
 ---@param variablesReference integer
@@ -625,6 +618,6 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
     end
   end
 end
-__DebugAdapter.stepIgnore(__DebugAdapter.setVariable)
 
+__DebugAdapter.stepIgnoreAll(variables)
 return variables
