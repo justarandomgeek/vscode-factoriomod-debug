@@ -102,12 +102,10 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
 
         ---@type StackFrame
         local lastframe = stackFrames[#stackFrames]
-        local framename = entrypoint
         local info = debug.getinfo(lastframe.id,"t")
 
-        if info.istailcall then
-          framename = ("[tail calls...] %s"):format(lastframe.name)
-        else
+        if not info.istailcall then
+          local framename = entrypoint
           if entrypoint == "hookedremote" then
             local remoteStack,remoteFName = remotestepping.parentState()
             framename = remoteFName
@@ -145,11 +143,11 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
               end
             end
           end
+          if forRemote then
+            framename = ("[%s] %s"):format(script.mod_name, framename)
+          end
+          lastframe.name = framename
         end
-        if forRemote then
-          framename = ("[%s] %s"):format(script.mod_name, framename)
-        end
-        lastframe.name = framename
       end
     end
   end
