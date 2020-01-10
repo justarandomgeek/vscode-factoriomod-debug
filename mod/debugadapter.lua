@@ -105,46 +105,46 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
         local framename = entrypoint
         local info = debug.getinfo(lastframe.id,"t")
 
-        if entrypoint == "hookedremote" then
-          local remoteStack,remoteFName = remotestepping.parentState()
-          framename = remoteFName
-          local stackFrame = {
-            id = i,
-            name = "remote.call context switch",
-            presentationHint = "label",
-            line = 0,
-          }
-          stackFrames[#stackFrames+1] = stackFrame
-          i = i + 1
-          for _,frame in pairs(remoteStack) do
-            frame.id = i
-            stackFrames[#stackFrames+1] = frame
+        if info.istailcall then
+          framename = ("[tail calls...] %s"):format(lastframe.name)
+        else
+          if entrypoint == "hookedremote" then
+            local remoteStack,remoteFName = remotestepping.parentState()
+            framename = remoteFName
+            local stackFrame = {
+              id = i,
+              name = "remote.call context switch",
+              presentationHint = "label",
+              line = 0,
+            }
+            stackFrames[#stackFrames+1] = stackFrame
             i = i + 1
-          end
-        end
-
-        local _,event = debug.getlocal(lastframe.id,1)
-        if type(event) == "table" and event.mod_name then
-          local stackFrame = {
-            id = i,
-            name = "raise_event from " .. event.mod_name,
-            presentationHint = "label",
-            line = 0,
-          }
-          stackFrames[#stackFrames+1] = stackFrame
-          i = i + 1
-          if event.__debug then
-            -- debug enabled mods provide a stack
-            for _,frame in pairs(event.__debug.stack) do
+            for _,frame in pairs(remoteStack) do
               frame.id = i
               stackFrames[#stackFrames+1] = frame
               i = i + 1
             end
           end
-        end
 
-        if info.istailcall then
-          framename = ("[tail calls...] %s"):format(framename)
+          local _,event = debug.getlocal(lastframe.id,1)
+          if type(event) == "table" and event.mod_name then
+            local stackFrame = {
+              id = i,
+              name = "raise_event from " .. event.mod_name,
+              presentationHint = "label",
+              line = 0,
+            }
+            stackFrames[#stackFrames+1] = stackFrame
+            i = i + 1
+            if event.__debug then
+              -- debug enabled mods provide a stack
+              for _,frame in pairs(event.__debug.stack) do
+                frame.id = i
+                stackFrames[#stackFrames+1] = frame
+                i = i + 1
+              end
+            end
+          end
         end
         if forRemote then
           framename = ("[%s] %s"):format(script.mod_name, framename)
