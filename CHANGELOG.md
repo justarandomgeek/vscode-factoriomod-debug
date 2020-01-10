@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.17.7
+
+* stepIgnoreAll(t) function to ignore all functions in table
+* __DebugAdapter.print() supports `{...}` to fill varargs in string.
+* escape 13 in breakpoints
+* omit frame source for C functions in call stack
+* break-on-exception in most events and improved entrypoint identification
+
 ## 0.17.6
 
 * correctly bracket strings ending in partial close brackets

@@ -56,8 +56,8 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this._runtime.on('stopOnDataBreakpoint', () => {
 			this.sendEvent(new StoppedEvent('data breakpoint', FactorioModDebugSession.THREAD_ID));
 		});
-		this._runtime.on('stopOnException', () => {
-			this.sendEvent(new StoppedEvent('exception', FactorioModDebugSession.THREAD_ID));
+		this._runtime.on('stopOnException', (exceptionText:string) => {
+			this.sendEvent(new StoppedEvent('exception', FactorioModDebugSession.THREAD_ID,exceptionText));
 		});
 		this._runtime.on('modules', (modules:Module[]) => {
 			modules.forEach((module:Module) =>{

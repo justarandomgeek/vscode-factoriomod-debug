@@ -38,6 +38,10 @@ local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local json = require("__debugadapter__/json.lua")
 local datastring = require("__debugadapter__/datastring.lua")
 local ReadBreakpoints = datastring.ReadBreakpoints
+if script then -- don't attempt to hook in data stage
+  remotestepping = require("__debugadapter__/remotestepping.lua")
+end
+
 
 ---@type table<string,table<number,SourceBreakpoint>>
 local breakpoints = {}
@@ -127,15 +131,39 @@ function __DebugAdapter.attach()
       end
     --ignore "tail call" since it's just one of each
     elseif event == "call" then
-      local s = getinfo(2,"S").source
+      local info = getinfo(2,"Slf")
+      local s = info.source
       if sub(s,1,1) == "@" then
         local smode = stepmode
         if smode == "over" or smode == "out" then
           stepdepth = stepdepth + 1
         end
       end
+      local parent = getinfo(3,"f")
+      if not parent then
+        if info.func == serpent.dump then
+          -- this catches saving and the psuedo-save for crc checks
+          __DebugAdapter.pushEntryPointName("saving")
+        elseif info.what == "main" then
+          -- main chunks: loading `global` from save, console commands, file chunks
+          __DebugAdapter.pushEntryPointName("main")
+        elseif info.what == "Lua" then
+          -- note that this won't see any entrypoints which are stepIgnore,
+          -- which includes all break-on-exception instrumented entry points
+          local remoteFName = remotestepping.isRemote(info.func)
+          if remoteFName then
+            -- remote.calls that don't go through my hooks. no stacks, but at least we can name it...
+            __DebugAdapter.pushEntryPointName("remote " .. remoteFName)
+          else
+            -- i don't know anything useful about these, but i need to push *something* to prevent
+            -- misidentifying the new stack if it's re-entrant in another event
+            __DebugAdapter.pushEntryPointName("unknown")
+          end
+        end
+      end
     elseif event == "return" then
-      local s = getinfo(2,"S").source
+      local info = getinfo(2,"Slf")
+      local s = info.source
       if sub(s,1,1) == "@" then
         local smode = stepmode
         if smode == "over" then
@@ -147,6 +175,13 @@ function __DebugAdapter.attach()
             sdepth = 0
           end
           stepdepth = sdepth - 1
+        end
+      end
+      local parent = getinfo(3,"f")
+      if not parent then
+        -- top of stack
+        if info.what == "main" or info.what == "Lua" then
+          __DebugAdapter.popEntryPointName()
         end
       end
     end

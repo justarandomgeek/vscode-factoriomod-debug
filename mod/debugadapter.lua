@@ -10,18 +10,15 @@ local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local remotestepping
 if script then -- don't attempt to hook in data stage
   remotestepping = require("__debugadapter__/remotestepping.lua")
+  require("__debugadapter__/entrypoints.lua")
 end
 require("__debugadapter__/evaluate.lua")
 local json = require('__debugadapter__/json.lua')
 
 local script = script
-local defines = defines
 local debug = debug
-local type = type
 local print = print
 local pairs = pairs
-local devents = defines.events
-local deon_tick = devents.on_tick
 
 ---@param startFrame integer | nil
 ---@param levels integer | nil
@@ -29,6 +26,7 @@ local deon_tick = devents.on_tick
 ---@return StackFrame[]
 function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
   local offset = 5 -- 0 is getinfo, 1 is stackTrace, 2 is debug command, 3 is debug.debug, 4 is sethook callback, 5 is at breakpoint
+  -- in exceptions    0 is getinfo, 1 is stackTrace, 2 is debug command, 3 is debug.debug, 4 is xpcall callback, 5 is at exception
   local i = (startFrame or 0) + offset
   local stackFrames = {}
   while true do
@@ -64,118 +62,95 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
     if #stackFrames == levels then break end
   end
 
-  local remoteStack,remoteFName
-  if remotestepping then
-    -- read state for instrumented remote calls
-    remoteStack,remoteFName = remotestepping.parentState()
-    if remoteStack then
-      -- in an instrumented remote.call, there's an extra frame for remotestepping.callInner and one for xpcall.
-      -- delete the extras, rename the remote function, and then copy the parent stack over...
-      -- this leaves a gap in `i`. Maybe later allow expanding hidden frames?
-      stackFrames[#stackFrames] = nil
-      stackFrames[#stackFrames] = nil
-      if forRemote then
-        stackFrames[#stackFrames].name = ("[%s] %s"):format(script.mod_name, remoteFName)
-      else
-        stackFrames[#stackFrames].name = remoteFName
-      end
-      local stackFrame = {
-        id = i,
-        name = "remote.call context switch",
-        presentationHint = "label",
-        line = 0,
-      }
-      stackFrames[#stackFrames+1] = stackFrame
-      i = i + 1
-      for _,frame in pairs(remoteStack) do
-        frame.id = i
-        stackFrames[#stackFrames+1] = frame
-        i = i + 1
-      end
-    else
-      -- check for non-instrumeted remote calls...
-      local id = stackFrames[#stackFrames].id
-      local info = debug.getinfo(id,"f")
-      remoteFname = remotestepping.isRemote(info.func)
-      if remoteFName then
-        if forRemote then
-          stackFrames[#stackFrames].name = ("[%s] %s"):format(script.mod_name, remoteFName)
-        else
-          stackFrames[#stackFrames].name = remoteFName
-        end
-      end
-    end
-  end
-  if script and not remoteFName then
-    -- Try to identify the entry point, if it wasn't a remote.call (identified above)
-    -- other possible entry points (in control stage):
-    --   main chunks (identified above as "(main chunk)")
+  if script then
+    -- Don't bother with any of this in data stage: it's all main chunks!
+    -- possible entry points (in control stage):
+    --   main chunks (identified above as "(main chunk)", call sethook tags as entrypoint="main")
     --     control.lua init and any files it requires
     --     dostring(globaldump) for loading global from save (no break)
     --     migrations
     --     /c __modname__ command
-    --   serpent.dump(global,{numformat="%a"}) for saving/crc check (no break)
-    --   event handlers (identify by event table, verify with get_event_handler)
-    --   /command handlers (identify by event table)
-    --   special events:
-    --     on_init (not identifiable yet)
-    --     on_load (script and not game and not mainchunk)
-    --     on_configuration_changed (identify by event table)
-    --     on_nth_tick (identify by event table)
+    --   serpent.dump(global,{numformat="%a"}) for saving/crc check (no break, call sethook tags as entrypoint="saving")
+    --   remote.call
+    --     from debug enabled mod (instrumented+2, entrypoint="hookedremote")
+    --     from non-debug enabled mod (call sethook tags as entrypoint="remote fname")
+    --   event handlers (instrumented+2)
+    --   /command handlers (instrumented+2)
+    --   special events: (instrumented+2)
+    --     on_init, on_load, on_configuration_changed, on_nth_tick
 
-    ---@type StackFrame
-    local lastframe = stackFrames[#stackFrames]
-    local framename = lastframe.name
-    local id = lastframe.id
-    local info = debug.getinfo(id,"Sutf")
-    if info.what ~= "main" then
-      if not game then
-        framename = "on_load handler"
-      elseif not info.vararg then
-        if info.nparams == 1 then
-          local name,event = debug.getlocal(id,1)
-          if type(event) == "table" and debug.getmetatable(event) == nil then
-            local eventid = event.name
-            if type(eventid) == "number" and script.get_event_handler(eventid) == info.func then
-              local evtname = ("event %d"):format(eventid)
-              local input_name = event.input_name
-              if type(input_name) == "string" then
-                -- custom-input
-                evtname = input_name
-              else
-                -- normal game events
-                for k,v in pairs(devents) do
-                  if eventid == v then
-                    evtname = k
-                    break
-                  end
-                end
-              end
-              framename = ("%s handler"):format(evtname)
-            elseif type(eventid) == "string" then
-              -- commands from LuaCommandProcessor
-              framename = ("command /%s"):format(eventid)
-            else
-              local nth = event.nth_tick
-              if type(nth) == "number" then
-                framename = ("on_nth_tick handler %d"):format(nth)
-              elseif type(event.mod_changes) == "table" and type(event.mod_startup_settings_changed) == "boolean"
-                and type(event.migration_applied) == "boolean" then
-                  framename = "on_configuration_changed handler"
-              end
+    local entrypoint = __DebugAdapter.getEntryPointName()
+    if entrypoint then
+      -- check for non-instrumented entry...
+      if entrypoint == "unknown" or entrypoint == "saving" or entrypoint == "main" then
+        -- nothing useful to add for these...
+      elseif entrypoint:match("^remote ") then
+        stackFrames[#stackFrames].name = entrypoint:match("^remote (.+)$")
+        local stackFrame = {
+          id = i,
+          name = "remote.call context switch",
+          presentationHint = "label",
+          line = 0,
+        }
+        stackFrames[#stackFrames+1] = stackFrame
+        i = i + 1
+      else
+        -- instrumented event/remote handler has two extra frames. Delete them and rename the next bottom frame...
+        -- this leaves a gap in `i`. Maybe later allow expanding hidden frames?
+        stackFrames[#stackFrames] = nil --remoteCallInner or try_func
+        stackFrames[#stackFrames] = nil --xpcall
+
+        ---@type StackFrame
+        local lastframe = stackFrames[#stackFrames]
+        local framename = entrypoint
+        local info = debug.getinfo(lastframe.id,"t")
+
+        if entrypoint == "hookedremote" then
+          local remoteStack,remoteFName = remotestepping.parentState()
+          framename = remoteFName
+          local stackFrame = {
+            id = i,
+            name = "remote.call context switch",
+            presentationHint = "label",
+            line = 0,
+          }
+          stackFrames[#stackFrames+1] = stackFrame
+          i = i + 1
+          for _,frame in pairs(remoteStack) do
+            frame.id = i
+            stackFrames[#stackFrames+1] = frame
+            i = i + 1
+          end
+        end
+
+        local _,event = debug.getlocal(lastframe.id,1)
+        if type(event) == "table" and event.mod_name then
+          local stackFrame = {
+            id = i,
+            name = "raise_event from " .. event.mod_name,
+            presentationHint = "label",
+            line = 0,
+          }
+          stackFrames[#stackFrames+1] = stackFrame
+          i = i + 1
+          if event.__debug then
+            -- debug enabled mods provide a stack
+            for _,frame in pairs(event.__debug.stack) do
+              frame.id = i
+              stackFrames[#stackFrames+1] = frame
+              i = i + 1
             end
           end
-        elseif info.nparams == 0 and script.get_event_handler(deon_tick) == info.func then
-          framename = "on_tick handler"
         end
+
+        if info.istailcall then
+          framename = ("[tail calls...] %s"):format(framename)
+        end
+        if forRemote then
+          framename = ("[%s] %s"):format(script.mod_name, framename)
+        end
+        lastframe.name = framename
       end
-      if info.istailcall then
-        framename = ("[tail calls...] %s"):format(framename)
-      end
-      if forRemote then
-        framename = ("[%s] %s"):format(script.mod_name, framename)
-      end
-      lastframe.name = framename
     end
   end
   if not forRemote then

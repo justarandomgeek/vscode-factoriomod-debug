@@ -38,6 +38,7 @@ end
 ---@param fname string
 ---@return table
 function remotestepping.callInner(parentstep,parentstack,remotename,fname,...)
+  __DebugAdapter.pushEntryPointName("hookedremote")
   stacks[#stacks+1] = {
     stack = parentstack,
     name = fname,
@@ -48,16 +49,13 @@ function remotestepping.callInner(parentstep,parentstack,remotename,fname,...)
   __DebugAdapter.step(parentstep,true)
 
   local func = myRemotes[remotename][fname]
-  local function err(message)
-    return debug.traceback(message,2)
-  end
-  local result = {xpcall(func,err,...)}
+  local result = {xpcall(func,__DebugAdapter.on_exception,...)}
 
   parentstep = __DebugAdapter.currentStep()
   __DebugAdapter.step(nil,true)
   stacks[#stacks] = nil
+  __DebugAdapter.popEntryPointName()
   parentstep = parentstep and parentstep:match("^remote(.+)$") or parentstep
-  --TODO: if multiple returns are actually supported in the future, change to `parentstep,unpack(result)`
   return {step=parentstep,result=result},true
 end
 
@@ -73,7 +71,6 @@ function newremote.call(remotename,method,...)
   local debugname = call("debugadapter","whois",remotename)
   if debugname then
     debugname = "__debugadapter_" .. debugname
-    --TODO: if multiple returns are added, capture them all and change the unpack for return
     local result,multreturn = call(debugname,"remoteCallInner",
       __DebugAdapter.currentStep(), __DebugAdapter.stackTrace(-2, nil, true),
       remotename, method, ...)
@@ -82,7 +79,7 @@ function newremote.call(remotename,method,...)
     result = result.result
 
     if not result[1] then
-      error(debug.traceback(string.format("Error when running interface function %s.%s: %s", remotename, method, tostring(result[2])),2), -1)
+      error(string.format("REMSTEP\nError when running interface function %s.%s:\n%s", remotename, method, tostring(result[2])), -1)
     end
 
     __DebugAdapter.step(childstep,true)
@@ -141,7 +138,7 @@ local remotemeta = {
       {
         name = "<myRemotes>",
         value = "<myRemotes>",
-        type = "keys",
+        type = "table",
         variablesReference = variables.tableRef(myRemotes),
       },
     }
