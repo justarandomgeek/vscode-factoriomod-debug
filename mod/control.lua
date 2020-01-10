@@ -27,14 +27,6 @@ local function callAll(funcname,...)
   return results
 end
 
-local function attach()
-  callAll("attach")
-end
-
-local function detach()
-  callAll("detach")
-end
-
 local function updateBreakpoints(change)
   local source,changedbreaks = ReadBreakpoints(change)
   callAll("setBreakpoints",source,changedbreaks)
@@ -81,14 +73,12 @@ local function whois(remotename)
 end
 
 script.on_init(function()
-  attach()
   modules()
   print("DBG: on_init")
   debug.debug()
 end)
 
 script.on_load(function()
-  attach()
   --modules() --TODO: 0.18 script.active_mods
   print("DBG: on_load")
   debug.debug()
@@ -108,8 +98,6 @@ script.on_event(defines.events.on_tick,function()
 end)
 
 remote.add_interface("debugadapter",{
-  attach = attach,
-  detach = detach,
   updateBreakpoints = updateBreakpoints,
   whois = whois,
 })

@@ -188,10 +188,6 @@ function __DebugAdapter.attach()
   end,"clr")
 end
 
-function __DebugAdapter.detach()
-  debug.sethook()
-end
-
 ---@param source string
 ---@param breaks SourceBreakpoint[]
 function __DebugAdapter.setBreakpoints(source,breaks)

@@ -216,12 +216,10 @@ if data then
   print("DBG: on_data")
   debug.debug()
 elseif script.mod_name ~= "debugadapter" then -- don't hook myself!
-  -- in addition to the global, set up a remote so we can attach/detach/configure from DA's on_tick
+  -- in addition to the global, set up a remote so we can configure from DA's on_tick
   -- and pass stepping state around remote calls
   log("debugadapter registered for " .. script.mod_name)
   remote.add_interface("__debugadapter_" .. script.mod_name ,{
-    attach = __DebugAdapter.attach,
-    detach = __DebugAdapter.detach,
     setBreakpoints = __DebugAdapter.setBreakpoints,
     remoteCallInner = remotestepping.callInner,
     remoteHasInterface = remotestepping.hasInterface
