@@ -30,7 +30,7 @@ Logpoint expressions and `__debugline` strings are will interpolate expressions 
 
 ## Debug Print
 
-The function `__DebugAdapter.print(expr,alsoLookIn)` can be used to print messages to the vscode debug console. `expr` is string interpolation expression with access to locals at the scope that calls `print()`, and fields in table-like object `alsoLookIn`.
+The function `__DebugAdapter.print(expr,alsoLookIn)` can be used to print messages to the vscode debug console. `expr` is string interpolation expression with access to locals at the scope that calls `print()`, and fields in table-like object `alsoLookIn`. The expression `{...}` will expand to the list of the caller's varargs, if any.
 
 ## Custom Debug Views
 
@@ -76,4 +76,4 @@ function variables.luaObjectRef(luaObject,classname)
 
 ## Ignore Functions in Stepping
 
-Functions can be excluded from stepping with `__DebugAdapter.stepIgnore(func)`.
+Functions can be excluded from stepping with `__DebugAdapter.stepIgnore(func)` or `__DebugAdapter.stepIgnoreAll(table)`.
