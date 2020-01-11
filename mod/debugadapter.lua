@@ -43,19 +43,24 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
       framename = ("[%s] %s"):format(script.mod_name, framename)
     end
     local source = normalizeLuaSource(info.source)
-    local isCFunc = info.what == "C"
+    local noSource = info.what == "C"
     local stackFrame = {
       id = i,
       name = framename,
-      line = isCFunc and 0 or info.currentline,
+      line = noSource and 0 or info.currentline,
       moduleId = forRemote and script.mod_name,
       presentationHint = forRemote and "subtle",
     }
-    if not isCFunc then
+    if not noSource then
       stackFrame.source = {
         name = source,
-        path = source,
       }
+      if source:sub(1,1) == "=" then
+        stackFrame.source.presentationHint = "deemphasize"
+        stackFrame.line = 0
+      else
+        stackFrame.source.path = source
+      end
     end
     stackFrames[#stackFrames+1] = stackFrame
     i = i + 1
@@ -84,7 +89,16 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
     local entrypoint = __DebugAdapter.getEntryPointName()
     if entrypoint then
       -- check for non-instrumented entry...
-      if entrypoint == "unknown" or entrypoint == "saving" or entrypoint == "main" then
+      if entrypoint == "unknown" then
+        local stackFrame = {
+          id = i,
+          name = "unknown entry point",
+          presentationHint = "label",
+          line = 0,
+        }
+        stackFrames[#stackFrames+1] = stackFrame
+        i = i + 1
+      elseif entrypoint == "saving" or entrypoint == "main" then
         -- nothing useful to add for these...
       elseif entrypoint:match("^remote ") then
         stackFrames[#stackFrames].name = entrypoint:match("^remote (.+)$")
@@ -123,24 +137,24 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
             stackFrames[#stackFrames+1] = frame
             i = i + 1
           end
-        end
-
-        local _,event = debug.getlocal(lastframe.id,1)
-        if type(event) == "table" and event.mod_name then
-          local stackFrame = {
-            id = i,
-            name = "raise_event from " .. event.mod_name,
-            presentationHint = "label",
-            line = 0,
-          }
-          stackFrames[#stackFrames+1] = stackFrame
-          i = i + 1
-          if event.__debug then
-            -- debug enabled mods provide a stack
-            for _,frame in pairs(event.__debug.stack) do
-              frame.id = i
-              stackFrames[#stackFrames+1] = frame
-              i = i + 1
+        elseif entrypoint:match(" handler$") then
+          local _,event = debug.getlocal(lastframe.id,1)
+          if type(event) == "table" and event.mod_name then
+            local stackFrame = {
+              id = i,
+              name = "raise_event from " .. event.mod_name,
+              presentationHint = "label",
+              line = 0,
+            }
+            stackFrames[#stackFrames+1] = stackFrame
+            i = i + 1
+            if event.__debug then
+              -- debug enabled mods provide a stack
+              for _,frame in pairs(event.__debug.stack) do
+                frame.id = i
+                stackFrames[#stackFrames+1] = frame
+                i = i + 1
+              end
             end
           end
         end
