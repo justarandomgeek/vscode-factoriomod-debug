@@ -65,15 +65,15 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
   if script then
     -- Don't bother with any of this in data stage: it's all main chunks!
     -- possible entry points (in control stage):
-    --   main chunks (identified above as "(main chunk)", call sethook tags as entrypoint="main")
+    --   main chunks (identified above as "(main chunk)", call sethook tags as entrypoint="main", no break on exception)
     --     control.lua init and any files it requires
-    --     dostring(globaldump) for loading global from save (no break)
+    --     dostring(globaldump) for loading global from save
     --     migrations
     --     /c __modname__ command
-    --   serpent.dump(global,{numformat="%a"}) for saving/crc check (no break, call sethook tags as entrypoint="saving")
+    --   serpent.dump(global,{numformat="%a"}) for saving/crc check (call sethook tags as entrypoint="saving", no break on exception)
     --   remote.call
     --     from debug enabled mod (instrumented+2, entrypoint="hookedremote")
-    --     from non-debug enabled mod (call sethook tags as entrypoint="remote fname")
+    --     from non-debug enabled mod (call sethook tags as entrypoint="remote fname", no break on exception)
     --   event handlers (instrumented+2)
     --   /command handlers (instrumented+2)
     --   special events: (instrumented+2)
