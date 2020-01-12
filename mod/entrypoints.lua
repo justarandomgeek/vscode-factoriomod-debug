@@ -86,6 +86,7 @@ function newscript.on_event(event,f,filters)
       newscript.on_event(e,f)
     end
   else
+    error("Invalid Event type " .. etype,2)
   end
 end
 
