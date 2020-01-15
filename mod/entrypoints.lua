@@ -167,10 +167,11 @@ function newscript.on_init(f)
 end
 newscript.on_init()
 
-function newscript.on_load(f)
-  oldscript.on_load(check_events(try(f,"on_load handler")))
-end
-newscript.on_load()
+--TODO: enable this with script.active_mods in 0.18
+--function newscript.on_load(f)
+--  oldscript.on_load(check_events(try(f,"on_load handler")))
+--end
+--newscript.on_load()
 
 function newscript.on_configuration_changed(f)
   return oldscript.on_configuration_changed(try(f,"on_configuration_changed handler"))
