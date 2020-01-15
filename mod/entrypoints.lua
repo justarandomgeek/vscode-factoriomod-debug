@@ -56,11 +56,124 @@ local newscript = {
   __raw = oldscript
 }
 
-for name in pairs({on_init=true, on_load=true, on_configuration_changed=true}) do
-  local oldfunc = oldscript[name]
-  newscript[name] = function (f)
-    return oldfunc(try(f,name .. " handler"))
+local registered_handlers = {}
+local function check_events(f)
+  local de = defines.events
+  local groups = {
+    built = {
+      [de.on_built_entity] = true,
+      [de.on_robot_built_entity] = true,
+      [de.script_raised_built] = true,
+      [de.script_raised_revive] = true,
+      [de.on_entity_cloned] = true,
+    },
+
+    destroyed = {
+      [de.on_entity_died] = 1,
+      [de.on_post_entity_died] = 1,
+
+      [de.on_pre_chunk_deleted] = 2,
+      [de.on_chunk_deleted] = 2,
+
+      [de.on_pre_surface_cleared] = 3,
+      [de.on_surface_cleared] = 3,
+
+      [de.on_pre_surface_deleted] = 4,
+      [de.on_surface_deleted] = 4,
+
+      [de.on_pre_player_mined_item] = 5,
+      [de.on_player_mined_entity] = 5,
+      [de.on_player_mined_item] = 5,
+      [de.on_player_mined_tile] = 5,
+
+      [de.on_robot_pre_mined] = 6,
+      [de.on_robot_mined] = 6,
+      [de.on_robot_mined_entity] = 6,
+      [de.on_robot_mined_tile] = 6,
+
+      [de.script_raised_destroy] = true,
+    }
+  }
+  return function()
+    if f then f() end
+    __DebugAdapter.pushEntryPointName("check_events")
+    if next(registered_handlers) then
+      for group,gevents in pairs(groups) do
+        local foundany = false
+        local notfound = {}
+        local hassubgroup = {}
+        for event,subgroup in pairs(gevents) do
+          if registered_handlers[event] then
+            foundany = true
+            if subgroup ~= true then
+              hassubgroup[subgroup] = true
+            end
+          else
+            notfound[event] = subgroup
+          end
+        end
+        for event,subgroup in pairs(notfound) do
+          if hassubgroup[subgroup] then
+            notfound[event] = nil
+          end
+        end
+        if foundany and next(notfound) then
+          local message = {"event check: ", script.mod_name, " listening for \"", group, "\" events but not"}
+          local singles = {}
+          local subgroups = {}
+          for event,subgroup in pairs(notfound) do
+            local eventname = tostring(event)
+            for k,v in pairs(de) do
+              if event == v then
+                eventname = k
+                break
+              end
+            end
+            if subgroup == true then
+              singles[#singles+1] = eventname
+            else
+              subgroups[subgroup] = subgroups[subgroup] or {}
+              local sg = subgroups[subgroup]
+              sg[#sg+1] = eventname
+            end
+          end
+          if singles[1] then
+            message[#message+1] = " "
+            message[#message+1] = table.concat(singles,", ")
+          end
+          local submessages = {}
+          for _,subgroup in pairs(subgroups) do
+            submessages[#submessages+1] = "at least one of (" .. table.concat(subgroup,", ") .. ")"
+          end
+          if submessages[1] then
+            if singles[1] then
+              message[#message+1] = ", "
+            else
+              message[#message+1] = " "
+            end
+            message[#message+1] = table.concat(submessages,", ")
+          end
+          print(table.concat(message))
+        end
+      end
+    end
+    __DebugAdapter.popEntryPointName()
   end
+end
+__DebugAdapter.stepIgnore(check_events)
+
+function newscript.on_init(f)
+  oldscript.on_init(check_events(try(f,"on_init handler")))
+end
+newscript.on_init()
+
+function newscript.on_load(f)
+  oldscript.on_load(check_events(try(f,"on_load handler")))
+end
+newscript.on_load()
+
+function newscript.on_configuration_changed(f)
+  return oldscript.on_configuration_changed(try(f,"on_configuration_changed handler"))
 end
 
 function newscript.on_nth_tick(tick,f)
@@ -78,8 +191,10 @@ function newscript.on_event(event,f,filters)
         break
       end
     end
+    registered_handlers[event] = f and true
     return oldscript.on_event(event,try(f, ("%s handler"):format(evtname)),filters)
   elseif etype == "string" then
+    registered_handlers[event] = f and true
     return oldscript.on_event(event,try(f, ("%s handler"):format(event)))
   elseif etype == "table" then
     for _,e in pairs(event) do

@@ -7,6 +7,7 @@
 * escape 13 in breakpoints
 * omit frame source for C functions in call stack
 * break-on-exception in most events and improved entrypoint identification
+* warn if mod registers probably-incomplete sets of events
 
 ## 0.17.6
 
