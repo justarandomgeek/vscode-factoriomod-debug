@@ -402,7 +402,8 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
           else
             vars[#vars + 1] = {
               name = "<__debugchildren error>",
-              value = children,
+              -- describe in case it's a LocalisedString or other non-string error object
+              value = variables.describe(children),
               type = "error",
               variablesReference = 0,
             }

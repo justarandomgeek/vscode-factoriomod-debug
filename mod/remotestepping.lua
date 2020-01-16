@@ -79,7 +79,15 @@ function newremote.call(remotename,method,...)
     result = result.result
 
     if not result[1] then
-      error(string.format("REMSTEP\nError when running interface function %s.%s:\n%s", remotename, method, tostring(result[2])), -1)
+      local err = result[2]
+      local etype = type(err)
+      if etype == "table" and err[1] and ({string=true,table=true})[type(err[1])] then
+        error({"REMSTEP","Error when running interface function ", remotename, ".", method, ":\n", err}, -1)
+      elseif etype == "string" then
+        error(string.format("REMSTEP\nError when running interface function %s.%s:\n%s", remotename, method, err), -1)
+      else
+        error(string.format("REMSTEP\nError when running interface function %s.%s:\n%s", remotename, method, variables.describe(err)), -1)
+      end
     end
 
     __DebugAdapter.step(childstep,true)

@@ -1,17 +1,43 @@
 local function on_exception(mesg)
-  -- don't bother breaking when remotestepping rethrows an error, we've already had that one...
-  local ex = mesg:match("^REMSTEP\n(.+)$")
-  if ex then
-    -- 0=traceback 1=on_exception 2=error (rethrow from hook) 3=remote.call hook 4=calling code to remote.call
-    -- remove two lines -1=try_func or remoteCallInner, -2=xpcall
-    return debug.traceback(ex,4):match("^(.+)\n[^\n]+\n[^\n]+$")
+  local mtype = type(mesg)
+  if mtype == "string" then
+    -- don't bother breaking when remotestepping rethrows an error, we've already had that one...
+    local ex = mesg:match("^REMSTEP\n(.+)$")
+    if ex then
+      -- 0=traceback 1=on_exception 2=error (rethrow from hook) 3=remote.call hook 4=calling code to remote.call
+      -- remove two lines -1=try_func or remoteCallInner, -2=xpcall
+      return debug.traceback(ex,4):match("^(.+)\n[^\n]+\n[^\n]+$")
+    else
+      ex = mesg:match("^([^\n]+)")
+      print("DBG: exception " .. ex)
+      debug.debug()
+      -- 0=traceback 1=on_exception 2=at exception
+      -- remove two lines -1=try_func or remoteCallInner, -2=xpcall
+      return debug.traceback(ex,2):match("^(.+)\n[^\n]+\n[^\n]+$")
+    end
+  elseif mtype == "table" and mesg[1] and ({string=true,table=true})[type(mesg[1])] then
+    if mesg[1] == "REMSTEP" then
+      mesg[1] = ""
+      -- 0=traceback 1=on_exception 2=error (rethrow from hook) 3=remote.call hook 4=calling code to remote.call
+      -- remove two lines -1=try_func or remoteCallInner, -2=xpcall
+      mesg[#mesg+1] = debug.traceback("",4):match("^(.+)\n[^\n]+\n[^\n]+$")
+      return mesg
+    else
+      if localised_print then
+        localised_print({"","DBG: exception ",mesg})
+      else
+        print("DBG: exception " .. __DebugAdapter.describe(mesg))
+      end
+      debug.debug()
+      -- 0=traceback 1=on_exception 2=at exception
+      -- remove two lines -1=try_func or remoteCallInner, -2=xpcall
+      mesg = {"",mesg, debug.traceback("",2):match("^(.+)\n[^\n]+\n[^\n]+$")}
+      return mesg
+    end
   else
-    ex = mesg:match("^([^\n]+)")
-    print("DBG: exception " .. ex)
+    print("DBG: exception " .. __DebugAdapter.describe(mesg))
     debug.debug()
-    -- 0=traceback 1=on_exception 2=at exception
-    -- remove two lines -1=try_func or remoteCallInner, -2=xpcall
-    return debug.traceback(ex,2):match("^(.+)\n[^\n]+\n[^\n]+$")
+    return mesg
   end
 end
 --shared for remotestepping
@@ -202,7 +228,7 @@ function newscript.on_event(event,f,filters)
       newscript.on_event(e,f)
     end
   else
-    error("Invalid Event type " .. etype,2)
+    error({"","Invalid Event type ",etype},2)
   end
 end
 

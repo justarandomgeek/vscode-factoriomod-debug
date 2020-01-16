@@ -244,7 +244,8 @@ function __DebugAdapter.evaluate(frameId,context,expression,seq)
       evalresult.value = nil
       evalresult.seq = seq
     else
-      evalresult = {result = result, type="error", variablesReference=0, seq=seq}
+      -- describe in case it's a LocalisedString or other non-string error object
+      evalresult = {result = variables.describe(result), type="error", variablesReference=0, seq=seq}
     end
   else
     evalresult = {result = "Cannot Evaluate in Remote Frame", type="error", variablesReference=0, seq=seq}
