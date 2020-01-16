@@ -43,24 +43,21 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
       framename = ("[%s] %s"):format(script.mod_name, framename)
     end
     local source = normalizeLuaSource(info.source)
-    local noSource = info.what == "C"
+    local noSource = (info.what == "C") or (source:sub(1,1) == "=")
     local stackFrame = {
       id = i,
       name = framename,
       line = noSource and 0 or info.currentline,
       moduleId = forRemote and script.mod_name,
       presentationHint = forRemote and "subtle",
-    }
-    if not noSource then
-      stackFrame.source = {
-        name = source,
+      source = {
+        name = info.what == "C" and "C" or source,
       }
-      if source:sub(1,1) == "=" then
-        stackFrame.source.presentationHint = "deemphasize"
-        stackFrame.line = 0
-      else
-        stackFrame.source.path = source
-      end
+    }
+    if noSource then
+      stackFrame.source.presentationHint = "deemphasize"
+    else
+      stackFrame.source.path = source
     end
     stackFrames[#stackFrames+1] = stackFrame
     i = i + 1
@@ -95,6 +92,9 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
           name = "unknown entry point",
           presentationHint = "label",
           line = 0,
+          source = {
+            name = "unknown"
+          }
         }
         stackFrames[#stackFrames+1] = stackFrame
         i = i + 1
@@ -107,6 +107,9 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
           name = "remote.call context switch",
           presentationHint = "label",
           line = 0,
+          source = {
+            name = "remote"
+          }
         }
         stackFrames[#stackFrames+1] = stackFrame
         i = i + 1
@@ -129,6 +132,9 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
             name = "remote.call context switch",
             presentationHint = "label",
             line = 0,
+            source = {
+              name = "remote"
+            }
           }
           stackFrames[#stackFrames+1] = stackFrame
           i = i + 1
@@ -145,6 +151,9 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
               name = "raise_event from " .. event.mod_name,
               presentationHint = "label",
               line = 0,
+              source = {
+                name = "raise_event"
+              }
             }
             stackFrames[#stackFrames+1] = stackFrame
             i = i + 1
