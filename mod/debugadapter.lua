@@ -48,6 +48,7 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
       id = i,
       name = framename,
       line = noSource and 0 or info.currentline,
+      column = 0,
       moduleId = forRemote and script.mod_name,
       presentationHint = forRemote and "subtle",
       source = {
@@ -92,6 +93,7 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
           name = "unknown entry point",
           presentationHint = "label",
           line = 0,
+          column = 0,
           source = {
             name = "unknown"
           }
@@ -107,6 +109,7 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
           name = "remote.call context switch",
           presentationHint = "label",
           line = 0,
+          column = 0,
           source = {
             name = "remote"
           }
@@ -132,6 +135,7 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
             name = "remote.call context switch",
             presentationHint = "label",
             line = 0,
+            column = 0,
             source = {
               name = "remote"
             }
@@ -151,6 +155,7 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
               name = "raise_event from " .. event.mod_name,
               presentationHint = "label",
               line = 0,
+              column = 0,
               source = {
                 name = "raise_event"
               }
