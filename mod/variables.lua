@@ -151,7 +151,7 @@ function variables.describe(value,short)
       if vtype == "LuaCustomTable" then
           lineitem = ("%d item%s"):format(#value, #value~=1 and "s" or "" )
       else
-        if luaObjectInfo.alwaysValid[vtype] or value.valid then
+        if luaObjectInfo.alwaysValid[vtype:match("^([^.]+).?")] or value.valid then
           local lineitemfmt = luaObjectInfo.lineItem[vtype]
           lineitem = ("<%s>"):format(vtype)
           local litype = type(lineitemfmt)
