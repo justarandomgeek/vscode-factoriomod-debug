@@ -36,10 +36,11 @@ local globalbuiltins={
   print = "builtin", rawequal = "builtin", rawlen = "builtin", rawget = "builtin", rawset = "builtin", select = "builtin",
   setmetatable = "builtin", tonumber = "builtin", tostring = "builtin", type = "builtin", xpcall = "builtin", _VERSION = "builtin",
   unpack = "builtin", table = "builtin", string = "builtin", bit32 = "builtin", math = "builtin", debug = "builtin", serpent = "builtin",
-  log = "builtin", table_size = "builtin", package = "builtin", require = "builtin",
+  package = "builtin", require = "builtin",
 
   remote = "factorio", commands = "factorio", settings = "factorio", rcon = "factorio", rendering = "factorio",
   script = "factorio", defines = "factorio", game = "factorio", global = "factorio", mods = "factorio", data = "factorio", util = "factorio",
+  log = "factorio", table_size = "factorio", localised_print = "factorio",
 
 }
 gmeta.__debugline = "<Global Self Reference>"
@@ -185,6 +186,7 @@ function variables.describe(value,short)
           lineitem = "{<...>}"
         end
       else
+        --TODO: recognize Concept types? LocalisedString specifically?
         if short then
           if next(value) or mt then
             -- this table has contents or other nontrivial behavior
