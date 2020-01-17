@@ -95,7 +95,8 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
           line = 0,
           column = 0,
           source = {
-            name = "unknown"
+            name = "unknown",
+            presentationHint = "deemphasize",
           }
         }
         stackFrames[#stackFrames+1] = stackFrame
@@ -111,7 +112,8 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
           line = 0,
           column = 0,
           source = {
-            name = "remote"
+            name = "remote",
+            presentationHint = "deemphasize",
           }
         }
         stackFrames[#stackFrames+1] = stackFrame
@@ -137,7 +139,8 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
             line = 0,
             column = 0,
             source = {
-              name = "remote"
+              name = "remote",
+              presentationHint = "deemphasize",
             }
           }
           stackFrames[#stackFrames+1] = stackFrame
@@ -157,7 +160,8 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
               line = 0,
               column = 0,
               source = {
-                name = "raise_event"
+                name = "raise_event",
+                presentationHint = "deemphasize",
               }
             }
             stackFrames[#stackFrames+1] = stackFrame
