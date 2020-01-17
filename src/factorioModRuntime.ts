@@ -315,7 +315,6 @@ export class FactorioModRuntime extends EventEmitter {
 				} else if (event.startsWith("exception")) {
 					// notify stop on exception
 					const err = event.substr(10)
-					this.sendEvent('output', err, "stderr");
 					this.sendEvent('stopOnException', err);
 				} else {
 					// unexpected event?

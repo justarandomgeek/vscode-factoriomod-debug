@@ -48,7 +48,7 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
       id = i,
       name = framename,
       line = noSource and 0 or info.currentline,
-      column = 0,
+      column = noSource and 0 or 1,
       moduleId = forRemote and script.mod_name,
       presentationHint = forRemote and "subtle",
       source = {
