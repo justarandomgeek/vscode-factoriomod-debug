@@ -8,6 +8,7 @@
 * omit frame source for C functions in call stack
 * break-on-exception in most events and improved entrypoint identification
 * warn if mod registers probably-incomplete sets of events
+* jump to location in stacktrace works
 
 ## 0.17.6
 
