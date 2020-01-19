@@ -86,7 +86,7 @@ export class FactorioModRuntime extends EventEmitter {
 	/**
 	 * Start executing the given program.
 	 */
-	public async start(factorioPath: string, dataPath: string, modsPath?: string, manageMod?: boolean, noDebug?: boolean) {
+	public async start(factorioPath: string, dataPath: string, modsPath?: string, manageMod?: boolean, noDebug?: boolean, factorioArgs?: Array<string>) {
 		this.manageMod = manageMod;
 		await this.workspaceModListsReady.wait(1000);
 		if (this.workspaceModLists.length > 1)
@@ -260,7 +260,7 @@ export class FactorioModRuntime extends EventEmitter {
 			this._breakPointsChanged.add(newpath);
 		});
 		this._breakPoints = renamedbps;
-		this._factorio = spawn(factorioPath);
+		this._factorio = spawn(factorioPath,factorioArgs);
 		this._factorio.on("exit", (code:number, signal:string) => {
 			this.sendEvent('end');
 		});

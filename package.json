@@ -90,6 +90,15 @@
 								"type": "boolean",
 								"description": "Enable automatic management of the debugadapter mod",
 								"default": true
+							},
+							"factorioArgs": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								},
+								"default": [],
+								"description": "Extra command line arguments to pass to Factorio"
+
 							}
 						}
 					}

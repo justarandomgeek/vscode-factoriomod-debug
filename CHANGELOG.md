@@ -2,6 +2,9 @@
 
 ## 0.17.8
 
+* better hide frames with no available source
+* fix debugging data stage after entrypoint changes
+* allow extra args to factorio
 
 ## 0.17.7
 
