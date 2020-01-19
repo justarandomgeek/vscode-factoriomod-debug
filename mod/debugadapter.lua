@@ -10,8 +10,8 @@ local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local remotestepping
 if script then -- don't attempt to hook in data stage
   remotestepping = require("__debugadapter__/remotestepping.lua")
-  require("__debugadapter__/entrypoints.lua")
 end
+require("__debugadapter__/entrypoints.lua")
 require("__debugadapter__/evaluate.lua")
 local json = require('__debugadapter__/json.lua')
 

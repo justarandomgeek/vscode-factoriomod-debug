@@ -43,6 +43,9 @@ end
 --shared for remotestepping
 __DebugAdapter.on_exception = on_exception
 
+-- don't need the rest in data stage...
+if not script then return end
+
 local entrypoint = {}
 
 function __DebugAdapter.getEntryPointName()
