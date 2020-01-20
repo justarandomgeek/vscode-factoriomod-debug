@@ -55,7 +55,7 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
         name = info.what == "C" and "C" or source,
       }
     }
-    if noSource then
+    if noSource or __DebugAdapter.isStepIgnore(info.func) then
       stackFrame.source.presentationHint = "deemphasize"
     else
       stackFrame.source.path = source

@@ -23,6 +23,11 @@ end
 stepIgnore(stepIgnoreAll)
 __DebugAdapter.stepIgnoreAll = stepIgnoreAll
 
+function __DebugAdapter.isStepIgnore(f)
+  return stepIgnoreFuncs[f]
+end
+stepIgnore(__DebugAdapter.isStepIgnore)
+
 -- capture the raw object, before remotestepping hooks it or through the hook
 local remote = remote and rawget(remote,"__raw") or remote
 
