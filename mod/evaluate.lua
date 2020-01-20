@@ -29,8 +29,10 @@ local function evalmeta(frameId,alsoLookIn)
       return ("<Evaluate Environment%s>"):format(envname or "")
     end,
     __index = function(t,k)
-      -- go ahead and loop these back...
-      if k == "_ENV" or k == "_G" then return t end
+      -- go ahead and loop _ENV back...
+      if k == "_ENV" then return t end
+      -- but _G can force global only lookup, return the real global environment
+      if k == "_G" then return env end
       if k == "__self" then return nil end
 
       if alsoLookIn then
