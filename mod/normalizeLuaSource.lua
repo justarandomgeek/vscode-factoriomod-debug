@@ -18,6 +18,7 @@ end
 
 local mods = mods -- capture mods in datastage, or fill in game.active_mods later for control...
                   -- TODO: `or script.active_mods` in 0.18
+pcall(function() mods = script.active_mods end)
 local knownSources = {}
 
 ---@param source string
