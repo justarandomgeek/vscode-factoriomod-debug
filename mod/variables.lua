@@ -155,7 +155,7 @@ function variables.describe(value,short)
   if vtype == "table" then
     -- only check __self and metatable, since top level objects (game, script, etc) don't have the magic string in .isluaobject
     if type(value.__self) == "userdata" and getmetatable(value) == "private" then
-      vtype = luaObjectInfo.classname(value)
+      vtype = value.object_name
       if vtype == "LuaCustomTable" then
           lineitem = ("%d item%s"):format(#value, #value~=1 and "s" or "" )
       else
