@@ -1,7 +1,7 @@
 {
 	"name": "factoriomod-debug",
 	"displayName": "Factorio Mod Debug",
-	"version": "0.17.8",
+	"version": "0.18.0",
 	"publisher": "justarandomgeek",
 	"description": "Debug Adapter for developing Factorio Mods",
 	"author": {
@@ -109,7 +109,7 @@
 						"request": "launch",
 						"name": "Factorio Mod Debug",
 						"modsPath": "C:/Users/Thomas/AppData/Roaming/Factorio/mods",
-						"factorioPath": "d:/factorio/Factorio_0.17/bin/x64/factorio.exe"
+						"factorioPath": "d:/factorio/Factorio_0.18/bin/x64/factorio.exe"
 					}
 				],
 				"configurationSnippets": [
@@ -121,7 +121,7 @@
 							"request": "launch",
 							"name": "Factorio Mod Debug",
 							"modsPath": "C:/Users/Thomas/AppData/Roaming/Factorio/mods",
-							"factorioPath": "d:/factorio/Factorio_0.17/bin/x64/factorio.exe"
+							"factorioPath": "d:/factorio/Factorio_0.18/bin/x64/factorio.exe"
 						}
 					}
 				]
