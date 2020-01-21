@@ -5,6 +5,7 @@
 * better hide frames with no available source
 * fix debugging data stage after entrypoint changes
 * allow extra args to factorio
+* evaluate names for most variables
 
 ## 0.17.7
 
