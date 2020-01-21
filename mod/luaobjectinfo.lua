@@ -1,8 +1,4 @@
 local __DebugAdapter = __DebugAdapter
-local string = string
-local rawget = rawget
-local pcall = pcall
-
 local luaObjectLines = {
   ---@param stack LuaItemStack
   ---@param short boolean | nil
