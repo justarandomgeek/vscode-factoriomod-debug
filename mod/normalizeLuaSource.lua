@@ -16,9 +16,7 @@ if script and script.mod_name == "level" then
   end
 end
 
-local mods = mods -- capture mods in datastage, or fill in game.active_mods later for control...
-                  -- TODO: `or script.active_mods` in 0.18
-pcall(function() mods = script.active_mods end)
+local mods = mods or script.active_mods -- capture mods to a consistent name
 local knownSources = {}
 
 ---@param source string
@@ -64,7 +62,6 @@ local function normalizeLuaSource(source)
     return source
   else
     -- we found it! This will be a path relative to the `mods` directory.
-    if not mods then mods = game.active_mods end --TODO: script.active_mods in 0.18, allow stepping before `game`
     local modver = mods[modname]
     local result = sformat("MOD/%s_%s/%s",modname,modver,filename)
     knownSources[source] = result

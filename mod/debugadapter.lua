@@ -194,7 +194,7 @@ end
 ---@return Module[]
 function __DebugAdapter.modules()
   local modules = {}
-  for name,version in pairs(mods or game.active_mods) do
+  for name,version in pairs(mods or script.active_mods) do
     modules[#modules+1] = {
       id = name, name = name,
       version = version,
@@ -231,15 +231,13 @@ end
 ---@param alsoLookIn table
 function __DebugAdapter.print(expr,alsoLookIn)
   local result = __DebugAdapter.stringInterp(expr,3,alsoLookIn,"print")
+  local info = debug.getinfo(2,"lS")
   local body = {
     category = "console",
     output = result,
-  };
-  if game or mods then
-    local info = debug.getinfo(2,"lS")
-    body.line = info.currentline
-    body.source = normalizeLuaSource(info.source)
-  end
+    line = info.currentline,
+    source = normalizeLuaSource(info.source),
+    };
   print("DBGprint: " .. json.encode(body))
 end
 

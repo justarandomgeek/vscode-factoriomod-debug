@@ -14,15 +14,21 @@ This is a debug adapter for developing Factorio mods. It supports breakpoints, s
 
 Simply include
 ```lua
-pcall(require,'__debugadapter__/debugadapter.lua')
+if script.active_mods["debugadapter"] then require('__debugadapter__/debugadapter.lua') end
 ```
 at the top of your `control.lua` script to load the debugger into your Lua State.
 
 In a level (scenario/campaign) script, you can also provide a hint to locate the files inside a mod:
 ```lua
-pcall(require,'__debugadapter__/debugadapter.lua')
+local __DebugAdapter = script.active_mods["debugadapter"] and require('__debugadapter__/debugadapter.lua')
 if __DebugAdapter then __DebugAdapter.levelPath("modname","scenarios/scenarioname/") end
 ```
+
+In data or settings stage, any mod can include
+```lua
+if mods["debugadapter"] then require('__debugadapter__/debugadapter.lua') end
+```
+and debug will be enabled until the end of the stage. Any mods requiring again after that will have no further effect (debug remains active).
 
 ## String Interpolation
 

@@ -63,10 +63,6 @@ end
 --- Signature and returns are the same as original LuaRemote::call()
 function newremote.call(remotename,method,...)
   local call = oldremote.call
-  if not game then -- remove this in 0.18 with script.active_mods
-    -- if game isn't ready we can't prepare stack traces yet, so just call directly...
-    return call(remotename,method,...)
-  end
   -- find out who owns it, if they have debug registered...
   local debugname = call("debugadapter","whois",remotename)
   if debugname then

@@ -35,7 +35,7 @@ __DebugAdapter.updateBreakpoints = updateBreakpoints
 
 local function modules()
   local mods = {}
-  for name,version in pairs(game.active_mods) do
+  for name,version in pairs(script.active_mods) do
     mods[#mods+1] = {
       id = name, name = name,
       version = version,
@@ -79,7 +79,7 @@ script.on_init(function()
 end)
 
 script.on_load(function()
-  --modules() --TODO: 0.18 script.active_mods
+  modules()
   print("DBG: on_load")
   debug.debug()
 end)
