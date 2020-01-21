@@ -62,8 +62,11 @@ gmeta.__debugchildren = function(t,extra)
 
   end
   for k,v in pairs(t) do
-    if globalbuiltins[k] == extra then -- nil for top level, true for "show hidden"
-      vars[#vars + 1] = variables.create(variables.describe(k,true),v)
+    if globalbuiltins[k] == extra then -- extra is nil for top level, or section name for sub-sections
+      local name = variables.describe(k,true)
+      -- force a global lookup even if local/upvalue of same name
+      local evalName = "_G[" .. name .. "]"
+      vars[#vars + 1] = variables.create(name,v,evalName)
     end
   end
   return vars
@@ -100,8 +103,9 @@ end
 ---@param mode string "pairs"|"ipairs"|"count"
 ---@param showMeta nil | boolean
 ---@param extra any
+---@param evalName string | nil
 ---@return number variablesReference
-function variables.tableRef(table, mode, showMeta, extra)
+function variables.tableRef(table, mode, showMeta, extra, evalName)
   for id,varRef in pairs(variables.refs) do
     if varRef.type == "Table" and varRef.table == table and (varRef.mode or "pairs") == mode and varRef.showMeta == showMeta then
       return id
@@ -113,7 +117,8 @@ function variables.tableRef(table, mode, showMeta, extra)
     table = table,
     mode = mode,
     showMeta = showMeta,
-    extra = extra
+    extra = extra,
+    evalName = evalName,
   }
   return id
 end
@@ -121,8 +126,9 @@ end
 --- Generate a variablesReference for a LuaObject
 ---@param luaObject LuaObject
 ---@param classname string
+---@param evalName string | nil
 ---@return number variablesReference
-function variables.luaObjectRef(luaObject,classname)
+function variables.luaObjectRef(luaObject,classname,evalName)
   if not luaObjectInfo.expandKeys[classname] then return 0 end
   for id,varRef in pairs(variables.refs) do
     if varRef.type == "LuaObject" and varRef.object == luaObject then return id end
@@ -132,6 +138,7 @@ function variables.luaObjectRef(luaObject,classname)
     type = "LuaObject",
     object = luaObject,
     classname = classname,
+    evalName = evalName,
   }
   return id
 end
@@ -252,8 +259,9 @@ __DebugAdapter.describe = variables.describe
 --- Generate a default debug view for `value` named `name`
 ---@param name string | nil
 ---@param value any
+---@param evalName string | nil
 ---@return Variable
-function variables.create(name,value)
+function variables.create(name,value,evalName)
   local lineitem,vtype = variables.describe(value)
   local variablesReference = 0
   local namedVariables
@@ -270,11 +278,11 @@ function variables.create(name,value)
       namedVariables = #value
     end
   elseif vtype:sub(1,3) == "Lua" then
-    variablesReference = variables.luaObjectRef(value,vtype)
+    variablesReference = variables.luaObjectRef(value,vtype,evalName)
   elseif vtype == "table" then
     local mt = debug.getmetatable(value)
     if not mt or mt.__debugchildren == nil then
-      variablesReference = variables.tableRef(value)
+      variablesReference = variables.tableRef(value,nil,nil,nil,evalName)
       namedVariables = 0
       indexedVariables = #value
       local namesStartAfter = indexedVariables
@@ -287,7 +295,7 @@ function variables.create(name,value)
         namedVariables = namedVariables + 1
       end
     elseif mt.__debugchildren then -- mt and ...
-      variablesReference = variables.tableRef(value)
+      variablesReference = variables.tableRef(value,nil,nil,nil,evalName)
       -- children counts for mt children?
     end
   end
@@ -298,6 +306,7 @@ function variables.create(name,value)
       variablesReference = variablesReference,
       indexedVariables = indexedVariables,
       namedVariables = namedVariables,
+      evaluateName = evalName,
     }
 end
 
@@ -327,10 +336,13 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
         local isTemp = name:sub(1,1) == "("
         if isTemp then hasTemps = true end
         if (mode == "temps" and isTemp) or (not mode and not isTemp) then
+          local evalName
           if isTemp then
             name = ("%s %d)"):format(name:sub(1,-2),i)
+          else
+            evalName = name
           end
-          vars[#vars + 1] = variables.create(name,value)
+          vars[#vars + 1] = variables.create(name,value,evalName)
         end
         i = i + 1
       end
@@ -361,7 +373,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
       while true do
         local name,value = debug.getupvalue(func,i)
         if not name then break end
-        vars[#vars + 1] = variables.create(name,value)
+        vars[#vars + 1] = variables.create(name,value,name)
         i = i + 1
       end
     elseif varRef.type == "Table" then
@@ -370,11 +382,16 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
       if varRef.mode == "count" then
         --don't show meta on these by default as they're mostly LuaObjects providing count iteration anyway
         if varRef.showMeta == true and mt then
+          local evalName
+          if varRef.evalName then
+            evalName = "debug.getmetatable(" .. varRef.evalName .. ")"
+          end
           vars[#vars + 1]{
             name = "<metatable>",
             value = "metatable",
             type = "metatable",
             variablesReference = variables.tableRef(mt),
+            evaluateName = evalName,
           }
         end
         local stop = #varRef.table
@@ -391,7 +408,11 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
           start = 1
         end
         for i=start,stop do
-          vars[#vars + 1] = variables.create(tostring(i),varRef.table[i])
+          local evalName
+          if varRef.evalName then
+            evalName = varRef.evalName .. "[" .. tostring(i) .. "]"
+          end
+          vars[#vars + 1] = variables.create(tostring(i),varRef.table[i], evalName)
         end
       else
         if mt and type(mt.__debugchildren) == "function" then
@@ -413,11 +434,16 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
         else
           -- show metatables by default for table-like objects
           if varRef.showMeta ~= false and mt then
+            local evalName
+            if varRef.evalName then
+              evalName = "debug.getmetatable(" .. varRef.evalName .. ")"
+            end
             vars[#vars + 1] = {
               name = "<metatable>",
               value = "metatable",
               type = "metatable",
               variablesReference = variables.tableRef(mt),
+              evaluateName = evalName,
             }
           end
 
@@ -442,7 +468,11 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
               if filter == "indexed" and (type(k) ~= "number" or k > maxindex) then
                 break
               end
-              vars[#vars + 1] = variables.create(variables.describe(k,true),v)
+              local evalName
+              if varRef.evalName then
+                evalName = varRef.evalName .. "[" .. variables.describe(k,true) .. "]"
+              end
+              vars[#vars + 1] = variables.create(variables.describe(k,true),v, evalName)
               if count then
                 count = count - 1
                 if count == 0 then break end
@@ -485,7 +515,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
                 name = "[]",
                 value = ("%d item%s"):format(#object, #object~=1 and "s" or ""),
                 type = varRef.classname .. "[]",
-                variablesReference = variables.tableRef(object, keyprops.iterMode, false),
+                variablesReference = variables.tableRef(object, keyprops.iterMode, false,nil,varRef.evalName),
                 indexedVariables = #object + 1,
                 presentationHint = { kind = "property", attributes = { "readOnly" } },
               }
@@ -493,7 +523,11 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
               -- Not all keys are valid on all LuaObjects of a given type. Just skip the errors (or nils)
               local success,value = pcall(function() return object[key] end)
               if success and value ~= nil then
-                local var = variables.create(variables.describe(key,true),value)
+                local evalName
+                if varRef.evalName then
+                  evalName = varRef.evalName .. "[" .. variables.describe(key,true) .. "]"
+                end
+                local var = variables.create(variables.describe(key,true),value,evalName)
                 if keyprops.countLine then
                   var.value = ("%d item%s"):format(#value, #value~=1 and "s" or "")
                 end
