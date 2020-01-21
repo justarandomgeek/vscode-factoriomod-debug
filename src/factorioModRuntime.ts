@@ -280,10 +280,7 @@ export class FactorioModRuntime extends EventEmitter {
 			let chunkstr = chunk.toString().trim();
 			if (chunkstr.startsWith("DBG: ")) {
 				let event = chunkstr.substring(5).trim();
-				if (event === "on_first_tick") {
-					//on the first tick, update all breakpoints no matter what...
-					this.continue(true);
-				} else if (event === "on_tick") {
+				if (event === "on_tick") {
 					//if on_tick, then update breakpoints if needed and continue
 					this.continue();
 				} else if (event === "on_data") {

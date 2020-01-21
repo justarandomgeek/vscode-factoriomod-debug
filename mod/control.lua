@@ -81,17 +81,9 @@ script.on_load(function()
   debug.debug()
 end)
 
-local firsttick = true
 script.on_event(defines.events.on_tick,function()
-  if firsttick then
-    firsttick = false
-    modules()
-    print("DBG: on_first_tick")
-    debug.debug()
-  else
-    print("DBG: on_tick")
-    debug.debug()
-  end
+  print("DBG: on_tick")
+  debug.debug()
 end)
 
 remote.add_interface("debugadapter",{
