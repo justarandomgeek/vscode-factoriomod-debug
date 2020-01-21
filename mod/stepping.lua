@@ -43,6 +43,7 @@ local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local json = require("__debugadapter__/json.lua")
 local datastring = require("__debugadapter__/datastring.lua")
 local ReadBreakpoints = datastring.ReadBreakpoints
+local remotestepping
 if script then -- don't attempt to hook in data stage
   remotestepping = require("__debugadapter__/remotestepping.lua")
 end
