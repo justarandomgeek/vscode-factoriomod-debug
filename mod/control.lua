@@ -1,7 +1,4 @@
 __DebugAdapter = {}
--- require DA to have a non-pcall require for syntax checking
---require('__debugadapter__/debugadapter.lua')
-
 
 local datastring = require("__debugadapter__/datastring.lua")
 local ReadBreakpoints = datastring.ReadBreakpoints
