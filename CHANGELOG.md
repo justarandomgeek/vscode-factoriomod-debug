@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.18.0
+
+* Update for Factorio 0.18
+* use `script.active_mods` to remove last dependancies on `game`. Enables stepping in control.lua main chunk and on_load, and break-on-exception in on_load. Removed various workarounds for not having this.
+* use LuaObject.object_name to classify objects. Detailed views of LuaStructs.
+
 ## 0.17.8
 
 * better hide frames with no available source
