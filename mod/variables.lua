@@ -299,15 +299,15 @@ function variables.create(name,value,evalName)
       -- children counts for mt children?
     end
   end
-    return {
-      name = name,
-      value = lineitem,
-      type = vtype,
-      variablesReference = variablesReference,
-      indexedVariables = indexedVariables,
-      namedVariables = namedVariables,
-      evaluateName = evalName,
-    }
+  return {
+    name = name,
+    value = lineitem,
+    type = vtype,
+    variablesReference = variablesReference,
+    indexedVariables = indexedVariables,
+    namedVariables = namedVariables,
+    evaluateName = evalName,
+  }
 end
 
 local itermode = {
