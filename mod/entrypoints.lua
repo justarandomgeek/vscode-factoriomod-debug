@@ -43,9 +43,6 @@ end
 --shared for remotestepping
 __DebugAdapter.on_exception = on_exception
 
--- don't need the rest in data stage...
-if not script then return end
-
 local entrypoint = {}
 
 function __DebugAdapter.getEntryPointName()
@@ -61,6 +58,9 @@ function __DebugAdapter.popEntryPointName()
   entrypoint[#entrypoint] = nil
   return entry
 end
+
+-- don't need the rest in data stage...
+if not script then return end
 
 local function try(func,entryname)
   if func == nil then return nil end
