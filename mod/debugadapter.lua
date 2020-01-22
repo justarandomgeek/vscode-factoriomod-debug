@@ -227,10 +227,16 @@ function __DebugAdapter.scopes(frameId)
   end
 end
 
----@param expr string
+---@param expr any
 ---@param alsoLookIn table
 function __DebugAdapter.print(expr,alsoLookIn)
-  local result = __DebugAdapter.stringInterp(expr,3,alsoLookIn,"print")
+  local texpr = type(expr)
+  local result
+  if texpr == "string" then
+    result = __DebugAdapter.stringInterp(expr,3,alsoLookIn,"print")
+  else
+    result = __DebugAdapter.describe(expr)
+  end
   local info = debug.getinfo(2,"lS")
   local body = {
     category = "console",
