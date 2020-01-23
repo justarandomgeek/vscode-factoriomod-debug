@@ -1541,6 +1541,7 @@ return {
       morning = {},
       solar_power_multiplier = {},
       min_brightness = {},
+      brightness_visual_weights = {},
     },
     LuaTechnology = {
       force = {readOnly = true},
