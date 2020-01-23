@@ -4,6 +4,7 @@
 
 * __DebugAdapter.print(notstring) will print the object's `describe` lineitem
 * don't trim log messages
+* fix debugging data stage after entrypoint changes, for real this time
 
 ## 0.18.0
 
