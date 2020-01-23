@@ -23,6 +23,7 @@ local function on_exception(mesg)
       mesg[#mesg+1] = debug.traceback("",4):match("^(.+)\n[^\n]+\n[^\n]+$")
       return mesg
     else
+      -- localised_print is a proposed api function which would print a LocalisedString to stdout
       if localised_print then
         localised_print({"","DBG: exception ",mesg})
       else
