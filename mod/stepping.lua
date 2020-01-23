@@ -191,14 +191,10 @@ function __DebugAdapter.attach()
       end
     end
   end,"clr")
-  pcall(function()
-    --TODO: unwrap if added, remove xpcall wrapper from everything, fix stack trace offsets...
-    if script then
-      script.on_error(__DebugAdapter.on_exception)
-    elseif on_error then
-      on_error(__DebugAdapter.on_exception)
-    end
-  end)
+  -- on_error is proposed api for instrument mods to catch errors
+  if on_error then
+    on_error(__DebugAdapter.on_exception)
+  end
 end
 
 ---@param source string
