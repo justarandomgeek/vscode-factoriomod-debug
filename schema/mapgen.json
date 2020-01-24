@@ -1,0 +1,85 @@
+{
+  "title": "Factorio Map Gen Settings",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "terrain_segmentation": {
+      "type":"number",
+      "description": "Inverse of map scale"
+    },
+    "water":{
+      "type":"number",
+      "description": "Multiplier for water 'coverage' - higher increases the water level.\nWater level = 10 * log2(this value)"
+    },
+    "width":{
+      "type":"integer",
+      "description": "Width of map, in tiles; 0 means infinite"
+    },
+    "height":{
+      "type":"integer",
+      "description": "Height of map, in tiles; 0 means infinite"
+    },
+    "starting_area":{
+      "type":"number",
+      "description": "Multiplier for 'biter free zone radius'"
+    },
+    "peaceful_mode":{
+      "type":"boolean"
+    },
+    "autoplace_controls":{
+      "type":"object",
+      "additionalProperties": {
+        "type":"object",
+        "properties": {
+          "frequency":{"type":"number"},
+          "size":{"type":"number"},
+          "richness":{"type":"number"}
+        }
+      }
+    },
+    "cliff_settings": {
+      "type":"object",
+      "properties": {
+        "name":{
+          "type":"string",
+          "description": "Name of the cliff prototype"
+        },
+        "cliff_elevation_0": {
+          "type":"number",
+          "description": "Elevation of first row of cliffs"
+        },
+        "cliff_elevation_interval": {
+          "type":"number",
+          "description": "Elevation difference between successive rows of cliffs"
+        },
+        "richness": {
+          "type":"number",
+          "description": "Multiplier for cliff continuity; 0 will result in no cliffs, 10 will make all cliff rows completely solid"
+        }
+      }
+    },
+    "property_expression_names": {
+      "description": "Overrides for property value generators\nElevation influences water and cliff placement.\nLeave it blank to get 'normal' terrain.\nUse '0_16-elevation' to reproduce terrain from 0.16.\nUse '0_17-island' to get an island.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "starting_points":{
+      "type":"array",
+      "items": {
+        "type":"object",
+        "properties": {
+          "x":{"type":"number"},
+          "y":{"type":"number"}
+        }
+      }
+    },
+    "seed": {
+      "description": "Use null for a random seed, number for a specific seed.",
+      "oneOf": [
+        {"type":"null"},
+        {"type":"number"}
+      ]
+    }
+  }
+  }

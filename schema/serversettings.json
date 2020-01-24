@@ -1,0 +1,132 @@
+{
+  "title": "Factorio Server Settings",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "name":{
+      "type":"string",
+      "description": "Name of the game as it will appear in the game listing"
+    },
+    "description":{
+      "type":"string",
+      "description":  "Description of the game that will appear in the listing"
+    },
+    "tags":{ "type":"array", "items": {"type":"string"} },
+    "max_players": {
+      "type":"integer",
+      "description": "Maximum number of players allowed, admins can join even a full server. 0 means unlimited."
+    },
+
+    "visibility":
+    {
+      "type":"object",
+      "properties": {
+        "public": {
+          "type":"boolean",
+          "description": "Game will be published on the official Factorio matching server"
+        },
+        "lan": {
+          "type":"boolean",
+          "description": "Game will be broadcast on LAN"
+        }
+      }
+    },
+
+    "username": {"type":"string","description": "Your factorio.com login credentials. Required for games with visibility public"},
+    "password": {"type":"string","description": "Your factorio.com login credentials. Required for games with visibility public"},
+
+    "token": {"type":"string","description": "Authentication token. May be used instead of 'password' above."},
+
+    "game_password": {"type":"string"},
+
+    "require_user_verification": {
+      "type":"boolean",
+      "description": "When set to true, the server will only allow clients that have a valid Factorio.com account"
+    },
+
+    "max_upload_in_kilobytes_per_second": {
+      "type":"number",
+      "default": 0,
+      "description": "optional, default value is 0. 0 means unlimited."
+    },
+
+    "max_upload_slots": {
+      "type":"number",
+      "default": 5,
+      "description": "optional, default value is 5. 0 means unlimited."
+    },
+
+    "minimum_latency_in_ticks": {
+      "type":"number",
+      "default": 0,
+      "description": "optional one tick is 16ms in default speed, default value is 0. 0 means no minimum."
+    },
+
+    "ignore_player_limit_for_returning_players": {
+      "type":"boolean",
+      "description": "Players that played on this map already can join even when the max player limit was reached."
+    },
+
+
+    "allow_commands":
+    {
+      "description":  "possible values are, true, false and admins-only",
+      "oneOf":[
+        {"type":"boolean"},
+        {
+          "type":"string",
+          "enum": ["true","false","admins-only"]
+        }
+      ]
+    },
+
+    "autosave_interval": {
+      "type":"number",
+      "description": "Autosave interval in minutes"
+    },
+
+    "autosave_slots": {
+      "type":"number",
+      "description": "server autosave slots, it is cycled through when the server autosaves."
+    },
+
+    "afk_autokick_interval": {
+      "type":"number",
+      "description": "How many minutes until someone is kicked when doing nothing, 0 for never."
+    },
+
+    "auto_pause": {
+      "type":"boolean",
+      "description": "Whether should the server be paused when no players are present."
+    },
+
+    "only_admins_can_pause_the_game": { "type":"boolean" },
+
+    "autosave_only_on_server": {
+      "type":"boolean",
+      "description": "Whether autosaves should be saved only on server or also on all connected clients. Default is true."
+    },
+
+    "non_blocking_saving": {
+      "type":"boolean",
+      "description": "Highly experimental feature, enable only at your own risk of losing your saves. On UNIX systems, server will fork itself to create an autosave. Autosaving on connected Windows clients will be disabled regardless of autosave_only_on_server option."
+    },
+
+    "minimum_segment_size": {
+      "type":"number",
+      "description": "Long network messages are split into segments that are sent over multiple ticks. Their size depends on the number of peers currently connected. Increasing the segment size will increase upload bandwidth requirement for the server and download bandwidth requirement for clients. This setting only affects server outbound messages. Changing these settings can have a negative impact on connection stability for some clients."
+    },
+    "minimum_segment_size_peer_count": {
+      "type":"number",
+      "description": "Long network messages are split into segments that are sent over multiple ticks. Their size depends on the number of peers currently connected. Increasing the segment size will increase upload bandwidth requirement for the server and download bandwidth requirement for clients. This setting only affects server outbound messages. Changing these settings can have a negative impact on connection stability for some clients."
+    },
+    "maximum_segment_size": {
+      "type":"number",
+      "description": "Long network messages are split into segments that are sent over multiple ticks. Their size depends on the number of peers currently connected. Increasing the segment size will increase upload bandwidth requirement for the server and download bandwidth requirement for clients. This setting only affects server outbound messages. Changing these settings can have a negative impact on connection stability for some clients."
+    },
+    "maximum_segment_size_peer_count": {
+      "type":"number",
+      "description": "Long network messages are split into segments that are sent over multiple ticks. Their size depends on the number of peers currently connected. Increasing the segment size will increase upload bandwidth requirement for the server and download bandwidth requirement for clients. This setting only affects server outbound messages. Changing these settings can have a negative impact on connection stability for some clients."
+    }
+  }
+}

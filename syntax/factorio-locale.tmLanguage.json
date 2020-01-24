@@ -1,0 +1,45 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "Factorio Locale",
+	"patterns": [
+		{
+			"name": "entity.name.class.factorio-locale",
+			"begin": "\\[",
+			"end": "\\]"
+		},
+		{
+			"captures": {
+				"1": {
+					"name": "entity.other.attribute-name.factorio-locale"
+				},
+				"2": {
+					"name": "punctuation.separator.key-value.factorio-locale"
+				},
+				"3": {
+					"name": "string.unquoted.factorio-locale",
+					"patterns": [
+						{
+							"name": "variable.parameter.factorio-locale",
+							"match": "__[12]?\\d__"
+						},
+						{
+							"name": "variable.other.factorio-locale",
+							"match": "__((ALT_)?CONTROL(_MOVE)?|ENTITY|ITEM|TILE)__.+?__"
+						},
+						{
+							"name": "variable.name.factorio-locale",
+							"match": "__.+?__"
+						},
+						{
+							"name": "constant.character.escape.factorio-locale",
+							"match": "\\n"
+						}
+					]
+				}
+			},
+			"match": "^([^=.]+)(=)(.+)$",
+			"name": "entity.factorio-locale"
+		}
+	],
+	"scopeName": "source.factorio-locale"
+}
