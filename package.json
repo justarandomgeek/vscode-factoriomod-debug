@@ -55,17 +55,33 @@
     "onDebug"
   ],
   "contributes": {
-    "languages": [{
-      "id": "factorio-locale",
-      "aliases": ["Factorio Locale", "factorio-locale"],
-      "extensions": [".cfg"],
-      "configuration": "./factorio-locale.language-configuration.json"
-    }],
-    "grammars": [{
-      "language": "factorio-locale",
-      "scopeName": "source.factorio-locale",
-      "path": "./syntax/factorio-locale.tmLanguage.json"
-    }],
+    "languages": [
+      {
+        "id": "factorio-locale",
+        "aliases": ["Factorio Locale", "factorio-locale"],
+        "extensions": [".cfg"],
+        "configuration": "./factorio-locale.language-configuration.json"
+      },
+      {
+        "id": "factorio-changelog",
+        "aliases": ["Factorio Changelog", "factorio-changelog"],
+        "filenames": ["changelog.txt"],
+        "configuration": "./factorio-changelog.language-configuration.json"
+      }
+
+    ],
+    "grammars": [
+      {
+        "language": "factorio-locale",
+        "scopeName": "source.factorio-locale",
+        "path": "./syntax/factorio-locale.tmLanguage.json"
+      },
+      {
+        "language": "factorio-changelog",
+        "scopeName": "source.factorio-changelog",
+        "path": "./syntax/factorio-changelog.tmLanguage.json"
+      }
+    ],
     "jsonValidation": [
       {
         "fileMatch": "map-gen-settings.json",

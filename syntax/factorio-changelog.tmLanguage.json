@@ -1,0 +1,76 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "Factorio Changelog",
+	"patterns": [
+		{
+			"name": "support.punctuation.separator.factorio-changelog",
+			"match": "^-{99}$"
+		},
+		{
+			"name": "invalid.punctuation.separator.factorio-changelog",
+			"match": "^-{1,98}$"
+		},
+		{
+			"name": "invalid.punctuation.separator.factorio-changelog",
+			"match": "^-{100,}$"
+		},
+		{
+			"name": "entity.name.class.factorio-changelog",
+			"begin": "^\\[",
+			"end": "\\]$"
+		},
+		{
+			"name": "variable.language.version.factorio-changelog",
+			"match": "^Version: (\\d+)\\.(\\d+)\\.(\\d+)$",
+			"captures": {
+				"1": {
+					"name": "constant.numeric.version.major.factorio-changelog"
+				},
+				"2": {
+					"name": "constant.numeric.version.minor.factorio-changelog"
+				},
+				"3": {
+					"name": "constant.numeric.version.patch.factorio-changelog"
+				}
+			}
+		},
+		{
+			"name": "variable.language.date.factorio-changelog",
+			"match": "^Date: (.+)$",
+			"captures": {
+				"1": {
+					"name": "string.unquoted.date.factorio-changelog"
+				}
+			}
+		},
+		{
+			"match": "^  (.+):$",
+			"captures": {
+				"1": {
+					"name": "entity.name.class.factorio-changelog"
+				}
+			}
+		},
+		{
+			"match": "^    - (.+)$",
+			"captures": {
+				"1": {
+					"name": "string.unquoted.change.factorio-changelog"
+				}
+			}
+		},
+		{
+			"match": "^      (.+)$",
+			"captures": {
+				"1": {
+					"name": "string.unquoted.change.continue.factorio-changelog"
+				}
+			}
+		},
+		{
+			"name": "invalid.unkown.factorio-changelog",
+			"match": "^.*$"
+		}
+	],
+	"scopeName": "source.factorio-changelog"
+}
