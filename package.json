@@ -88,7 +88,7 @@
         "url": "./schema/scenario.json"
       },
       {
-        "fileMatch": "*/campaigns/*/description.json",
+        "fileMatch": "campaigns/*/description.json",
         "url": "./schema/campaign.json"
       }
     ],
