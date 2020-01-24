@@ -39,10 +39,18 @@
 			}
 		},
 		{
-			"match": "^  (.+):$",
+			"match": "^  (((Major|Minor) )?Features|Graphics|Sounds|Optimisations|(Combat )?Balancing|Circuit Network|Changes|Bugfixes|Modding|Scripting|Gui|Control|Translation|Debug|Ease of use|Info|Locale|Other):$",
 			"captures": {
 				"1": {
 					"name": "entity.name.class.factorio-changelog"
+				}
+			}
+		},
+		{
+			"match": "^  (.+):$",
+			"captures": {
+				"1": {
+					"name": "entity.name.function.factorio-changelog"
 				}
 			}
 		},
