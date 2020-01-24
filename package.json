@@ -82,6 +82,12 @@
         "path": "./syntax/factorio-changelog.tmLanguage.json"
       }
     ],
+    "snippets": [
+      {
+        "language": "factorio-changelog",
+        "path": "./snippets/factorio-changelog.json"
+      }
+    ],
     "jsonValidation": [
       {
         "fileMatch": "map-gen-settings.json",
