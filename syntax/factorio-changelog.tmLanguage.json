@@ -15,11 +15,6 @@
 			"match": "^-{100,}$"
 		},
 		{
-			"name": "entity.name.class.factorio-changelog",
-			"begin": "^\\[",
-			"end": "\\]$"
-		},
-		{
 			"name": "variable.language.version.factorio-changelog",
 			"match": "^Version: (\\d+)\\.(\\d+)\\.(\\d+)$",
 			"captures": {
