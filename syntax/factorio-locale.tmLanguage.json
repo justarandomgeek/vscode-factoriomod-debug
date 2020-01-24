@@ -4,8 +4,8 @@
 	"patterns": [
 		{
 			"name": "entity.name.class.factorio-locale",
-			"begin": "\\[",
-			"end": "\\]"
+			"begin": "^\\[",
+			"end": "\\]$"
 		},
 		{
 			"captures": {
