@@ -1,168 +1,168 @@
 {
-	"name": "factoriomod-debug",
-	"displayName": "Factorio Mod Debug",
-	"version": "0.18.1",
-	"publisher": "justarandomgeek",
-	"description": "Debug Adapter for developing Factorio Mods",
-	"author": {
-		"name": "justarandomgeek",
-		"email": "justarandomgeek@live.com"
-	},
-	"license": "MIT",
-	"keywords": [
-		"multi-root ready"
-	],
-	"engines": {
-		"vscode": "^1.42.0"
-	},
-	"icon": "images/factoriomod-debug-icon.png",
-	"categories": [
-		"Debuggers"
-	],
-	"private": true,
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/justarandomgeek/vscode-factoriomod-debug.git"
-	},
-	"bugs": {
-		"url": "https://github.com/justarandomgeek/vscode-factoriomod-debug/issues"
-	},
-	"scripts": {
-		"prepare": "tsc -p ./src",
-		"compile": "tsc -p ./src",
-		"tslint": "tslint ./src/**/*.ts",
-		"watch": "tsc -w -p ./src",
-		"postinstall": "node ./node_modules/vscode/bin/install",
-		"vscode:prepublish": ".\\mod\\makerelease.sh",
-		"package": "vsce package",
-		"publish": "vsce publish"
-	},
-	"dependencies": {
-		"await-notify": "1.0.1",
-		"stream-splitter": "^0.3.2",
-		"vscode-debugadapter": "1.38.0-pre.4"
-	},
-	"devDependencies": {
-		"@types/node": "10.12.12",
-		"typescript": "3.5.3",
-		"vscode": "1.1.36",
-		"vscode-debugadapter-testsupport": "1.37.0",
-		"tslint": "5.18.0",
-		"vsce": "1.66.0"
-	},
-	"main": "./out/extension",
-	"activationEvents": [
-		"onDebug"
-	],
-	"contributes": {
-		"languages": [{
-            "id": "factorio-locale",
-            "aliases": ["Factorio Locale", "factorio-locale"],
-            "extensions": [".cfg"],
-            "configuration": "./factorio-locale.language-configuration.json"
-        }],
-        "grammars": [{
-            "language": "factorio-locale",
-            "scopeName": "source.factorio-locale",
-            "path": "./syntax/factorio-locale.tmLanguage.json"
-		}],
-		"jsonValidation": [
-			{
-				"fileMatch": "map-gen-settings.json",
-				"url": "./schema/mapgen.json"
-			},
-			{
-				"fileMatch": "map-settings.json",
-				"url": "./schema/mapsettings.json"
-			},
-			{
-				"fileMatch": "server-settings.json",
-				"url": "./schema/serversettings.json"
-			},
-			{
-				"fileMatch": "info.json",
-				"url": "./schema/modinfo.json"
-			},
-			{
-				"fileMatch": "scenarios/*/description.json",
-				"url": "./schema/scenario.json"
-			},
-			{
-				"fileMatch": "*/campaigns/*/description.json",
-				"url": "./schema/campaign.json"
-			}
-		],
-		"breakpoints": [
-			{
-				"language": "lua"
-			}
-		],
-		"debuggers": [
-			{
-				"type": "factoriomod",
-				"label": "Factorio Mod Debug",
-				"program": "./out/debugAdapter.js",
-				"runtime": "node",
-				"configurationAttributes": {
-					"launch": {
-						"properties": {
-							"trace": {
-								"type": "boolean",
-								"description": "Enable logging of the Debug Adapter Protocol.",
-								"default": false
-							},
-							"factorioPath": {
-								"type": "string",
-								"description": "Path to Factorio binary."
-							},
-							"modsPath": {
-								"type": "string",
-								"description": "Absolute path to Factorio mods directory."
-							},
-							"dataPath": {
-								"type": "string",
-								"description": "Absolute path to Factorio data directory."
-							},
-							"manageMod": {
-								"type": "boolean",
-								"description": "Enable automatic management of the debugadapter mod",
-								"default": true
-							},
-							"factorioArgs": {
-								"type": "array",
-								"items": {
-									"type": "string"
-								},
-								"default": [],
-								"description": "Extra command line arguments to pass to Factorio"
+  "name": "factoriomod-debug",
+  "displayName": "Factorio Mod Debug",
+  "version": "0.18.1",
+  "publisher": "justarandomgeek",
+  "description": "Debug Adapter for developing Factorio Mods",
+  "author": {
+    "name": "justarandomgeek",
+    "email": "justarandomgeek@live.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "multi-root ready"
+  ],
+  "engines": {
+    "vscode": "^1.42.0"
+  },
+  "icon": "images/factoriomod-debug-icon.png",
+  "categories": [
+    "Debuggers"
+  ],
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/justarandomgeek/vscode-factoriomod-debug.git"
+  },
+  "bugs": {
+    "url": "https://github.com/justarandomgeek/vscode-factoriomod-debug/issues"
+  },
+  "scripts": {
+    "prepare": "tsc -p ./src",
+    "compile": "tsc -p ./src",
+    "tslint": "tslint ./src/**/*.ts",
+    "watch": "tsc -w -p ./src",
+    "postinstall": "node ./node_modules/vscode/bin/install",
+    "vscode:prepublish": ".\\mod\\makerelease.sh",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "dependencies": {
+    "await-notify": "1.0.1",
+    "stream-splitter": "^0.3.2",
+    "vscode-debugadapter": "1.38.0-pre.4"
+  },
+  "devDependencies": {
+    "@types/node": "10.12.12",
+    "typescript": "3.5.3",
+    "vscode": "1.1.36",
+    "vscode-debugadapter-testsupport": "1.37.0",
+    "tslint": "5.18.0",
+    "vsce": "1.66.0"
+  },
+  "main": "./out/extension",
+  "activationEvents": [
+    "onDebug"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "factorio-locale",
+      "aliases": ["Factorio Locale", "factorio-locale"],
+      "extensions": [".cfg"],
+      "configuration": "./factorio-locale.language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "factorio-locale",
+      "scopeName": "source.factorio-locale",
+      "path": "./syntax/factorio-locale.tmLanguage.json"
+    }],
+    "jsonValidation": [
+      {
+        "fileMatch": "map-gen-settings.json",
+        "url": "./schema/mapgen.json"
+      },
+      {
+        "fileMatch": "map-settings.json",
+        "url": "./schema/mapsettings.json"
+      },
+      {
+        "fileMatch": "server-settings.json",
+        "url": "./schema/serversettings.json"
+      },
+      {
+        "fileMatch": "info.json",
+        "url": "./schema/modinfo.json"
+      },
+      {
+        "fileMatch": "scenarios/*/description.json",
+        "url": "./schema/scenario.json"
+      },
+      {
+        "fileMatch": "*/campaigns/*/description.json",
+        "url": "./schema/campaign.json"
+      }
+    ],
+    "breakpoints": [
+      {
+        "language": "lua"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "factoriomod",
+        "label": "Factorio Mod Debug",
+        "program": "./out/debugAdapter.js",
+        "runtime": "node",
+        "configurationAttributes": {
+          "launch": {
+            "properties": {
+              "trace": {
+                "type": "boolean",
+                "description": "Enable logging of the Debug Adapter Protocol.",
+                "default": false
+              },
+              "factorioPath": {
+                "type": "string",
+                "description": "Path to Factorio binary."
+              },
+              "modsPath": {
+                "type": "string",
+                "description": "Absolute path to Factorio mods directory."
+              },
+              "dataPath": {
+                "type": "string",
+                "description": "Absolute path to Factorio data directory."
+              },
+              "manageMod": {
+                "type": "boolean",
+                "description": "Enable automatic management of the debugadapter mod",
+                "default": true
+              },
+              "factorioArgs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "default": [],
+                "description": "Extra command line arguments to pass to Factorio"
 
-							}
-						}
-					}
-				},
-				"initialConfigurations": [
-					{
-						"type": "factoriomod",
-						"request": "launch",
-						"name": "Factorio Mod Debug",
-						"modsPath": "C:/Users/Thomas/AppData/Roaming/Factorio/mods",
-						"factorioPath": "d:/factorio/Factorio_0.18/bin/x64/factorio.exe"
-					}
-				],
-				"configurationSnippets": [
-					{
-						"label": "Factorio Mod Debug: Launch",
-						"description": "A new configuration for debugging Factorio mods.",
-						"body": {
-							"type": "factoriomod",
-							"request": "launch",
-							"name": "Factorio Mod Debug",
-							"modsPath": "C:/Users/Thomas/AppData/Roaming/Factorio/mods",
-							"factorioPath": "d:/factorio/Factorio_0.18/bin/x64/factorio.exe"
-						}
-					}
-				]
-			}
-		]
-	}
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "factoriomod",
+            "request": "launch",
+            "name": "Factorio Mod Debug",
+            "modsPath": "C:/Users/Thomas/AppData/Roaming/Factorio/mods",
+            "factorioPath": "d:/factorio/Factorio_0.18/bin/x64/factorio.exe"
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "Factorio Mod Debug: Launch",
+            "description": "A new configuration for debugging Factorio mods.",
+            "body": {
+              "type": "factoriomod",
+              "request": "launch",
+              "name": "Factorio Mod Debug",
+              "modsPath": "C:/Users/Thomas/AppData/Roaming/Factorio/mods",
+              "factorioPath": "d:/factorio/Factorio_0.18/bin/x64/factorio.exe"
+            }
+          }
+        ]
+      }
+    ]
+  }
 }
