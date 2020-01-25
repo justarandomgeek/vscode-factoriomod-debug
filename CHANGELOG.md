@@ -5,6 +5,9 @@
 * __DebugAdapter.print(notstring) will print the object's `describe` lineitem
 * don't trim log messages
 * fix debugging data stage after entrypoint changes, for real this time
+* JSON Schemas for info.json, description.json, server-settings.json, map-settings.json, map-gen-settings.json
+* Syntax highlighting for Locale *.cfg and changelog.txt files
+* Factorio 0.18.1 added LuaSurface::brightness_visual_weights
 
 ## 0.18.0
 
