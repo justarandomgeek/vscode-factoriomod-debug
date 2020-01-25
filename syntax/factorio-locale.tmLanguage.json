@@ -33,6 +33,42 @@
 						{
 							"name": "constant.character.escape.factorio-locale",
 							"match": "\\n"
+						},
+						{
+							"name": "entity.name.tag.font.factorio-locale",
+							"begin": "\\[font=([^\\]]*)\\]",
+							"beginCaptures": {
+								"1":{
+									"name": "variable.other.factorio-locale"
+								}
+							},
+							"end": "\\[[./]font\\]",
+							"contentName": "string.unquoted.factorio-locale"
+						},
+						{
+							"name": "entity.name.tag.color.factorio-locale",
+							"begin": "\\[color=([^\\]]*)\\]",
+							"beginCaptures": {
+								"1":{
+									"name": "variable.other.factorio-locale"
+								}
+							},
+							"end": "\\[[./]color\\]",
+							"contentName": "string.unquoted.factorio-locale"
+						},
+						{
+							"name": "entity.name.tag.factorio-locale",
+							"match": "\\[(?:img|(?:special-)?item(?:-group)?|entity|technology|recipe|fluid|tile|virtual-signal|achievement|gps|armor|train(?:-stop)?)=([^\\]]*)\\]",
+							"captures": {
+								"1":{
+									"name": "variable.other.factorio-locale"
+								}
+							}
+						},
+						{
+							"name": "invalid.entity.name.tag.factorio-locale",
+							"begin": "\\[",
+							"end": "\\]"
 						}
 					]
 				}
