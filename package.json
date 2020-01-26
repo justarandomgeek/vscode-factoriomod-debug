@@ -53,7 +53,8 @@
   "main": "./out/extension",
   "activationEvents": [
     "onDebug",
-    "workspaceContains:**/changelog.txt"
+    "workspaceContains:**/changelog.txt",
+    "onLanguage:factorio-locale"
   ],
   "contributes": {
     "languages": [

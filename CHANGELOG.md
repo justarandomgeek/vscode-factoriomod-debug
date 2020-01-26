@@ -5,6 +5,7 @@
 * Changelog separator line is keyword.control
 * correctly highlight changelog version number with only two numeric parts
 * changelog linter
+* color widget on [color=...] tags in locale
 
 ## 0.18.1
 
