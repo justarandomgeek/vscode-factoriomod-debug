@@ -2,6 +2,8 @@
 
 ## 0.18.2
 
+* Changelog separator line is keyword.control
+
 ## 0.18.1
 
 * __DebugAdapter.print(notstring) will print the object's `describe` lineitem

@@ -3,15 +3,15 @@
 	"name": "Factorio Changelog",
 	"patterns": [
 		{
-			"name": "support.punctuation.separator.factorio-changelog",
+			"name": "keyword.control.factorio-changelog",
 			"match": "^-{99}$"
 		},
 		{
-			"name": "invalid.punctuation.separator.factorio-changelog",
+			"name": "invalid.keyword.control.factorio-changelog",
 			"match": "^-{1,98}$"
 		},
 		{
-			"name": "invalid.punctuation.separator.factorio-changelog",
+			"name": "invalid.keyword.control.factorio-changelog",
 			"match": "^-{100,}$"
 		},
 		{
