@@ -16,18 +16,12 @@
 		},
 		{
 			"name": "variable.language.version.factorio-changelog",
-			"match": "^Version: (\\d+)\\.(\\d+)\\.(\\d+)(.*)$",
+			"match": "^Version: ((?:\\d+)\\.(?:\\d+)(?:\\.(?:\\d+))?)(.*)$",
 			"captures": {
 				"1": {
-					"name": "constant.numeric.version.major.factorio-changelog"
+					"name": "constant.numeric.version.factorio-changelog"
 				},
 				"2": {
-					"name": "constant.numeric.version.minor.factorio-changelog"
-				},
-				"3": {
-					"name": "constant.numeric.version.patch.factorio-changelog"
-				},
-				"4": {
 					"name": "comment.line.version.extra.factorio-changelog"
 				}
 

@@ -3,6 +3,8 @@
 ## 0.18.2
 
 * Changelog separator line is keyword.control
+* correctly highlight changelog version number with only two numeric parts
+* changelog linter
 
 ## 0.18.1
 
