@@ -167,7 +167,6 @@
             "type": "factoriomod",
             "request": "launch",
             "name": "Factorio Mod Debug",
-            "modsPath": "C:/Users/Thomas/AppData/Roaming/Factorio/mods",
             "factorioPath": "d:/factorio/Factorio_0.18/bin/x64/factorio.exe"
           }
         ],
@@ -179,7 +178,6 @@
               "type": "factoriomod",
               "request": "launch",
               "name": "Factorio Mod Debug",
-              "modsPath": "C:/Users/Thomas/AppData/Roaming/Factorio/mods",
               "factorioPath": "d:/factorio/Factorio_0.18/bin/x64/factorio.exe"
             }
           }
