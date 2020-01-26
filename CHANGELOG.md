@@ -1,10 +1,20 @@
 # Changelog
 
+## 0.18.2
+
+* Changelog separator line is keyword.control
+* correctly highlight changelog version number with only two numeric parts
+* changelog linter
+
 ## 0.18.1
 
 * __DebugAdapter.print(notstring) will print the object's `describe` lineitem
 * don't trim log messages
 * fix debugging data stage after entrypoint changes, for real this time
+* JSON Schemas for info.json, description.json, server-settings.json, map-settings.json, map-gen-settings.json
+* Syntax highlighting for Locale *.cfg and changelog.txt files
+* Factorio 0.18.1 added LuaSurface::brightness_visual_weights
+* Keep output channel open and reuse between sessions
 
 ## 0.18.0
 

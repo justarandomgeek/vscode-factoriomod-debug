@@ -1,0 +1,21 @@
+{
+  "title": "Factorio Scenario description.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required":[
+    "order", "multiplayer-compatible"
+  ],
+  "properties": {
+    "order":{
+      "type":"string"
+    },
+    "multiplayer-compatible":{
+      "type": "boolean",
+      "default": false
+    },
+    "is-main-game":{
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

@@ -1,0 +1,166 @@
+{
+  "title": "Factorio Map Settings",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "difficulty_settings":
+    {
+      "type":"object",
+      "properties": {
+        "recipe_difficulty": {"type":"number"},
+        "technology_difficulty": {"type":"number"},
+        "technology_price_multiplier": {"type":"number"},
+        "research_queue_setting": {
+          "type":"string",
+          "enum": ["after-victory"]
+        }
+      }
+    },
+    "pollution":
+    {
+      "type":"object",
+      "properties": {
+        "enabled": {"type":"boolean"},
+        "diffusion_ratio": {"type":"number"},
+        "min_to_diffuse": {
+          "type":"number",
+          "description": "these are values for 60 ticks (1 simulated second)\namount that is diffused to neighboring chunk"
+        },
+        "ageing": {"type":"number"},
+        "expected_max_per_chunk": {"type":"number"},
+        "min_to_show_per_chunk": {"type":"number"},
+        "min_pollution_to_damage_trees": {"type":"number"},
+        "pollution_with_max_forest_damage": {"type":"number"},
+        "pollution_per_tree_damage": {"type":"number"},
+        "pollution_restored_per_tree_damage": {"type":"number"},
+        "max_pollution_to_restore_trees": {"type":"number"},
+        "enemy_attack_pollution_consumption_modifier": {"type":"number"}
+      }
+    },
+    "enemy_evolution":
+    {
+      "type":"object",
+      "properties": {
+        "enabled": {"type":"boolean"},
+        "time_factor": {"type":"number"},
+        "destroy_factor": {"type":"number"},
+        "pollution_factor": {"type":"number"}
+      }
+    },
+    "enemy_expansion":
+    {
+      "type":"object",
+      "properties": {
+        "enabled": {"type":"boolean"},
+        "min_base_spacing": {"type":"number"},
+        "max_expansion_distance": {"type":"number"},
+        "friendly_base_influence_radius": {"type":"number"},
+        "enemy_building_influence_radius": {"type":"number"},
+        "building_coefficient": {"type":"number"},
+        "other_base_coefficient": {"type":"number"},
+        "neighbouring_chunk_coefficient": {"type":"number"},
+        "neighbouring_base_chunk_coefficient": {"type":"number"},
+        "max_colliding_tiles_coefficient": {"type":"number"},
+        "settler_group_min_size": {"type":"number"},
+        "settler_group_max_size": {"type":"number"},
+        "min_expansion_cooldown": {"type":"number"},
+        "max_expansion_cooldown": {"type":"number"}
+      }
+    },
+    "unit_group":
+    {
+      "type":"object",
+      "properties": {
+        "min_group_gathering_time": {"type":"number"},
+        "max_group_gathering_time": {"type":"number"},
+        "max_wait_time_for_late_members": {"type":"number"},
+        "max_group_radius": {"type":"number"},
+        "min_group_radius": {"type":"number"},
+        "max_member_speedup_when_behind": {"type":"number"},
+        "max_member_slowdown_when_ahead": {"type":"number"},
+        "max_group_slowdown_factor": {"type":"number"},
+        "max_group_member_fallback_factor": {"type":"number"},
+        "member_disown_distance": {"type":"number"},
+        "tick_tolerance_when_member_arrives": {"type":"number"},
+        "max_gathering_unit_groups": {"type":"number"},
+        "max_unit_group_size": {"type":"number"}
+      }
+    },
+    "steering":
+    {
+      "type":"object",
+      "properties": {
+        "default":
+        {
+          "type":"object",
+          "properties": {
+            "radius": {"type":"number"},
+            "separation_force": {"type":"number"},
+            "separation_factor": {"type":"number"},
+            "force_unit_fuzzy_goto_behavior": {"type":"boolean"}
+          }
+        },
+        "moving":
+        {
+          "type":"object",
+          "properties": {
+            "radius": {"type":"number"},
+            "separation_force": {"type":"number"},
+            "separation_factor": {"type":"number"},
+            "force_unit_fuzzy_goto_behavior": {"type":"boolean"}
+          }
+        }
+      }
+    },
+    "path_finder":
+    {
+      "type":"object",
+      "properties": {
+        "fwd2bwd_ratio": {"type":"number"},
+        "goal_pressure_ratio": {"type":"number"},
+        "max_steps_worked_per_tick": {"type":"number"},
+        "max_work_done_per_tick": {"type":"number"},
+        "use_path_cache": {"type":"boolean"},
+        "short_cache_size": {"type":"number"},
+        "long_cache_size": {"type":"number"},
+        "short_cache_min_cacheable_distance": {"type":"number"},
+        "short_cache_min_algo_steps_to_cache": {"type":"number"},
+        "long_cache_min_cacheable_distance": {"type":"number"},
+        "cache_max_connect_to_cache_steps_multiplier": {"type":"number"},
+        "cache_accept_path_start_distance_ratio": {"type":"number"},
+        "cache_accept_path_end_distance_ratio": {"type":"number"},
+        "negative_cache_accept_path_start_distance_ratio": {"type":"number"},
+        "negative_cache_accept_path_end_distance_ratio": {"type":"number"},
+        "cache_path_start_distance_rating_multiplier": {"type":"number"},
+        "cache_path_end_distance_rating_multiplier": {"type":"number"},
+        "stale_enemy_with_same_destination_collision_penalty": {"type":"number"},
+        "ignore_moving_enemy_collision_distance": {"type":"number"},
+        "enemy_with_different_destination_collision_penalty": {"type":"number"},
+        "general_entity_collision_penalty": {"type":"number"},
+        "general_entity_subsequent_collision_penalty": {"type":"number"},
+        "extended_collision_penalty": {"type":"number"},
+        "max_clients_to_accept_any_new_request": {"type":"number"},
+        "max_clients_to_accept_short_new_request": {"type":"number"},
+        "direct_distance_to_consider_short_request": {"type":"number"},
+        "short_request_max_steps": {"type":"number"},
+        "short_request_ratio": {"type":"number"},
+        "min_steps_to_check_path_find_termination": {"type":"number"},
+        "start_to_goal_cost_multiplier_to_terminate_path_find": {"type":"number"},
+        "overload_levels": {
+          "type":"array",
+          "items": {
+            "type":"number"
+          }
+        },
+        "overload_multipliers": {
+          "type":"array",
+          "items": {
+            "type":"number"
+          }
+        }
+      }
+    },
+    "max_failed_behavior_count": {"type":"number"}
+    }
+
+  }

@@ -7,6 +7,8 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 
+let diagnosticCollection: vscode.DiagnosticCollection;
+
 export function activate(context: vscode.ExtensionContext) {
 	const provider = new FactorioModConfigurationProvider();
 	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('factoriomod', provider));
@@ -16,12 +18,278 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('factoriomod', factory));
 	context.subscriptions.push(factory);
+
+
+	diagnosticCollection = vscode.languages.createDiagnosticCollection('factorio-changelog');
+	context.subscriptions.push(diagnosticCollection);
+
+	context.subscriptions.push(
+		vscode.languages.registerCodeActionsProvider({ scheme: 'file', language: 'factorio-changelog' }, new ChangelogCodeActionProvider()));
+
+	vscode.workspace.findFiles("**/changelog.txt").then(uris => {
+		// check diagnostics
+		uris.forEach(async uri=> diagnosticCollection.set(uri, await validateChangelogTxt(uri)))
+	})
+
+	vscode.workspace.onDidChangeTextDocument(async change =>{
+		if (change.document.languageId == "factorio-changelog")
+		{
+			// if it's changelog.txt, recheck diagnostics...
+			diagnosticCollection.set(change.document.uri, await validateChangelogTxt(change.document.uri))
+		}
+	})
 }
 
 export function deactivate() {
 	// nothing to do
 }
 
+async function validateChangelogTxt(uri:vscode.Uri): Promise<vscode.Diagnostic[]>
+{
+	const changelog = (await vscode.workspace.fs.readFile(uri)).toString().split(/\r?\n/)
+
+	let diags:vscode.Diagnostic[] = []
+	let seenStart = false
+	let seenStartLast = false
+	let seenDate = false
+	let seenCategory = false
+	for (let i = 0; i < changelog.length; i++) {
+		let line = changelog[i];
+		if (line.match(/^-+$/))
+		{
+			if (line.length != 99)
+			diags.push({
+				"message": "Separator line is incorrect length",
+				"code": "separator.fixlength",
+				"source": "factorio-changelog",
+				"severity": vscode.DiagnosticSeverity.Error,
+				"range": new vscode.Range(i,0,i,line.length)
+			})
+			line = changelog[++i];
+			if(!line)
+			{
+				diags.push({
+					"message": "Unexpected separator line at end of file",
+					"code": "separator.remove",
+					"source": "factorio-changelog",
+					"severity": vscode.DiagnosticSeverity.Error,
+					"range": new vscode.Range(i-1,0,i-1,changelog[i-1].length)
+				})
+			}
+			else if (!line.startsWith("Version: "))
+			{
+				diags.push({
+					"message": "Expected version on first line of block",
+					"code": "version.insert",
+					"source": "factorio-changelog",
+					"severity": vscode.DiagnosticSeverity.Error,
+					"range": new vscode.Range(i,0,i,line.length)
+				})
+			}
+			else if (!line.match(/^Version: \d+.\d+(.\d+)?/))
+			{
+				diags.push({
+					"message": "Expected at least two numbers in version string",
+					"code": "version.numbers",
+					"source": "factorio-changelog",
+					"severity": vscode.DiagnosticSeverity.Error,
+					"range": new vscode.Range(i,9,i,line.length)
+				})
+			}
+			seenStart = true
+			seenStartLast = true
+			seenDate = false
+			seenCategory = false
+		}
+		else if (seenStart)
+		{
+			if(line.startsWith("Version: "))
+			{
+				diags.push({
+					"message": "Duplicate version line - missing separator?",
+					"code": "separator.insert",
+					"source": "factorio-changelog",
+					"severity": vscode.DiagnosticSeverity.Error,
+					"range": new vscode.Range(i,0,i,line.length)
+				})
+				seenStartLast = true
+				seenDate = false
+				seenCategory = false
+			}
+			else if(line.startsWith("Date: "))
+			{
+				if(seenDate){
+					diags.push({
+						"message": "Duplicate date line",
+						"source": "factorio-changelog",
+						"severity": vscode.DiagnosticSeverity.Error,
+						"range": new vscode.Range(i,0,i,line.length)
+					})
+				}
+				else if(!seenStartLast)
+				{
+					diags.push({
+						"message": "Date line not immediately after version line",
+						"source": "factorio-changelog",
+						"severity": vscode.DiagnosticSeverity.Warning,
+						"range": new vscode.Range(i,0,i,line.length)
+					})
+					seenDate = true
+				}
+				else
+				{
+					seenDate = true
+				}
+				seenStartLast = false
+			}
+			else if(line.match(/^  [^ ]/))
+			{
+				seenStartLast = false
+				seenCategory = true
+				if (!line.endsWith(":"))
+				{
+					diags.push({
+						"message": "Category line must end with :",
+						"code": "category.fixend",
+						"source": "factorio-changelog",
+						"severity": vscode.DiagnosticSeverity.Error,
+						"range": new vscode.Range(i,line.length-1,i,line.length)
+					})
+				}
+				if(!line.match(/^  (((Major|Minor) )?Features|Graphics|Sounds|Optimi[sz]ations|(Combat )?Balancing|Circuit Network|Changes|Bugfixes|Modding|Scripting|Gui|Control|Translation|Debug|Ease of use|Info|Locale|Other):?$/))
+				{
+					diags.push({
+						"message": "Non-standard category names will be placed after \"All\"",
+						"source": "factorio-changelog",
+						"severity": vscode.DiagnosticSeverity.Information,
+						"range": new vscode.Range(i,2,i,line.length-1)
+					})
+				}
+			}
+			else if(line.match(/^    [- ] /))
+			{
+				seenStartLast = false
+				if (!seenCategory)
+				{
+					diags.push({
+						"message": "Entry not in category",
+						"code": "category.insert",
+						"source": "factorio-changelog",
+						"severity": vscode.DiagnosticSeverity.Error,
+						"range": new vscode.Range(i,0,i,line.length)
+					})
+				}
+			}
+		}
+		else
+		{
+			diags.push({
+				"message": "Unrecognized line format or line not in valid block",
+				"source": "factorio-changelog",
+				"severity": vscode.DiagnosticSeverity.Error,
+				"range": new vscode.Range(i,0,i,line.length)
+			})
+		}
+	}
+	return diags
+}
+
+class ChangelogCodeActionProvider implements vscode.CodeActionProvider {
+	public provideCodeActions(
+		document: vscode.TextDocument, range: vscode.Range,
+		context: vscode.CodeActionContext, token: vscode.CancellationToken):
+		vscode.CodeAction[]
+	{
+		if (document.languageId == "factorio-changelog")
+		{
+			return context.diagnostics.filter(diag => !!diag.code).map((diag) =>{
+				switch (diag.code) {
+					case "separator.fixlength":
+					{
+						let ca = new vscode.CodeAction("Fix separator Length", vscode.CodeActionKind.QuickFix.append("separator").append("fixlength"))
+						ca.diagnostics = [diag]
+						ca.edit = new vscode.WorkspaceEdit()
+						ca.edit.set(document.uri,
+							[
+								new vscode.TextEdit(diag.range,"---------------------------------------------------------------------------------------------------")
+							])
+						return ca
+					}
+					case "separator.insert":
+					{
+						let ca = new vscode.CodeAction("Insert separator", vscode.CodeActionKind.QuickFix.append("separator").append("insert"))
+						ca.diagnostics = [diag]
+						ca.edit = new vscode.WorkspaceEdit()
+						ca.edit.set(document.uri,
+							[
+								new vscode.TextEdit(new vscode.Range(diag.range.start,diag.range.start),
+									"---------------------------------------------------------------------------------------------------\n")
+							])
+						return ca
+					}
+					case "separator.remove":
+					{
+						let ca = new vscode.CodeAction("Remove separator", vscode.CodeActionKind.QuickFix.append("separator").append("remove"))
+						ca.diagnostics = [diag]
+						ca.edit = new vscode.WorkspaceEdit()
+						ca.edit.set(document.uri,
+							[
+								new vscode.TextEdit(diag.range,"")
+							])
+						return ca
+					}
+					case "version.insert":
+					{
+						let ca = new vscode.CodeAction("Insert version", vscode.CodeActionKind.QuickFix.append("version").append("insert"))
+						ca.diagnostics = [diag]
+						ca.edit = new vscode.WorkspaceEdit()
+						ca.edit.set(document.uri,
+							[
+								new vscode.TextEdit(new vscode.Range(diag.range.start,diag.range.start) ,"Version: 0.0.0 ")
+							])
+						return ca
+					}
+					case "version.numbers":
+					{
+						let ca = new vscode.CodeAction("Insert version", vscode.CodeActionKind.QuickFix.append("version").append("numbers"))
+						ca.diagnostics = [diag]
+						ca.edit = new vscode.WorkspaceEdit()
+						ca.edit.set(document.uri,
+							[
+								new vscode.TextEdit(new vscode.Range(diag.range.start,diag.range.start) ,"0.0.0 ")
+							])
+						return ca
+					}
+					case "category.fixend":
+					{
+						let ca = new vscode.CodeAction("Insert :", vscode.CodeActionKind.QuickFix.append("category").append("fixend"))
+						ca.diagnostics = [diag]
+						ca.edit = new vscode.WorkspaceEdit()
+						ca.edit.set(document.uri,
+							[
+								new vscode.TextEdit(new vscode.Range(diag.range.end,diag.range.end) ,":")
+							])
+						return ca
+					}
+					case "category.insert":
+					{
+						let ca = new vscode.CodeAction("Insert category", vscode.CodeActionKind.QuickFix.append("category").append("insert"))
+						ca.diagnostics = [diag]
+						ca.edit = new vscode.WorkspaceEdit()
+						ca.edit.set(document.uri,
+							[
+								new vscode.TextEdit(new vscode.Range(diag.range.start,diag.range.start) ,"  Changes:\n")
+							])
+						return ca
+					}
+					default:
+						return new vscode.CodeAction("Dummy", vscode.CodeActionKind.Empty)
+				}
+			}).filter(diag => !(diag.kind && diag.kind.intersects(vscode.CodeActionKind.Empty)) )
+		}
+		return []
+	}
+}
 
 class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvider {
 
@@ -97,3 +365,4 @@ class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory 
 
 	}
 }
+
