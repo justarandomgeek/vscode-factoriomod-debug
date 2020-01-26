@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.18.2
+
 ## 0.18.1
 
 * __DebugAdapter.print(notstring) will print the object's `describe` lineitem
