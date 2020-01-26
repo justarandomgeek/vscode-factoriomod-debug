@@ -1,5 +1,10 @@
 -- this is a global so the vscode extension can get to it from debug.debug()
-__DebugAdapter = {}
+__DebugAdapter = {
+  -- on_error is a global available in proposed "Instrument Mode"
+  -- This constrols the insertion of debug hooks (don't need xpcall for break-on-exception) and
+  -- stack frame hiding (don't need to hide xpcall)
+  instrument = not not on_error
+}
 local __DebugAdapter = __DebugAdapter
 local require = require
 --this has to be first before requiring other files so they can mark functions as ignored
@@ -25,8 +30,13 @@ local pairs = pairs
 ---@param forRemote boolean | nil
 ---@return StackFrame[]
 function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
-  local offset = 5 -- 0 is getinfo, 1 is stackTrace, 2 is debug command, 3 is debug.debug, 4 is sethook callback, 5 is at breakpoint
-  -- in exceptions    0 is getinfo, 1 is stackTrace, 2 is debug command, 3 is debug.debug, 4 is xpcall callback, 5 is at exception
+  local offset = 5 -- 0 getinfo, 1 stackTrace, 2 debug command, 3 debug.debug, 4 sethook callback, 5 at breakpoint
+  -- in exceptions    0 getinfo, 1 stackTrace, 2 debug command, 3 debug.debug, 4 xpcall callback, 5 at exception
+  -- in instrument ex 0 getinfo, 1 stackTrace, 2 debug command, 3 debug.debug, 4 on_error callback,
+  --                  5 pCallWithStackTraceMessageHandler, 6 at exception
+  if __DebugAdapter.instrument and debug.getinfo(4,"f").func == __DebugAdapter.on_exception then
+    offset = offset + 1
+  end
   local i = (startFrame or 0) + offset
   local stackFrames = {}
   while true do
@@ -119,10 +129,13 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
         stackFrames[#stackFrames+1] = stackFrame
         i = i + 1
       else
-        -- instrumented event/remote handler has two extra frames. Delete them and rename the next bottom frame...
+        -- instrumented event/remote handler has one or two extra frames.
+        -- Delete them and rename the next bottom frame...
         -- this leaves a gap in `i`. Maybe later allow expanding hidden frames?
         stackFrames[#stackFrames] = nil --remoteCallInner or try_func
-        stackFrames[#stackFrames] = nil --xpcall
+        if not __DebugAdapter.instrument then
+          stackFrames[#stackFrames] = nil --xpcall
+        end
 
         ---@type StackFrame
         local lastframe = stackFrames[#stackFrames]

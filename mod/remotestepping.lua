@@ -30,72 +30,131 @@ function remotestepping.parentState()
   end
 end
 
---- Transfer stepping state and perform the call. Vararg arguments will be forwarded to the
---- remote function, and any return value from the remote will be returned with the new stepping state in a table.
----@param parentstep string "remote"*("next" | "in" | "over" | "out")
----@param parentstack StackFrame[]
----@param remotename string
----@param fname string
----@return table
-function remotestepping.callInner(parentstep,parentstack,remotename,fname,...)
-  __DebugAdapter.pushEntryPointName("hookedremote")
-  stacks[#stacks+1] = {
-    stack = parentstack,
-    name = fname,
-  }
-  if parentstep and (parentstep == "over" or parentstep == "out" or parentstep:match("^remote")) then
-    parentstep = "remote" .. parentstep
+if __DebugAdapter.instrument then
+  --- Transfer stepping state and perform the call. Vararg arguments will be forwarded to the
+  --- remote function, and any return value from the remote will be returned with the new stepping state in a table.
+  ---@param parentstep string "remote"*("next" | "in" | "over" | "out")
+  ---@param parentstack StackFrame[]
+  ---@param remotename string
+  ---@param fname string
+  ---@return table
+  function remotestepping.callInner(parentstep,parentstack,remotename,fname,...)
+    __DebugAdapter.pushEntryPointName("hookedremote")
+    stacks[#stacks+1] = {
+      stack = parentstack,
+      name = fname,
+    }
+    if parentstep and (parentstep == "over" or parentstep == "out" or parentstep:match("^remote")) then
+      parentstep = "remote" .. parentstep
+    end
+    __DebugAdapter.step(parentstep,true)
+
+    local func = myRemotes[remotename][fname]
+    local result = {func(...)}
+
+    parentstep = __DebugAdapter.currentStep()
+    __DebugAdapter.step(nil,true)
+    stacks[#stacks] = nil
+    __DebugAdapter.popEntryPointName()
+    parentstep = parentstep and parentstep:match("^remote(.+)$") or parentstep
+    return {step=parentstep,result=result},true
   end
-  __DebugAdapter.step(parentstep,true)
 
-  local func = myRemotes[remotename][fname]
-  local result = {xpcall(func,__DebugAdapter.on_exception,...)}
+  --- Replacement for LuaRemote::call() which passes stepping state along with the call.
+  --- Signature and returns are the same as original LuaRemote::call()
+  function newremote.call(remotename,method,...)
+    local call = oldremote.call
+    -- find out who owns it, if they have debug registered...
+    local debugname = call("debugadapter","whois",remotename)
+    if debugname then
+      debugname = "__debugadapter_" .. debugname
+      local result,multreturn = call(debugname,"remoteCallInner",
+        __DebugAdapter.currentStep(), __DebugAdapter.stackTrace(-2, nil, true),
+        remotename, method, ...)
 
-  parentstep = __DebugAdapter.currentStep()
-  __DebugAdapter.step(nil,true)
-  stacks[#stacks] = nil
-  __DebugAdapter.popEntryPointName()
-  parentstep = parentstep and parentstep:match("^remote(.+)$") or parentstep
-  return {step=parentstep,result=result},true
-end
+      local childstep = result.step
+      result = result.result
 
---- Replacement for LuaRemote::call() which passes stepping state along with the call.
---- Signature and returns are the same as original LuaRemote::call()
-function newremote.call(remotename,method,...)
-  local call = oldremote.call
-  -- find out who owns it, if they have debug registered...
-  local debugname = call("debugadapter","whois",remotename)
-  if debugname then
-    debugname = "__debugadapter_" .. debugname
-    local result,multreturn = call(debugname,"remoteCallInner",
-      __DebugAdapter.currentStep(), __DebugAdapter.stackTrace(-2, nil, true),
-      remotename, method, ...)
-
-    local childstep = result.step
-    result = result.result
-
-    if not result[1] then
-      local err = result[2]
-      local etype = type(err)
-      if etype == "table" and err[1] and ({string=true,table=true})[type(err[1])] then
-        error({"REMSTEP","Error when running interface function ", remotename, ".", method, ":\n", err}, -1)
-      elseif etype == "string" then
-        error(string.format("REMSTEP\nError when running interface function %s.%s:\n%s", remotename, method, err), -1)
+      __DebugAdapter.step(childstep,true)
+      if multreturn then
+        return unpack(result)
       else
-        error(string.format("REMSTEP\nError when running interface function %s.%s:\n%s", remotename, method, variables.describe(err)), -1)
+        return result[1]
       end
-    end
 
-    __DebugAdapter.step(childstep,true)
-    if multreturn then
-      return unpack(result,2)
     else
-      return result[2]
+      -- if whois doesn't know who owns it, they must not have debug registered...
+      return call(remotename,method,...)
     end
+  end
+else
+  --- Transfer stepping state and perform the call. Vararg arguments will be forwarded to the
+  --- remote function, and any return value from the remote will be returned with the new stepping state in a table.
+  ---@param parentstep string "remote"*("next" | "in" | "over" | "out")
+  ---@param parentstack StackFrame[]
+  ---@param remotename string
+  ---@param fname string
+  ---@return table
+  function remotestepping.callInner(parentstep,parentstack,remotename,fname,...)
+    __DebugAdapter.pushEntryPointName("hookedremote")
+    stacks[#stacks+1] = {
+      stack = parentstack,
+      name = fname,
+    }
+    if parentstep and (parentstep == "over" or parentstep == "out" or parentstep:match("^remote")) then
+      parentstep = "remote" .. parentstep
+    end
+    __DebugAdapter.step(parentstep,true)
 
-  else
-    -- if whois doesn't know who owns it, they must not have debug registered...
-    return call(remotename,method,...)
+    local func = myRemotes[remotename][fname]
+    local result = {xpcall(func,__DebugAdapter.on_exception,...)}
+
+    parentstep = __DebugAdapter.currentStep()
+    __DebugAdapter.step(nil,true)
+    stacks[#stacks] = nil
+    __DebugAdapter.popEntryPointName()
+    parentstep = parentstep and parentstep:match("^remote(.+)$") or parentstep
+    return {step=parentstep,result=result},true
+  end
+
+  --- Replacement for LuaRemote::call() which passes stepping state along with the call.
+  --- Signature and returns are the same as original LuaRemote::call()
+  function newremote.call(remotename,method,...)
+    local call = oldremote.call
+    -- find out who owns it, if they have debug registered...
+    local debugname = call("debugadapter","whois",remotename)
+    if debugname then
+      debugname = "__debugadapter_" .. debugname
+      local result,multreturn = call(debugname,"remoteCallInner",
+        __DebugAdapter.currentStep(), __DebugAdapter.stackTrace(-2, nil, true),
+        remotename, method, ...)
+
+      local childstep = result.step
+      result = result.result
+
+      if not result[1] then
+        local err = result[2]
+        local etype = type(err)
+        if etype == "table" and err[1] and ({string=true,table=true})[type(err[1])] then
+          error({"REMSTEP","Error when running interface function ", remotename, ".", method, ":\n", err}, -1)
+        elseif etype == "string" then
+          error(string.format("REMSTEP\nError when running interface function %s.%s:\n%s", remotename, method, err), -1)
+        else
+          error(string.format("REMSTEP\nError when running interface function %s.%s:\n%s", remotename, method, variables.describe(err)), -1)
+        end
+      end
+
+      __DebugAdapter.step(childstep,true)
+      if multreturn then
+        return unpack(result,2)
+      else
+        return result[2]
+      end
+
+    else
+      -- if whois doesn't know who owns it, they must not have debug registered...
+      return call(remotename,method,...)
+    end
   end
 end
 

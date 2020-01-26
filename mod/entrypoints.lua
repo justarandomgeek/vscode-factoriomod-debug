@@ -62,23 +62,37 @@ end
 
 -- don't need the rest in data stage...
 if not script then return end
-
-local function try(func,entryname)
-  if func == nil then return nil end
-  local try_func = function(...)
-    __DebugAdapter.pushEntryPointName(entryname)
-    local success,message = xpcall(func,on_exception,...)
-    if not success then
-      -- factorio will add a new stacktrace below whatever i give it here, and there doesn't seem to be anything i can do about it.
-      -- but i can rename it at least...
-      local rethrow = error
-      rethrow(message,-1)
+local try
+if __DebugAdapter.instrument then
+  try = function(func,entryname)
+    if func == nil then return nil end
+    local try_func = function(...)
+      __DebugAdapter.pushEntryPointName(entryname)
+      func(...)
+      __DebugAdapter.popEntryPointName()
     end
-    __DebugAdapter.popEntryPointName()
+    __DebugAdapter.stepIgnore(try_func)
+    return try_func
   end
-  __DebugAdapter.stepIgnore(try_func)
-  return try_func
+else
+  try = function(func,entryname)
+    if func == nil then return nil end
+    local try_func = function(...)
+      __DebugAdapter.pushEntryPointName(entryname)
+      local success,message = xpcall(func,on_exception,...)
+      if not success then
+        -- factorio will add a new stacktrace below whatever i give it here, and there doesn't seem to be anything i can do about it.
+        -- but i can rename it at least...
+        local rethrow = error
+        rethrow(message,-1)
+      end
+      __DebugAdapter.popEntryPointName()
+    end
+    __DebugAdapter.stepIgnore(try_func)
+    return try_func
+  end
 end
+
 __DebugAdapter.stepIgnore(try)
 
 local oldscript = script
