@@ -8,6 +8,7 @@
 * JSON Schemas for info.json, description.json, server-settings.json, map-settings.json, map-gen-settings.json
 * Syntax highlighting for Locale *.cfg and changelog.txt files
 * Factorio 0.18.1 added LuaSurface::brightness_visual_weights
+* Keep output channel open and reuse between sessions
 
 ## 0.18.0
 
