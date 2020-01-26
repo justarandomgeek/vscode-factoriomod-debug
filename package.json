@@ -152,6 +152,11 @@
                 "description": "Enable automatic management of the debugadapter mod",
                 "default": true
               },
+              "useInstrumentMode": {
+                "type": "boolean",
+                "description": "Use Instrument Mode to hook all mods",
+                "default": false
+              },
               "factorioArgs": {
                 "type": "array",
                 "items": {
