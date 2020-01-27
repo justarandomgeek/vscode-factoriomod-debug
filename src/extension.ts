@@ -38,6 +38,9 @@ export function activate(context: vscode.ExtensionContext) {
 			diagnosticCollection.set(change.document.uri, await validateChangelogTxt(change.document.uri))
 		}
 	})
+	context.subscriptions.push(
+		vscode.languages.registerDocumentSymbolProvider(
+			{scheme:"file", language:"factorio-changelog"}, new ChangelogDocumentSymbolProvider()));
 
 	context.subscriptions.push(
 		vscode.languages.registerColorProvider(
@@ -297,6 +300,88 @@ class ChangelogCodeActionProvider implements vscode.CodeActionProvider {
 			}).filter(diag => !(diag.kind && diag.kind.intersects(vscode.CodeActionKind.Empty)) )
 		}
 		return []
+	}
+}
+
+class ChangelogDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
+	public provideDocumentSymbols(document: vscode.TextDocument, token: vscode.CancellationToken):vscode.DocumentSymbol[]
+	{
+		let symbols:vscode.DocumentSymbol[] = []
+		let version:vscode.DocumentSymbol|undefined
+		let category:vscode.DocumentSymbol|undefined
+		let line:vscode.DocumentSymbol|undefined
+		for (let i = 0; i < document.lineCount; i++) {
+			const element = document.lineAt(i)
+			if (element.text.match(/^Version: .+$/)) {
+
+				version = new vscode.DocumentSymbol(
+					element.text.substr(9,element.text.length),
+					"",
+					vscode.SymbolKind.Namespace,
+					element.range.with(element.range.start.translate(-1,0)),
+					element.range.with(element.range.start.translate(0,9))
+					)
+				symbols.push(version)
+				category = undefined
+				line = undefined
+			}
+			else if (element.text.match(/^Date: .+$/)) {
+				if(version)
+				{
+					version.children.push(new vscode.DocumentSymbol(
+						"Date",
+						element.text.substr(6,element.text.length),
+						vscode.SymbolKind.Property,
+						element.range,
+						element.range.with(element.range.start.translate(0,6))
+						))
+					version.range = version.range.union(element.range)
+				}
+			}
+			else if (element.text.match(/^  [^ ]+:$/)) {
+				if(version)
+				{
+					category = new vscode.DocumentSymbol(
+						element.text.substr(2,element.text.length-2),
+						"",
+						vscode.SymbolKind.Class,
+						element.range,
+						element.range.with(element.range.start.translate(0,2),element.range.end.translate(0,-1))
+						)
+					version.children.push(category)
+					version.range = version.range.union(element.range)
+					line = undefined
+				}
+			}
+			else if (element.text.match(/^    - .+$/)) {
+				if(category)
+				{
+					line = new vscode.DocumentSymbol(
+						element.text.substr(6,element.text.length),
+						"",
+						vscode.SymbolKind.String,
+						element.range,
+						element.range.with(element.range.start.translate(0,6))
+						)
+					category.children.push(line)
+					category.range = category.range.union(element.range)
+				}
+			}
+			else if (element.text.match(/^      .+$/)) {
+				if(line)
+				{
+					line.children.push(new vscode.DocumentSymbol(
+						element.text.substr(6,element.text.length),
+						"",
+						vscode.SymbolKind.String,
+						element.range,
+						element.range.with(element.range.start.translate(0,6))
+						))
+					line.range = line.range.union(element.range)
+				}
+			}
+		}
+		return symbols
 	}
 }
 
