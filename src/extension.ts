@@ -369,18 +369,18 @@ class LocaleColorProvider implements vscode.DocumentColorProvider {
 		for (let i = 0; i < document.lineCount; i++) {
 			const element = document.lineAt(i)
 
-			let re = /\[color=([^\]]+)]([^\[]+)\[[./]color\]/g
+			let re = /\[color=([^\]]+)\]/g
 			let matches = re.exec(element.text)
 			while (matches) {
 				//if (matches[1])
 				{
 					let color = this.colorFromString(matches[1])
 
-					//if (color)
+					if (color)
 					{
 						colors.push(new vscode.ColorInformation(
 							new vscode.Range(i,matches.index+7,i,matches.index + 7 + matches[1].length),
-							color || new vscode.Color(0.343, 0.683, 1.000, 1)
+							color
 						))
 					}
 				}
@@ -392,16 +392,12 @@ class LocaleColorProvider implements vscode.DocumentColorProvider {
 	public provideColorPresentations(
 		color: vscode.Color, context: { document: vscode.TextDocument, range: vscode.Range }, token: vscode.CancellationToken):
 		vscode.ColorPresentation[] {
-		let pres:vscode.ColorPresentation[] = []
-
 		let p = new vscode.ColorPresentation(this.colorToString(color))
 		p.textEdit = new vscode.TextEdit(
 				context.range,
 				this.colorToString(color)
 			)
-		pres.push(p)
-		pres.push(new vscode.ColorPresentation(context.document.getText(context.range)))
-		return pres
+		return [p]
 	}
 }
 
