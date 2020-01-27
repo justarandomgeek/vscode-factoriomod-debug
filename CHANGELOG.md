@@ -9,6 +9,8 @@
 * add support for proposed "Instrument Mode", disabled by default
 * fix incorrect link in campaign schema to scenario schema
 * outline for locale and changelog
+* improved highlighting of plurals in locale files
+* correctly highlight inside enclosing tags in locale
 
 ## 0.18.1
 

@@ -1,6 +1,124 @@
 {
 	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
 	"name": "Factorio Locale",
+	"repository": {
+		"localisedSegment" : {
+			"patterns": [
+				{
+					"name": "variable.parameter.factorio-locale",
+					"match": "__\\d+__"
+				},
+				{
+					"name": "variable.language.factorio-locale",
+					"match": "__((ALT_)?CONTROL(_MOVE)?|ENTITY|ITEM|TILE)__.+?__"
+				},
+				{
+					"name": "keyword.control.plural.factorio-locale",
+					"match": "__plural_for_parameter_([0-9]+)_\\{([^}]*)\\}__",
+					"captures": {
+						"1": {
+							"name":"variable.parameter.factorio-locale"
+						},
+						"2": {
+							"patterns": [
+								{
+									"name":"keyword.operator.factorio-locale",
+									"match": "\\|"
+								},
+								{
+									"match": "([^=|]+)(=)([^|]+)",
+									"captures": {
+										"1":{
+											"patterns": [
+												{
+													"name": "entity.name.function.plural.factorio-locale",
+													"match": "rest"
+												},
+												{
+													"name": "entity.name.function.plural.factorio-locale",
+													"match": "(ends in )?\\d+(-\\d+)?"
+												},
+												{
+													"name":"keyword.operator.factorio-locale",
+													"match": ","
+												}
+											]
+										},
+										"2": {
+											"name": "punctuation.separator.key-value.factorio-locale"
+										},
+										"3": {
+											"name": "string.unquoted.factorio-locale",
+											"patterns": [
+												{
+													"include": "#localisedSegment"
+												}
+											]
+										}
+									}
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "constant.character.escape.factorio-locale",
+					"match": "\\n"
+				},
+				{
+					"name": "entity.name.tag.font.factorio-locale",
+					"begin": "\\[font=([^\\]]*)\\]",
+					"beginCaptures": {
+						"1":{
+							"name": "variable.other.factorio-locale"
+						}
+					},
+					"end": "\\[[./]font\\]",
+					"contentName": "string.unquoted.factorio-locale",
+					"patterns": [
+						{
+							"include": "#localisedSegment"
+						}
+					]
+				},
+				{
+					"name": "entity.name.tag.color.factorio-locale",
+					"begin": "\\[color=([^\\]]*)\\]",
+					"beginCaptures": {
+						"1":{
+							"name": "variable.other.factorio-locale"
+						}
+					},
+					"end": "\\[[./]color\\]",
+					"contentName": "string.unquoted.factorio-locale",
+					"patterns": [
+						{
+							"include": "#localisedSegment"
+						}
+					]
+				},
+				{
+					"name": "entity.name.tag.factorio-locale",
+					"match": "\\[(?:img|(?:special-)?item(?:-group)?|entity|technology|recipe|fluid|tile|virtual-signal|achievement|gps|armor|train(?:-stop)?)=([^\\]]*)\\]",
+					"captures": {
+						"1":{
+							"name": "variable.other.factorio-locale"
+						}
+					}
+				},
+				{
+					"name": "invalid.entity.name.tag.factorio-locale",
+					"begin": "\\[",
+					"end": "\\]"
+				},
+				{
+					"name": "invalid.variable.factorio-locale",
+					"match": "__.+__"
+				}
+			]
+		}
+
+	},
 	"patterns": [
 		{
 			"name": "entity.name.class.factorio-locale",
@@ -19,56 +137,7 @@
 					"name": "string.unquoted.factorio-locale",
 					"patterns": [
 						{
-							"name": "variable.parameter.factorio-locale",
-							"match": "__[12]?\\d__"
-						},
-						{
-							"name": "variable.other.factorio-locale",
-							"match": "__((ALT_)?CONTROL(_MOVE)?|ENTITY|ITEM|TILE)__.+?__"
-						},
-						{
-							"name": "variable.name.factorio-locale",
-							"match": "__.+?__"
-						},
-						{
-							"name": "constant.character.escape.factorio-locale",
-							"match": "\\n"
-						},
-						{
-							"name": "entity.name.tag.font.factorio-locale",
-							"begin": "\\[font=([^\\]]*)\\]",
-							"beginCaptures": {
-								"1":{
-									"name": "variable.other.factorio-locale"
-								}
-							},
-							"end": "\\[[./]font\\]",
-							"contentName": "string.unquoted.factorio-locale"
-						},
-						{
-							"name": "entity.name.tag.color.factorio-locale",
-							"begin": "\\[color=([^\\]]*)\\]",
-							"beginCaptures": {
-								"1":{
-									"name": "variable.other.factorio-locale"
-								}
-							},
-							"end": "\\[[./]color\\]",
-							"contentName": "string.unquoted.factorio-locale"
-						},
-						{
-							"name": "entity.name.tag.factorio-locale",
-							"match": "\\[(?:img|(?:special-)?item(?:-group)?|entity|technology|recipe|fluid|tile|virtual-signal|achievement|gps|armor|train(?:-stop)?)=([^\\]]*)\\]",
-							"captures": {
-								"1":{
-									"name": "variable.other.factorio-locale"
-								}
-							}
-						},
-						{
-							"name": "invalid.entity.name.tag.factorio-locale",
-							"begin": "\\[",
-							"end": "\\]"
+							"include": "#localisedSegment"
 						}
 					]
 				}
