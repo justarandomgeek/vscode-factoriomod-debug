@@ -192,11 +192,20 @@ async function validateChangelogTxt(uri:vscode.Uri): Promise<vscode.Diagnostic[]
 					})
 				}
 			}
+			else if(line.length > 0)
+			{
+				diags.push({
+					"message": "Unrecognized line format",
+					"source": "factorio-changelog",
+					"severity": vscode.DiagnosticSeverity.Error,
+					"range": new vscode.Range(i,0,i,line.length)
+				})
+			}
 		}
 		else
 		{
 			diags.push({
-				"message": "Unrecognized line format or line not in valid block",
+				"message": "Line not in valid block",
 				"source": "factorio-changelog",
 				"severity": vscode.DiagnosticSeverity.Error,
 				"range": new vscode.Range(i,0,i,line.length)
