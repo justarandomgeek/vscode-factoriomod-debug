@@ -6,6 +6,7 @@
 * correctly highlight changelog version number with only two numeric parts
 * changelog linter
 * color widget on [color=...] tags in locale
+* add support for proposed "Instrument Mode", disabled by default
 
 ## 0.18.1
 
