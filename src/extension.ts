@@ -42,6 +42,11 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		vscode.languages.registerColorProvider(
 			{scheme:"file", language:"factorio-locale"}, new LocaleColorProvider()));
+
+	context.subscriptions.push(
+		vscode.languages.registerDocumentSymbolProvider(
+			{scheme:"file", language:"factorio-locale"}, new LocaleDocumentSymbolProvider()));
+
 }
 
 export function deactivate() {
@@ -358,32 +363,30 @@ class LocaleColorProvider implements vscode.DocumentColorProvider {
 		return `#${this.padHex(color.red * 255)}${this.padHex(color.green * 255)}${this.padHex(color.blue * 255)}${color.alpha < 1 ?this.padHex(color.alpha * 255): "" }`
 	}
 
-	public provideDocumentColors(
-		document: vscode.TextDocument, token: vscode.CancellationToken):
-		vscode.ColorInformation[] {
-			let colors:vscode.ColorInformation[] = []
-			for (let i = 0; i < document.lineCount; i++) {
-				const element = document.lineAt(i)
+	public provideDocumentColors(document: vscode.TextDocument, token: vscode.CancellationToken):vscode.ColorInformation[]
+	{
+		let colors:vscode.ColorInformation[] = []
+		for (let i = 0; i < document.lineCount; i++) {
+			const element = document.lineAt(i)
 
-				let re = /\[color=([^\]]+)]([^\[]+)\[[./]color\]/g
-				let matches = re.exec(element.text)
-				while (matches) {
-					//if (matches[1])
+			let re = /\[color=([^\]]+)]([^\[]+)\[[./]color\]/g
+			let matches = re.exec(element.text)
+			while (matches) {
+				//if (matches[1])
+				{
+					let color = this.colorFromString(matches[1])
+
+					//if (color)
 					{
-						let color = this.colorFromString(matches[1])
-
-						//if (color)
-						{
-							colors.push(new vscode.ColorInformation(
-								new vscode.Range(i,matches.index+7,i,matches.index + 7 + matches[1].length),
-								color || new vscode.Color(0.343, 0.683, 1.000, 1)
-							))
-						}
+						colors.push(new vscode.ColorInformation(
+							new vscode.Range(i,matches.index+7,i,matches.index + 7 + matches[1].length),
+							color || new vscode.Color(0.343, 0.683, 1.000, 1)
+						))
 					}
-					matches = re.exec(element.text)
 				}
+				matches = re.exec(element.text)
 			}
-
+		}
 		return colors
 	}
 	public provideColorPresentations(
@@ -401,6 +404,46 @@ class LocaleColorProvider implements vscode.DocumentColorProvider {
 		return pres
 	}
 }
+
+class LocaleDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
+	public provideDocumentSymbols(document: vscode.TextDocument, token: vscode.CancellationToken):vscode.DocumentSymbol[]
+	{
+		let symbols:vscode.DocumentSymbol[] = []
+		let category:vscode.DocumentSymbol|undefined
+		for (let i = 0; i < document.lineCount; i++) {
+			const element = document.lineAt(i)
+			if (element.text.match(/^\[([^\]])+\]$/)) {
+				category = new vscode.DocumentSymbol(
+					element.text.substr(1,element.text.length-2),
+					"",
+					vscode.SymbolKind.Namespace,
+					element.range,
+					new vscode.Range(element.range.start.translate(0,1),element.range.end.translate(0,-1))
+					)
+				symbols.push(category)
+			}
+			else {
+				let matches = element.text.match(/^([^=]+)=(.+)$/)
+				if (matches) {
+					let s = new vscode.DocumentSymbol(
+						matches[1],
+						matches[2],
+						vscode.SymbolKind.String,
+						element.range,
+						new vscode.Range(element.range.start,element.range.start.translate(0,matches[2].length))
+						)
+					if(category){
+						category.children.push(s)
+						category.range = category.range.union(element.range)
+					}
+				}
+
+			}
+		}
+		return symbols
+	}
+}
+
 
 class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvider {
 

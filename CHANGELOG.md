@@ -8,6 +8,7 @@
 * color widget on [color=...] tags in locale
 * add support for proposed "Instrument Mode", disabled by default
 * fix incorrect link in campaign schema to scenario schema
+* outline for locale files
 
 ## 0.18.1
 
