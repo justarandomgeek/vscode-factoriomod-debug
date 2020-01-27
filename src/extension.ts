@@ -3,7 +3,6 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
-import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken } from 'vscode';
 import { FactorioModDebugSession } from './factorioModDebug';
 import { LocaleColorProvider, LocaleDocumentSymbolProvider } from './LocaleLangProvider';
 import { ChangelogCodeActionProvider, validateChangelogTxt, ChangelogDocumentSymbolProvider } from './ChangeLogLangProvider';
@@ -63,7 +62,7 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 	 * Massage a debug configuration just before a debug session is being launched,
 	 * e.g. add all missing attributes to the debug configuration.
 	 */
-	resolveDebugConfiguration(folder: WorkspaceFolder | undefined, config: DebugConfiguration, token?: CancellationToken): ProviderResult<DebugConfiguration> {
+	resolveDebugConfiguration(folder: vscode.WorkspaceFolder | undefined, config: vscode.DebugConfiguration, token?: vscode.CancellationToken): vscode.ProviderResult<vscode.DebugConfiguration> {
 		// factorio path exists and is a file (and is a binary?)
 		if (!config.factorioPath || !fs.existsSync(config.factorioPath) ){
 			return vscode.window.showInformationMessage("factorioPath is required").then(_ => {
@@ -122,7 +121,7 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 
 class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
 
-	createDebugAdapterDescriptor(_session: vscode.DebugSession): ProviderResult<vscode.DebugAdapterDescriptor> {
+	createDebugAdapterDescriptor(_session: vscode.DebugSession): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
 		return new vscode.DebugAdapterInlineImplementation(new FactorioModDebugSession());
 	}
 
