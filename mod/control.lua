@@ -89,4 +89,5 @@ end)
 remote.add_interface("debugadapter",{
   updateBreakpoints = updateBreakpoints,
   whois = whois,
+  error = error,
 })

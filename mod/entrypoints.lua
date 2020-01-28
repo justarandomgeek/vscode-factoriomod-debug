@@ -1,3 +1,8 @@
+local remote = remote and rawget(remote,"__raw") or remote
+local function evil_translate(localisedString)
+  return select(2,pcall(remote.call,"debugadapter","error",localisedString)):match("debugadapter.error: (.+)\nstack traceback:")
+end
+
 local on_exception
 if __DebugAdapter.instrument then
   on_exception = function (mesg)
@@ -15,6 +20,8 @@ if __DebugAdapter.instrument then
       -- localised_print is a proposed api function which would print a LocalisedString to stdout
       if localised_print then
         localised_print({"","DBG: exception ",mesg})
+      elseif script.mod_name ~= "debugadapter" then
+        print("DBG: exception " .. evil_translate(mesg):match("^([^\n]+)"))
       else
         print("DBG: exception " .. __DebugAdapter.describe(mesg))
       end
@@ -55,6 +62,8 @@ else
         -- localised_print is a proposed api function which would print a LocalisedString to stdout
         if localised_print then
           localised_print({"","DBG: exception ",mesg})
+        elseif script.mod_name ~= "debugadapter" then
+          print("DBG: exception " .. evil_translate(mesg):match("^([^\n]+)"))
         else
           print("DBG: exception " .. __DebugAdapter.describe(mesg))
         end

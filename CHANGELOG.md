@@ -4,6 +4,7 @@
 
 * non-standard category in changelog as Hint instead of Information
 * Factorio 0.18.2 added LuaEntityPrototype::inserter_pickup_position and inserter_drop_position
+* evil translation hack to display translated LocalisedString errors
 
 ## 0.18.2
 
