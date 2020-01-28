@@ -2,7 +2,7 @@
 
 ## 0.18.3
 
-
+* non-standard category in changelog as Hint instead of Information
 
 ## 0.18.2
 

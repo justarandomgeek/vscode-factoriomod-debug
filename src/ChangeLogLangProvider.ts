@@ -104,7 +104,7 @@ export async function validateChangelogTxt(document: vscode.Uri|vscode.TextDocum
 					diags.push({
 						"message": "Non-standard category names will be placed after \"All\"",
 						"source": "factorio-changelog",
-						"severity": vscode.DiagnosticSeverity.Information,
+						"severity": vscode.DiagnosticSeverity.Hint,
 						"range": new vscode.Range(i, 2, i, line.length - 1)
 					});
 				}
