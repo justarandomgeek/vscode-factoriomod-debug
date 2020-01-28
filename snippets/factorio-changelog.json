@@ -1,13 +1,28 @@
 {
-  "New Version Block": {
-    "prefix": ["version"],
+  "Version Block": {
+    "prefix": ["versionblock"],
     "body": [
       "---------------------------------------------------------------------------------------------------",
-      "Version: ${1:0.0.0}",
+      "Version: ${1:${TM_DIRECTORY/^.+_(\\d+\\.\\d+\\.\\d+)$/${1:0.0.0}/}}",
       "Date: ${2:????}",
       "  ${3:Changes}:",
       "    - $0"
     ],
     "description": "A new version block"
+  },
+  "Version": {
+    "prefix": ["version"],
+    "body": ["Version: ${1:${TM_DIRECTORY/^.+_(\\d+\\.\\d+\\.\\d+)$/${1:0.0.0}/}}"],
+    "description": "Version line with auto-detected version"
+  },
+  "Date": {
+    "prefix": ["date"],
+    "body": ["Date: ${1:$CURRENT_YEAR}-${2:$CURRENT_MONTH}-${3:$CURRENT_DATE}"],
+    "description": "Date line"
+  },
+  "Unspecified Date": {
+    "prefix": ["undate"],
+    "body": ["Date: ${1:????}"],
+    "description": "Date line with unspecified date"
   }
 }
