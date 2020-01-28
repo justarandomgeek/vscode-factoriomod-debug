@@ -43,12 +43,12 @@
     "vscode-debugadapter": "1.38.0-pre.4"
   },
   "devDependencies": {
-    "@types/node": "10.12.12",
-    "typescript": "3.5.3",
+    "@types/node": "12.12.6",
+    "typescript": "3.7.5",
     "vscode": "1.1.36",
-    "vscode-debugadapter-testsupport": "1.37.0",
-    "tslint": "5.18.0",
-    "vsce": "1.66.0"
+    "vscode-debugadapter-testsupport": "1.40.0",
+    "tslint": "6.0.0",
+    "vsce": "1.71.0"
   },
   "main": "./out/extension",
   "activationEvents": [
@@ -60,17 +60,26 @@
     "languages": [
       {
         "id": "factorio-locale",
-        "aliases": ["Factorio Locale", "factorio-locale"],
-        "extensions": [".cfg"],
+        "aliases": [
+          "Factorio Locale",
+          "factorio-locale"
+        ],
+        "extensions": [
+          ".cfg"
+        ],
         "configuration": "./factorio-locale.language-configuration.json"
       },
       {
         "id": "factorio-changelog",
-        "aliases": ["Factorio Changelog", "factorio-changelog"],
-        "filenames": ["changelog.txt"],
+        "aliases": [
+          "Factorio Changelog",
+          "factorio-changelog"
+        ],
+        "filenames": [
+          "changelog.txt"
+        ],
         "configuration": "./factorio-changelog.language-configuration.json"
       }
-
     ],
     "grammars": [
       {
@@ -168,7 +177,6 @@
                 },
                 "default": [],
                 "description": "Extra command line arguments to pass to Factorio"
-
               }
             }
           }

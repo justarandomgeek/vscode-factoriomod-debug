@@ -270,7 +270,7 @@ export class FactorioModRuntime extends EventEmitter {
 		this._factorio.on("exit", (code:number, signal:string) => {
 			this.sendEvent('end');
 		});
-		const stderr = this._factorio.stderr.pipe(StreamSplitter("\n"));
+		const stderr = this._factorio.stderr?.pipe(StreamSplitter("\n"));
 		stderr.on("token", (chunk:any) => {
 			let chunkstr : string = chunk.toString();
 			chunkstr = chunkstr.replace(/lua_debug>/g,"");
@@ -281,7 +281,7 @@ export class FactorioModRuntime extends EventEmitter {
 				this.sendEvent('output', chunkstr, "stderr");
 			}
 		});
-		const stdout = this._factorio.stdout.pipe(StreamSplitter("\n"));
+		const stdout = this._factorio.stdout?.pipe(StreamSplitter("\n"));
 		stdout.on("token", (chunk:any) => {
 			let chunkstr = chunk.toString();
 			if (chunkstr.startsWith("DBG: ")) {
@@ -402,7 +402,7 @@ export class FactorioModRuntime extends EventEmitter {
 		{
 			this.updateBreakpoints(updateAllBreakpoints);
 		}
-		this._factorio.stdin.write("cont\n");
+		this._factorio.stdin?.write("cont\n");
 	}
 
 	/**
@@ -413,15 +413,15 @@ export class FactorioModRuntime extends EventEmitter {
 		{
 			this.updateBreakpoints();
 		}
-		this._factorio.stdin.write(`__DebugAdapter.step("${event}")\n`);
-		this._factorio.stdin.write("cont\n");
+		this._factorio.stdin?.write(`__DebugAdapter.step("${event}")\n`);
+		this._factorio.stdin?.write("cont\n");
 	}
 
 	/**
 	 * Returns a fake 'stacktrace' where every 'stackframe' is a word from the current line.
 	 */
 	public async stack(startFrame: number, endFrame: number): Promise<StackFrame[]> {
-		this._factorio.stdin.write(`__DebugAdapter.stackTrace(${startFrame},${endFrame-startFrame})\n`);
+		this._factorio.stdin?.write(`__DebugAdapter.stackTrace(${startFrame},${endFrame-startFrame})\n`);
 
 		await this._stack.wait(1000);
 
@@ -429,7 +429,7 @@ export class FactorioModRuntime extends EventEmitter {
 	}
 
 	public async modules(): Promise<Module[]> {
-		this._factorio.stdin.write(`__DebugAdapter.modules()\n`);
+		this._factorio.stdin?.write(`__DebugAdapter.modules()\n`);
 
 		await this._modules.wait(1000);
 
@@ -439,7 +439,7 @@ export class FactorioModRuntime extends EventEmitter {
 	public async scopes(frameId: number): Promise<Scope[]> {
 		let subj = new Subject();
 		this._scopes.set(frameId, subj);
-		this._factorio.stdin.write(`__DebugAdapter.scopes(${frameId})\n`);
+		this._factorio.stdin?.write(`__DebugAdapter.scopes(${frameId})\n`);
 
 		await subj.wait(1000);
 		let scopes:Scope[] = subj.scopes;
@@ -451,7 +451,7 @@ export class FactorioModRuntime extends EventEmitter {
 	public async vars(variablesReference: number, seq: number, filter?: string, start?: number, count?: number): Promise<Variable[]> {
 		let subj = new Subject();
 		this._vars.set(seq, subj);
-		this._factorio.stdin.write(`__DebugAdapter.variables(${variablesReference},${seq},${filter? `"${filter}"`:"nil"},${start || "nil"},${count || "nil"})\n`);
+		this._factorio.stdin?.write(`__DebugAdapter.variables(${variablesReference},${seq},${filter? `"${filter}"`:"nil"},${start || "nil"},${count || "nil"})\n`);
 
 		await subj.wait(1000);
 		let vars:Variable[] = subj.vars;
@@ -475,7 +475,7 @@ export class FactorioModRuntime extends EventEmitter {
 	public async setVar(args: DebugProtocol.SetVariableArguments, seq: number): Promise<Variable> {
 		let subj = new Subject();
 		this._setvars.set(seq, subj);
-		this._factorio.stdin.write(`__DebugAdapter.setVariable(${args.variablesReference},${this.luaBlockQuote(Buffer.from(args.name))},${this.luaBlockQuote(Buffer.from(args.value))},${seq})\n`);
+		this._factorio.stdin?.write(`__DebugAdapter.setVariable(${args.variablesReference},${this.luaBlockQuote(Buffer.from(args.name))},${this.luaBlockQuote(Buffer.from(args.value))},${seq})\n`);
 
 		await subj.wait(1000);
 		let setvar:Variable = subj.setvar;
@@ -493,7 +493,7 @@ export class FactorioModRuntime extends EventEmitter {
 
 		let subj = new Subject();
 		this._evals.set(seq, subj);
-		this._factorio.stdin.write(`__DebugAdapter.evaluate(${args.frameId},"${args.context}",${this.luaBlockQuote(Buffer.from(args.expression.replace(/\n/g," ")))},${seq})\n`);
+		this._factorio.stdin?.write(`__DebugAdapter.evaluate(${args.frameId},"${args.context}",${this.luaBlockQuote(Buffer.from(args.expression.replace(/\n/g," ")))},${seq})\n`);
 
 		await subj.wait(1000);
 		let evalresult = subj.evalresult;
@@ -678,7 +678,7 @@ export class FactorioModRuntime extends EventEmitter {
 			}
 		});
 		this._breakPointsChanged.clear();
-		this._factorio.stdin.write(Buffer.concat(changes));
+		this._factorio.stdin?.write(Buffer.concat(changes));
 	}
 
 	/*
