@@ -1,9 +1,9 @@
 {
   "name": "factoriomod-debug",
   "displayName": "Factorio Mod Debug",
-  "version": "0.18.2",
+  "version": "0.18.3",
   "publisher": "justarandomgeek",
-  "description": "Debug Adapter for developing Factorio Mods",
+  "description": "Debug Tools for developing Factorio Mods",
   "author": {
     "name": "justarandomgeek",
     "email": "justarandomgeek@live.com"
