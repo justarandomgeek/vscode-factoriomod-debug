@@ -35,7 +35,7 @@ export function activate(context: vscode.ExtensionContext) {
 		if (change.document.languageId == "factorio-changelog")
 		{
 			// if it's changelog.txt, recheck diagnostics...
-			diagnosticCollection.set(change.document.uri, await validateChangelogTxt(change.document.uri))
+			diagnosticCollection.set(change.document.uri, await validateChangelogTxt(change.document))
 		}
 	})
 	context.subscriptions.push(

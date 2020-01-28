@@ -1,7 +1,8 @@
 'use strict';
 import * as vscode from 'vscode';
-export async function validateChangelogTxt(uri: vscode.Uri): Promise<vscode.Diagnostic[]> {
-	const changelog = (await vscode.workspace.fs.readFile(uri)).toString().split(/\r?\n/);
+export async function validateChangelogTxt(document: vscode.Uri|vscode.TextDocument): Promise<vscode.Diagnostic[]> {
+	const changelog = (document instanceof vscode.Uri ?
+		(await vscode.workspace.fs.readFile(document)).toString() : document.getText()).split(/\r?\n/);
 	let diags: vscode.Diagnostic[] = [];
 	let seenStart = false;
 	let seenStartLast = false;
