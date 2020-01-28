@@ -1,5 +1,6 @@
 local remote = remote and rawget(remote,"__raw") or remote
 local function evil_translate(localisedString)
+  -- Seriously, please don't copy this anywhere, this is horrible.
   return select(2,pcall(remote.call,"debugadapter","error",localisedString)):match("debugadapter.error: (.+)\nstack traceback:")
 end
 
