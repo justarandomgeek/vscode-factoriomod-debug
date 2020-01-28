@@ -557,6 +557,8 @@ return {
       respawn_time = {readOnly = true},
       damage_hit_tint = {readOnly = true},
       character_corpse = {readOnly = true},
+      inserter_pickup_position = {readOnly = true},
+      inserter_drop_position = {readOnly = true},
     },
     LuaEquipment = {
       name = {readOnly = true},

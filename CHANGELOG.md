@@ -3,6 +3,7 @@
 ## 0.18.3
 
 * non-standard category in changelog as Hint instead of Information
+* Factorio 0.18.2 added LuaEntityPrototype::inserter_pickup_position and inserter_drop_position
 
 ## 0.18.2
 
