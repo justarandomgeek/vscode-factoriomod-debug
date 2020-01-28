@@ -108,6 +108,10 @@
         "url": "./schema/modinfo.json"
       },
       {
+        "fileMatch": "locale/*/info.json",
+        "url": "./schema/localeinfo.json"
+      },
+      {
         "fileMatch": "scenarios/*/description.json",
         "url": "./schema/scenario.json"
       },

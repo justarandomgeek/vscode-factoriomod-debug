@@ -1,0 +1,21 @@
+{
+  "title": "Factorio Locale info.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required":[
+  ],
+  "properties": {
+    "language-name": {
+      "type":"string"
+    },
+    "font": {
+      "type":"object",
+      "additionalProperties": {
+        "type":"array",
+        "items": {
+          "type":"string"
+        }
+      }
+    }
+  }
+}
