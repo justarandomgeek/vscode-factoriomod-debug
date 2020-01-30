@@ -38,6 +38,9 @@ export function activate(context: vscode.ExtensionContext) {
 			diagnosticCollection.set(change.document.uri, await validateChangelogTxt(change.document))
 		}
 	})
+	vscode.workspace.onDidDeleteFiles(deleted => {
+		deleted.files.forEach(uri=>{diagnosticCollection.set(uri, undefined)})
+	})
 	context.subscriptions.push(
 		vscode.languages.registerDocumentSymbolProvider(
 			{scheme:"file", language:"factorio-changelog"}, new ChangelogDocumentSymbolProvider()));

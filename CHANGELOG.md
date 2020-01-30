@@ -6,6 +6,7 @@
 * Factorio 0.18.2 added LuaEntityPrototype::inserter_pickup_position and inserter_drop_position
 * evil translation hack to display translated LocalisedString errors
 * changelog linter error for line prefix with no content
+* remove changelog diagnostics when a file is removed
 
 ## 0.18.2
 
