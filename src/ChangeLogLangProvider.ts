@@ -120,6 +120,14 @@ export async function validateChangelogTxt(document: vscode.Uri|vscode.TextDocum
 						"range": new vscode.Range(i, 0, i, line.length)
 					});
 				}
+				if (line.length == 6) {
+					diags.push({
+						"message": "Blank entry line",
+						"source": "factorio-changelog",
+						"severity": vscode.DiagnosticSeverity.Error,
+						"range": new vscode.Range(i, 0, i, line.length)
+					});
+				}
 			}
 			else if (line.length > 0) {
 				diags.push({
