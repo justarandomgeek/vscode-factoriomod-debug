@@ -211,7 +211,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 		const stk = await this._runtime.stack(startFrame, endFrame);
 
-		response.body = { stackFrames: stk.map(
+		response.body = { stackFrames: (stk||[]).map(
 			(frame) =>{
 				if (frame && frame.source && frame.source.path)
 				{
