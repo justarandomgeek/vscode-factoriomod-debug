@@ -7,6 +7,7 @@
 * evil translation hack to display translated LocalisedString errors
 * changelog linter error for line prefix with no content
 * remove changelog diagnostics when a file is removed
+* allow two-part version in info.json dependencies
 
 ## 0.18.2
 
