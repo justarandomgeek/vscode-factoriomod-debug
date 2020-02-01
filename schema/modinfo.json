@@ -51,6 +51,42 @@
         "type":"string",
         "pattern": "^(([!?]|\\(\\?\\)) *)?([a-zA-Z0-9_-]+)( *([<>=]=?) *((\\d+\\.){1,2}\\d+))?$"
       }
+    },
+    "package": {
+      "type":"object",
+      "description": "Configuration for automaticaly packaging and publishing this mod [VSCode Extension]",
+      "properties": {
+        "ignore":{
+          "type":"array",
+          "description": "Globs to ignore when building zip package",
+          "items": {
+            "type":"string",
+            "format": "glob"
+          }
+        },
+        "no_git_push": {
+          "type":"boolean",
+          "description": "Don't automatically `git push` when publishing"
+        },
+        "scripts":{
+          "type":"object",
+          "description": "Additional scripts to run while packaging/publishing mods",
+          "properties": {
+            "prepublish": {
+              "type":"string",
+              "description": "Command to run while preparing the pre-publish commit. Files added to git during this command will be included in that commit."
+            },
+            "prepackage": {
+              "type":"string",
+              "description": "Command to run while preparing the zip package. Files created/changed during this command will be included in the zip."
+            },
+            "publish": {
+              "type":"string",
+              "description": "Command to run while preparing the post-publish commit, after incrementing the version. Files added to git during this command will be included in that commit."
+            }
+          }
+        }
+      }
     }
   }
 }

@@ -30,6 +30,44 @@ if mods["debugadapter"] then require('__debugadapter__/debugadapter.lua') end
 ```
 and debug will be enabled until the end of the stage. Any mods requiring again after that will have no further effect (debug remains active).
 
+## Automatic Mod Packaging and Publishing
+
+Mods can be automatically Packaged and Published from the "Factorio Mod Packages" panel in Explorer view.
+
+### Package
+  * run `info.json#/package/scripts/prepackage` if set
+  * build a zip including all files in the mod directory, except dotfiles and those matching the list of globs in `info.json#/package/ignore`.
+
+### Publish
+  * verify no uncomitted changes, on `master`
+  * run `info.json#/package/scripts/prepublish` if set
+  * if changelog.txt present and has a section for the current version, update its date to today
+  * git commit "preparing release of version x.y.z", tag x.y.z
+  * run **Packge**
+  * increment version in info.json
+  * if changelog.txt present, add new empty section to changelog.txt
+  * run `info.json#/package/scripts/publish` if set
+  * commit "moved to version x.y.z"
+  * push to git upstream
+  * upload to mod portal
+
+## JSON Validation
+
+JSON Validation and Intellisense is provided for all of Factorio's JSON files:
+  * Mod `info.json`
+  * Scenario and Campaign `description.json`
+  * Locale `info.json`
+  * `map-settings.json`
+  * `map-gen-settings.json`
+  * `server-settings.json`
+
+## Changelog support
+
+Language support including syntax highlighting, document outline, and linting.
+
+## Locale support
+Language support including syntax highlighting and document outline.
+
 ## String Interpolation
 
 Logpoint expressions and `__debugline` strings are will interpolate expressions in `{}`. The inner expression is evaluated as lua code, and has access to all locals and upvalues at the current location (for logpoints), or members of the current object and the object itself as `self` (for `__debugline`). The expression always has access to globals. `{[}` and `{]}` can be used to emit literal `{` and `}`.

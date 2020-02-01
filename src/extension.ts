@@ -6,6 +6,7 @@ import * as os from 'os';
 import { FactorioModDebugSession } from './factorioModDebug';
 import { LocaleColorProvider, LocaleDocumentSymbolProvider } from './LocaleLangProvider';
 import { ChangelogCodeActionProvider, validateChangelogTxt, ChangelogDocumentSymbolProvider } from './ChangeLogLangProvider';
+import { ModsTreeDataProvider } from './ModPackageProvider';
 
 let diagnosticCollection: vscode.DiagnosticCollection;
 
@@ -53,6 +54,11 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.languages.registerDocumentSymbolProvider(
 			{scheme:"file", language:"factorio-locale"}, new LocaleDocumentSymbolProvider()));
 
+	if (vscode.workspace.workspaceFolders) {
+		let treeDataProvider = new ModsTreeDataProvider(context);
+		const view = vscode.window.createTreeView('factoriomods', { treeDataProvider: treeDataProvider });
+		context.subscriptions.push(view);
+	}
 }
 
 export function deactivate() {

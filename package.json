@@ -38,9 +38,11 @@
     "publish": "vsce publish"
   },
   "dependencies": {
+    "archiver": "^3.1.1",
     "await-notify": "1.0.1",
     "stream-splitter": "^0.3.2",
-    "vscode-debugadapter": "1.38.0-pre.4"
+    "vscode-debugadapter": "1.38.0-pre.4",
+    "web-request": "^1.0.7"
   },
   "devDependencies": {
     "@types/node": "12.12.6",
@@ -54,9 +56,87 @@
   "activationEvents": [
     "onDebug",
     "workspaceContains:**/changelog.txt",
-    "onLanguage:factorio-locale"
+    "workspaceContains:**/info.json",
+    "onLanguage:factorio-locale",
+    "onView:factoriomods"
   ],
   "contributes": {
+    "configuration":[
+      {
+        "title": "Factorio Mod Debug",
+        "properties": {
+          "factorio.portalUsername":{
+            "type":"string",
+            "description": "Username for Factorio Mod Portal to enable automatically uploading mods"
+          },
+          "factorio.portalPassword":{
+            "type":"string",
+            "description": "Password for Factorio Mod Portal to enable automatically uploading mods"
+          }
+        }
+      }
+    ],
+    "taskDefinitions": [
+      {
+        "type": "factorio"
+      }
+    ],
+    "commands": [
+      {
+        "command": "factorio.package",
+        "category": "Factorio",
+        "title": "Package Mod",
+        "icon": "$(package)"
+      },
+      {
+        "command": "factorio.publish",
+        "category": "Factorio",
+        "title": "Publish Mod",
+        "icon": "$(repo-push)"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "factoriomods",
+          "name": "Factorio Mod Packages"
+        }
+      ]
+    },
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "factorio.package",
+          "when": "false"
+        },
+        {
+          "command": "factorio.publish",
+          "when": "false"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "factorio.package",
+          "when": "view == factoriomods && viewItem == mod",
+          "group": "navigation@1"
+        },
+        {
+          "command": "factorio.publish",
+          "when": "view == factoriomods && viewItem == mod",
+          "group": "navigation@2"
+        },
+        {
+          "command": "factorio.package",
+          "when": "view == factoriomods && viewItem == mod",
+          "group": "inline"
+        },
+        {
+          "command": "factorio.publish",
+          "when": "view == factoriomods && viewItem == mod",
+          "group": "inline"
+        }
+      ]
+    },
     "languages": [
       {
         "id": "factorio-locale",
