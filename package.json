@@ -55,6 +55,7 @@
   "main": "./out/extension",
   "activationEvents": [
     "onDebug",
+    "onCommand:workbench.action.tasks.runTask",
     "workspaceContains:**/changelog.txt",
     "workspaceContains:**/info.json",
     "onLanguage:factorio-locale",
@@ -78,7 +79,15 @@
     ],
     "taskDefinitions": [
       {
-        "type": "factorio"
+        "type": "factorio",
+        "properties": {
+          "command": {
+            "type":"string"
+          },
+          "modname":{
+            "type":"string"
+          }
+        }
       }
     ],
     "commands": [
