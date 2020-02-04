@@ -198,7 +198,7 @@ export class ModPackage extends vscode.TreeItem {
 	{
 		let we = new vscode.WorkspaceEdit()
 		// increment info.json version
-		let packageinfo = await vscode.workspace.openTextDocument(this.resourceUri!)
+		await vscode.workspace.openTextDocument(this.resourceUri!)
 		let syms = await vscode.commands.executeCommand<(vscode.SymbolInformation|vscode.DocumentSymbol)[]>
 												("vscode.executeDocumentSymbolProvider", this.resourceUri!)
 
