@@ -184,7 +184,7 @@ export class ModPackage extends vscode.TreeItem {
 			let code = await runScript(term, "prepackage", this.scripts.prepackage, moddir)
 			if (code != 0) return
 		}
-		const packagepath = `${moddir}${this.label}_${this.description}.zip`
+		const packagepath = path.join(moddir, `${this.label}_${this.description}.zip`)
 		var zipoutput = fs.createWriteStream(packagepath);
 		var archive = archiver('zip', { zlib: { level: 9 }});
 		archive.pipe(zipoutput)
@@ -331,12 +331,17 @@ export class ModPackage extends vscode.TreeItem {
 				term.write("Cannot Publish on branch other than 'master'\r\n")
 				return
 			}
-			let config = vscode.workspace.getConfiguration(undefined,this.resourceUri)
-			if (!this.noPortalUpload && !(config.get("factorio.portalUsername") ?? config.get("factorio.portalPassword")))
-			{
-				term.write("Configure Factorio Mod Portal username/password in settings to upoad to Mod Portal\r\n")
-				return
-			}
+		}
+		else
+		{
+			term.write("No git repo found\r\n")
+		}
+
+		let config = vscode.workspace.getConfiguration(undefined,this.resourceUri)
+		if (!this.noPortalUpload && !(config.get("factorio.portal.username") && config.get("factorio.portal.password")))
+		{
+			term.write("Configure Factorio Mod Portal username/password in settings to upoad to Mod Portal\r\n")
+			return
 		}
 
 		if(this.scripts?.prepublish)
