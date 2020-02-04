@@ -22,6 +22,7 @@ interface modpackageinfo {
 	package?: {
 		ignore?: string[];
 		no_git_push?: boolean;
+		no_portal_upload?: boolean;
 		scripts?: ModPackageScripts;
 	};
 };
@@ -103,6 +104,7 @@ export class ModTaskProvider implements vscode.TaskProvider{
 export class ModPackage extends vscode.TreeItem {
 	public packageIgnore?: string[];
 	public noGitPush?: boolean;
+	public noPortalUpload?: boolean;
 	public scripts?: ModPackageScripts;
 
 	constructor(uri: vscode.Uri, modscript: modpackageinfo) {
@@ -119,6 +121,7 @@ export class ModPackage extends vscode.TreeItem {
 		//this.id = modscript.name;
 		this.packageIgnore = modscript.package?.ignore;
 		this.noGitPush = modscript.package?.no_git_push;
+		this.noPortalUpload = modscript.package?.no_portal_upload;
 		this.scripts = modscript.package?.scripts
 	}
 
@@ -131,6 +134,7 @@ export class ModPackage extends vscode.TreeItem {
 		this.tooltip = modscript.title;
 		this.packageIgnore = modscript.package?.ignore;
 		this.noGitPush = modscript.package?.no_git_push;
+		this.noPortalUpload = modscript.package?.no_portal_upload;
 		this.scripts = modscript.package?.scripts
 	}
 
@@ -232,12 +236,12 @@ export class ModPackage extends vscode.TreeItem {
 			let logintoken = ((loginform.content.match(/<input [^>]+"csrf_token"[^>]+>/)||[])[0]?.match(/value="([^"]*)"/)||[])[1]
 			let config = vscode.workspace.getConfiguration(undefined,this.resourceUri)
 
-			term.write(`Logging in to Mod Portal as '${config.get("factorio.portalUsername")}'\r\n`)
+			term.write(`Logging in to Mod Portal as '${config.get("factorio.portal.username")}'\r\n`)
 			let loginresult = await WebRequest.post("https://mods.factorio.com/login",{jar:cookiejar, throwResponseError: true,
 				form:{
 					csrf_token:logintoken,
-					username: config.get("factorio.portalUsername"),
-					password: config.get("factorio.portalPassword")
+					username: config.get("factorio.portal.username"),
+					password: config.get("factorio.portal.password")
 				}
 			})
 
@@ -278,7 +282,8 @@ export class ModPackage extends vscode.TreeItem {
 		let uploadresultjson = JSON.parse(uploadresult.content)
 
 		try {
-			let postresult = await WebRequest.post(`https://mods.factorio.com/mod/${this.label}/downloads/edit`,{jar:cookiejar, throwResponseError: true,
+			let postresult = await WebRequest.post(`https://mods.factorio.com/mod/${this.label}/downloads/edit`, {
+				jar:cookiejar, throwResponseError: true,
 				form:{
 					file:undefined,
 					info_json:uploadresultjson.info,
@@ -327,9 +332,9 @@ export class ModPackage extends vscode.TreeItem {
 				return
 			}
 			let config = vscode.workspace.getConfiguration(undefined,this.resourceUri)
-			if (! (config.get("factorio.portalUsername") ?? config.get("factorio.portalPassword")))
+			if (!this.noPortalUpload && !(config.get("factorio.portalUsername") ?? config.get("factorio.portalPassword")))
 			{
-				term.write("Configure Factorio Mod Portal username/password in settings to use Publish\r\n")
+				term.write("Configure Factorio Mod Portal username/password in settings to upoad to Mod Portal\r\n")
 				return
 			}
 		}
@@ -345,7 +350,7 @@ export class ModPackage extends vscode.TreeItem {
 		if (repo)
 		{
 			if(changelogdoc) await runScript(term, undefined, `git add changelog.txt`, moddir)
-			await runScript(term, undefined, `git commit --allow-empty -m "preparing release of version ${packageversion!}"`, moddir)
+			await runScript(term, undefined, `git commit --allow-empty -m "preparing release of version ${packageversion}"`, moddir)
 			await runScript(term, undefined, `git tag ${packageversion}`, moddir)
 		}
 
@@ -369,12 +374,13 @@ export class ModPackage extends vscode.TreeItem {
 		}
 
 		const upstream = repo?.state.HEAD?.upstream
-		if (upstream && !this.noGitPush )
+		if (upstream && !this.noGitPush)
 		{
 			await runScript(term, undefined, `git push ${upstream.remote} master ${newversion}`, moddir)
 		}
 
-		await this.PostToPortal(packagepath, packageversion, term)
+		if(!this.noPortalUpload)
+			await this.PostToPortal(packagepath, packageversion, term)
 	}
 }
 export class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
@@ -474,13 +480,13 @@ function runScript(term:ModTaskTerminal, name:string|undefined, command:string, 
 			(error,stdout,stderr)=>{
 				if(stderr)
 				{
-					term.write(stderr.replace(/[^\r]\n/,"\r\n"))
+					term.write(stderr.replace(/([^\r])\n/g,"$1\r\n"))
 					if(!stderr.endsWith("\n"))
 						term.write("\r\n")
 				}
 				if(stdout)
 				{
-					term.write(stdout.replace(/[^\r]\n/,"\r\n"))
+					term.write(stdout.replace(/([^\r])\n/g,"$1\r\n"))
 					if(!stdout.endsWith("\n"))
 						term.write("\r\n")
 				}
@@ -497,9 +503,10 @@ class ModTaskPseudoterminal implements vscode.Pseudoterminal {
 	onDidWrite: vscode.Event<string> = this.writeEmitter.event;
 	private closeEmitter = new vscode.EventEmitter<void>();
 	onDidClose?: vscode.Event<void> = this.closeEmitter.event;
+	private tokensource = new vscode.CancellationTokenSource();
 
 	constructor(
-		private runner:(term:ModTaskTerminal)=>void|Promise<void>) {
+		private runner:(term:ModTaskTerminal,token?:vscode.CancellationToken)=>void|Promise<void>) {
 	}
 
 	async open(initialDimensions: vscode.TerminalDimensions | undefined): Promise<void> {
@@ -508,11 +515,11 @@ class ModTaskPseudoterminal implements vscode.Pseudoterminal {
 		await this.runner({
 			write: (data) => writeEmitter.fire(data),
 			close: () => closeEmitter.fire()
-		});
+		}, this.tokensource.token);
 		closeEmitter.fire();
 	}
 
 	close(): void {
-		//TODO: tell runner somehow?
+		this.tokensource.cancel()
 	}
 }

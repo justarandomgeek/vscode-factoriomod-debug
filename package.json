@@ -64,13 +64,13 @@
   "contributes": {
     "configuration":[
       {
-        "title": "Factorio Mod Debug",
+        "title": "Factorio",
         "properties": {
-          "factorio.portalUsername":{
+          "factorio.portal.username":{
             "type":"string",
             "description": "Username for Factorio Mod Portal to enable automatically uploading mods"
           },
-          "factorio.portalPassword":{
+          "factorio.portal.password":{
             "type":"string",
             "description": "Password for Factorio Mod Portal to enable automatically uploading mods"
           }

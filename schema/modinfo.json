@@ -68,6 +68,10 @@
           "type":"boolean",
           "description": "Don't automatically `git push` when publishing"
         },
+        "no_portal_upload": {
+          "type":"boolean",
+          "description": "Don't automatically upload to the mod portal"
+        },
         "scripts":{
           "type":"object",
           "description": "Additional scripts to run while packaging/publishing mods",

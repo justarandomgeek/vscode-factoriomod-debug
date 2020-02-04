@@ -8,6 +8,7 @@
 * changelog linter error for line prefix with no content
 * remove changelog diagnostics when a file is removed
 * allow two-part version in info.json dependencies
+* automatically package and publish mods
 
 ## 0.18.2
 
