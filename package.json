@@ -188,6 +188,13 @@
         "path": "./snippets/factorio-changelog.json"
       }
     ],
+    "configurationDefaults": {
+      "[factorio-changelog]": {
+        "editor.detectIndentation": false,
+        "editor.insertSpaces": true,
+        "editor.tabSize": 2
+      }
+    },
     "jsonValidation": [
       {
         "fileMatch": "map-gen-settings.json",
