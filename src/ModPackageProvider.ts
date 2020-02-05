@@ -38,7 +38,7 @@ export class ModTaskProvider implements vscode.TaskProvider{
 
 		this.modPackages.forEach((mp,uri) => {
 			tasks.push(new vscode.Task(
-				{label:`${mp.label}.package`,type:"factorio",modname:mp.resourceUri!.toString(),command:"package"},
+				{label:`${mp.label}.package`,type:"factorio",modname:mp.label!,command:"package"},
 				vscode.workspace.getWorkspaceFolder(mp.resourceUri!) || vscode.TaskScope.Workspace,
 				`${mp.label}.package`,
 				"factorio",
@@ -48,10 +48,11 @@ export class ModTaskProvider implements vscode.TaskProvider{
 						await mp.Package(term)
 						term.close()
 					})
-				})
+				}),
+				[]
 			))
 			tasks.push(new vscode.Task(
-				{label:`${mp.label}.publish`,type:"factorio",modname:mp.resourceUri!.toString(),command:"publish"},
+				{label:`${mp.label}.publish`,type:"factorio",modname:mp.label!,command:"publish"},
 				vscode.workspace.getWorkspaceFolder(mp.resourceUri!) || vscode.TaskScope.Workspace,
 				`${mp.label}.publish`,
 				"factorio",
@@ -61,7 +62,8 @@ export class ModTaskProvider implements vscode.TaskProvider{
 						await mp.Publish(term)
 						term.close()
 					})
-				})
+				}),
+				[]
 			))
 
 		},this)
@@ -72,7 +74,12 @@ export class ModTaskProvider implements vscode.TaskProvider{
 	resolveTask(task: vscode.Task, token?: vscode.CancellationToken | undefined): vscode.ProviderResult<vscode.Task> {
 		if (task.definition.type == "factorio")
 		{
-			const mp = this.modPackages.get(task.definition.modname)
+			let mp
+			this.modPackages.forEach((modpackage,uri)=>{
+				if (modpackage.label == task.definition.modname) {
+					mp = modpackage
+				}
+			})
 			if(mp)
 			{
 				switch (task.definition.command) {
@@ -409,14 +416,14 @@ export class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.Tree
 		context.subscriptions.push(
 			vscode.commands.registerCommand("factorio.package",async (mp:ModPackage) => {
 				let packagetask = (await vscode.tasks.fetchTasks({type:"factorio"})).find(t=>
-					t.definition.command == "package" && t.definition.modname == mp.resourceUri!.toString())!
+					t.definition.command == "package" && t.definition.modname == mp.label)!
 				await vscode.tasks.executeTask(packagetask)
 			}))
 
 		context.subscriptions.push(
 			vscode.commands.registerCommand("factorio.publish",async (mp:ModPackage) => {
 				let publishtask = (await vscode.tasks.fetchTasks({type:"factorio"})).find(t=>
-					t.definition.command == "publish" && t.definition.modname == mp.resourceUri!.toString())!
+					t.definition.command == "publish" && t.definition.modname == mp.label)!
 				await vscode.tasks.executeTask(publishtask)
 
 			}))
