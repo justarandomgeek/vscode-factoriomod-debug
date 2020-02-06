@@ -195,7 +195,7 @@ export class ModPackage extends vscode.TreeItem {
 		var zipoutput = fs.createWriteStream(packagepath);
 		var archive = archiver('zip', { zlib: { level: 9 }});
 		archive.pipe(zipoutput)
-		archive.glob("**",{ cwd: moddir, root: moddir, ignore: this.packageIgnore },{ prefix: `${this.label}_${this.description}` })
+		archive.glob("**",{ cwd: moddir, root: moddir, nodir: true, matchBase: true, ignore: this.packageIgnore },{ prefix: `${this.label}_${this.description}` })
 		archive.finalize()
 		term.write(`Built ${this.label}_${this.description}.zip\r\n`)
 		return packagepath
