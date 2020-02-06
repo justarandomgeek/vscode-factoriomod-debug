@@ -185,6 +185,7 @@ export class ModPackage extends vscode.TreeItem {
 
 	public async Package(term:ModTaskTerminal): Promise<string|undefined>
 	{
+		term.write(`Packaging: ${this.resourceUri}\r\n`)
 		const moddir = path.dirname(this.resourceUri!.fsPath)
 		if(this.scripts?.prepackage)
 		{
@@ -316,7 +317,7 @@ export class ModPackage extends vscode.TreeItem {
 
 	public async Publish(term:ModTaskTerminal)
 	{
-
+		term.write(`Publishing: ${this.resourceUri}\r\n`)
 		const moddir = path.dirname(this.resourceUri!.fsPath)
 		const gitExtension = vscode.extensions.getExtension<Git.GitExtension>('vscode.git')!.exports;
 		const git = gitExtension.getAPI(1);
@@ -429,14 +430,20 @@ export class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.Tree
 			}))
 	}
 	private async updateInfoJson(uri: vscode.Uri) {
-		const modscript: modpackageinfo = JSON.parse((await vscode.workspace.fs.readFile(uri)).toString());
-		if (modscript.name) {
-			if (this.modPackages.has(uri.toString())) {
-				await this.modPackages.get(uri.toString())?.Update()
+		if(uri.scheme == "file")
+		{
+			const modscript: modpackageinfo = JSON.parse((await vscode.workspace.fs.readFile(uri)).toString());
+			if (modscript.name) {
+				if (this.modPackages.has(uri.toString())) {
+					await this.modPackages.get(uri.toString())?.Update()
+				}
+				else
+				{
+					this.modPackages.set(uri.toString(), new ModPackage(uri, modscript));
+				}
 			}
-			else
-			{
-				this.modPackages.set(uri.toString(), new ModPackage(uri, modscript));
+			else {
+				this.modPackages.delete(uri.toString());
 			}
 		}
 		else {
