@@ -36,7 +36,7 @@ Mods can be automatically Packaged and Published from the "Factorio Mod Packages
 
 ### Package
   * run `info.json#/package/scripts/prepackage` if set
-  * build a zip including all files in the mod directory, except dotfiles and those matching the list of globs in `info.json#/package/ignore`.
+  * build a zip including all files in the mod directory except dotfiles, zip files, and files matching the list of globs in `info.json#/package/ignore`.
 
 ### Publish
   * verify no uncomitted changes, on `master`
