@@ -185,7 +185,7 @@ export class ModPackage extends vscode.TreeItem {
 
 	public async Package(term:ModTaskTerminal): Promise<string|undefined>
 	{
-		term.write(`Packaging: ${this.resourceUri}\r\n`)
+		term.write(`Packaging: ${this.resourceUri} ${this.description}\r\n`)
 		const moddir = path.dirname(this.resourceUri!.fsPath)
 		if(this.scripts?.prepackage)
 		{
@@ -317,7 +317,7 @@ export class ModPackage extends vscode.TreeItem {
 
 	public async Publish(term:ModTaskTerminal)
 	{
-		term.write(`Publishing: ${this.resourceUri}\r\n`)
+		term.write(`Publishing: ${this.resourceUri} ${this.description}\r\n`)
 		const moddir = path.dirname(this.resourceUri!.fsPath)
 		const gitExtension = vscode.extensions.getExtension<Git.GitExtension>('vscode.git')!.exports;
 		const git = gitExtension.getAPI(1);
@@ -386,10 +386,17 @@ export class ModPackage extends vscode.TreeItem {
 			await runScript(term, undefined, `git commit -m "moved to version ${newversion}"`, moddir)
 		}
 
-		const upstream = repo?.state.HEAD?.upstream
-		if (upstream && !this.noGitPush)
+		if(!this.noGitPush)
 		{
-			await runScript(term, undefined, `git push ${upstream.remote} master ${newversion}`, moddir)
+			const upstream = repo?.state.HEAD?.upstream
+			if (upstream)
+			{
+				await runScript(term, undefined, `git push ${upstream.remote} master ${packageversion}`, moddir)
+			}
+			else
+			{
+				term.write(`no remote set as upstream on master\r\n`)
+			}
 		}
 
 		if(!this.noPortalUpload)
