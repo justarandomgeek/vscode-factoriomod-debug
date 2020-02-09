@@ -210,7 +210,6 @@ export class ModPackage extends vscode.TreeItem {
 		let syms = await vscode.commands.executeCommand<(vscode.SymbolInformation|vscode.DocumentSymbol)[]>
 												("vscode.executeDocumentSymbolProvider", this.resourceUri!)
 
-		//TODO: parse this properly to handle x.y to become x.y.1 instead of x.y+1
 		const newversion = (<string>this.description).replace(/\.([0-9]+)$/,(patch)=>{return `.${Number.parseInt(patch.substr(1))+1}`})
 		let version = syms!.find(sym=>sym.name == "version")!
 
