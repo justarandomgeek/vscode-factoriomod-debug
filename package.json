@@ -92,10 +92,28 @@
     ],
     "commands": [
       {
+        "command": "factorio.datestamp",
+        "category": "Factorio",
+        "title": "Datestamp Changelog",
+        "icon": "$(calendar)"
+      },
+      {
         "command": "factorio.package",
         "category": "Factorio",
         "title": "Package Mod",
         "icon": "$(package)"
+      },
+      {
+        "command": "factorio.version",
+        "category": "Factorio",
+        "title": "Increment Verion",
+        "icon": "$(tag)"
+      },
+      {
+        "command": "factorio.upload",
+        "category": "Factorio",
+        "title": "Upload to Portal",
+        "icon": "$(cloud-upload)"
       },
       {
         "command": "factorio.publish",
@@ -114,35 +132,62 @@
     },
     "menus": {
       "commandPalette": [
-        {
-          "command": "factorio.package",
-          "when": "false"
-        },
-        {
-          "command": "factorio.publish",
-          "when": "false"
-        }
+        { "command": "factorio.datestamp", "when": "false" },
+        { "command": "factorio.package",   "when": "false" },
+        { "command": "factorio.version",   "when": "false" },
+        { "command": "factorio.upload",    "when": "false" },
+        { "command": "factorio.publish",   "when": "false" }
       ],
       "view/item/context": [
         {
-          "command": "factorio.package",
+          "command": "factorio.datestamp",
           "when": "view == factoriomods && viewItem == mod",
-          "group": "navigation@1"
-        },
-        {
-          "command": "factorio.publish",
-          "when": "view == factoriomods && viewItem == mod",
-          "group": "navigation@2"
+          "group": "basic@1"
         },
         {
           "command": "factorio.package",
           "when": "view == factoriomods && viewItem == mod",
-          "group": "inline"
+          "group": "basic@2"
+        },
+        {
+          "command": "factorio.version",
+          "when": "view == factoriomods && viewItem == mod",
+          "group": "basic@3"
+        },
+        {
+          "command": "factorio.upload",
+          "when": "view == factoriomods && viewItem == mod",
+          "group": "basic@4"
         },
         {
           "command": "factorio.publish",
           "when": "view == factoriomods && viewItem == mod",
-          "group": "inline"
+          "group": "publish@1"
+        },
+        {
+          "command": "factorio.datestamp",
+          "when": "view == factoriomods && viewItem == mod",
+          "group": "inline@1"
+        },
+        {
+          "command": "factorio.package",
+          "when": "view == factoriomods && viewItem == mod",
+          "group": "inline@2"
+        },
+        {
+          "command": "factorio.version",
+          "when": "view == factoriomods && viewItem == mod",
+          "group": "inline@3"
+        },
+        {
+          "command": "factorio.upload",
+          "when": "view == factoriomods && viewItem == mod",
+          "group": "inline@4"
+        },
+        {
+          "command": "factorio.publish",
+          "when": "view == factoriomods && viewItem == mod",
+          "group": "inline@5"
         }
       ]
     },

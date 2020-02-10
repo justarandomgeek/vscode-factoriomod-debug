@@ -38,17 +38,35 @@ export class ModTaskProvider implements vscode.TaskProvider{
 
 		this.modPackages.forEach((mp,uri) => {
 			tasks.push(new vscode.Task(
+				{label:`${mp.label}.datestamp`,type:"factorio",modname:mp.label!,command:"datestamp"},
+				vscode.workspace.getWorkspaceFolder(mp.resourceUri!) || vscode.TaskScope.Workspace,
+				`${mp.label}.datestamp`,
+				"factorio",
+				mp.DateStampTask(),
+				[]
+			))
+			tasks.push(new vscode.Task(
 				{label:`${mp.label}.package`,type:"factorio",modname:mp.label!,command:"package"},
 				vscode.workspace.getWorkspaceFolder(mp.resourceUri!) || vscode.TaskScope.Workspace,
 				`${mp.label}.package`,
 				"factorio",
-				new vscode.CustomExecution(async ()=>{
-					return new ModTaskPseudoterminal(async term =>{
-						await mp.Update()
-						await mp.Package(term)
-						term.close()
-					})
-				}),
+				mp.PackageTask(),
+				[]
+			))
+			tasks.push(new vscode.Task(
+				{label:`${mp.label}.version`,type:"factorio",modname:mp.label!,command:"version"},
+				vscode.workspace.getWorkspaceFolder(mp.resourceUri!) || vscode.TaskScope.Workspace,
+				`${mp.label}.version`,
+				"factorio",
+				mp.IncrementTask(),
+				[]
+			))
+			tasks.push(new vscode.Task(
+				{label:`${mp.label}.upload`,type:"factorio",modname:mp.label!,command:"upload"},
+				vscode.workspace.getWorkspaceFolder(mp.resourceUri!) || vscode.TaskScope.Workspace,
+				`${mp.label}.upload`,
+				"factorio",
+				mp.PostToPortalTask(),
 				[]
 			))
 			tasks.push(new vscode.Task(
@@ -56,13 +74,7 @@ export class ModTaskProvider implements vscode.TaskProvider{
 				vscode.workspace.getWorkspaceFolder(mp.resourceUri!) || vscode.TaskScope.Workspace,
 				`${mp.label}.publish`,
 				"factorio",
-				new vscode.CustomExecution(async ()=>{
-					return new ModTaskPseudoterminal(async term =>{
-						await mp.Update()
-						await mp.Publish(term)
-						term.close()
-					})
-				}),
+				mp.PublishTask(),
 				[]
 			))
 
@@ -74,7 +86,7 @@ export class ModTaskProvider implements vscode.TaskProvider{
 	resolveTask(task: vscode.Task, token?: vscode.CancellationToken | undefined): vscode.ProviderResult<vscode.Task> {
 		if (task.definition.type == "factorio")
 		{
-			let mp
+			let mp:ModPackage | undefined
 			this.modPackages.forEach((modpackage,uri)=>{
 				if (modpackage.label == task.definition.modname) {
 					mp = modpackage
@@ -83,24 +95,20 @@ export class ModTaskProvider implements vscode.TaskProvider{
 			if(mp)
 			{
 				switch (task.definition.command) {
-					case "package":
-						task.execution = new vscode.CustomExecution(async ()=>{
-							return new ModTaskPseudoterminal(async term =>{
-								await mp.Update()
-								await mp.Package(term)
-								term.close()
-							})
-						})
+					case "datestamp":
+						task.execution = mp.DateStampTask()
 						return task;
-
+					case "package":
+						task.execution = mp.PackageTask()
+						return task;
+					case "version":
+						task.execution = mp.IncrementTask()
+						return task;
+					case "upload":
+						task.execution = mp.PostToPortalTask()
+						return task;
 					case "publish":
-						task.execution = new vscode.CustomExecution(async ()=>{
-							return new ModTaskPseudoterminal(async term =>{
-								await mp.Update()
-								await mp.Publish(term)
-								term.close()
-							})
-						})
+						task.execution = mp.PublishTask()
 						return task;
 				}
 			}
@@ -145,7 +153,7 @@ export class ModPackage extends vscode.TreeItem {
 		this.scripts = modscript.package?.scripts
 	}
 
-	public async DateStampChangelog(term:ModTaskTerminal): Promise<vscode.TextDocument | undefined>
+	public async DateStampChangelog(term:ModTaskTerminal): Promise<boolean>
 	{
 		const moddir = path.dirname(this.resourceUri!.fsPath)
 		const changelogpath = path.join(moddir, "changelog.txt")
@@ -175,12 +183,24 @@ export class ModPackage extends vscode.TreeItem {
 			{
 				term.write(`No Changelog section for ${this.description}\r\n`)
 			}
-			return changelogdoc
+			return true
 		}
 		else
 		{
 			term.write(`No Changelog found\r\n`)
+			return false
 		}
+	}
+
+	public DateStampTask(): vscode.CustomExecution
+	{
+		return new vscode.CustomExecution(async ()=>{
+			return new ModTaskPseudoterminal(async term =>{
+				await this.Update()
+				await this.DateStampChangelog(term)
+				term.close()
+			})
+		})
 	}
 
 	public async Package(term:ModTaskTerminal): Promise<string|undefined>
@@ -202,7 +222,19 @@ export class ModPackage extends vscode.TreeItem {
 		return packagepath
 	}
 
-	public async IncrementVersion(changelogdoc: vscode.TextDocument|undefined, term:ModTaskTerminal): Promise<string>
+	public PackageTask(): vscode.CustomExecution
+	{
+		return new vscode.CustomExecution(async ()=>{
+			return new ModTaskPseudoterminal(async term =>{
+				await this.Update()
+				await this.Package(term)
+				term.close()
+			})
+		})
+	}
+
+
+	public async IncrementVersion(term:ModTaskTerminal): Promise<string>
 	{
 		let we = new vscode.WorkspaceEdit()
 		// increment info.json version
@@ -216,8 +248,13 @@ export class ModPackage extends vscode.TreeItem {
 		we.replace(this.resourceUri!,
 			version instanceof vscode.SymbolInformation ? version.location.range : version.selectionRange,
 			`"version": "${newversion}"`)
-		if(changelogdoc)
+
+		const moddir = path.dirname(this.resourceUri!.fsPath)
+		const changelogpath = path.join(moddir, "changelog.txt")
+		if(fs.existsSync(changelogpath))
 		{
+			//datestamp current section
+			let changelogdoc = await vscode.workspace.openTextDocument(changelogpath)
 			//insert new section
 			we.insert(changelogdoc.uri,new vscode.Position(0,0),
 			"---------------------------------------------------------------------------------------------------\n" +
@@ -233,9 +270,19 @@ export class ModPackage extends vscode.TreeItem {
 		return newversion
 	}
 
+	public IncrementTask(): vscode.CustomExecution
+	{
+		return new vscode.CustomExecution(async ()=>{
+			return new ModTaskPseudoterminal(async term =>{
+				await this.Update()
+				await this.IncrementVersion(term)
+				term.close()
+			})
+		})
+	}
+
 	public async PostToPortal(packagepath: string, packageversion:string, term:ModTaskTerminal)
 	{
-
 		// upload to portal
 		let cookiejar = jar()
 		try {
@@ -243,12 +290,29 @@ export class ModPackage extends vscode.TreeItem {
 			let logintoken = ((loginform.content.match(/<input [^>]+"csrf_token"[^>]+>/)||[])[0]?.match(/value="([^"]*)"/)||[])[1]
 			let config = vscode.workspace.getConfiguration(undefined,this.resourceUri)
 
-			term.write(`Logging in to Mod Portal as '${config.get("factorio.portal.username")}'\r\n`)
+			let username = config.get("factorio.portal.username")
+			if (username)
+			{
+				term.write(`Logging in to Mod Portal as '${config.get("factorio.portal.username")}'\r\n`)
+			}
+			else
+			{
+				username = await vscode.window.showInputBox({prompt: "Mod Portal Username:", ignoreFocusOut: true })
+				if(!username) return
+			}
+			let password = config.get("factorio.portal.password")
+			if (!password)
+			{
+				password = await vscode.window.showInputBox({prompt: "Mod Portal Password:", password: true, ignoreFocusOut: true })
+				if (!password) return
+			}
+
+
 			let loginresult = await WebRequest.post("https://mods.factorio.com/login",{jar:cookiejar, throwResponseError: true,
 				form:{
 					csrf_token:logintoken,
-					username: config.get("factorio.portal.username"),
-					password: config.get("factorio.portal.password")
+					username: username,
+					password: password
 				}
 			})
 
@@ -314,6 +378,30 @@ export class ModPackage extends vscode.TreeItem {
 		}
 	}
 
+	public PostToPortalTask(): vscode.CustomExecution
+	{
+		return new vscode.CustomExecution(async ()=>{
+			return new ModTaskPseudoterminal(async term =>{
+				await this.Update()
+				const moddir = this.resourceUri!.with({path: path.posix.dirname(this.resourceUri!.path)});
+				const direntries = await vscode.workspace.fs.readDirectory(moddir);
+				const packages = direntries.filter(([name,type])=>{
+					return type == vscode.FileType.File && name.startsWith(this.label!) && name.match(/_\d+\.\d+\.\d+\.zip$/)
+				}).map(([name,type])=>{return name}).sort().reverse()
+				const packagename = await vscode.window.showQuickPick(packages,{ placeHolder: "Select Package to upload" })
+				if (!packagename)
+				{
+					term.close()
+					return
+				}
+				const packagepath = path.join(moddir.fsPath,packagename)
+				const packageversion = packagename.match(/_([0-9.]+)\.zip/)![1]
+				await this.PostToPortal(packagepath,packageversion,term)
+				term.close()
+			})
+		})
+	}
+
 	public async Publish(term:ModTaskTerminal)
 	{
 		term.write(`Publishing: ${this.resourceUri} ${this.description}\r\n`)
@@ -344,24 +432,17 @@ export class ModPackage extends vscode.TreeItem {
 			term.write("No git repo found\r\n")
 		}
 
-		let config = vscode.workspace.getConfiguration(undefined,this.resourceUri)
-		if (!this.noPortalUpload && !(config.get("factorio.portal.username") && config.get("factorio.portal.password")))
-		{
-			term.write("Configure Factorio Mod Portal username/password in settings to upoad to Mod Portal\r\n")
-			return
-		}
-
 		if(this.scripts?.prepublish)
 		{
 			let code = await runScript(term, "prepublish", this.scripts.prepublish, moddir)
 			if (code != 0) return
 		}
 
-		let changelogdoc = await this.DateStampChangelog(term)
+		let haschangelog = await this.DateStampChangelog(term)
 
 		if (repo)
 		{
-			if(changelogdoc) await runScript(term, undefined, `git add changelog.txt`, moddir)
+			if(haschangelog) await runScript(term, undefined, `git add changelog.txt`, moddir)
 			await runScript(term, undefined, `git commit --allow-empty -m "preparing release of version ${packageversion}"`, moddir)
 			await runScript(term, undefined, `git tag ${packageversion}`, moddir)
 		}
@@ -370,7 +451,7 @@ export class ModPackage extends vscode.TreeItem {
 		const packagepath = await this.Package(term)
 		if (!packagepath) return
 
-		let newversion = await this.IncrementVersion(changelogdoc,term)
+		let newversion = await this.IncrementVersion(term)
 
 		if(this.scripts?.publish)
 		{
@@ -381,7 +462,7 @@ export class ModPackage extends vscode.TreeItem {
 		if (repo)
 		{
 			await runScript(term, undefined, `git add info.json`, moddir)
-			if(changelogdoc) await runScript(term, undefined, `git add changelog.txt`, moddir)
+			if(haschangelog) await runScript(term, undefined, `git add changelog.txt`, moddir)
 			await runScript(term, undefined, `git commit -m "moved to version ${newversion}"`, moddir)
 		}
 
@@ -400,6 +481,17 @@ export class ModPackage extends vscode.TreeItem {
 
 		if(!this.noPortalUpload)
 			await this.PostToPortal(packagepath, packageversion, term)
+	}
+
+	public PublishTask(): vscode.CustomExecution
+	{
+		return new vscode.CustomExecution(async ()=>{
+			return new ModTaskPseudoterminal(async term =>{
+				await this.Update()
+				await this.Publish(term)
+				term.close()
+			})
+		})
 	}
 }
 export class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
@@ -421,10 +513,31 @@ export class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.Tree
 		context.subscriptions.push(vscode.tasks.registerTaskProvider("factorio",new ModTaskProvider(context, this.modPackages)))
 
 		context.subscriptions.push(
+			vscode.commands.registerCommand("factorio.datestamp",async (mp:ModPackage) => {
+				let datestamptask = (await vscode.tasks.fetchTasks({type:"factorio"})).find(t=>
+					t.definition.command == "datestamp" && t.definition.modname == mp.label)!
+				await vscode.tasks.executeTask(datestamptask)
+			}))
+
+		context.subscriptions.push(
 			vscode.commands.registerCommand("factorio.package",async (mp:ModPackage) => {
 				let packagetask = (await vscode.tasks.fetchTasks({type:"factorio"})).find(t=>
 					t.definition.command == "package" && t.definition.modname == mp.label)!
 				await vscode.tasks.executeTask(packagetask)
+			}))
+
+		context.subscriptions.push(
+			vscode.commands.registerCommand("factorio.version",async (mp:ModPackage) => {
+				let versiontask = (await vscode.tasks.fetchTasks({type:"factorio"})).find(t=>
+					t.definition.command == "version" && t.definition.modname == mp.label)!
+				await vscode.tasks.executeTask(versiontask)
+			}))
+
+		context.subscriptions.push(
+			vscode.commands.registerCommand("factorio.upload",async (mp:ModPackage) => {
+				let uploadtask = (await vscode.tasks.fetchTasks({type:"factorio"})).find(t=>
+					t.definition.command == "upload" && t.definition.modname == mp.label)!
+				await vscode.tasks.executeTask(uploadtask)
 			}))
 
 		context.subscriptions.push(
@@ -488,7 +601,7 @@ interface ModTaskTerminal {
 	close():void
 }
 
-function runScript(term:ModTaskTerminal, name:string|undefined, command:string, cwd:string): Promise<number>
+async function runScript(term:ModTaskTerminal, name:string|undefined, command:string, cwd:string): Promise<number>
 {
 	return new Promise((resolve,reject)=>{
 		if(name)
