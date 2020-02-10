@@ -66,11 +66,11 @@
         },
         "no_git_push": {
           "type":"boolean",
-          "description": "Don't automatically `git push` when publishing"
+          "description": "Don't automatically `git push` in Publish"
         },
         "no_portal_upload": {
           "type":"boolean",
-          "description": "Don't automatically upload to the mod portal"
+          "description": "Don't automatically upload to the mod portal in Publish"
         },
         "scripts":{
           "type":"object",
@@ -80,9 +80,17 @@
               "type":"string",
               "description": "Command to run while preparing the pre-publish commit. Files added to git during this command will be included in that commit."
             },
+            "datestamp": {
+              "type":"string",
+              "description": "Command to run after datestamping the changelog."
+            },
             "prepackage": {
               "type":"string",
               "description": "Command to run while preparing the zip package. Files created/changed during this command will be included in the zip."
+            },
+            "version": {
+              "type":"string",
+              "description": "Command to run after incrementing the version."
             },
             "publish": {
               "type":"string",

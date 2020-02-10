@@ -32,20 +32,35 @@ and debug will be enabled until the end of the stage. Any mods requiring again a
 
 ## Automatic Mod Packaging and Publishing
 
-Mods can be automatically Packaged and Published from the "Factorio Mod Packages" panel in Explorer view.
+Mods can be automatically Packaged and Published from the "Factorio Mod Packages" panel in Explorer view. These tasks can also be accessed in VSCode's Tasks system.
+
+### Datestamp
+  * if changelog.txt present and has a section for the current version, update its date to today
+  * run `info.json#/package/scripts/datestamp` if set
 
 ### Package
   * run `info.json#/package/scripts/prepackage` if set
   * build a zip including all files in the mod directory except dotfiles, zip files, and files matching the list of globs in `info.json#/package/ignore`.
 
-### Publish
-  * verify no uncomitted changes, on `master`
-  * run `info.json#/package/scripts/prepublish` if set
-  * if changelog.txt present and has a section for the current version, update its date to today
-  * git commit "preparing release of version x.y.z", tag x.y.z
-  * run **Packge**
+### Increment Version
   * increment version in info.json
   * if changelog.txt present, add new empty section to changelog.txt
+  * run `info.json#/package/scripts/version` if set
+
+### Upload
+  * select a package in mod directory
+  * upload to mod portal
+
+### Publish
+
+Experimental all-in-one command.
+
+  * verify no uncomitted changes, on `master`
+  * run `info.json#/package/scripts/prepublish` if set
+  * run **Datestamp**
+  * git commit "preparing release of version x.y.z", tag x.y.z
+  * run **Packge**
+  * run **Increment Version**
   * run `info.json#/package/scripts/publish` if set
   * commit "moved to version x.y.z"
   * push to git upstream

@@ -10,7 +10,9 @@ var archiver = require('archiver');
 
 interface ModPackageScripts {
 	prepublish?: string
+	datestamp?: string
 	prepackage?: string
+	version?: string
 	publish?: string
 };
 
@@ -183,11 +185,17 @@ export class ModPackage extends vscode.TreeItem {
 			{
 				term.write(`No Changelog section for ${this.description}\r\n`)
 			}
+			if (this.scripts?.datestamp) {
+				await runScript(term, "datestamp", this.scripts.datestamp, moddir)
+			}
 			return true
 		}
 		else
 		{
 			term.write(`No Changelog found\r\n`)
+			if (this.scripts?.datestamp) {
+				await runScript(term, "datestamp", this.scripts.datestamp, moddir)
+			}
 			return false
 		}
 	}
@@ -267,6 +275,9 @@ export class ModPackage extends vscode.TreeItem {
 		await vscode.workspace.applyEdit(we)
 		await vscode.workspace.saveAll()
 		term.write(`Moved version to ${newversion}\r\n`)
+		if (this.scripts?.version) {
+			await runScript(term, "version", this.scripts.version, moddir)
+		}
 		return newversion
 	}
 

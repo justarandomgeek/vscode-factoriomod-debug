@@ -118,7 +118,7 @@
       {
         "command": "factorio.publish",
         "category": "Factorio",
-        "title": "Publish Mod",
+        "title": "Publish Mod (Experimental)",
         "icon": "$(repo-push)"
       }
     ],
