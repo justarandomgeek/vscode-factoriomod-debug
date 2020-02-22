@@ -218,7 +218,7 @@ local function check_events(f)
           end
         end
         if foundany and next(notfound) then
-          local message = {"event check: ", script.mod_name, " listening for \"", group, "\" events but not"}
+          local message = {"Mod Debugger Event Check: ", script.mod_name, " is listening for \"", group, "\" events but not"}
           local singles = {}
           local subgroups = {}
           for event,subgroup in pairs(notfound) do
