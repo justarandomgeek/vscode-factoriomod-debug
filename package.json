@@ -17,7 +17,9 @@
   },
   "icon": "images/factoriomod-debug-icon.png",
   "categories": [
-    "Debuggers"
+    "Debuggers",
+    "Programming Languages",
+    "Linters"
   ],
   "private": true,
   "repository": {
