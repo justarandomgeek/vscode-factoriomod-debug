@@ -120,7 +120,7 @@ end
 if not script then return end
 local try
 if __DebugAdapter.instrument then
-  try = function(func,entryname)
+  function try(func,entryname)
     if func == nil then return nil end
     local try_func = function(...)
       __DebugAdapter.pushEntryPointName(entryname)
@@ -131,7 +131,7 @@ if __DebugAdapter.instrument then
     return try_func
   end
 else
-  try = function(func,entryname)
+  function try(func,entryname)
     if func == nil then return nil end
     local try_func = function(...)
       __DebugAdapter.pushEntryPointName(entryname)
