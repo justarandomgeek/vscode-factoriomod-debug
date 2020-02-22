@@ -3,6 +3,7 @@
 ## 0.18.4
 
 * Added __DebugAdapter.breakpoint(mesg)
+* `\n` escape in locale is now `constant.character.escape.factorio-locale`
 
 ## 0.18.3
 

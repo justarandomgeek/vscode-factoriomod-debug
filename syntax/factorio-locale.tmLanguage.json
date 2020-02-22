@@ -5,6 +5,10 @@
 		"localisedSegment" : {
 			"patterns": [
 				{
+					"name": "constant.character.escape.factorio-locale",
+					"match": "\\\\n"
+				},
+				{
 					"name": "variable.parameter.factorio-locale",
 					"match": "__\\d+__"
 				},
