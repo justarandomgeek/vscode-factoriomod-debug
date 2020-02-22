@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.4
+
+* Added __DebugAdapter.breakpoint(mesg)
+
 ## 0.18.3
 
 * non-standard category in changelog as Hint instead of Information

@@ -1,0 +1,11 @@
+replace `pcall` and `xpcall` and provide them as off-by-default exception filters
+read config.ini for modsPath?
+read factorio user/pass from ENV
+task arg to package to move zip
+tasks to enable/disable mods in modlist
+guess appdata modspath on windows?
+phobos
+string.dump serialise to source for non-file chunks
+options to only hook conditional during init stages of various things (settings, data)
+highlight \n in locale
+locale color widget actually offer multiple formats for colors?

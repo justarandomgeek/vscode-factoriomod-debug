@@ -308,7 +308,7 @@ export class FactorioModRuntime extends EventEmitter {
 						this.updateBreakpoints();
 					}
 					this.sendEvent('stopOnStep');
-				} else if (event.startsWith("breakpoint")) {
+				} else if (event === "breakpoint") {
 					// notify stop on breakpoint
 					if(this._breakPointsChanged.size !== 0)
 					{

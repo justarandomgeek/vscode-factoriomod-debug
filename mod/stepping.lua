@@ -123,7 +123,7 @@ function __DebugAdapter.attach()
                     stepmode = nil
                     stepdepth = 0
                   end
-                  print(format("DBG: breakpoint %s:%d", s, line))
+                  print("DBG: breakpoint")
                   debugprompt()
                   -- cleanup variablesReferences
                   variables.clear()
