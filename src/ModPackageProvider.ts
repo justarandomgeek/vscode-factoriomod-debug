@@ -181,7 +181,7 @@ export class ModPackage extends vscode.TreeItem {
 					we.insert(changelogdoc.uri,current.selectionRange.end,`\nDate: ${new Date().toISOString().substr(0,10)}`)
 				}
 				await vscode.workspace.applyEdit(we)
-				await vscode.workspace.saveAll()
+				await changelogdoc.save()
 				term.write(`Changelog section ${this.description} stamped ${new Date().toISOString().substr(0,10)}\r\n`)
 			}
 			else
@@ -252,7 +252,7 @@ export class ModPackage extends vscode.TreeItem {
 	{
 		let we = new vscode.WorkspaceEdit()
 		// increment info.json version
-		await vscode.workspace.openTextDocument(this.resourceUri)
+		const infodoc = await vscode.workspace.openTextDocument(this.resourceUri)
 		let syms = await vscode.commands.executeCommand<(vscode.SymbolInformation|vscode.DocumentSymbol)[]>
 												("vscode.executeDocumentSymbolProvider", this.resourceUri)
 
@@ -265,10 +265,11 @@ export class ModPackage extends vscode.TreeItem {
 
 		const moddir = path.dirname(this.resourceUri.fsPath)
 		const changelogpath = path.join(moddir, "changelog.txt")
+		let changelogdoc: vscode.TextDocument|undefined
 		if(fs.existsSync(changelogpath))
 		{
 			//datestamp current section
-			let changelogdoc = await vscode.workspace.openTextDocument(changelogpath)
+			changelogdoc = await vscode.workspace.openTextDocument(changelogpath)
 			//insert new section
 			we.insert(changelogdoc.uri,new vscode.Position(0,0),
 			"---------------------------------------------------------------------------------------------------\n" +
@@ -279,7 +280,8 @@ export class ModPackage extends vscode.TreeItem {
 			)
 		}
 		await vscode.workspace.applyEdit(we)
-		await vscode.workspace.saveAll()
+		await infodoc.save()
+		changelogdoc && await changelogdoc.save()
 		term.write(`Moved version to ${newversion}\r\n`)
 		if (this.scripts?.version) {
 			await runScript(term, "version", this.scripts.version, moddir,
