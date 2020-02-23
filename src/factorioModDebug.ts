@@ -120,6 +120,12 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		response.body.supportsSetVariable = true;
 		response.body.supportsModulesRequest = true;
 
+		response.body.exceptionBreakpointFilters = [
+			{ filter: "pcall",  label: "Caught by pcall",  default:false },
+			{ filter: "xpcall", label: "Caught by xpcall", default:false },
+			{ filter: "unhandled", label: "Unhandled Exceptions", default:true },
+		];
+
 		this.sendResponse(response);
 
 		// since this debug adapter can accept configuration requests like 'setBreakpoint' at any time,
@@ -269,6 +275,11 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments): void {
 		this._runtime.step("out");
+		this.sendResponse(response);
+	}
+
+	protected setExceptionBreakPointsRequest(response: DebugProtocol.SetExceptionBreakpointsResponse, args: DebugProtocol.SetExceptionBreakpointsArguments, request?: DebugProtocol.Request): void {
+		this._runtime.setExceptionBreakpoints(args.filters)
 		this.sendResponse(response);
 	}
 

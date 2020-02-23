@@ -4,6 +4,7 @@
 
 * Added __DebugAdapter.breakpoint(mesg)
 * `\n` escape in locale is now `constant.character.escape.factorio-locale`
+* Hook `pcall` and `xpcall` and allow optionally breaking on caught exception
 
 ## 0.18.3
 

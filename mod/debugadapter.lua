@@ -10,15 +10,15 @@ local require = require
 --this has to be first before requiring other files so they can mark functions as ignored
 require("__debugadapter__/stepping.lua")
 
-local variables = require("__debugadapter__/variables.lua")
+local variables = require("__debugadapter__/variables.lua") -- uses pcall
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local remotestepping
 if script then -- don't attempt to hook in data stage
   remotestepping = require("__debugadapter__/remotestepping.lua")
 end
-require("__debugadapter__/entrypoints.lua")
-require("__debugadapter__/evaluate.lua")
+require("__debugadapter__/evaluate.lua") -- uses pcall
 local json = require('__debugadapter__/json.lua')
+require("__debugadapter__/entrypoints.lua") -- must be after anyone using pcall/xpcall
 
 local script = script
 local debug = debug

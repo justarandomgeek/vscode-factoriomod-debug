@@ -4,7 +4,7 @@ local __DebugAdapter = __DebugAdapter
 local debug = debug
 local string = string
 local print = print
-local pcall = pcall
+local pcall = pcall -- capture pcall early before entrypoints wraps it
 local setmetatable = setmetatable
 local load = load
 

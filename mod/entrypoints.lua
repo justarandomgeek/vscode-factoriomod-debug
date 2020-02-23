@@ -1,17 +1,21 @@
 local remote = remote and rawget(remote,"__raw") or remote
+
+local oldpcall = pcall
+local oldxpcall = xpcall
+
 local function evil_translate(localisedString)
   -- Seriously, please don't copy this anywhere, this is horrible.
-  return select(2,pcall(remote.call,"debugadapter","error",localisedString)):match("debugadapter.error: (.+)\nstack traceback:")
+  return select(2,oldpcall(remote.call,"debugadapter","error",localisedString)):match("debugadapter.error: (.+)\nstack traceback:")
 end
 
 function __DebugAdapter.breakpoint(mesg)
   if mesg then
     if localised_print then
-      localised_print({"","DBG: exception ",mesg})
+      localised_print({"","DBG: exception manual ",mesg})
     elseif script.mod_name ~= "debugadapter" then
-      print("DBG: exception " .. evil_translate(mesg):match("^([^\n]+)"))
+      print("DBG: exception manual " .. evil_translate(mesg):match("^([^\n]+)"))
     else
-      print("DBG: exception " .. __DebugAdapter.describe(mesg))
+      print("DBG: exception manual " .. __DebugAdapter.describe(mesg))
     end
   else
     print("DBG: breakpoint")
@@ -30,7 +34,7 @@ if __DebugAdapter.instrument then
       if ex then return end
 
       ex = mesg:match("^([^\n]+)")
-      print("DBG: exception " .. ex)
+      print("DBG: exception unhandled " .. ex)
       debug.debug()
       return
     elseif mtype == "table" and mesg[1] and ({string=true,table=true})[type(mesg[1])] then
@@ -38,14 +42,14 @@ if __DebugAdapter.instrument then
       if localised_print then
         localised_print({"","DBG: exception ",mesg})
       elseif script.mod_name ~= "debugadapter" then
-        print("DBG: exception " .. evil_translate(mesg):match("^([^\n]+)"))
+        print("DBG: exception unhandled " .. evil_translate(mesg):match("^([^\n]+)"))
       else
-        print("DBG: exception " .. __DebugAdapter.describe(mesg))
+        print("DBG: exception unhandled " .. __DebugAdapter.describe(mesg))
       end
       debug.debug()
       return
     else
-      print("DBG: exception " .. __DebugAdapter.describe(mesg))
+      print("DBG: exception unhandled " .. __DebugAdapter.describe(mesg))
       debug.debug()
       return
     end
@@ -62,7 +66,7 @@ else
         return debug.traceback(ex,4):match("^(.+)\n[^\n]+\n[^\n]+$")
       else
         ex = mesg:match("^([^\n]+)")
-        print("DBG: exception " .. ex)
+        print("DBG: exception unhandled " .. ex)
         debug.debug()
         -- 0=traceback 1=on_exception 2=at exception
         -- remove two lines -1=try_func or remoteCallInner, -2=xpcall
@@ -78,11 +82,11 @@ else
       else
         -- localised_print is a proposed api function which would print a LocalisedString to stdout
         if localised_print then
-          localised_print({"","DBG: exception ",mesg})
+          localised_print({"","DBG: exception unhandled ",mesg})
         elseif script.mod_name ~= "debugadapter" then
-          print("DBG: exception " .. evil_translate(mesg):match("^([^\n]+)"))
+          print("DBG: exception unhandled " .. evil_translate(mesg):match("^([^\n]+)"))
         else
-          print("DBG: exception " .. __DebugAdapter.describe(mesg))
+          print("DBG: exception unhandled " .. __DebugAdapter.describe(mesg))
         end
         debug.debug()
         -- 0=traceback 1=on_exception 2=at exception
@@ -91,7 +95,7 @@ else
         return mesg
       end
     else
-      print("DBG: exception " .. __DebugAdapter.describe(mesg))
+      print("DBG: exception unhandled " .. __DebugAdapter.describe(mesg))
       debug.debug()
       return mesg
     end
@@ -135,7 +139,7 @@ else
     if func == nil then return nil end
     local try_func = function(...)
       __DebugAdapter.pushEntryPointName(entryname)
-      local success,message = xpcall(func,on_exception,...)
+      local success,message = oldxpcall(func,on_exception,...)
       if not success then
         -- factorio will add a new stacktrace below whatever i give it here, and there doesn't seem to be anything i can do about it.
         -- but i can rename it at least...
@@ -148,8 +152,36 @@ else
     return try_func
   end
 end
-
 __DebugAdapter.stepIgnore(try)
+
+local function caught(filter, user_handler)
+  return function(mesg)
+    if mesg then
+      if localised_print then
+        localised_print({"","DBG: exception " .. filter .. " ",mesg})
+      elseif script.mod_name ~= "debugadapter" then
+        print("DBG: exception " .. filter .. " " .. evil_translate(mesg):match("^([^\n]+)"))
+      else
+        print("DBG: exception " .. filter .. " " .. __DebugAdapter.describe(mesg))
+      end
+    else
+      print("DBG: breakpoint")
+    end
+    debug.debug()
+    if user_handler then
+      return user_handler(mesg)
+    else
+      return mesg
+    end
+  end
+end
+
+function pcall(func,...)
+  return oldxpcall(func, caught("pcall"), ...)
+end
+function xpcall(func, user_handler, ...)
+  return oldxpcall(func, caught("xpcall",user_handler), ...)
+end
 
 local oldscript = script
 local newscript = {

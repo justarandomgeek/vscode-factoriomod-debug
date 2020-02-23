@@ -43,6 +43,9 @@ export class FactorioModRuntime extends EventEmitter {
 	private _breakPoints = new Map<string, DebugProtocol.SourceBreakpoint[]>();
 	private _breakPointsChanged = new Set<string>();
 
+	// unhandled only by default
+	private _exceptionFilters = new Set<string>(["unhandled"]);
+
 	private _breakAddresses = new Set<string>();
 
 	private _factorio : ChildProcess;
@@ -283,7 +286,7 @@ export class FactorioModRuntime extends EventEmitter {
 		});
 		const stdout = this._factorio.stdout?.pipe(StreamSplitter("\n"));
 		stdout.on("token", (chunk:any) => {
-			let chunkstr = chunk.toString();
+			let chunkstr:string = chunk.toString();
 			if (chunkstr.startsWith("DBG: ")) {
 				let event = chunkstr.substring(5).trim();
 				if (event === "on_tick") {
@@ -317,8 +320,18 @@ export class FactorioModRuntime extends EventEmitter {
 					this.sendEvent('stopOnBreakpoint');
 				} else if (event.startsWith("exception")) {
 					// notify stop on exception
-					const err = event.substr(10)
-					this.sendEvent('stopOnException', err);
+					const sub = event.substr(10)
+					const split = sub.indexOf(" ")
+					const filter = sub.substr(0,split)
+					const err = sub.substr(split+1)
+					if (filter === "manual" || this._exceptionFilters.has(filter))
+					{
+						this.sendEvent('stopOnException', err);
+					}
+					else
+					{
+						this.continue();
+					}
 				} else {
 					// unexpected event?
 					FactorioModRuntime.output.appendLine("unexpected event: " + event);
@@ -703,6 +716,11 @@ export class FactorioModRuntime extends EventEmitter {
 		return false;
 	}
 
+	public setExceptionBreakpoints(filters: string[])
+	{
+		this._exceptionFilters.clear()
+		filters.forEach(f=>this._exceptionFilters.add(f))
+	}
 	/*
 	 * Clear all data breakpoints.
 	 */

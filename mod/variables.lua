@@ -10,7 +10,7 @@ local setmetatable = setmetatable
 local next = next
 local pairs = pairs
 local print = print
-local pcall = pcall
+local pcall = pcall -- capture pcall early before entrypoints wraps it
 local type = type
 
 -- Trying to expand the refs table causes some problems, so just hide it...
