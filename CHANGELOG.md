@@ -5,6 +5,9 @@
 * Added __DebugAdapter.breakpoint(mesg)
 * `\n` escape in locale is now `constant.character.escape.factorio-locale`
 * Hook `pcall` and `xpcall` and allow optionally breaking on caught exception
+* Use environment vars FACTORIO_PORTAL_USERNAME and FACTORIO_PORTAL_PASSWORD when not configured in settings
+* provide environment var FACTORIO_MODNAME to all mod scripts
+* provide environment var FACTORIO_MODVERSION to all mods scripts except `datestamp`
 
 ## 0.18.3
 

@@ -1,9 +1,9 @@
 read config.ini for modsPath?
-read factorio user/pass from ENV
 task arg to package to move zip
 tasks to enable/disable mods in modlist
 guess appdata modspath on windows?
 phobos, phobos-tidy, phobos-format
 string.dump serialise to source, or at least disasm, for non-file chunks
-options to only hook conditional during init stages of various things (settings, data)
+options to only hook conditional during init stages of various things (settings, data, control, filter by mod)
 locale color widget actually offer multiple formats for colors?
+explicitly save edited files instead of saveAll
