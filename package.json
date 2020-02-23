@@ -75,6 +75,15 @@
           "factorio.portal.password":{
             "type":"string",
             "description": "Password for Factorio Mod Portal to enable automatically uploading mods. If not set, will use environment variable FACTORIO_PORTAL_PASSWORD if set, or prompt for a password."
+          },
+          "factorio.package.onExplorer":{
+            "type":"boolean",
+            "description": "Show Factorio Packages view in Explorer"
+          },
+          "factorio.package.onScm":{
+            "type":"boolean",
+            "description": "Show Factorio Packages view in SCM",
+            "default": true
           }
         }
       }
@@ -127,8 +136,16 @@
     "views": {
       "explorer": [
         {
-          "id": "factoriomods",
-          "name": "Factorio Mod Packages"
+          "id": "factoriomods_exp",
+          "name": "Factorio Mod Packages",
+          "when": "config.factorio.package.onExplorer"
+        }
+      ],
+      "scm": [
+        {
+          "id": "factoriomods_scm",
+          "name": "Factorio Mod Packages",
+          "when": "config.factorio.package.onScm"
         }
       ]
     },

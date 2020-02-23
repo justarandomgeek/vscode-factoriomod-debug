@@ -56,8 +56,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 	if (vscode.workspace.workspaceFolders) {
 		let treeDataProvider = new ModsTreeDataProvider(context);
-		const view = vscode.window.createTreeView('factoriomods', { treeDataProvider: treeDataProvider });
-		context.subscriptions.push(view);
+		const view_exp = vscode.window.createTreeView('factoriomods_exp', { treeDataProvider: treeDataProvider });
+		context.subscriptions.push(view_exp);
+		const view_scm = vscode.window.createTreeView('factoriomods_scm', { treeDataProvider: treeDataProvider });
+		context.subscriptions.push(view_scm);
 	}
 }
 

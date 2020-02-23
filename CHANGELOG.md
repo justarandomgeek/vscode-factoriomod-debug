@@ -9,6 +9,7 @@
 * provide environment var FACTORIO_MODNAME to all mod scripts
 * provide environment var FACTORIO_MODVERSION to all mods scripts except `datestamp`
 * explicitly save files edited by tasks, instead of saveAll
+* packages view may be moved to SCM section
 
 ## 0.18.3
 
