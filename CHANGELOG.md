@@ -10,6 +10,7 @@
 * provide environment var FACTORIO_MODVERSION to all mods scripts except `datestamp`
 * explicitly save files edited by tasks, instead of saveAll
 * packages view may be moved to SCM section
+* fixed Package command not waiting to finish building zip before returning, which caused it to sometimes pick up edits made later by Publish
 
 ## 0.18.3
 
