@@ -38,6 +38,20 @@ interface modpaths{
 	modpath: string;
 }
 
+
+export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
+	factorioPath: string; // path of factorio binary to launch
+	modsPath?: string; // path of `mods` directory
+	//configPath?: string; // path to config.ini
+	dataPath: string; // absolute path of `data` directory
+	manageMod?: boolean;
+	useInstrumentMode?: boolean;
+	factorioArgs?: Array<string>;
+
+	/** enable logging the Debug Adapter Protocol */
+	trace?: boolean;
+}
+
 export class FactorioModRuntime extends EventEmitter {
 
 	private _breakPoints = new Map<string, DebugProtocol.SourceBreakpoint[]>();
@@ -90,8 +104,8 @@ export class FactorioModRuntime extends EventEmitter {
 	/**
 	 * Start executing the given program.
 	 */
-	public async start(factorioPath: string, dataPath: string, modsPath?: string, manageMod?: boolean, useInstrumentMod?: boolean, noDebug?: boolean, factorioArgs?: Array<string>) {
-		this.manageMod = manageMod;
+	public async start(args: LaunchRequestArguments) {
+		this.manageMod = args.manageMod;
 		await this.workspaceModListsReady.wait(1000);
 		if (this.workspaceModLists.length > 1)
 		{
@@ -101,18 +115,18 @@ export class FactorioModRuntime extends EventEmitter {
 		{
 			const workspaceModList = this.workspaceModLists[0].path
 			FactorioModRuntime.output.appendLine(`found mod-list.json in workspace: ${workspaceModList}`);
-			modsPath = path.dirname(workspaceModList);
-			if (os.platform() == "win32" && modsPath.startsWith("/")) {modsPath = modsPath.substr(1)}
+			args.modsPath = path.dirname(workspaceModList);
+			if (os.platform() == "win32" && args.modsPath.startsWith("/")) {args.modsPath = args.modsPath.substr(1)}
 		}
-		if (modsPath)
+		if (args.modsPath)
 		{
-			this.modsPath = modsPath.replace(/\\/g,"/");
+			this.modsPath = args.modsPath.replace(/\\/g,"/");
 			// check for folder or symlink and leave it alone, if zip update if mine is newer
 			const modlistpath = path.resolve(this.modsPath,"./mod-list.json")
 			if (fs.existsSync(modlistpath))
 			{
 				FactorioModRuntime.output.appendLine(`using modsPath ${this.modsPath}`);
-				if(manageMod === false)
+				if(args.manageMod === false)
 				{
 					FactorioModRuntime.output.appendLine(`automatic management of debugadapter mod disabled`);
 				}
@@ -137,12 +151,12 @@ export class FactorioModRuntime extends EventEmitter {
 							mods = mods.filter((mod)=>{
 								return mod.startsWith(dainfo.name)
 							})
-							if (!noDebug)
+							if (!args.noDebug)
 							{
 								if (mods.length == 0)
 								{
 									// install zip from package
-									fs.copyFileSync(zippath,path.resolve(modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
+									fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
 									FactorioModRuntime.output.appendLine(`installed ${dainfo.name}_${dainfo.version}.zip`);
 								}
 								else if (mods.length == 1)
@@ -153,20 +167,20 @@ export class FactorioModRuntime extends EventEmitter {
 										{
 											FactorioModRuntime.output.appendLine(`using existing ${mods[0]}`);
 										} else {
-											fs.unlinkSync(path.resolve(modsPath,mods[0]))
-											fs.copyFileSync(zippath,path.resolve(modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
+											fs.unlinkSync(path.resolve(args.modsPath,mods[0]))
+											fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
 											FactorioModRuntime.output.appendLine(`updated ${mods[0]} to ${dainfo.name}_${dainfo.version}.zip`);
 										}
 									}
 									else
 									{
 										FactorioModRuntime.output.appendLine("existing debugadapter in modsPath is not a zip");
-										const modinfopath = path.resolve(modsPath, mods[0], "./info.json")
+										const modinfopath = path.resolve(args.modsPath, mods[0], "./info.json")
 
 										if(mods[0] !== `${dainfo.name}_${dainfo.version}` || !fs.existsSync(modinfopath))
 										{
 											FactorioModRuntime.output.appendLine(`existing debugadapter is wrong version or does not contain info.json`);
-											fs.copyFileSync(zippath,path.resolve(modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
+											fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
 											FactorioModRuntime.output.appendLine(`installed ${dainfo.name}_${dainfo.version}.zip`);
 										}
 										else
@@ -175,7 +189,7 @@ export class FactorioModRuntime extends EventEmitter {
 											if (info.version !== dainfo.version)
 											{
 												FactorioModRuntime.output.appendLine(`existing ${mods[0]} is wrong version`);
-												fs.copyFileSync(zippath,path.resolve(modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
+												fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
 												FactorioModRuntime.output.appendLine(`installed ${dainfo.name}_${dainfo.version}.zip`);
 											}
 										}
@@ -194,7 +208,7 @@ export class FactorioModRuntime extends EventEmitter {
 									}
 									else
 									{
-										fs.copyFileSync(zippath,path.resolve(modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
+										fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
 										FactorioModRuntime.output.appendLine(`installed ${dainfo.name}_${dainfo.version}.zip`);
 									}
 
@@ -204,7 +218,7 @@ export class FactorioModRuntime extends EventEmitter {
 							// enable in json
 							let modlist:modlist = JSON.parse(fs.readFileSync(modlistpath, "utf8"))
 
-							if (noDebug)
+							if (args.noDebug)
 							{
 								let isInList = false
 								modlist.mods = modlist.mods.map((modentry)=>{
@@ -238,7 +252,7 @@ export class FactorioModRuntime extends EventEmitter {
 								}
 							}
 							fs.writeFileSync(modlistpath, JSON.stringify(modlist), "utf8")
-							FactorioModRuntime.output.appendLine(`debugadapter ${noDebug?"disabled":"enabled"} in mod-list.json`);
+							FactorioModRuntime.output.appendLine(`debugadapter ${args.noDebug?"disabled":"enabled"} in mod-list.json`);
 						}
 					}
 				}
@@ -251,7 +265,7 @@ export class FactorioModRuntime extends EventEmitter {
 			// warn that i can't check/add debugadapter
 			FactorioModRuntime.output.appendLine("Cannot install/verify mod without modsPath");
 		}
-		this.dataPath = dataPath.replace(/\\/g,"/");
+		this.dataPath = args.dataPath.replace(/\\/g,"/");
 		FactorioModRuntime.output.appendLine(`using dataPath ${this.dataPath}`);
 
 		await this.workspaceModInfoReady.wait(1000);
@@ -264,12 +278,12 @@ export class FactorioModRuntime extends EventEmitter {
 			this._breakPointsChanged.add(newpath);
 		});
 		this._breakPoints = renamedbps;
-		if(useInstrumentMod)
+		if(args.useInstrumentMode)
 		{
-			factorioArgs = factorioArgs||[]
-			factorioArgs.push("--instrument-mod","debugadapter")
+			args.factorioArgs = args.factorioArgs||[]
+			args.factorioArgs.push("--instrument-mod","debugadapter")
 		}
-		this._factorio = spawn(factorioPath,factorioArgs);
+		this._factorio = spawn(args.factorioPath,args.factorioArgs);
 		this._factorio.on("exit", (code:number, signal:string) => {
 			this.sendEvent('end');
 		});
