@@ -132,7 +132,7 @@ export class ModPackage extends vscode.TreeItem {
 		this.label = modscript.name;
 		this.description = modscript.version;
 		this.tooltip = modscript.title;
-		this.contextValue = "mod";
+		this.contextValue = "factoriomodpackage";
 		this.command = {
 			title: 'Open',
 			command: 'vscode.open',

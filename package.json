@@ -160,52 +160,52 @@
       "view/item/context": [
         {
           "command": "factorio.datestamp",
-          "when": "(view == factoriomods_scm || view == factoriomods_exp) && viewItem == mod",
+          "when": "viewItem == factoriomodpackage",
           "group": "basic@1"
         },
         {
           "command": "factorio.package",
-          "when": "(view == factoriomods_scm || view == factoriomods_exp) && viewItem == mod",
+          "when": "viewItem == factoriomodpackage",
           "group": "basic@2"
         },
         {
           "command": "factorio.version",
-          "when": "(view == factoriomods_scm || view == factoriomods_exp) && viewItem == mod",
+          "when": "viewItem == factoriomodpackage",
           "group": "basic@3"
         },
         {
           "command": "factorio.upload",
-          "when": "(view == factoriomods_scm || view == factoriomods_exp) && viewItem == mod",
+          "when": "viewItem == factoriomodpackage",
           "group": "basic@4"
         },
         {
           "command": "factorio.publish",
-          "when": "(view == factoriomods_scm || view == factoriomods_exp) && viewItem == mod",
+          "when": "viewItem == factoriomodpackage",
           "group": "publish@1"
         },
         {
           "command": "factorio.datestamp",
-          "when": "(view == factoriomods_scm || view == factoriomods_exp) && viewItem == mod",
+          "when": "viewItem == factoriomodpackage",
           "group": "inline@1"
         },
         {
           "command": "factorio.package",
-          "when": "(view == factoriomods_scm || view == factoriomods_exp) && viewItem == mod",
+          "when": "viewItem == factoriomodpackage",
           "group": "inline@2"
         },
         {
           "command": "factorio.version",
-          "when": "(view == factoriomods_scm || view == factoriomods_exp) && viewItem == mod",
+          "when": "viewItem == factoriomodpackage",
           "group": "inline@3"
         },
         {
           "command": "factorio.upload",
-          "when": "(view == factoriomods_scm || view == factoriomods_exp) && viewItem == mod",
+          "when": "viewItem == factoriomodpackage",
           "group": "inline@4"
         },
         {
           "command": "factorio.publish",
-          "when": "(view == factoriomods_scm || view == factoriomods_exp) && viewItem == mod",
+          "when": "viewItem == factoriomodpackage",
           "group": "inline@5"
         }
       ]
