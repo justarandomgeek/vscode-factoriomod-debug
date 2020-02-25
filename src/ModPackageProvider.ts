@@ -190,7 +190,7 @@ export class ModPackage extends vscode.TreeItem {
 			}
 			if (this.scripts?.datestamp) {
 				await runScript(term, "datestamp", this.scripts.datestamp, moddir,
-					{ FACTORIO_MODNAME:this.label, })
+					{ FACTORIO_MODNAME:this.label, FACTORIO_MODVERSION:this.description })
 			}
 			return true
 		}
@@ -199,7 +199,7 @@ export class ModPackage extends vscode.TreeItem {
 			term.write(`No Changelog found\r\n`)
 			if (this.scripts?.datestamp) {
 				await runScript(term, "datestamp", this.scripts.datestamp, moddir,
-					{ FACTORIO_MODNAME:this.label, })
+					{ FACTORIO_MODNAME:this.label, FACTORIO_MODVERSION:this.description })
 			}
 			return false
 		}
