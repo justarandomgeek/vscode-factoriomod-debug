@@ -32,7 +32,7 @@ and debug will be enabled until the end of the stage. Any mods requiring again a
 
 ## Automatic Mod Packaging and Publishing
 
-Mods can be automatically Packaged and Published from the "Factorio Mod Packages" panel in Explorer view. These tasks can also be accessed in VSCode's Tasks system.
+Mods can be automatically Packaged and Published from the "Factorio Mod Packages" panel in Explorer view. These tasks can also be accessed in VSCode's Tasks system. The environment variables `FACTORIO_MODNAME` and `FACTORIO_MODVERSION` are provided to all mod scripts.
 
 ### Datestamp
   * if changelog.txt present and has a section for the current version, update its date to today
@@ -63,8 +63,8 @@ Experimental all-in-one command.
   * run **Increment Version**
   * run `info.json#/package/scripts/publish` if set
   * commit "moved to version x.y.z"
-  * push to git upstream
-  * upload to mod portal
+  * push to git upstream, unless `info.json#/package/no_git_push` is set
+  * upload to mod portal, unless `info.json#/package/no_portal_upload` is set
 
 ## JSON Validation
 
