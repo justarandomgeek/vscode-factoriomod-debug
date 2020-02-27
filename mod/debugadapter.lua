@@ -1,3 +1,8 @@
+-- force canonical name require
+if ... ~= "__debugadapter__/debugadapter.lua" then
+  return require("__debugadapter__/debugadapter.lua")
+end
+
 -- this is a global so the vscode extension can get to it from debug.debug()
 __DebugAdapter = {
   -- on_error is a global available in "Instrument Mode"

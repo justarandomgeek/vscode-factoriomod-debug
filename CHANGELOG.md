@@ -3,6 +3,7 @@
 ## 0.18.5
 
 * Updated class data to Factorio 0.18.9
+* Force canonical-name requires for public-facing files (debugadapter.lua and variables.lua)
 
 ## 0.18.4
 

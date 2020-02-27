@@ -7,4 +7,3 @@ string.dump serialise to source, or at least disasm, for non-file chunks
 open in zip?
 options to only hook conditionally during init stages of various things (settings, data, control, filter by mod)
 locale color widget actually offer multiple formats for colors?
-force requires to use canonical names

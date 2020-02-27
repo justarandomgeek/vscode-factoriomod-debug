@@ -1,4 +1,8 @@
 local require = require
+-- force canonical name require
+if ... ~= "__debugadapter__/variables.lua" then
+  return require("__debugadapter__/variables.lua")
+end
 local luaObjectInfo = require("__debugadapter__/luaobjectinfo.lua")
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local json = require("__debugadapter__/json.lua")
