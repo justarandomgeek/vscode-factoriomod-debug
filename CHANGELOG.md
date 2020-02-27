@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.5
+
+* Updated class data to Factorio 0.18.9
+
 ## 0.18.4
 
 * Added __DebugAdapter.breakpoint(mesg)

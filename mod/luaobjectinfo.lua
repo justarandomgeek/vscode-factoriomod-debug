@@ -22,6 +22,8 @@ local luaObjectLines = {
 }
 __DebugAdapter.stepIgnoreAll(luaObjectLines)
 
+
+-- class data last updated factorio 0.18.9
 return {
   alwaysValid = {
     LuaRemote = true,
@@ -466,6 +468,9 @@ return {
       max_to_charge = {readOnly = true},
       burner_prototype = {readOnly = true},
       electric_energy_source_prototype = {readOnly = true},
+      heat_energy_source_prototype = {readOnly = true},
+      fluid_energy_source_prototype = {readOnly = true},
+      void_energy_source_prototype = {readOnly = true},
       building_grid_bit_shift = {readOnly = true},
       fluid_usage_per_tick = {readOnly = true},
       maximum_temperature = {readOnly = true},
@@ -648,6 +653,18 @@ return {
       maximum_temperature = {readOnly = true},
       secondary_draw_orders = {readOnly = true},
       render_layer = {readOnly = true},
+    },
+    LuaFluidEnergySourcePrototype = {
+      emissions  = {readOnly = true},
+      render_no_network_icon  = {readOnly = true},
+      render_no_power_icon  = {readOnly = true},
+      effectivity  = {readOnly = true},
+      burns_fluid  = {readOnly = true},
+      scale_fluid_usage  = {readOnly = true},
+      fluid_usage_per_tick  = {readOnly = true},
+      smoke  = {readOnly = true},
+      maximum_temperature  = {readOnly = true},
+      fluid_box  = {readOnly = true},
     },
     LuaFluidPrototype = {
       name = {readOnly = true},
@@ -891,7 +908,7 @@ return {
       left_label_tooltip = {},
       right_label_caption = {},
       right_label_tooltip = {},
-  },
+    },
     LuaInserterControlBehavior = {
       type = {readOnly = true},
       entity = {readOnly = true},
@@ -904,6 +921,19 @@ return {
       circuit_hand_read_mode = {},
       circuit_set_stack_size = {},
       circuit_stack_control_signal = {},
+    },
+    LuaHeatEnergySourcePrototype = {
+      emissions = {readOnly = true},
+      render_no_network_icon = {readOnly = true},
+      render_no_power_icon = {readOnly = true},
+      max_temperature = {readOnly = true},
+      default_temperature = {readOnly = true},
+      specific_heat = {readOnly = true},
+      max_transfer = {readOnly = true},
+      min_temperature_gradient = {readOnly = true},
+      min_working_temperature = {readOnly = true},
+      minimum_glow_temperature = {readOnly = true},
+      connections = {readOnly = true},
     },
     LuaInventory = {
       index = {readOnly = true},
@@ -1330,7 +1360,7 @@ return {
       minimap_enabled = {},
       color = {},
       chat_color = {},
-      name = {},
+      name = {readOnly = true},
       tag = {},
       connected = {readOnly = true},
       admin = {},
@@ -1587,6 +1617,7 @@ return {
       prototype = {readOnly = true},
       position = {readOnly = true},
       hidden_tile = {readOnly = true},
+      surface = {readOnly = true},
     },
     LuaTilePrototype = {
       name = {readOnly = true},
@@ -1708,6 +1739,11 @@ return {
       localised_description = {readOnly = true},
       special = {readOnly = true},
       subgroup = {readOnly = true},
+    },
+    LuaVoidEnergySourcePrototype = {
+      emissions = {readOnly = true},
+      render_no_network_icon = {readOnly = true},
+      render_no_power_icon = {readOnly = true},
     },
     LuaWallControlBehavior = {
       type = {readOnly = true},
