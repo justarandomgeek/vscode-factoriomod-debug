@@ -1,7 +1,7 @@
 -- this is a global so the vscode extension can get to it from debug.debug()
 __DebugAdapter = {
-  -- on_error is a global available in proposed "Instrument Mode"
-  -- This constrols the insertion of debug hooks (don't need xpcall for break-on-exception) and
+  -- on_error is a global available in "Instrument Mode"
+  -- This controls the insertion of debug hooks (don't need xpcall for break-on-exception) and
   -- stack frame hiding (don't need to hide xpcall)
   instrument = not not on_error
 }

@@ -191,7 +191,7 @@ function __DebugAdapter.attach()
       end
     end
   end,"clr")
-  -- on_error is proposed api for instrument mods to catch errors
+  -- on_error is api for instrument mods to catch errors
   if on_error then
     on_error(__DebugAdapter.on_exception)
   end
