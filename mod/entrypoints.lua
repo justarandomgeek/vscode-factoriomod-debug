@@ -3,6 +3,9 @@ local remote = remote and rawget(remote,"__raw") or remote
 local oldpcall = pcall
 local oldxpcall = xpcall
 
+-- local this proposed api function to cut down on warnings
+local localised_print = localised_print
+
 local function evil_translate(localisedString)
   -- Seriously, please don't copy this anywhere, this is horrible.
   return select(2,oldpcall(remote.call,"debugadapter","error",localisedString)):match("debugadapter.error: (.+)\nstack traceback:")
