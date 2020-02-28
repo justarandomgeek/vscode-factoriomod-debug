@@ -3,23 +3,26 @@ local remote = remote and rawget(remote,"__raw") or remote
 local oldpcall = pcall
 local oldxpcall = xpcall
 
--- local this proposed api function to cut down on warnings
-local localised_print = localised_print
-
 local function evil_translate(localisedString)
   -- Seriously, please don't copy this anywhere, this is horrible.
   return select(2,oldpcall(remote.call,"debugadapter","error",localisedString)):match("debugadapter.error: (.+)\nstack traceback:")
 end
 
+-- localised_print is a proposed api function which would print a LocalisedString to stdout
+local localised_print = localised_print
+local function print_exception(type,mesg)
+  if localised_print then
+    localised_print({"","DBG: exception ", type, " ", mesg})
+  elseif script.mod_name ~= "debugadapter" then
+    print("DBG: exception "..type.." " .. evil_translate(mesg):match("^([^\n]+)"))
+  else
+    print("DBG: exception "..type.." " .. __DebugAdapter.describe(mesg))
+  end
+end
+
 function __DebugAdapter.breakpoint(mesg)
   if mesg then
-    if localised_print then
-      localised_print({"","DBG: exception manual ",mesg})
-    elseif script.mod_name ~= "debugadapter" then
-      print("DBG: exception manual " .. evil_translate(mesg):match("^([^\n]+)"))
-    else
-      print("DBG: exception manual " .. __DebugAdapter.describe(mesg))
-    end
+    print_exception("manual",mesg)
   else
     print("DBG: breakpoint")
   end
@@ -41,14 +44,7 @@ if __DebugAdapter.instrument then
       debug.debug()
       return
     elseif mtype == "table" and mesg[1] and ({string=true,table=true})[type(mesg[1])] then
-      -- localised_print is a proposed api function which would print a LocalisedString to stdout
-      if localised_print then
-        localised_print({"","DBG: exception ",mesg})
-      elseif script.mod_name ~= "debugadapter" then
-        print("DBG: exception unhandled " .. evil_translate(mesg):match("^([^\n]+)"))
-      else
-        print("DBG: exception unhandled " .. __DebugAdapter.describe(mesg))
-      end
+      print_exception("unhandled",mesg)
       debug.debug()
       return
     else
@@ -83,14 +79,7 @@ else
         mesg[#mesg+1] = debug.traceback("",4):match("^(.+)\n[^\n]+\n[^\n]+$")
         return mesg
       else
-        -- localised_print is a proposed api function which would print a LocalisedString to stdout
-        if localised_print then
-          localised_print({"","DBG: exception unhandled ",mesg})
-        elseif script.mod_name ~= "debugadapter" then
-          print("DBG: exception unhandled " .. evil_translate(mesg):match("^([^\n]+)"))
-        else
-          print("DBG: exception unhandled " .. __DebugAdapter.describe(mesg))
-        end
+        print_exception("unhandled",mesg)
         debug.debug()
         -- 0=traceback 1=on_exception 2=at exception
         -- remove two lines -1=try_func or remoteCallInner, -2=xpcall
@@ -159,17 +148,7 @@ __DebugAdapter.stepIgnore(try)
 
 local function caught(filter, user_handler)
   return function(mesg)
-    if mesg then
-      if localised_print then
-        localised_print({"","DBG: exception " .. filter .. " ",mesg})
-      elseif script.mod_name ~= "debugadapter" then
-        print("DBG: exception " .. filter .. " " .. evil_translate(mesg):match("^([^\n]+)"))
-      else
-        print("DBG: exception " .. filter .. " " .. __DebugAdapter.describe(mesg))
-      end
-    else
-      print("DBG: breakpoint")
-    end
+    print_exception(filter,mesg)
     debug.debug()
     if user_handler then
       return user_handler(mesg)
