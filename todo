@@ -7,3 +7,6 @@ string.dump serialise to source, or at least disasm, for non-file chunks
 open in zip?
 options to only hook conditionally during init stages of various things (settings, data, control, filter by mod)
 locale color widget actually offer multiple formats for colors?
+access debugger zip inside extension by resource path?
+remove StreamSplitter and Subject if possible?
+update mod description from readme on publish (or other configurable file?)
