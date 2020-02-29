@@ -64,24 +64,24 @@
     "onView:factoriomods"
   ],
   "contributes": {
-    "configuration":[
+    "configuration": [
       {
         "title": "Factorio",
         "properties": {
-          "factorio.portal.username":{
-            "type":"string",
+          "factorio.portal.username": {
+            "type": "string",
             "description": "Username for Factorio Mod Portal to enable automatically uploading mods. If not set, will use environment variable FACTORIO_PORTAL_USERNAME if set, or prompt for a username."
           },
-          "factorio.portal.password":{
-            "type":"string",
+          "factorio.portal.password": {
+            "type": "string",
             "description": "Password for Factorio Mod Portal to enable automatically uploading mods. If not set, will use environment variable FACTORIO_PORTAL_PASSWORD if set, or prompt for a password."
           },
-          "factorio.package.onExplorer":{
-            "type":"boolean",
+          "factorio.package.onExplorer": {
+            "type": "boolean",
             "description": "Show Factorio Packages view in Explorer"
           },
-          "factorio.package.onScm":{
-            "type":"boolean",
+          "factorio.package.onScm": {
+            "type": "boolean",
             "description": "Show Factorio Packages view in SCM",
             "default": true
           }
@@ -93,10 +93,10 @@
         "type": "factorio",
         "properties": {
           "command": {
-            "type":"string"
+            "type": "string"
           },
-          "modname":{
-            "type":"string"
+          "modname": {
+            "type": "string"
           }
         }
       }
@@ -151,11 +151,26 @@
     },
     "menus": {
       "commandPalette": [
-        { "command": "factorio.datestamp", "when": "false" },
-        { "command": "factorio.package",   "when": "false" },
-        { "command": "factorio.version",   "when": "false" },
-        { "command": "factorio.upload",    "when": "false" },
-        { "command": "factorio.publish",   "when": "false" }
+        {
+          "command": "factorio.datestamp",
+          "when": "false"
+        },
+        {
+          "command": "factorio.package",
+          "when": "false"
+        },
+        {
+          "command": "factorio.version",
+          "when": "false"
+        },
+        {
+          "command": "factorio.upload",
+          "when": "false"
+        },
+        {
+          "command": "factorio.publish",
+          "when": "false"
+        }
       ],
       "view/item/context": [
         {
