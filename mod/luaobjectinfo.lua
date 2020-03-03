@@ -23,7 +23,7 @@ local luaObjectLines = {
 __DebugAdapter.stepIgnoreAll(luaObjectLines)
 
 
--- class data last updated factorio 0.18.9
+-- class data last updated factorio 0.18.10
 return {
   alwaysValid = {
     LuaRemote = true,
