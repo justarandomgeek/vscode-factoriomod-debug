@@ -12,23 +12,17 @@ This is a debug adapter for developing Factorio mods. It supports breakpoints, s
 
 ## Enabling Debugging In Your Mod
 
-Simply include
-```lua
-if script.active_mods["debugadapter"] then require('__debugadapter__/debugadapter.lua') end
-```
-at the top of your `control.lua` script to load the debugger into your Lua State.
+In Factorio >=0.18.10, Instrument Mode is used by default to enable debugging automatically.
 
 In a level (scenario/campaign) script, you can also provide a hint to locate the files inside a mod:
 ```lua
-local __DebugAdapter = script.active_mods["debugadapter"] and require('__debugadapter__/debugadapter.lua')
 if __DebugAdapter then __DebugAdapter.levelPath("modname","scenarios/scenarioname/") end
 ```
 
-In data or settings stage, any mod can include
+If you need to use debugging without Instrument mode, you can disable it by setting `useIntrumentMode:false` in launch.json and include a require for the debugadapter at the top of the appropriate stage file (control, data, settings) while debugging:
 ```lua
-if mods["debugadapter"] then require('__debugadapter__/debugadapter.lua') end
+require('__debugadapter__/debugadapter.lua')
 ```
-and debug will be enabled until the end of the stage. Any mods requiring again after that will have no further effect (debug remains active).
 
 ## Automatic Mod Packaging and Publishing
 

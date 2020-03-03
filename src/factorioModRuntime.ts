@@ -278,7 +278,7 @@ export class FactorioModRuntime extends EventEmitter {
 			this._breakPointsChanged.add(newpath);
 		});
 		this._breakPoints = renamedbps;
-		if(args.useInstrumentMode)
+		if(args.useInstrumentMode ?? true)
 		{
 			args.factorioArgs = args.factorioArgs||[]
 			args.factorioArgs.push("--instrument-mod","debugadapter")

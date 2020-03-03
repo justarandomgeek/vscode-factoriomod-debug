@@ -10,3 +10,4 @@ locale color widget actually offer multiple formats for colors?
 access debugger zip inside extension by resource path?
 remove StreamSplitter and Subject if possible?
 update mod description from readme on publish (or other configurable file?)
+table with -1 shows twice?
