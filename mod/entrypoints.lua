@@ -291,7 +291,11 @@ function newscript.on_configuration_changed(f)
 end
 
 function newscript.on_nth_tick(tick,f)
-  return oldscript.on_nth_tick(tick,try(f,("on_nth_tick %d handler"):format(tick)))
+  if not tick then
+    return oldscript.on_nth_tick(nil)
+  else
+    return oldscript.on_nth_tick(tick,try(f,("on_nth_tick %d handler"):format(tick)))
+  end
 end
 
 function newscript.on_event(event,f,filters)

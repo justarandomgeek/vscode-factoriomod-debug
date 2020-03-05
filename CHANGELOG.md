@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.7
+
+* Correctly handle `script.on_nth_tick(nil)`
+
 ## 0.18.6
 
 * Don't add `--instrument-mod` to command line args when launching without debug
