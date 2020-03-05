@@ -2,6 +2,8 @@
 
 ## 0.18.6
 
+* Don't add `--instrument-mod` to command line args when launching without debug
+
 ## 0.18.5
 
 * Updated class data to Factorio 0.18.10
