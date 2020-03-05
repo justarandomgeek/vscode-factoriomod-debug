@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.18.6
+
 ## 0.18.5
 
 * Updated class data to Factorio 0.18.10
