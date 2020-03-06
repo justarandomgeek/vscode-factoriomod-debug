@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.8
+
+* Fix typo in Increment Version command label
+
 ## 0.18.7
 
 * Correctly handle `script.on_nth_tick(nil)`

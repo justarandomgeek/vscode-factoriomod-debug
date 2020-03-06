@@ -117,7 +117,7 @@
       {
         "command": "factorio.version",
         "category": "Factorio",
-        "title": "Increment Verion",
+        "title": "Increment Version",
         "icon": "$(tag)"
       },
       {
