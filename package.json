@@ -342,7 +342,7 @@
               },
               "useInstrumentMode": {
                 "type": "boolean",
-                "description": "Use Instrument Mode to hook all mods. Requires Factorio >= 0.18.unmerged",
+                "description": "Use Instrument Mode to hook all mods. Requires Factorio >= 0.18.10",
                 "default": true
               },
               "factorioArgs": {
