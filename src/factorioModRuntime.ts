@@ -396,6 +396,12 @@ export class FactorioModRuntime extends EventEmitter {
 	public terminate()
 	{
 		this._factorio.kill();
+		try {
+			// this covers some weird hangs on closing on macs and
+			// seems to have no ill effects on windows, but try/catch
+			// just in case...
+			this._factorio.kill();
+		} catch (error) {}
 		const modsPath = this.modsPath
 		if (modsPath) {
 			const modlistpath = path.resolve(modsPath,"./mod-list.json")

@@ -10,6 +10,4 @@ locale color widget actually offer multiple formats for colors?
 access debugger zip inside extension by resource path?
 remove StreamSplitter and Subject if possible?
 update mod description from readme on publish (or other configurable file?)
-table with -1 shows twice?
-doesn't kill factorio correctly on macos? term twice should do
-give focus back to factorio when resuming
+set gitlens.codeLens.scopes and gitlens.codeLens.symbolScopes for [factorio-changelog]? vscode-gitlens#977
