@@ -30,9 +30,26 @@ function __DebugAdapter.breakpoint(mesg)
   return
 end
 
+local function stack_has_location()
+  local i = 4
+  -- 1 = stack_has_location, 2 = on_exception,
+  -- 3 = pCallWithStackTraceMessageHandler, 4 = at exception
+  local info = debug.getinfo(i,"Sf")
+  repeat
+    if (info.what ~= "C") and (info.source:sub(1,1) ~= "=") and not __DebugAdapter.isStepIgnore(info.func) then
+      return true
+    end
+    i = i + 1
+    info = debug.getinfo(i,"Sf")
+  until not info
+  return false
+end
+__DebugAdapter.stepIgnore(stack_has_location)
+
 local on_exception
 if __DebugAdapter.instrument then
   on_exception = function (mesg)
+    if not stack_has_location() then return end
     local mtype = type(mesg)
     if mtype == "string" then
       -- don't bother breaking when remotestepping rethrows an error, we've already had that one...
@@ -55,6 +72,7 @@ if __DebugAdapter.instrument then
   end
 else
   on_exception = function (mesg)
+    if not stack_has_location() then return end
     local mtype = type(mesg)
     if mtype == "string" then
       -- don't bother breaking when remotestepping rethrows an error, we've already had that one...
