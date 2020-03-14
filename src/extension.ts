@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
+import * as ini from 'ini';
 import { FactorioModDebugSession } from './factorioModDebug';
 import { LocaleColorProvider, LocaleDocumentSymbolProvider } from './LocaleLangProvider';
 import { ChangelogCodeActionProvider, validateChangelogTxt, ChangelogDocumentSymbolProvider } from './ChangeLogLangProvider';
@@ -67,6 +68,39 @@ export function deactivate() {
 	// nothing to do
 }
 
+
+function translatePath(thispath:string,factorioPath:string):string {
+	if (thispath.startsWith("__PATH_executable__"))
+		return path.join(path.dirname(factorioPath),thispath.replace("__PATH_executable__",""))
+
+	if (thispath.startsWith("__PATH__system-write-data__"))
+	{
+		// windows: %appdata%/Factorio
+		// linux: ~/.factorio
+		// mac: ~/Library/Application Support/factorio
+		const syswrite =
+			os.platform() == "win32" ? path.resolve(process.env.APPDATA!,"Factorio") :
+			os.platform() == "linux" ? path.resolve(os.homedir(), ".factorio") :
+			os.platform() == "darwin" ? path.resolve(os.homedir(), "Library/Application Support/factorio" ) :
+			"??"
+		return path.join(syswrite,thispath.replace("__PATH__system-write-data__",""))
+	}
+	if (thispath.startsWith("__PATH__system-read-data__"))
+	{
+		// linux: /usr/share/factorio
+		// mac: factorioPath/../data
+		// else (windows,linuxsteam): factorioPath/../../data
+		const sysread =
+			os.platform() == "linux" ? "/usr/share/factorio" :
+			os.platform() == "darwin" ? path.resolve(path.dirname(factorioPath), "../data" ) :
+			path.resolve(path.dirname(factorioPath), "../../data" )
+
+		return path.join(sysread,thispath.replace("__PATH__system-read-data__",""))
+	}
+
+	return thispath
+}
+
 class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvider {
 
 	/**
@@ -80,28 +114,54 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 				return undefined;	// abort launch
 			});
 		}
-
-		if (config.dataPath)
+		const args:string[] = config.factorioArgs
+		if (args)
 		{
-			let dataPath = path.posix.normalize(config.dataPath);
-			if (dataPath.endsWith("/") || dataPath.endsWith("\\"))
-			{
-				dataPath = dataPath.replace(/[\\\/]+$/,"")
-			}
+			if (args.includes("--config"))
+				return vscode.window.showInformationMessage("Factorio --config option is set by configPath and should not be included in factorioArgs").then(_ => {
+					return undefined;	// abort launch
+				});
+			if (args.includes("--mod-directory"))
+				return vscode.window.showInformationMessage("Factorio --mod-directory option is set by modsPath and should not be included in factorioArgs").then(_ => {
+					return undefined;	// abort launch
+				});
 		}
-		else
+
+		let useSystem = false
+		if (!config.configPath)
 		{
-			// if data path is not set, assume factorio path dir/../../data, verify dir exists
-			if (os.platform() == "darwin")
+			// find config-path.cfg then config.ini and dataPath/modsPath defaults
+			const cfgpath = path.resolve(path.dirname(config.factorioPath), "../../config-path.cfg" )
+			if (fs.existsSync(cfgpath))
 			{
-				// except on macs, then it's only one layer...
-				config.dataPath = path.posix.normalize(path.resolve(path.dirname(config.factorioPath), "../data" ));
+				const configdata = ini.parse(fs.readFileSync(cfgpath,"utf8"))
+				config.configPath = configdata["config-path"]
+				useSystem = configdata["use-system-read-write-data-directories"]
 			}
 			else
 			{
-				config.dataPath = path.posix.normalize(path.resolve(path.dirname(config.factorioPath), "../../data" ));
+				// try for a config.ini in systemwritepath
+				useSystem = true
+				config.configPath = translatePath("__PATH__system-write-data__/config/config.ini",config.factorioPath)
 			}
+			config.configPathDetected = true
 		}
+
+		if (!fs.existsSync(config.configPath))
+		{
+			if (config.configPathDetected)
+				return vscode.window.showInformationMessage("Unabled to detect config.ini location").then(_ => {
+					return undefined;	// abort launch
+				});
+
+			return vscode.window.showInformationMessage("Specified config.ini not found").then(_ => {
+				return undefined;	// abort launch
+			});
+		}
+
+		const configdata = ini.parse(fs.readFileSync(config.configPath,"utf8"))
+
+		config.dataPath = path.posix.normalize(translatePath(configdata.path["read-data"],config.factorioPath))
 
 		if (config.modsPath)
 		{
@@ -115,15 +175,11 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 				config.modsPath = modspath;
 			}
 		}
-		// if mods path is not set, assume factorio path dir/../../mods, verify dir exists
-		// except on macs, it's not there.
-		else if (os.platform() != "darwin")
+		else
 		{
-			const modspath = path.posix.normalize(path.resolve(path.dirname(config.factorioPath), "../../mods" ));
-			if (fs.existsSync(modspath))
-			{
-				config.modsPath = modspath;
-			}
+			config.modsPathDetected = true
+			config.modsPath = path.posix.normalize(path.resolve(
+				translatePath(configdata.path["write-data"],config.factorioPath),"mods"))
 		}
 
 		return config;

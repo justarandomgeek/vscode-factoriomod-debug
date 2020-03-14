@@ -42,6 +42,7 @@
   "dependencies": {
     "archiver": "^3.1.1",
     "await-notify": "1.0.1",
+    "ini": "^1.3.5",
     "stream-splitter": "^0.3.2",
     "vscode-debugadapter": "1.38.0-pre.4",
     "web-request": "^1.0.7"
@@ -327,13 +328,13 @@
                 "type": "string",
                 "description": "Path to Factorio binary."
               },
+              "configPath": {
+                "type": "string",
+                "description": "Path to Factorio config.ini file."
+              },
               "modsPath": {
                 "type": "string",
                 "description": "Absolute path to Factorio mods directory."
-              },
-              "dataPath": {
-                "type": "string",
-                "description": "Absolute path to Factorio data directory."
               },
               "manageMod": {
                 "type": "boolean",

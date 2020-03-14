@@ -1,13 +1,11 @@
-read config.ini for modsPath?
 task arg to package to move zip
 tasks to enable/disable mods in modlist
-guess appdata modspath on windows?
 phobos, phobos-tidy, phobos-format
 string.dump serialise to source, or at least disasm, for non-file chunks
 open in zip?
 options to only hook conditionally during init stages of various things (settings, data, control, filter by mod)
 locale color widget actually offer multiple formats for colors?
-access debugger zip inside extension by resource path?
 remove StreamSplitter and Subject if possible?
 update mod description from readme on publish (or other configurable file?)
 set gitlens.codeLens.scopes and gitlens.codeLens.symbolScopes for [factorio-changelog]? vscode-gitlens#977
+crash when /c remote.call()

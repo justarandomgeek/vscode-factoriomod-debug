@@ -41,9 +41,11 @@ interface modpaths{
 
 export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 	factorioPath: string; // path of factorio binary to launch
-	modsPath?: string; // path of `mods` directory
-	//configPath?: string; // path to config.ini
-	dataPath: string; // absolute path of `data` directory
+	modsPath: string; // path of `mods` directory
+	modsPathDetected?: boolean;
+	configPath: string; // path to config.ini
+	configPathDetected?: boolean;
+	dataPath: string; // path of `data` directory, always comes from config.ini
 	manageMod?: boolean;
 	useInstrumentMode?: boolean;
 	factorioArgs?: Array<string>;
@@ -79,7 +81,6 @@ export class FactorioModRuntime extends EventEmitter {
 	private workspaceModInfo = new Array<modpaths>();
 	private workspaceModListsReady = new Subject();
 	private workspaceModLists = new Array<vscode.Uri>();
-	private infoWatcher:vscode.FileSystemWatcher;
 
 	private static output:vscode.OutputChannel;
 
@@ -92,13 +93,6 @@ export class FactorioModRuntime extends EventEmitter {
 		vscode.workspace.findFiles('**/info.json')
 			.then(infos=>{infos.forEach(this.updateInfoJson,this);})
 			.then(()=>{this.workspaceModInfoReady.notify()});
-		this.infoWatcher = vscode.workspace.createFileSystemWatcher('**/info.json');
-		this.infoWatcher.onDidChange(this.updateInfoJson,this)
-		this.infoWatcher.onDidCreate((info)=>{
-			this.removeInfoJson(info);
-			this.updateInfoJson(info);
-		},this)
-		this.infoWatcher.onDidDelete(this.removeInfoJson,this)
 	}
 
 	/**
@@ -278,10 +272,19 @@ export class FactorioModRuntime extends EventEmitter {
 			this._breakPointsChanged.add(newpath);
 		});
 		this._breakPoints = renamedbps;
+		args.factorioArgs = args.factorioArgs||[]
 		if(!args.noDebug && (args.useInstrumentMode ?? true))
 		{
-			args.factorioArgs = args.factorioArgs||[]
 			args.factorioArgs.push("--instrument-mod","debugadapter")
+		}
+
+		if (!args.configPathDetected)
+		{
+			args.factorioArgs.push("--config",args.configPath)
+		}
+		if (!args.modsPathDetected)
+		{
+			args.factorioArgs.push("--mod-directory",args.modsPath)
 		}
 		this._factorio = spawn(args.factorioPath,args.factorioArgs);
 		this._factorio.on("exit", (code:number, signal:string) => {
