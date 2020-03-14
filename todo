@@ -8,4 +8,4 @@ locale color widget actually offer multiple formats for colors?
 remove StreamSplitter and Subject if possible?
 update mod description from readme on publish (or other configurable file?)
 set gitlens.codeLens.scopes and gitlens.codeLens.symbolScopes for [factorio-changelog]? vscode-gitlens#977
-crash when /c remote.call()
+weirdness when stepping/exception in /c commands

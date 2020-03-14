@@ -39,7 +39,8 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
   -- in exceptions    0 getinfo, 1 stackTrace, 2 debug command, 3 debug.debug, 4 xpcall callback, 5 at exception
   -- in instrument ex 0 getinfo, 1 stackTrace, 2 debug command, 3 debug.debug, 4 on_error callback,
   --                  5 pCallWithStackTraceMessageHandler, 6 at exception
-  if __DebugAdapter.instrument and debug.getinfo(4,"f").func == __DebugAdapter.on_exception then
+  if __DebugAdapter.instrument and not forRemote and 
+    debug.getinfo(4,"f").func == __DebugAdapter.on_exception then
     offset = offset + 1
   end
   local i = (startFrame or 0) + offset

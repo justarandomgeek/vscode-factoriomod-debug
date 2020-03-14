@@ -6,6 +6,7 @@
 * Fix not always killing Factorio on Macs
 * Read config.ini for mods/data paths. Removed dataPath in launch config, added configPath. modsPath and configPath also set the corresponding command line args.
 * Don't recheck info.json during a debug session, only when starting a new session.
+* Fixed crash when running remote.call() in /c
 
 ## 0.18.7
 
