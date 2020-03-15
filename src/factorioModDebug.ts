@@ -267,7 +267,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 
 	protected setExceptionBreakPointsRequest(response: DebugProtocol.SetExceptionBreakpointsResponse, args: DebugProtocol.SetExceptionBreakpointsArguments, request?: DebugProtocol.Request): void {
-		this._runtime.setExceptionBreakpoints(args.filters)
+		this._runtime.setExceptionBreakpoints(args.filters);
 		this.sendResponse(response);
 	}
 

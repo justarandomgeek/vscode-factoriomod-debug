@@ -20,7 +20,7 @@ export class LocaleColorProvider implements vscode.DocumentColorProvider {
 	colorFromString(str: string): vscode.Color | undefined {
 		// color name from utility constants
 		if (this.constColors.has(str))
-			return this.constColors.get(str);
+			{return this.constColors.get(str);}
 		// #rrggbb or #rrggbbaa
 		if (str.startsWith("#")) {
 			let matches = str.match(/#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})?/);
@@ -36,7 +36,7 @@ export class LocaleColorProvider implements vscode.DocumentColorProvider {
 	}
 	;
 	padHex(i: number): string {
-		var hex = Math.floor(i).toString(16);
+		let hex = Math.floor(i).toString(16);
 		if (hex.length < 2) {
 			hex = "0" + hex;
 		}
@@ -65,8 +65,8 @@ export class LocaleColorProvider implements vscode.DocumentColorProvider {
 		return colors;
 	}
 	public provideColorPresentations(color: vscode.Color, context: {
-		document: vscode.TextDocument;
-		range: vscode.Range;
+		document: vscode.TextDocument
+		range: vscode.Range
 	}, token: vscode.CancellationToken): vscode.ColorPresentation[] {
 		let p = new vscode.ColorPresentation(this.colorToString(color));
 		p.textEdit = new vscode.TextEdit(context.range, this.colorToString(color));

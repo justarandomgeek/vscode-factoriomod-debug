@@ -11,7 +11,7 @@ export async function validateChangelogTxt(document: vscode.Uri|vscode.TextDocum
 	for (let i = 0; i < changelog.length; i++) {
 		let line = changelog[i];
 		if (line.match(/^-+$/)) {
-			if (line.length != 99)
+			if (line.length !== 99) {
 				diags.push({
 					"message": "Separator line is incorrect length",
 					"code": "separator.fixlength",
@@ -19,6 +19,7 @@ export async function validateChangelogTxt(document: vscode.Uri|vscode.TextDocum
 					"severity": vscode.DiagnosticSeverity.Error,
 					"range": new vscode.Range(i, 0, i, line.length)
 				});
+			}
 			line = changelog[++i];
 			if (!line) {
 				diags.push({
@@ -120,7 +121,7 @@ export async function validateChangelogTxt(document: vscode.Uri|vscode.TextDocum
 						"range": new vscode.Range(i, 0, i, line.length)
 					});
 				}
-				if (line.length == 6) {
+				if (line.length === 6) {
 					diags.push({
 						"message": "Blank entry line",
 						"source": "factorio-changelog",
@@ -151,7 +152,7 @@ export async function validateChangelogTxt(document: vscode.Uri|vscode.TextDocum
 }
 export class ChangelogCodeActionProvider implements vscode.CodeActionProvider {
 	public provideCodeActions(document: vscode.TextDocument, range: vscode.Range, context: vscode.CodeActionContext, token: vscode.CancellationToken): vscode.CodeAction[] {
-		if (document.languageId == "factorio-changelog") {
+		if (document.languageId === "factorio-changelog") {
 			return context.diagnostics.filter(diag => !!diag.code).map((diag) => {
 				switch (diag.code) {
 					case "separator.fixlength":

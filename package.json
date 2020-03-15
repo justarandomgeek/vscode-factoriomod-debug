@@ -32,7 +32,7 @@
   "scripts": {
     "prepare": "tsc -p ./src",
     "compile": "tsc -p ./src",
-    "tslint": "tslint ./src/**/*.ts",
+    "lint": "eslint -c ./src/.eslintrc.js --ext .ts ./src",
     "watch": "tsc -w -p ./src",
     "postinstall": "node ./node_modules/vscode/bin/install",
     "vscode:prepublish": ".\\mod\\makerelease.sh",
@@ -44,16 +44,18 @@
     "await-notify": "1.0.1",
     "ini": "^1.3.5",
     "stream-splitter": "^0.3.2",
-    "vscode-debugadapter": "1.38.0-pre.4",
+    "vscode-debugadapter": "^1.39.1",
     "web-request": "^1.0.7"
   },
   "devDependencies": {
     "@types/node": "12.12.6",
-    "typescript": "3.7.5",
-    "vscode": "1.1.36",
-    "vscode-debugadapter-testsupport": "1.40.0",
-    "tslint": "6.0.0",
-    "vsce": "1.71.0"
+    "@typescript-eslint/eslint-plugin": "^2.23.0",
+    "@typescript-eslint/parser": "^2.23.0",
+    "eslint": "^6.8.0",
+    "typescript": "3.8.3",
+    "vsce": "^1.74.0",
+    "vscode": "^1.1.36",
+    "vscode-debugadapter-testsupport": "^1.40.2"
   },
   "main": "./out/extension",
   "activationEvents": [

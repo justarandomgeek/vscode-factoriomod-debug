@@ -30,19 +30,19 @@ export function activate(context: vscode.ExtensionContext) {
 
 	vscode.workspace.findFiles("**/changelog.txt").then(uris => {
 		// check diagnostics
-		uris.forEach(async uri=> diagnosticCollection.set(uri, await validateChangelogTxt(uri)))
-	})
+		uris.forEach(async uri=> diagnosticCollection.set(uri, await validateChangelogTxt(uri)));
+	});
 
 	vscode.workspace.onDidChangeTextDocument(async change =>{
-		if (change.document.languageId == "factorio-changelog")
+		if (change.document.languageId === "factorio-changelog")
 		{
 			// if it's changelog.txt, recheck diagnostics...
-			diagnosticCollection.set(change.document.uri, await validateChangelogTxt(change.document))
+			diagnosticCollection.set(change.document.uri, await validateChangelogTxt(change.document));
 		}
-	})
+	});
 	vscode.workspace.onDidDeleteFiles(deleted => {
-		deleted.files.forEach(uri=>{diagnosticCollection.set(uri, undefined)})
-	})
+		deleted.files.forEach(uri=>{diagnosticCollection.set(uri, undefined);});
+	});
 	context.subscriptions.push(
 		vscode.languages.registerDocumentSymbolProvider(
 			{scheme:"file", language:"factorio-changelog"}, new ChangelogDocumentSymbolProvider()));
@@ -71,7 +71,7 @@ export function deactivate() {
 
 function translatePath(thispath:string,factorioPath:string):string {
 	if (thispath.startsWith("__PATH_executable__"))
-		return path.join(path.dirname(factorioPath),thispath.replace("__PATH_executable__",""))
+		{return path.join(path.dirname(factorioPath),thispath.replace("__PATH_executable__",""));}
 
 	if (thispath.startsWith("__PATH__system-write-data__"))
 	{
@@ -79,11 +79,11 @@ function translatePath(thispath:string,factorioPath:string):string {
 		// linux: ~/.factorio
 		// mac: ~/Library/Application Support/factorio
 		const syswrite =
-			os.platform() == "win32" ? path.resolve(process.env.APPDATA!,"Factorio") :
-			os.platform() == "linux" ? path.resolve(os.homedir(), ".factorio") :
-			os.platform() == "darwin" ? path.resolve(os.homedir(), "Library/Application Support/factorio" ) :
-			"??"
-		return path.join(syswrite,thispath.replace("__PATH__system-write-data__",""))
+			os.platform() === "win32" ? path.resolve(process.env.APPDATA!,"Factorio") :
+			os.platform() === "linux" ? path.resolve(os.homedir(), ".factorio") :
+			os.platform() === "darwin" ? path.resolve(os.homedir(), "Library/Application Support/factorio" ) :
+			"??";
+		return path.join(syswrite,thispath.replace("__PATH__system-write-data__",""));
 	}
 	if (thispath.startsWith("__PATH__system-read-data__"))
 	{
@@ -91,14 +91,14 @@ function translatePath(thispath:string,factorioPath:string):string {
 		// mac: factorioPath/../data
 		// else (windows,linuxsteam): factorioPath/../../data
 		const sysread =
-			os.platform() == "linux" ? "/usr/share/factorio" :
-			os.platform() == "darwin" ? path.resolve(path.dirname(factorioPath), "../data" ) :
-			path.resolve(path.dirname(factorioPath), "../../data" )
+			os.platform() === "linux" ? "/usr/share/factorio" :
+			os.platform() === "darwin" ? path.resolve(path.dirname(factorioPath), "../data" ) :
+			path.resolve(path.dirname(factorioPath), "../../data" );
 
-		return path.join(sysread,thispath.replace("__PATH__system-read-data__",""))
+		return path.join(sysread,thispath.replace("__PATH__system-read-data__",""));
 	}
 
-	return thispath
+	return thispath;
 }
 
 class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvider {
@@ -114,61 +114,58 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 				return undefined;	// abort launch
 			});
 		}
-		const args:string[] = config.factorioArgs
+		const args:string[] = config.factorioArgs;
 		if (args)
 		{
 			if (args.includes("--config"))
-				return vscode.window.showInformationMessage("Factorio --config option is set by configPath and should not be included in factorioArgs").then(_ => {
+				{return vscode.window.showInformationMessage("Factorio --config option is set by configPath and should not be included in factorioArgs").then(_ => {
 					return undefined;	// abort launch
-				});
+				});}
 			if (args.includes("--mod-directory"))
-				return vscode.window.showInformationMessage("Factorio --mod-directory option is set by modsPath and should not be included in factorioArgs").then(_ => {
+				{return vscode.window.showInformationMessage("Factorio --mod-directory option is set by modsPath and should not be included in factorioArgs").then(_ => {
 					return undefined;	// abort launch
-				});
+				});}
 		}
 
-		let useSystem = false
 		if (!config.configPath)
 		{
 			// find config-path.cfg then config.ini and dataPath/modsPath defaults
-			const cfgpath = path.resolve(path.dirname(config.factorioPath), "../../config-path.cfg" )
+			const cfgpath = path.resolve(path.dirname(config.factorioPath), "../../config-path.cfg" );
 			if (fs.existsSync(cfgpath))
 			{
-				const configdata = ini.parse(fs.readFileSync(cfgpath,"utf8"))
-				config.configPath = configdata["config-path"]
-				useSystem = configdata["use-system-read-write-data-directories"]
+				const configdata = ini.parse(fs.readFileSync(cfgpath,"utf8"));
+				config.configPath = configdata["config-path"];
 			}
 			else
 			{
 				// try for a config.ini in systemwritepath
-				useSystem = true
-				config.configPath = translatePath("__PATH__system-write-data__/config/config.ini",config.factorioPath)
+				config.configPath = translatePath("__PATH__system-write-data__/config/config.ini",config.factorioPath);
 			}
-			config.configPathDetected = true
+			config.configPathDetected = true;
 		}
 
 		if (!fs.existsSync(config.configPath))
 		{
 			if (config.configPathDetected)
-				return vscode.window.showInformationMessage("Unabled to detect config.ini location").then(_ => {
+				{return vscode.window.showInformationMessage("Unabled to detect config.ini location").then(_ => {
 					return undefined;	// abort launch
-				});
+				});}
 
 			return vscode.window.showInformationMessage("Specified config.ini not found").then(_ => {
 				return undefined;	// abort launch
 			});
 		}
 
-		const configdata = ini.parse(fs.readFileSync(config.configPath,"utf8"))
+		const configdata = ini.parse(fs.readFileSync(config.configPath,"utf8"));
 
-		config.dataPath = path.posix.normalize(translatePath(configdata.path["read-data"],config.factorioPath))
+		config.dataPath = path.posix.normalize(translatePath(configdata.path["read-data"],config.factorioPath));
 
 		if (config.modsPath)
 		{
 			let modspath = path.posix.normalize(config.modsPath);
 			if (modspath.endsWith("/") || modspath.endsWith("\\"))
 			{
-				modspath = modspath.replace(/[\\\/]+$/,"")
+				modspath = modspath.replace(/[\\\/]+$/,"");
 			}
 			if (fs.existsSync(modspath))
 			{
@@ -177,9 +174,9 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 		}
 		else
 		{
-			config.modsPathDetected = true
+			config.modsPathDetected = true;
 			config.modsPath = path.posix.normalize(path.resolve(
-				translatePath(configdata.path["write-data"],config.factorioPath),"mods"))
+				translatePath(configdata.path["write-data"],config.factorioPath),"mods"));
 		}
 
 		return config;

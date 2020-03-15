@@ -11,47 +11,47 @@ import * as os from 'os';
 import { Buffer } from 'buffer';
 
 
-interface modentry{
-	name: string;
-	enabled: boolean;
-	version?: string;
+interface ModEntry{
+	name: string
+	enabled: boolean
+	version?: string
 }
-interface modlist{
-	mods: modentry[];
-}
-
-interface modinfo{
-	name: string;
-    version: string;
-    factorio_version: string;
-    title: string;
-    author: string;
-    homepage: string;
-    contact: string;
-    description: string;
-    dependencies: string[];
+interface ModList{
+	mods: ModEntry[]
 }
 
+interface ModInfo{
+	name: string
+    version: string
+    factorio_version: string
+    title: string
+    author: string
+    homepage: string
+    contact: string
+    description: string
+    dependencies: string[]
+}
 
-interface modpaths{
-	fspath: string;
-	modpath: string;
+
+interface ModPaths{
+	fspath: string
+	modpath: string
 }
 
 
 export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
-	factorioPath: string; // path of factorio binary to launch
-	modsPath: string; // path of `mods` directory
-	modsPathDetected?: boolean;
-	configPath: string; // path to config.ini
-	configPathDetected?: boolean;
-	dataPath: string; // path of `data` directory, always comes from config.ini
-	manageMod?: boolean;
-	useInstrumentMode?: boolean;
-	factorioArgs?: Array<string>;
+	factorioPath: string // path of factorio binary to launch
+	modsPath: string // path of `mods` directory
+	modsPathDetected?: boolean
+	configPath: string // path to config.ini
+	configPathDetected?: boolean
+	dataPath: string // path of `data` directory, always comes from config.ini
+	manageMod?: boolean
+	useInstrumentMode?: boolean
+	factorioArgs?: Array<string>
 
 	/** enable logging the Debug Adapter Protocol */
-	trace?: boolean;
+	trace?: boolean
 }
 
 export class FactorioModRuntime extends EventEmitter {
@@ -78,7 +78,7 @@ export class FactorioModRuntime extends EventEmitter {
 	private manageMod?: boolean;
 
 	private workspaceModInfoReady = new Subject();
-	private workspaceModInfo = new Array<modpaths>();
+	private workspaceModInfo = new Array<ModPaths>();
 	private workspaceModListsReady = new Subject();
 	private workspaceModLists = new Array<vscode.Uri>();
 
@@ -89,10 +89,10 @@ export class FactorioModRuntime extends EventEmitter {
 		FactorioModRuntime.output = FactorioModRuntime.output || vscode.window.createOutputChannel("Factorio Mod Debug");
 		FactorioModRuntime.output.appendLine("---------------------------------------------------------------------------------------------------");
 		vscode.workspace.findFiles("**/mod-list.json")
-			.then((modlists)=>{this.workspaceModLists = modlists; this.workspaceModListsReady.notify()})
+			.then((modlists)=>{this.workspaceModLists = modlists; this.workspaceModListsReady.notify();});
 		vscode.workspace.findFiles('**/info.json')
 			.then(infos=>{infos.forEach(this.updateInfoJson,this);})
-			.then(()=>{this.workspaceModInfoReady.notify()});
+			.then(()=>{this.workspaceModInfoReady.notify();});
 	}
 
 	/**
@@ -105,18 +105,18 @@ export class FactorioModRuntime extends EventEmitter {
 		{
 			FactorioModRuntime.output.appendLine(`multiple mod-list.json in workspace`);
 		}
-		else if (this.workspaceModLists.length == 1)
+		else if (this.workspaceModLists.length === 1)
 		{
-			const workspaceModList = this.workspaceModLists[0].path
+			const workspaceModList = this.workspaceModLists[0].path;
 			FactorioModRuntime.output.appendLine(`found mod-list.json in workspace: ${workspaceModList}`);
 			args.modsPath = path.dirname(workspaceModList);
-			if (os.platform() == "win32" && args.modsPath.startsWith("/")) {args.modsPath = args.modsPath.substr(1)}
+			if (os.platform() === "win32" && args.modsPath.startsWith("/")) {args.modsPath = args.modsPath.substr(1);}
 		}
 		if (args.modsPath)
 		{
 			this.modsPath = args.modsPath.replace(/\\/g,"/");
 			// check for folder or symlink and leave it alone, if zip update if mine is newer
-			const modlistpath = path.resolve(this.modsPath,"./mod-list.json")
+			const modlistpath = path.resolve(this.modsPath,"./mod-list.json");
 			if (fs.existsSync(modlistpath))
 			{
 				FactorioModRuntime.output.appendLine(`using modsPath ${this.modsPath}`);
@@ -126,34 +126,34 @@ export class FactorioModRuntime extends EventEmitter {
 				}
 				else
 				{
-					const ext = vscode.extensions.getExtension("justarandomgeek.factoriomod-debug")
+					const ext = vscode.extensions.getExtension("justarandomgeek.factoriomod-debug");
 					if (ext)
 					{
-						const extpath = ext.extensionPath
+						const extpath = ext.extensionPath;
 
-						const infopath = path.resolve(extpath, "./modpackage/info.json")
-						const zippath = path.resolve(extpath, "./modpackage/debugadapter.zip")
+						const infopath = path.resolve(extpath, "./modpackage/info.json");
+						const zippath = path.resolve(extpath, "./modpackage/debugadapter.zip");
 						if(!(fs.existsSync(zippath) && fs.existsSync(infopath)))
 						{
 							FactorioModRuntime.output.appendLine(`debugadapter mod package missing in extension`);
 						}
 						else
 						{
-							const dainfo:modinfo = JSON.parse(fs.readFileSync(infopath, "utf8"))
+							const dainfo:ModInfo = JSON.parse(fs.readFileSync(infopath, "utf8"));
 
 							let mods = fs.readdirSync(this.modsPath,"utf8");
 							mods = mods.filter((mod)=>{
-								return mod.startsWith(dainfo.name)
-							})
+								return mod.startsWith(dainfo.name);
+							});
 							if (!args.noDebug)
 							{
-								if (mods.length == 0)
+								if (mods.length === 0)
 								{
 									// install zip from package
-									fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
+									fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`));
 									FactorioModRuntime.output.appendLine(`installed ${dainfo.name}_${dainfo.version}.zip`);
 								}
-								else if (mods.length == 1)
+								else if (mods.length === 1)
 								{
 									if (mods[0].endsWith(".zip"))
 									{
@@ -161,29 +161,29 @@ export class FactorioModRuntime extends EventEmitter {
 										{
 											FactorioModRuntime.output.appendLine(`using existing ${mods[0]}`);
 										} else {
-											fs.unlinkSync(path.resolve(args.modsPath,mods[0]))
-											fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
+											fs.unlinkSync(path.resolve(args.modsPath,mods[0]));
+											fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`));
 											FactorioModRuntime.output.appendLine(`updated ${mods[0]} to ${dainfo.name}_${dainfo.version}.zip`);
 										}
 									}
 									else
 									{
 										FactorioModRuntime.output.appendLine("existing debugadapter in modsPath is not a zip");
-										const modinfopath = path.resolve(args.modsPath, mods[0], "./info.json")
+										const modinfopath = path.resolve(args.modsPath, mods[0], "./info.json");
 
 										if(mods[0] !== `${dainfo.name}_${dainfo.version}` || !fs.existsSync(modinfopath))
 										{
 											FactorioModRuntime.output.appendLine(`existing debugadapter is wrong version or does not contain info.json`);
-											fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
+											fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`));
 											FactorioModRuntime.output.appendLine(`installed ${dainfo.name}_${dainfo.version}.zip`);
 										}
 										else
 										{
-											const info:modinfo = JSON.parse(fs.readFileSync(modinfopath, "utf8"))
+											const info:ModInfo = JSON.parse(fs.readFileSync(modinfopath, "utf8"));
 											if (info.version !== dainfo.version)
 											{
 												FactorioModRuntime.output.appendLine(`existing ${mods[0]} is wrong version`);
-												fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
+												fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`));
 												FactorioModRuntime.output.appendLine(`installed ${dainfo.name}_${dainfo.version}.zip`);
 											}
 										}
@@ -202,7 +202,7 @@ export class FactorioModRuntime extends EventEmitter {
 									}
 									else
 									{
-										fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`))
+										fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`));
 										FactorioModRuntime.output.appendLine(`installed ${dainfo.name}_${dainfo.version}.zip`);
 									}
 
@@ -210,49 +210,49 @@ export class FactorioModRuntime extends EventEmitter {
 							}
 
 							// enable in json
-							let modlist:modlist = JSON.parse(fs.readFileSync(modlistpath, "utf8"))
+							let modlist:ModList = JSON.parse(fs.readFileSync(modlistpath, "utf8"));
 
 							if (args.noDebug)
 							{
-								let isInList = false
+								let isInList = false;
 								modlist.mods = modlist.mods.map((modentry)=>{
-									if (modentry.name == dainfo.name) {
+									if (modentry.name === dainfo.name) {
 										isInList = true;
-										return {name:modentry.name,enabled:false}
+										return {name:modentry.name,enabled:false};
 									};
 									return modentry;
 								});
 								if (!isInList){
-									modlist.mods.push({name:dainfo.name,enabled:false})
+									modlist.mods.push({name:dainfo.name,enabled:false});
 								}
 							}
 							else
 							{
-								let isInList = false
+								let isInList = false;
 								modlist.mods = modlist.mods.map((modentry)=>{
-									if (modentry.name == dainfo.name) {
+									if (modentry.name === dainfo.name) {
 										isInList = true;
-										return {name:modentry.name,enabled:true,version:dainfo.version}
-									} else if(modentry.name == "coverage" || modentry.name == "profiler"){
+										return {name:modentry.name,enabled:true,version:dainfo.version};
+									} else if(modentry.name === "coverage" || modentry.name === "profiler"){
 										if (modentry.enabled) {
 											FactorioModRuntime.output.appendLine(`incompatible mod "${modentry.name}" disabled`);
 										}
-										return {name:modentry.name,enabled:false}
+										return {name:modentry.name,enabled:false};
 									};
 									return modentry;
 								});
 								if (!isInList){
-									modlist.mods.push({name:dainfo.name,enabled:true,version:dainfo.version})
+									modlist.mods.push({name:dainfo.name,enabled:true,version:dainfo.version});
 								}
 							}
-							fs.writeFileSync(modlistpath, JSON.stringify(modlist), "utf8")
+							fs.writeFileSync(modlistpath, JSON.stringify(modlist), "utf8");
 							FactorioModRuntime.output.appendLine(`debugadapter ${args.noDebug?"disabled":"enabled"} in mod-list.json`);
 						}
 					}
 				}
 			} else {
 				FactorioModRuntime.output.appendLine("modsPath does not contain mod-list.json");
-				this.modsPath = undefined
+				this.modsPath = undefined;
 			}
 
 		} else {
@@ -272,19 +272,19 @@ export class FactorioModRuntime extends EventEmitter {
 			this._breakPointsChanged.add(newpath);
 		});
 		this._breakPoints = renamedbps;
-		args.factorioArgs = args.factorioArgs||[]
+		args.factorioArgs = args.factorioArgs||[];
 		if(!args.noDebug && (args.useInstrumentMode ?? true))
 		{
-			args.factorioArgs.push("--instrument-mod","debugadapter")
+			args.factorioArgs.push("--instrument-mod","debugadapter");
 		}
 
 		if (!args.configPathDetected)
 		{
-			args.factorioArgs.push("--config",args.configPath)
+			args.factorioArgs.push("--config",args.configPath);
 		}
 		if (!args.modsPathDetected)
 		{
-			args.factorioArgs.push("--mod-directory",args.modsPath)
+			args.factorioArgs.push("--mod-directory",args.modsPath);
 		}
 		this._factorio = spawn(args.factorioPath,args.factorioArgs);
 		this._factorio.on("exit", (code:number, signal:string) => {
@@ -337,10 +337,10 @@ export class FactorioModRuntime extends EventEmitter {
 					this.sendEvent('stopOnBreakpoint');
 				} else if (event.startsWith("exception")) {
 					// notify stop on exception
-					const sub = event.substr(10)
-					const split = sub.indexOf(" ")
-					const filter = sub.substr(0,split)
-					const err = sub.substr(split+1)
+					const sub = event.substr(10);
+					const split = sub.indexOf(" ");
+					const filter = sub.substr(0,split);
+					const err = sub.substr(split+1);
 					if (filter === "manual" || this._exceptionFilters.has(filter))
 					{
 						this.sendEvent('stopOnException', err);
@@ -405,9 +405,9 @@ export class FactorioModRuntime extends EventEmitter {
 			// just in case...
 			this._factorio.kill();
 		} catch (error) {}
-		const modsPath = this.modsPath
+		const modsPath = this.modsPath;
 		if (modsPath) {
-			const modlistpath = path.resolve(modsPath,"./mod-list.json")
+			const modlistpath = path.resolve(modsPath,"./mod-list.json");
 			if (fs.existsSync(modlistpath))
 			{
 				if(this.manageMod === false)
@@ -416,14 +416,14 @@ export class FactorioModRuntime extends EventEmitter {
 				}
 				else
 				{
-					let modlist:modlist = JSON.parse(fs.readFileSync(modlistpath, "utf8"))
+					let modlist:ModList = JSON.parse(fs.readFileSync(modlistpath, "utf8"));
 					modlist.mods.map((modentry)=>{
-						if (modentry.name == "debugadapter") {
+						if (modentry.name === "debugadapter") {
 							modentry.enabled = false;
 						};
 						return modentry;
 					});
-					fs.writeFileSync(modlistpath, JSON.stringify(modlist), "utf8")
+					fs.writeFileSync(modlistpath, JSON.stringify(modlist), "utf8");
 					FactorioModRuntime.output.appendLine(`debugadapter disabled in mod-list.json`);
 				}
 			}
@@ -438,6 +438,7 @@ export class FactorioModRuntime extends EventEmitter {
 		{
 			this.updateBreakpoints(updateAllBreakpoints);
 		}
+		// eslint-disable-next-line no-unused-expressions
 		this._factorio.stdin?.write("cont\n");
 	}
 
@@ -449,7 +450,9 @@ export class FactorioModRuntime extends EventEmitter {
 		{
 			this.updateBreakpoints();
 		}
+		// eslint-disable-next-line no-unused-expressions
 		this._factorio.stdin?.write(`__DebugAdapter.step("${event}")\n`);
+		// eslint-disable-next-line no-unused-expressions
 		this._factorio.stdin?.write("cont\n");
 	}
 
@@ -457,6 +460,7 @@ export class FactorioModRuntime extends EventEmitter {
 	 * Returns a fake 'stacktrace' where every 'stackframe' is a word from the current line.
 	 */
 	public async stack(startFrame: number, endFrame: number): Promise<StackFrame[]> {
+		// eslint-disable-next-line no-unused-expressions
 		this._factorio.stdin?.write(`__DebugAdapter.stackTrace(${startFrame},${endFrame-startFrame})\n`);
 
 		await this._stack.wait(1000);
@@ -465,6 +469,7 @@ export class FactorioModRuntime extends EventEmitter {
 	}
 
 	public async modules(): Promise<Module[]> {
+		// eslint-disable-next-line no-unused-expressions
 		this._factorio.stdin?.write(`__DebugAdapter.modules()\n`);
 
 		await this._modules.wait(1000);
@@ -475,6 +480,7 @@ export class FactorioModRuntime extends EventEmitter {
 	public async scopes(frameId: number): Promise<Scope[]> {
 		let subj = new Subject();
 		this._scopes.set(frameId, subj);
+		// eslint-disable-next-line no-unused-expressions
 		this._factorio.stdin?.write(`__DebugAdapter.scopes(${frameId})\n`);
 
 		await subj.wait(1000);
@@ -487,6 +493,7 @@ export class FactorioModRuntime extends EventEmitter {
 	public async vars(variablesReference: number, seq: number, filter?: string, start?: number, count?: number): Promise<Variable[]> {
 		let subj = new Subject();
 		this._vars.set(seq, subj);
+		// eslint-disable-next-line no-unused-expressions
 		this._factorio.stdin?.write(`__DebugAdapter.variables(${variablesReference},${seq},${filter? `"${filter}"`:"nil"},${start || "nil"},${count || "nil"})\n`);
 
 		await subj.wait(1000);
@@ -497,10 +504,10 @@ export class FactorioModRuntime extends EventEmitter {
 	}
 
 	private luaBlockQuote(inbuff:Buffer){
-		const tailmatch = inbuff.toString().match(/\]=*$/)
+		const tailmatch = inbuff.toString().match(/\]=*$/);
 		const blockpad = "=".repeat((inbuff.toString().match(/\]=*\]/g)||[])
-			.map((matchstr)=>{return matchstr.length - 1})
-			.reduce((prev,curr)=>{return Math.max(prev,curr)},
+			.map((matchstr)=>{return matchstr.length - 1;})
+			.reduce((prev,curr)=>{return Math.max(prev,curr);},
 			// force extra pad if the string ends with a square bracket followed by zero or more equals
 			// as it will be confused with the close bracket
 			tailmatch ? tailmatch[0].length : 0));
@@ -511,6 +518,7 @@ export class FactorioModRuntime extends EventEmitter {
 	public async setVar(args: DebugProtocol.SetVariableArguments, seq: number): Promise<Variable> {
 		let subj = new Subject();
 		this._setvars.set(seq, subj);
+		// eslint-disable-next-line no-unused-expressions
 		this._factorio.stdin?.write(`__DebugAdapter.setVariable(${args.variablesReference},${this.luaBlockQuote(Buffer.from(args.name))},${this.luaBlockQuote(Buffer.from(args.value))},${seq})\n`);
 
 		await subj.wait(1000);
@@ -529,6 +537,7 @@ export class FactorioModRuntime extends EventEmitter {
 
 		let subj = new Subject();
 		this._evals.set(seq, subj);
+		// eslint-disable-next-line no-unused-expressions
 		this._factorio.stdin?.write(`__DebugAdapter.evaluate(${args.frameId},"${args.context}",${this.luaBlockQuote(Buffer.from(args.expression.replace(/\n/g," ")))},${seq})\n`);
 
 		await subj.wait(1000);
@@ -540,127 +549,132 @@ export class FactorioModRuntime extends EventEmitter {
 
 	private encodeVarInt(val:number) : Buffer {
 
-		if (val == 10)
+		if (val === 10)
 		{
 			// escape \n
-			val = 0xFFFFFFFF
-		} else if (val == 26) {
-			val = 0xFFFFFFFE
-		} else if (val == 13) {
-			val = 0xFFFFFFFD
+			val = 0xFFFFFFFF;
+		} else if (val === 26) {
+			val = 0xFFFFFFFE;
+		} else if (val === 13) {
+			val = 0xFFFFFFFD;
 		}
-		let prefix
-		let firstmask
-		let startshift
-		let bsize
+		let prefix: number;
+		let firstmask: number;
+		let startshift: number;
+		let bsize: number;
 
 		if (val < 0x80)
 		{
 			//[[1 byte]]
-			return Buffer.from([val])
+			return Buffer.from([val]);
 		}
 		else if (val < 0x0800)
 		{
 			//[[2 bytes]]
-			bsize = 2
-			prefix = 0xc0
-			firstmask = 0x1f
-			startshift = 6
+			bsize = 2;
+			prefix = 0xc0;
+			firstmask = 0x1f;
+			startshift = 6;
 		}
 		else if (val < 0x10000)
 		{
 			//[[3 bytes]]
-			bsize = 3
-			prefix = 0xe0
-			firstmask = 0x0f
-			startshift = 12
+			bsize = 3;
+			prefix = 0xe0;
+			firstmask = 0x0f;
+			startshift = 12;
 		}
 		else if (val < 0x200000)
 		{
 			//[[4 bytes]]
-			bsize = 4
-			prefix = 0xf0
-			firstmask = 0x07
-			startshift = 18
+			bsize = 4;
+			prefix = 0xf0;
+			firstmask = 0x07;
+			startshift = 18;
 		}
 		else if (val < 0x4000000)
 		{
 			//[[5 bytes]]
-			bsize = 5
-			prefix = 0xf8
-			firstmask = 0x03
-			startshift = 24
+			bsize = 5;
+			prefix = 0xf8;
+			firstmask = 0x03;
+			startshift = 24;
 		}
 		else
 		{
 			//[[6 bytes]]
-			bsize = 6
-			prefix = 0xfc
-			firstmask = 0x03
-			startshift = 30
+			bsize = 6;
+			prefix = 0xfc;
+			firstmask = 0x03;
+			startshift = 30;
 		}
 
-		let buff = Buffer.alloc(bsize)
-		buff[0] = (prefix|((val>>startshift)&firstmask))
+		let buff = Buffer.alloc(bsize);
+		// eslint-disable-next-line no-bitwise
+		buff[0] = (prefix|((val>>startshift)&firstmask));
 		for (let shift = startshift-6, i=1; shift >= 0; shift -= 6, i++) {
-			buff[i] = (0x80|((val>>shift)&0x3f))
+			// eslint-disable-next-line no-bitwise
+			buff[i] = (0x80|((val>>shift)&0x3f));
 		}
-		return buff
+		return buff;
 	}
 
 	private encodeString(strval:string)
 	{
-		const sbuff = Buffer.from(strval,"utf8")
-		const slength = this.encodeVarInt(sbuff.length)
-		return Buffer.concat([slength,sbuff])
+		const sbuff = Buffer.from(strval,"utf8");
+		const slength = this.encodeVarInt(sbuff.length);
+		return Buffer.concat([slength,sbuff]);
 	}
 
 	private encodeBreakpoint(bp: DebugProtocol.SourceBreakpoint) : Buffer {
-		let linebuff = this.encodeVarInt(bp.line)
-		let hasExtra = 0
+		let linebuff = this.encodeVarInt(bp.line);
+		let hasExtra = 0;
 		let extras = new Array<Buffer>();
 
 		if (bp.condition)
 		{
+			// eslint-disable-next-line no-bitwise
 			hasExtra |= 1;
-			extras.push(this.encodeString(bp.condition.replace("\n"," ")))
+			extras.push(this.encodeString(bp.condition.replace("\n"," ")));
 		}
 
 		if (bp.hitCondition)
 		{
+			// eslint-disable-next-line no-bitwise
 			hasExtra |= 2;
-			extras.push(this.encodeString(bp.hitCondition.replace("\n"," ")))
+			extras.push(this.encodeString(bp.hitCondition.replace("\n"," ")));
 		}
 
 		if (bp.logMessage)
 		{
+			// eslint-disable-next-line no-bitwise
 			hasExtra |= 4;
-			extras.push(this.encodeString(bp.logMessage.replace("\n"," ")))
+			extras.push(this.encodeString(bp.logMessage.replace("\n"," ")));
 		}
 
-		return Buffer.concat([linebuff,Buffer.from([hasExtra]),Buffer.concat(extras)])
+		return Buffer.concat([linebuff,Buffer.from([hasExtra]),Buffer.concat(extras)]);
 	}
 
 	private encodeBreakpoints(filename:string,breaks:DebugProtocol.SourceBreakpoint[]) : Buffer {
-		const fnbuff = this.encodeString(filename)
+		const fnbuff = this.encodeString(filename);
 
-		const plainbps = breaks.filter(bp => !bp.condition && !bp.hitCondition && !bp.logMessage).map(bp => bp.line)
+		const plainbps = breaks.filter(bp => !bp.condition && !bp.hitCondition && !bp.logMessage).map(bp => bp.line);
 		let plainbuff : Buffer;
-		if (plainbps.length == 0)
+		if (plainbps.length === 0)
 		{
 			plainbuff = Buffer.from([0xff]);
 		}
-		else if (plainbps.length == 10)
+		else if (plainbps.length === 10)
 		{
 			let countbuff = Buffer.from([0xfe]);
 			plainbuff = Buffer.concat([countbuff,Buffer.concat(plainbps.map(line => this.encodeVarInt(line)))]);
 		}
-		else if (plainbps.length == 26)
+		else if (plainbps.length === 26)
 		{
 			let countbuff = Buffer.from([0xfd]);
 			plainbuff = Buffer.concat([countbuff,Buffer.concat(plainbps.map(line => this.encodeVarInt(line)))]);
 		}
-		else if (plainbps.length == 13)
+		else if (plainbps.length === 13)
 		{
 			let countbuff = Buffer.from([0xfc]);
 			plainbuff = Buffer.concat([countbuff,Buffer.concat(plainbps.map(line => this.encodeVarInt(line)))]);
@@ -671,23 +685,23 @@ export class FactorioModRuntime extends EventEmitter {
 			plainbuff = Buffer.concat([countbuff,Buffer.concat(plainbps.map(line => this.encodeVarInt(line)))]);
 		}
 
-		const complexbps = breaks.filter(bp => bp.condition || bp.hitCondition || bp.logMessage)
+		const complexbps = breaks.filter(bp => bp.condition || bp.hitCondition || bp.logMessage);
 		let complexbuff : Buffer;
-		if (complexbps.length == 0)
+		if (complexbps.length === 0)
 		{
 			complexbuff = Buffer.from([0xff]);
 		}
-		else if (complexbps.length == 10)
+		else if (complexbps.length === 10)
 		{
 			let countbuff = Buffer.from([0xfe]);
 			complexbuff = Buffer.concat([countbuff,Buffer.concat(complexbps.map(bp => this.encodeBreakpoint(bp)))]);
 		}
-		else if (complexbps.length == 26)
+		else if (complexbps.length === 26)
 		{
 			let countbuff = Buffer.from([0xfd]);
 			complexbuff = Buffer.concat([countbuff,Buffer.concat(complexbps.map(bp => this.encodeBreakpoint(bp)))]);
 		}
-		else if (complexbps.length == 13)
+		else if (complexbps.length === 13)
 		{
 			let countbuff = Buffer.from([0xfc]);
 			complexbuff = Buffer.concat([countbuff,Buffer.concat(complexbps.map(bp => this.encodeBreakpoint(bp)))]);
@@ -698,7 +712,7 @@ export class FactorioModRuntime extends EventEmitter {
 			complexbuff = Buffer.concat([countbuff,Buffer.concat(complexbps.map(bp => this.encodeBreakpoint(bp)))]);
 		}
 
-		return Buffer.concat([fnbuff,plainbuff,complexbuff])
+		return Buffer.concat([fnbuff,plainbuff,complexbuff]);
 	}
 	private updateBreakpoints(updateAll:boolean = false) {
 		let changes = Array<Buffer>();
@@ -714,6 +728,7 @@ export class FactorioModRuntime extends EventEmitter {
 			}
 		});
 		this._breakPointsChanged.clear();
+		// eslint-disable-next-line no-unused-expressions
 		this._factorio.stdin?.write(Buffer.concat(changes));
 	}
 
@@ -741,8 +756,8 @@ export class FactorioModRuntime extends EventEmitter {
 
 	public setExceptionBreakpoints(filters: string[])
 	{
-		this._exceptionFilters.clear()
-		filters.forEach(f=>this._exceptionFilters.add(f))
+		this._exceptionFilters.clear();
+		filters.forEach(f=>this._exceptionFilters.add(f));
 	}
 	/*
 	 * Clear all data breakpoints.
@@ -754,24 +769,15 @@ export class FactorioModRuntime extends EventEmitter {
 
 	private updateInfoJson(uri:vscode.Uri)
 	{
-		let jsonpath = uri.path
-		if (os.platform() == "win32" && jsonpath.startsWith("/")) {jsonpath = jsonpath.substr(1)}
-		const moddata = JSON.parse(fs.readFileSync(jsonpath, "utf8"))
+		let jsonpath = uri.path;
+		if (os.platform() === "win32" && jsonpath.startsWith("/")) {jsonpath = jsonpath.substr(1);}
+		const moddata = JSON.parse(fs.readFileSync(jsonpath, "utf8"));
 		const mp = {
 			fspath: path.dirname(jsonpath),
 			modpath: `MOD/${moddata.name}_${moddata.version}`
 		};
 		this.workspaceModInfo.push(mp);
-		FactorioModRuntime.output.appendLine(`using mod in workspace ${JSON.stringify(mp)}`)
-	}
-	private removeInfoJson(uri:vscode.Uri)
-	{
-		let jsonpath = uri.path;
-		if (jsonpath.startsWith("/")) {
-			jsonpath = jsonpath.substr(1);
-		}
-		this.workspaceModInfo = this.workspaceModInfo.filter((modinfo)=>{modinfo.fspath != path.dirname(jsonpath)});
-		FactorioModRuntime.output.appendLine(`removed mod in workspace ${path.dirname(jsonpath)}`)
+		FactorioModRuntime.output.appendLine(`using mod in workspace ${JSON.stringify(mp)}`);
 	}
 
 	public convertClientPathToDebugger(clientPath: string): string
@@ -781,7 +787,7 @@ export class FactorioModRuntime extends EventEmitter {
 		let modinfo = this.workspaceModInfo.find((m)=>{return clientPath.startsWith(m.fspath);});
 		if(modinfo)
 		{
-			return clientPath.replace(modinfo.fspath,modinfo.modpath)
+			return clientPath.replace(modinfo.fspath,modinfo.modpath);
 		}
 
 		if (this.dataPath && clientPath.startsWith(this.dataPath))
@@ -793,7 +799,7 @@ export class FactorioModRuntime extends EventEmitter {
 			return clientPath.replace(this.modsPath,"MOD");
 		}
 
-		FactorioModRuntime.output.appendLine(`unable to translate path ${clientPath}`)
+		FactorioModRuntime.output.appendLine(`unable to translate path ${clientPath}`);
 		return clientPath;
 	}
 	public convertDebuggerPathToClient(debuggerPath: string): string
@@ -801,7 +807,7 @@ export class FactorioModRuntime extends EventEmitter {
 		let modinfo = this.workspaceModInfo.find((m)=>{return debuggerPath.startsWith(m.modpath);});
 		if(modinfo)
 		{
-			return debuggerPath.replace(modinfo.modpath,modinfo.fspath)
+			return debuggerPath.replace(modinfo.modpath,modinfo.fspath);
 		}
 
 		if (this.modsPath && debuggerPath.startsWith("MOD"))
