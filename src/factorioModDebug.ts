@@ -87,32 +87,18 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		// build and return the capabilities of this debug adapter:
 		response.body = response.body || {};
 
-		// the adapter implements the configurationDoneRequest.
 		response.body.supportsConfigurationDoneRequest = true;
-
-		// make VS Code to use 'evaluate' when hovering over source
+		response.body.supportsConditionalBreakpoints = true;
+		response.body.supportsHitConditionalBreakpoints = true;
 		response.body.supportsEvaluateForHovers = true;
-
-		// make VS Code to support data breakpoints
-		response.body.supportsDataBreakpoints = false;
-
-		// make VS Code to send cancelRequests
-		response.body.supportsCancelRequest = false;
-
-		// make VS Code send the breakpointLocations request
-		response.body.supportsBreakpointLocationsRequest = false;
-
-		// the adapter implements logpoints
-		response.body.supportsLogPoints = true;
-
-		response.body.supportsSetVariable = true;
-		response.body.supportsModulesRequest = true;
-
 		response.body.exceptionBreakpointFilters = [
 			{ filter: "pcall",  label: "Caught by pcall",  default:false },
 			{ filter: "xpcall", label: "Caught by xpcall", default:false },
 			{ filter: "unhandled", label: "Unhandled Exceptions", default:true },
 		];
+		response.body.supportsSetVariable = true;
+		response.body.supportsModulesRequest = true;
+		response.body.supportsLogPoints = true;
 
 		this.sendResponse(response);
 

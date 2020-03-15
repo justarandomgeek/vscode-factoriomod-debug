@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.10
+
+* Update Debug Adapter Protocol capabilities report
+
 ## 0.18.9
 
 * Fix config.ini failing to auto-detect in many scenarios
