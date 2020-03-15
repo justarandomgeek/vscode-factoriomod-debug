@@ -100,6 +100,7 @@ export class FactorioModRuntime extends EventEmitter {
 	 */
 	public async start(args: LaunchRequestArguments) {
 		this.manageMod = args.manageMod;
+		FactorioModRuntime.output.appendLine(`using ${args.configPathDetected?"auto-detected":"manually-configured"} config.ini: ${args.configPath}`);
 		await this.workspaceModListsReady.wait(1000);
 		if (this.workspaceModLists.length > 1)
 		{
@@ -110,6 +111,7 @@ export class FactorioModRuntime extends EventEmitter {
 			const workspaceModList = this.workspaceModLists[0].path;
 			FactorioModRuntime.output.appendLine(`found mod-list.json in workspace: ${workspaceModList}`);
 			args.modsPath = path.dirname(workspaceModList);
+			args.modsPathDetected = false;
 			if (os.platform() === "win32" && args.modsPath.startsWith("/")) {args.modsPath = args.modsPath.substr(1);}
 		}
 		if (args.modsPath)
@@ -251,7 +253,7 @@ export class FactorioModRuntime extends EventEmitter {
 					}
 				}
 			} else {
-				FactorioModRuntime.output.appendLine("modsPath does not contain mod-list.json");
+				FactorioModRuntime.output.appendLine(`modsPath "${this.modsPath}" does not contain mod-list.json`);
 				this.modsPath = undefined;
 			}
 

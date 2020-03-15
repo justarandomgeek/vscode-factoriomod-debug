@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.18.9
+
+* Fix config.ini failing to auto-detect in many scenarios
+* Improved logging of what files are auto-detected where
+
 ## 0.18.8
 
 * Fix typo in Increment Version command label

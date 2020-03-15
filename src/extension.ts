@@ -70,8 +70,8 @@ export function deactivate() {
 
 
 function translatePath(thispath:string,factorioPath:string):string {
-	if (thispath.startsWith("__PATH_executable__"))
-		{return path.join(path.dirname(factorioPath),thispath.replace("__PATH_executable__",""));}
+	if (thispath.startsWith("__PATH__executable__"))
+		{return path.join(path.dirname(factorioPath),thispath.replace("__PATH__executable__",""));}
 
 	if (thispath.startsWith("__PATH__system-write-data__"))
 	{
@@ -134,7 +134,9 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 			if (fs.existsSync(cfgpath))
 			{
 				const configdata = ini.parse(fs.readFileSync(cfgpath,"utf8"));
-				config.configPath = configdata["config-path"];
+				config.configPath = path.resolve(
+					translatePath(configdata["config-path"],config.factorioPath),
+					"./config.ini");
 			}
 			else
 			{
