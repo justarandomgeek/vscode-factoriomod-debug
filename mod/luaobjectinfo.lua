@@ -23,7 +23,7 @@ local luaObjectLines = {
 __DebugAdapter.stepIgnoreAll(luaObjectLines)
 
 
--- class data last updated factorio 0.18.10
+-- class data last updated factorio 0.18.12
 return {
   alwaysValid = {
     LuaRemote = true,
@@ -564,6 +564,7 @@ return {
       character_corpse = {readOnly = true},
       inserter_pickup_position = {readOnly = true},
       inserter_drop_position = {readOnly = true},
+      inserter_chases_belt_items = {readOnly = true},
     },
     LuaEquipment = {
       name = {readOnly = true},

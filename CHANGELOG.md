@@ -2,7 +2,8 @@
 
 ## 0.18.10
 
-* Update Debug Adapter Protocol capabilities report
+* Updated Debug Adapter Protocol capabilities report
+* Updated class data to Factorio 0.18.12
 
 ## 0.18.9
 
