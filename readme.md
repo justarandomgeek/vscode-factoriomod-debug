@@ -26,7 +26,7 @@ require('__debugadapter__/debugadapter.lua')
 
 ## Automatic Mod Packaging and Publishing
 
-Mods can be automatically Packaged and Published from the "Factorio Mod Packages" panel in Explorer view. These tasks can also be accessed in VSCode's Tasks system. The environment variables `FACTORIO_MODNAME` and `FACTORIO_MODVERSION` are provided to all mod scripts.
+Mods can be automatically Packaged and Published from the "Factorio Mod Packages" panel in Explorer or SCM view (depending on configuration). These tasks can also be accessed in VSCode's Tasks system. The environment variables `FACTORIO_MODNAME` and `FACTORIO_MODVERSION` are provided to all mod scripts.
 
 ### Datestamp
   * if changelog.txt present and has a section for the current version, update its date to today
