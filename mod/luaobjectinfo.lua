@@ -23,7 +23,7 @@ local luaObjectLines = {
 __DebugAdapter.stepIgnoreAll(luaObjectLines)
 
 
--- class data last updated factorio 0.18.12
+-- class data last updated factorio 0.18.13
 return {
   alwaysValid = {
     LuaRemote = true,
@@ -219,10 +219,11 @@ return {
       character_item_pickup_distance_bonus = {},
       character_loot_pickup_distance_bonus = {},
       character_inventory_slots_bonus = {},
-      character_logistic_slot_count_bonus = {},
       character_trash_slot_count_bonus = {},
       character_maximum_following_robot_count_bonus = {},
       character_health_bonus = {},
+      character_logistic_slot_count = {},
+      character_personal_logistic_requests_enabled = {},
       auto_trash_filters = {},
       opened_gui_type = {readOnly = true},
       build_distance = {readOnly = true},
@@ -700,7 +701,6 @@ return {
       previous_research = {},
       inserter_stack_size_bonus = {},
       stack_inserter_capacity_bonus = {},
-      character_logistic_slot_count = {},
       character_trash_slot_count = {},
       maximum_following_robot_count = {},
       following_robots_lifetime_modifier = {},
@@ -731,6 +731,7 @@ return {
       zoom_to_world_blueprint_enabled = {},
       zoom_to_world_deconstruction_planner_enabled = {},
       zoom_to_world_selection_tool_enabled = {},
+      character_logistic_requests = {},
       rockets_launched = {},
       items_launched = {readOnly = true},
       connected_players = {readOnly = true, countLine = true},
@@ -1337,10 +1338,11 @@ return {
       character_item_pickup_distance_bonus = {},
       character_loot_pickup_distance_bonus = {},
       character_inventory_slots_bonus = {},
-      character_logistic_slot_count_bonus = {},
       character_trash_slot_count_bonus = {},
       character_maximum_following_robot_count_bonus = {},
       character_health_bonus = {},
+      character_logistic_slot_count = {},
+      character_personal_logistic_requests_enabled = {},
       auto_trash_filters = {},
       opened_gui_type = {readOnly = true},
       build_distance = {readOnly = true},
@@ -1543,7 +1545,10 @@ return {
       color = {},
       column_alignments = {readOnly = true},
       single_line = {},
-      extra_padding_when_activated = {},
+      extra_top_padding_when_activated = {},
+      extra_bottom_padding_when_activated = {},
+      extra_left_padding_when_activated = {},
+      extra_right_padding_when_activated = {},
       extra_top_margin_when_activated = {},
       extra_bottom_margin_when_activated = {},
       extra_left_margin_when_activated = {},

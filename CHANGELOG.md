@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.11
+
+* Updated class data to Factorio 0.18.13
+
 ## 0.18.10
 
 * Updated Debug Adapter Protocol capabilities report
