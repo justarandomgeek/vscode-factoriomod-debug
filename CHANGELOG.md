@@ -3,6 +3,8 @@
 ## 0.18.11
 
 * Updated class data to Factorio 0.18.13
+* Auto-generated git commits now set configurable author, and message templates configurable
+* Use `terminal.integrated.env.{platform}` settings to provide additional env vars to mod scripts
 
 ## 0.18.10
 

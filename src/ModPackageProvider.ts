@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import * as Git from './git';
 import * as WebRequest from 'web-request';
@@ -427,6 +428,7 @@ export class ModPackage extends vscode.TreeItem {
 		const gitExtension = vscode.extensions.getExtension<Git.GitExtension>('vscode.git')!.exports;
 		const git = gitExtension.getAPI(1);
 		const repo = git.getRepository(this.resourceUri);
+		const config = vscode.workspace.getConfiguration(undefined,this.resourceUri);
 
 		const packageversion = this.description;
 
@@ -461,7 +463,10 @@ export class ModPackage extends vscode.TreeItem {
 		if (repo)
 		{
 			if(haschangelog) {await runScript(term, undefined, `git add changelog.txt`, moddir);}
-			await runScript(term, undefined, `git commit --allow-empty -m "preparing release of version ${packageversion}"`, moddir);
+			await runScript(term, undefined,
+				`git commit --author "${ config.get<string>("factorio.package.autoCommitAuthor")! }" --allow-empty -F -`,
+				moddir, undefined,
+				config.get<string>("factorio.package.preparingCommitMessage")!.replace(/\$VERSION/g,packageversion));
 			await runScript(term, undefined, `git tag ${packageversion}`, moddir);
 		}
 
@@ -481,7 +486,10 @@ export class ModPackage extends vscode.TreeItem {
 		{
 			await runScript(term, undefined, `git add info.json`, moddir);
 			if(haschangelog) {await runScript(term, undefined, `git add changelog.txt`, moddir);}
-			await runScript(term, undefined, `git commit -m "moved to version ${newversion}"`, moddir);
+			await runScript(term, undefined,
+				`git commit --author "${ config.get<string>("factorio.package.autoCommitAuthor")! }" -F -`,
+				moddir,undefined,
+				config.get<string>("factorio.package.movedToCommitMessage")!.replace(/\$VERSION/g,newversion));
 		}
 
 		if(!this.noGitPush)
@@ -619,9 +627,15 @@ interface ModTaskTerminal {
 	close():void
 }
 
-async function runScript(term:ModTaskTerminal, name:string|undefined, command:string, cwd:string, env?:NodeJS.ProcessEnv): Promise<number>
+async function runScript(term:ModTaskTerminal, name:string|undefined, command:string, cwd:string, env?:NodeJS.ProcessEnv,stdin?:string): Promise<number>
 {
-	const scriptenv = !env ? process.env : Object.assign({}, process.env, env);
+	const config = vscode.workspace.getConfiguration(undefined,vscode.Uri.parse(cwd) );
+	const configenv = config.get<Object>(
+		os.platform() === "win32" ? "terminal.integrated.env.windows" :
+		os.platform() === "darwin" ? "terminal.integrated.env.osx" :
+		"terminal.integrated.env.linux")!;
+
+	const scriptenv = Object.assign({}, process.env, configenv, env || {} );
 	return new Promise((resolve,reject)=>{
 		if(name)
 		{
@@ -632,7 +646,7 @@ async function runScript(term:ModTaskTerminal, name:string|undefined, command:st
 			term.write(`${command}\r\n`);
 		}
 
-		exec(command,
+		const scriptProc = exec(command,
 			{ cwd: cwd, encoding: "utf8", env: scriptenv },
 			(error,stdout,stderr)=>{
 				if(stderr)
@@ -651,6 +665,11 @@ async function runScript(term:ModTaskTerminal, name:string|undefined, command:st
 					{term.write(`>> Mod script "${name}" returned ${error?.code || 0} <<\r\n`);}
 				resolve(error?.code || 0);
 			});
+		if (stdin)
+		{
+			scriptProc.stdin!.write(stdin);
+			scriptProc.stdin!.end();
+		}
 	});
 
 }

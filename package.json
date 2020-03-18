@@ -87,7 +87,25 @@
             "type": "boolean",
             "description": "Show Factorio Packages view in SCM",
             "default": true
+          },
+          "factorio.package.preparingCommitMessage": {
+            "type":"string",
+            "description": "Commit message for preparing release",
+            "default": "preparing release of version $VERSION",
+            "pattern": "\\$VERSION"
+          },
+          "factorio.package.movedToCommitMessage": {
+            "type":"string",
+            "description": "Commit message for raising version after release",
+            "default": "moved to version $VERSION",
+            "pattern": "\\$VERSION"
+          },
+          "factorio.package.autoCommitAuthor": {
+            "type":"string",
+            "description": "Author for automatically created commits",
+            "default": "compilatron <compilatron@justarandomgeek.com>"
           }
+
         }
       }
     ],
@@ -132,7 +150,7 @@
       {
         "command": "factorio.publish",
         "category": "Factorio",
-        "title": "Publish Mod (Experimental)",
+        "title": "Publish Mod",
         "icon": "$(repo-push)"
       }
     ],
