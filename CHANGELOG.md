@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.12
+
+* Accept top level null in scenario/campaign info.json
+
 ## 0.18.11
 
 * Updated class data to Factorio 0.18.13

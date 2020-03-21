@@ -1,34 +1,42 @@
 {
   "title": "Factorio Campaign description.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "allOf":[
+  "oneOf": [
     {
-      "$ref": "scenario.json"
+      "allOf":[
+        {
+          "$ref": "scenario.json"
+        },
+        {
+          "type":"object",
+          "required":[
+            "starting-level"
+          ],
+          "properties": {
+            "starting-level":{
+              "type": "string"
+            },
+            "dependencies":{
+              "type":"array",
+              "description": "List of campaigns that must be completed before this one",
+              "items": {
+                "type":"string"
+              }
+            },
+            "difficulties":{
+              "type":"array",
+              "description": "List of difficulties this campaign supports",
+              "items": {
+                "enum": ["easy","normal","hard"]
+              },
+              "default": ["normal"]
+            }
+          }
+        }
+      ]
     },
     {
-      "required":[
-        "starting-level"
-      ],
-      "properties": {
-        "starting-level":{
-          "type": "string"
-        },
-        "dependencies":{
-          "type":"array",
-          "description": "List of campaigns that must be completed before this one",
-          "items": {
-            "type":"string"
-          }
-        },
-        "difficulties":{
-          "type":"array",
-          "description": "List of difficulties this campaign supports",
-          "items": {
-            "enum": ["easy","normal","hard"]
-          },
-          "default": ["normal"]
-        }
-      }
+      "type":"null"
     }
   ]
 }
