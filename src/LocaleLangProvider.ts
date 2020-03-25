@@ -83,6 +83,10 @@ export class LocaleDocumentSymbolProvider implements vscode.DocumentSymbolProvid
 				category = new vscode.DocumentSymbol(element.text.substr(1, element.text.length - 2), "", vscode.SymbolKind.Namespace, element.range, new vscode.Range(element.range.start.translate(0, 1), element.range.end.translate(0, -1)));
 				symbols.push(category);
 			}
+			else if(element.text.match(/^[#;]/))
+			{
+				// nothing to do for comments...
+			}
 			else {
 				let matches = element.text.match(/^([^=]+)=(.+)$/);
 				if (matches) {

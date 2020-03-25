@@ -3,6 +3,7 @@
 ## 0.18.12
 
 * Accept top level null in scenario/campaign info.json
+* Highlight comment and invalid lines in locale
 
 ## 0.18.11
 

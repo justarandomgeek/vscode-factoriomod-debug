@@ -148,6 +148,14 @@
 			},
 			"match": "^([^=.]+)(=)(.+)$",
 			"name": "entity.factorio-locale"
+		},
+		{
+			"match": "^[#;].*$",
+			"name": "comment.line.factorio-locale"
+		},
+		{
+			"match": "^.*$",
+			"name":"invalid.unknown-line.factorio-locale"
 		}
 	],
 	"scopeName": "source.factorio-locale"
