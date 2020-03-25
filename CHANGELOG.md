@@ -4,6 +4,7 @@
 
 * Accept top level null in scenario/campaign info.json
 * Highlight comment and invalid lines in locale
+* Provide default GitLens config for changelogs
 
 ## 0.18.11
 

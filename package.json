@@ -292,7 +292,15 @@
       "[factorio-changelog]": {
         "editor.detectIndentation": false,
         "editor.insertSpaces": true,
-        "editor.tabSize": 2
+        "editor.tabSize": 2,
+        "gitlens.codeLens.scopes": [
+          "document",
+          "custom"
+        ],
+        "gitlens.codeLens.symbolScopes": [
+          "Namespace"
+        ]
+
       }
     },
     "jsonValidation": [
