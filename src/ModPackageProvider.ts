@@ -467,7 +467,12 @@ export class ModPackage extends vscode.TreeItem {
 				`git commit --author "${ config.get<string>("factorio.package.autoCommitAuthor")! }" --allow-empty -F -`,
 				moddir, undefined,
 				config.get<string>("factorio.package.preparingCommitMessage")!.replace(/\$VERSION/g,packageversion));
-			await runScript(term, undefined, `git tag ${packageversion}`, moddir);
+			let tagversion = packageversion;
+			if (config.get<boolean>("factorio.package.tagVPrefix"))
+			{
+				tagversion = "v" + tagversion;
+			}
+			await runScript(term, undefined, `git tag -a ${tagversion} -m "${config.get<string>("factorio.package.tagMessage","")}"`, moddir);
 		}
 
 		// build zip with <factorio.package>

@@ -104,6 +104,16 @@
             "type":"string",
             "description": "Author for automatically created commits",
             "default": "compilatron <compilatron@justarandomgeek.com>"
+          },
+          "factorio.package.tagVPrefix": {
+            "type":"boolean",
+            "description": "Prefix tag version number with 'v'",
+            "default": false
+          },
+          "factorio.package.tagMessage": {
+            "type":"string",
+            "description": "Message for version tags",
+            "default": ""
           }
 
         }
