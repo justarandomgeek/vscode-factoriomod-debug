@@ -472,7 +472,10 @@ export class ModPackage extends vscode.TreeItem {
 			{
 				tagversion = "v" + tagversion;
 			}
-			await runScript(term, undefined, `git tag -a ${tagversion} -m "${config.get<string>("factorio.package.tagMessage","")}"`, moddir);
+			let tagmessage = config.get<string>("factorio.package.tagMessage");
+			tagmessage = tagmessage?.replace(/\$VERSION/g,packageversion);
+			const tagarg = tagmessage ? "-F -" : "-m \"\"";
+			await runScript(term, undefined, `git tag -a ${tagversion} ${tagarg}`, moddir,undefined,tagmessage);
 		}
 
 		// build zip with <factorio.package>
@@ -502,7 +505,12 @@ export class ModPackage extends vscode.TreeItem {
 			const upstream = repo?.state.HEAD?.upstream;
 			if (upstream)
 			{
-				await runScript(term, undefined, `git push ${upstream.remote} master ${packageversion}`, moddir);
+				let tagversion = packageversion;
+				if (config.get<boolean>("factorio.package.tagVPrefix"))
+				{
+					tagversion = "v" + tagversion;
+				}
+				await runScript(term, undefined, `git push ${upstream.remote} master ${tagversion}`, moddir);
 			}
 			else
 			{
@@ -673,8 +681,8 @@ async function runScript(term:ModTaskTerminal, name:string|undefined, command:st
 		if (stdin)
 		{
 			scriptProc.stdin!.write(stdin);
-			scriptProc.stdin!.end();
 		}
+		scriptProc.stdin!.end();
 	});
 
 }

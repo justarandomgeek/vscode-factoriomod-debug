@@ -90,13 +90,13 @@
           },
           "factorio.package.preparingCommitMessage": {
             "type":"string",
-            "description": "Commit message for preparing release",
+            "description": "Commit message for preparing release. Use `$VERSION` to insert the version number.",
             "default": "preparing release of version $VERSION",
             "pattern": "\\$VERSION"
           },
           "factorio.package.movedToCommitMessage": {
             "type":"string",
-            "description": "Commit message for raising version after release",
+            "description": "Commit message for raising version after release. Use `$VERSION` to insert the version number.",
             "default": "moved to version $VERSION",
             "pattern": "\\$VERSION"
           },
@@ -112,10 +112,8 @@
           },
           "factorio.package.tagMessage": {
             "type":"string",
-            "description": "Message for version tags",
-            "default": ""
+            "description": "Message for version tags. Use `$VERSION` to insert the version number."
           }
-
         }
       }
     ],
@@ -310,7 +308,6 @@
         "gitlens.codeLens.symbolScopes": [
           "Namespace"
         ]
-
       }
     },
     "jsonValidation": [
