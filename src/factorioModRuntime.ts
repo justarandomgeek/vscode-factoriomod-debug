@@ -286,7 +286,12 @@ export class FactorioModRuntime extends EventEmitter {
 		}
 		if (!args.modsPathDetected)
 		{
-			args.factorioArgs.push("--mod-directory",args.modsPath);
+			let mods = args.modsPath;
+			if (!mods.endsWith("/"))
+			{
+				mods += "/";
+			}
+			args.factorioArgs.push("--mod-directory",mods);
 		}
 		this._factorio = spawn(args.factorioPath,args.factorioArgs);
 		this._factorio.on("exit", (code:number, signal:string) => {

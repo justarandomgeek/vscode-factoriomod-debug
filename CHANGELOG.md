@@ -6,6 +6,7 @@
 * Highlight comment and invalid lines in locale
 * Provide default GitLens config for changelogs
 * Use annotated git tags. Optionally prefix version with 'v' and include commit message.
+* Always include trailing slash on `--mod-directory`
 
 ## 0.18.11
 
