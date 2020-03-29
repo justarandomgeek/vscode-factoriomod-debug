@@ -7,6 +7,7 @@
 * Provide default GitLens config for changelogs
 * Use annotated git tags. Optionally prefix version with 'v' and include commit message.
 * Always include trailing slash on `--mod-directory`
+* Updated class data to Factorio 0.18.17
 
 ## 0.18.11
 

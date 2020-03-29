@@ -23,7 +23,7 @@ local luaObjectLines = {
 __DebugAdapter.stepIgnoreAll(luaObjectLines)
 
 
--- class data last updated factorio 0.18.13
+-- class data last updated factorio 0.18.17
 return {
   alwaysValid = {
     LuaRemote = true,
@@ -261,6 +261,7 @@ return {
       friction_modifier = {},
       driver_is_gunner = {},
       speed = {},
+      effective_speed = {readOnly = true},
       stack = {readOnly = true},
       prototype = {readOnly = true},
       ghost_prototype = {readOnly = true},
