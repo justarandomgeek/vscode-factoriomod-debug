@@ -22,7 +22,7 @@ I open the Factorio `mods` directory as the root of my workspace in VSCode, and 
 
 I use VScode (imagine that!), but it needs a few extensions to really shine in this context:
 
- * Factorio Mod Debugger - You are here
+ * [Factorio Mod Debugger](https://marketplace.visualstudio.com/items?itemName=justarandomgeek.factoriomod-debug) - You are here
  * [Factorio Lua API autocomplete](https://marketplace.visualstudio.com/items?itemName=svizzini.factorio-lua-api-autocomplete)
  * A Lua Language server. There's like 30 of these, but the one I like is [sumneko.lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua)
  * Optional: [Bracket Pair Colorizer 2](https://marketplace.visualstudio.com/items?itemName=CoenraadS.bracket-pair-colorizer-2). Useful for deeply nested tables/function calls.
