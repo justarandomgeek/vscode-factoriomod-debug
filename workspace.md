@@ -29,7 +29,7 @@ I use VScode (imagine that!), but it needs a few extensions to really shine in t
  * Optional: [Git Graph](https://marketplace.visualstudio.com/items?itemName=mhutchie.git-graph). I happen to like the graph git log view this extension gives as a place to do manual git operations more complicated than the builtin SCM view provides for.
 
 
-In addition to these, you'll want a little configuration to tell your Lua Language Server about Factorio's APIs. If you use `sumneko.lua`, add this to your (user or project) `settings.json`:
+In addition to these, you'll want a little configuration to tell your Lua Language Server about Factorio's APIs. If you use `sumneko.lua`, add this to your (user or workspace) `settings.json`:
 
 ```jsonc
   "Lua.diagnostics.globals": [
