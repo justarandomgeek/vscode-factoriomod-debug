@@ -134,3 +134,7 @@ function variables.luaObjectRef(luaObject,classname)
 ## Ignore Functions in Stepping
 
 Functions can be excluded from stepping with `__DebugAdapter.stepIgnore(func)` or `__DebugAdapter.stepIgnoreAll(table)`.
+
+## Support the Debugger
+
+[![ko-fi](https://www.ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/X8X41IE4T)
