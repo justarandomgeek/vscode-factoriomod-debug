@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.13
+
+* Catch rare condition in Increment Version command where no symbols are found in info.json
+
 ## 0.18.12
 
 * Accept top level null in scenario/campaign info.json

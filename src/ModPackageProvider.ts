@@ -252,7 +252,7 @@ export class ModPackage extends vscode.TreeItem {
 	}
 
 
-	public async IncrementVersion(term:ModTaskTerminal): Promise<string>
+	public async IncrementVersion(term:ModTaskTerminal): Promise<string|undefined>
 	{
 		let we = new vscode.WorkspaceEdit();
 		// increment info.json version
@@ -260,8 +260,14 @@ export class ModPackage extends vscode.TreeItem {
 		let syms = await vscode.commands.executeCommand<(vscode.SymbolInformation|vscode.DocumentSymbol)[]>
 												("vscode.executeDocumentSymbolProvider", this.resourceUri);
 
+		if (!syms)
+		{
+			term.write(`Error: Unable to load document symbols for ${this.resourceUri}\r\n`);
+			return;
+		}
+
 		const newversion = this.description.replace(/\.([0-9]+)$/,(patch)=>{return `.${Number.parseInt(patch.substr(1))+1}`;});
-		let version = syms!.find(sym=>sym.name === "version")!;
+		let version = syms.find(sym=>sym.name === "version")!;
 
 		we.replace(this.resourceUri,
 			version instanceof vscode.SymbolInformation ? version.location.range : version.selectionRange,
@@ -483,6 +489,7 @@ export class ModPackage extends vscode.TreeItem {
 		if (!packagepath) {return;}
 
 		let newversion = await this.IncrementVersion(term);
+		if (!newversion) {return;}
 
 		if(this.scripts?.publish)
 		{
