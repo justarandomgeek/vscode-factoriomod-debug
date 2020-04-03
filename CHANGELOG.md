@@ -3,6 +3,7 @@
 ## 0.18.13
 
 * Catch rare condition in Increment Version command where no symbols are found in info.json
+* Correctly report missing paths in config.ini
 
 ## 0.18.12
 

@@ -160,7 +160,14 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 
 		const configdata = ini.parse(fs.readFileSync(config.configPath,"utf8"));
 
-		config.dataPath = path.posix.normalize(translatePath(configdata.path["read-data"],config.factorioPath));
+		const configDataPath = configdata?.path?.["read-data"];
+		if (!configDataPath)
+		{
+			return vscode.window.showInformationMessage("path.read-data missing in config.ini").then(_ => {
+				return undefined;	// abort launch
+			});
+		}
+		config.dataPath = path.posix.normalize(translatePath(configDataPath,config.factorioPath));
 
 		if (config.modsPath)
 		{
@@ -176,9 +183,17 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 		}
 		else
 		{
+			const configModsPath = configdata?.path?.["write-data"];
+			if (!configModsPath)
+			{
+				return vscode.window.showInformationMessage("path.write-data missing in config.ini").then(_ => {
+					return undefined;	// abort launch
+				});
+			}
+
 			config.modsPathDetected = true;
 			config.modsPath = path.posix.normalize(path.resolve(
-				translatePath(configdata.path["write-data"],config.factorioPath),"mods"));
+				translatePath(configModsPath,config.factorioPath),"mods"));
 		}
 
 		return config;
