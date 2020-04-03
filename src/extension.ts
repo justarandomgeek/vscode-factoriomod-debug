@@ -158,7 +158,7 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 			});
 		}
 
-		const configdata = ini.parse(fs.readFileSync(config.configPath,"utf8"));
+		const configdata:{path?:{"read-data"?:string; "write-data"?:string}} = ini.parse(fs.readFileSync(config.configPath,"utf8"));
 
 		const configDataPath = configdata?.path?.["read-data"];
 		if (!configDataPath)
