@@ -33,8 +33,9 @@ export class LocaleColorProvider implements vscode.DocumentColorProvider {
 		if (matches) {
 			return new vscode.Color(parseInt(matches[1], 16), parseInt(matches[2], 16), parseInt(matches[3], 16), matches[4] ? parseInt(matches[4], 16) : 255);
 		}
+
+		return undefined;
 	}
-	;
 	padHex(i: number): string {
 		let hex = Math.floor(i).toString(16);
 		if (hex.length < 2) {

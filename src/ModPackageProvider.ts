@@ -116,6 +116,7 @@ export class ModTaskProvider implements vscode.TaskProvider{
 				}
 			}
 		}
+		return undefined;
 	}
 }
 
@@ -315,7 +316,8 @@ export class ModPackage extends vscode.TreeItem {
 	public async PostToPortal(packagepath: string, packageversion:string, term:ModTaskTerminal)
 	{
 		// upload to portal
-		let cookiejar = jar();
+		// TS says this type doens't work, but it really does...
+		let cookiejar = <WebRequest.CookieJar><unknown>jar();
 		try {
 			const loginform = await WebRequest.get("https://mods.factorio.com/login",{jar:cookiejar});
 			const logintoken = ((loginform.content.match(/<input [^>]+"csrf_token"[^>]+>/)||[])[0]?.match(/value="([^"]*)"/)||[])[1];

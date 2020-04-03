@@ -3,7 +3,7 @@
 		"module": "commonjs",
 		"target": "es6",
 
-		"noImplicitAny": false,
+		"noImplicitAny": true,
 		"removeComments": false,
 		"noUnusedLocals": true,
 		"noImplicitThis": true,
@@ -12,6 +12,8 @@
 		"outDir": "../out",
 		"preserveConstEnums": true,
 		"strictNullChecks": true,
-		"noUnusedParameters": false
+		"noUnusedParameters": false,
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitReturns": true
 	}
 }

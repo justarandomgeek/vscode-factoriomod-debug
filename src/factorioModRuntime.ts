@@ -3,6 +3,7 @@ import { spawn, ChildProcess } from 'child_process';
 import { Breakpoint, Scope, Variable, StackFrame, Module,} from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 const { Subject } = require('await-notify');
+// @ts-ignore there is no @types/stream-splitter
 import StreamSplitter = require('stream-splitter');
 import * as vscode from 'vscode';
 import * as fs from 'fs';
