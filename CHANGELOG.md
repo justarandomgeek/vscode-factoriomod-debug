@@ -2,6 +2,8 @@
 
 ## 0.18.14
 
+* Include JSON Scheme for clusterion instances.json file
+
 ## 0.18.13
 
 * Catch rare condition in Increment Version command where no symbols are found in info.json
