@@ -49,7 +49,8 @@ local function normalizeLuaSource(source)
   if modname == "level" then
     -- we *still* can't identify level properly, so just give up...
     local result = sformat("LEVEL/%s",filename)
-    knownSources[source] = result
+    -- don't save this so that a level hint later can update it!
+    --knownSources[source] = result
     return result
   elseif modname == "core" or modname == "base" then
     -- these are under data path with no version in dir name

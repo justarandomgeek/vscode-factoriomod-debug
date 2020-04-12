@@ -6,6 +6,7 @@
 * Correctly report missing paths in config.ini
 * Don't attempt to translate errors outside of events
 * Updated class data to Factorio 0.18.18
+* Correctly update level script path after path hint
 
 ## 0.18.12
 
