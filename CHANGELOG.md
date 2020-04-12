@@ -4,6 +4,7 @@
 
 * Catch rare condition in Increment Version command where no symbols are found in info.json
 * Correctly report missing paths in config.ini
+* Don't attempt to translate errors outside of events
 
 ## 0.18.12
 

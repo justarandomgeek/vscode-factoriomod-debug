@@ -13,7 +13,9 @@ local localised_print = localised_print
 local function print_exception(type,mesg)
   if localised_print then
     localised_print({"","DBG: exception ", type, " ", mesg})
-  elseif script.mod_name ~= "debugadapter" then
+  elseif script and script.mod_name ~= "debugadapter" and game then
+    -- evil_translate needs to do a remote.call which is only legal in events
+    -- this condition matches all but on_load
     print("DBG: exception "..type.." " .. evil_translate(mesg):match("^([^\n]+)"))
   else
     print("DBG: exception "..type.." " .. __DebugAdapter.describe(mesg))
