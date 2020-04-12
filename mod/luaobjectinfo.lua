@@ -23,7 +23,7 @@ local luaObjectLines = {
 __DebugAdapter.stepIgnoreAll(luaObjectLines)
 
 
--- class data last updated factorio 0.18.17
+-- class data last updated factorio 0.18.18
 return {
   alwaysValid = {
     LuaRemote = true,
@@ -632,6 +632,7 @@ return {
       electric_energy_source_prototype = {readOnly = true},
       background_color = {readOnly = true},
       attack_parameters = {readOnly = true},
+      automatic = {readOnly = true},
     },
     LuaFlowStatistics = {
       input_counts = {readOnly = true},
@@ -1475,7 +1476,8 @@ return {
     LuaRoboportControlBehavior = {
       type = {readOnly = true},
       entity = {readOnly = true},
-      mode_of_operations = {},
+      read_logistics = {},
+      read_robot_stats = {},
       available_logistic_output_signal = {},
       total_logistic_output_signal = {},
       available_construction_output_signal = {},

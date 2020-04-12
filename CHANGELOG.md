@@ -5,6 +5,7 @@
 * Catch rare condition in Increment Version command where no symbols are found in info.json
 * Correctly report missing paths in config.ini
 * Don't attempt to translate errors outside of events
+* Updated class data to Factorio 0.18.18
 
 ## 0.18.12
 
