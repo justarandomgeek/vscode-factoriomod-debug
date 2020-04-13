@@ -1,5 +1,5 @@
 local require = require
--- force canonical name require
+-- force canonical name require to ensure only one instance of variables.refs
 if ... ~= "__debugadapter__/variables.lua" then
   return require("__debugadapter__/variables.lua")
 end
