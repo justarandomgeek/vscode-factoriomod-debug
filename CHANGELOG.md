@@ -2,7 +2,7 @@
 
 ## 0.18.14
 
-* Include JSON Scheme for clusterion instances.json file
+* Include JSON Scheme for clusterio instances.json file
 * Use rawlen() in Variables views to correctly handle objects with incorrect __len metamethods
 
 ## 0.18.13
