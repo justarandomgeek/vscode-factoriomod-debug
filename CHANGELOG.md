@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.15
+
+* SIGKILL for second attempt to kill Factorio when ending a debug session
+
 ## 0.18.14
 
 * Include JSON Scheme for clusterio instances.json file

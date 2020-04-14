@@ -411,7 +411,7 @@ export class FactorioModRuntime extends EventEmitter {
 			// this covers some weird hangs on closing on macs and
 			// seems to have no ill effects on windows, but try/catch
 			// just in case...
-			this._factorio.kill();
+			this._factorio.kill('SIGKILL');
 		} catch (error) {}
 		const modsPath = this.modsPath;
 		if (modsPath) {
