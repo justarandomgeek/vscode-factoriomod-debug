@@ -288,7 +288,7 @@ function variables.create(name,value,evalName)
     if not mt or mt.__debugchildren == nil then
       variablesReference = variables.tableRef(value,nil,nil,nil,evalName)
       namedVariables = 0
-      indexedVariables = #value
+      indexedVariables = rawlen(value)
       local namesStartAfter = indexedVariables
       if namesStartAfter == 0 then
         namesStartAfter = nil
@@ -454,7 +454,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
           local debugpairs = itermode[varRef.mode or "pairs"]
           if debugpairs then
             local f,t,firstk = debugpairs(varRef.table)
-            local maxindex = #varRef.table
+            local maxindex = rawlen(varRef.table)
             if filter == "indexed" then
               if not start or start == 0 then
                 start = 1
