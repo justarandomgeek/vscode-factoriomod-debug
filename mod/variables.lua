@@ -454,7 +454,8 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
           local debugpairs = itermode[varRef.mode or "pairs"]
           if debugpairs then
             local f,t,firstk = debugpairs(varRef.table)
-            local maxindex = rawlen(varRef.table)
+            local mtlen = mt and mt.__len
+            local maxindex = ((mtlen and type(varRef.table.__self)=="userdata") and mtlen or rawlen)(varRef.table)
             if filter == "indexed" then
               if not start or start == 0 then
                 start = 1

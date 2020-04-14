@@ -3,6 +3,7 @@
 ## 0.18.15
 
 * SIGKILL for second attempt to kill Factorio when ending a debug session
+* Fix rawlen() fix incorrectly applied to LuaCustomTable
 
 ## 0.18.14
 
