@@ -82,6 +82,7 @@ export class FactorioModRuntime extends EventEmitter {
 
 	private workspaceModInfoReady = new Subject();
 	private workspaceModInfo = new Array<ModPaths>();
+	private workspaceModZips = new Array<ModPaths>();
 	private workspaceModListsReady = new Subject();
 	private workspaceModLists = new Array<vscode.Uri>();
 
@@ -266,11 +267,25 @@ export class FactorioModRuntime extends EventEmitter {
 						}
 					}
 				}
+
+				const zipext = vscode.extensions.getExtension("slevesque.vscode-zipexplorer");
+				if (zipext)
+				{
+					fs.readdirSync(this.modsPath,"utf8").filter(s => s.endsWith(".zip")).map(modzip => {
+						const modzipinfo = {
+							fspath: "zip:/" + path.resolve(this.modsPath!,modzip).replace(/\\/g,"/").replace(":","%3A") + "/" + modzip.replace(/\.zip$/,""),
+							modpath: "MOD/" + modzip.replace(/\.zip$/,"")
+						};
+						let zipuri = vscode.Uri.parse("file:/"+ path.resolve(this.modsPath!,modzip).replace(/\\/g,"/"));
+						vscode.commands.executeCommand("zipexplorer.exploreZipFile", zipuri);
+						FactorioModRuntime.output.appendLine(`found mod zip "${modzip}" ${JSON.stringify(modzipinfo)}`);
+						this.workspaceModZips.push(modzipinfo);
+					});
+				}
 			} else {
 				FactorioModRuntime.output.appendLine(`modsPath "${this.modsPath}" does not contain mod-list.json`);
 				this.modsPath = undefined;
 			}
-
 		} else {
 			// warn that i can't check/add debugadapter
 			FactorioModRuntime.output.appendLine("Cannot install/verify mod without modsPath");
@@ -811,6 +826,12 @@ export class FactorioModRuntime extends EventEmitter {
 			return clientPath.replace(modinfo.fspath,modinfo.modpath);
 		}
 
+		let modzip = this.workspaceModZips.find((m)=>{return clientPath.startsWith(m.fspath);});
+		if(modzip)
+		{
+			return clientPath.replace(modzip.fspath,modzip.modpath);
+		}
+
 		if (this.dataPath && clientPath.startsWith(this.dataPath))
 		{
 			return clientPath.replace(this.dataPath,"DATA");
@@ -829,6 +850,13 @@ export class FactorioModRuntime extends EventEmitter {
 		if(modinfo)
 		{
 			return debuggerPath.replace(modinfo.modpath,modinfo.fspath);
+		}
+
+		let modzip = this.workspaceModZips.find((m)=>{return debuggerPath.startsWith(m.modpath);});
+		if(modzip)
+		{
+			const filepath = debuggerPath.replace(modzip.modpath,modzip.fspath);
+			return filepath;
 		}
 
 		if (this.modsPath && debuggerPath.startsWith("MOD"))

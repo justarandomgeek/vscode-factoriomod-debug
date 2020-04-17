@@ -24,6 +24,10 @@ If you need to use debugging without Instrument mode, you can disable it by sett
 require('__debugadapter__/debugadapter.lua')
 ```
 
+## Enabling Debugging inside Zip Files
+
+If [Zip File Explorer](https://marketplace.visualstudio.com/items?itemName=slevesque.vscode-zipexplorer) is also installed, breakpoints and stepping will work inside zipped mods.
+
 ## Automatic Mod Packaging and Publishing
 
 Mods can be automatically Packaged and Published from the "Factorio Mod Packages" panel in Explorer or SCM view (depending on configuration). These tasks can also be accessed in VSCode's Tasks system. The environment variables `FACTORIO_MODNAME` and `FACTORIO_MODVERSION` are provided to all mod scripts.
