@@ -4,6 +4,7 @@
 
 * SIGKILL for second attempt to kill Factorio when ending a debug session
 * Fix rawlen() fix incorrectly applied to LuaCustomTable
+* Add adjustMods and disableExtraMods to launch args
 
 ## 0.18.14
 

@@ -50,6 +50,8 @@ export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArgum
 	manageMod?: boolean
 	useInstrumentMode?: boolean
 	factorioArgs?: Array<string>
+	adjustMods?:{[key:string]:boolean|string}
+	disableExtraMods?:boolean
 
 	/** enable logging the Debug Adapter Protocol */
 	trace?: boolean
@@ -125,10 +127,12 @@ export class FactorioModRuntime extends EventEmitter {
 				FactorioModRuntime.output.appendLine(`using modsPath ${this.modsPath}`);
 				if(args.manageMod === false)
 				{
-					FactorioModRuntime.output.appendLine(`automatic management of debugadapter mod disabled`);
+					FactorioModRuntime.output.appendLine(`automatic management of mods disabled`);
 				}
 				else
 				{
+					if (!args.adjustMods) {args.adjustMods = {};}
+					args.adjustMods["base"] = true;
 					const ext = vscode.extensions.getExtension("justarandomgeek.factoriomod-debug");
 					if (ext)
 					{
@@ -150,6 +154,10 @@ export class FactorioModRuntime extends EventEmitter {
 							});
 							if (!args.noDebug)
 							{
+								args.adjustMods[dainfo.name] = dainfo.version;
+								args.adjustMods["coverage"] = false;
+								args.adjustMods["profiler"] = false;
+
 								if (mods.length === 0)
 								{
 									// install zip from package
@@ -211,43 +219,48 @@ export class FactorioModRuntime extends EventEmitter {
 
 								}
 							}
+							else
+							{
+								args.adjustMods[dainfo.name] = false;
+							}
 
 							// enable in json
 							let modlist:ModList = JSON.parse(fs.readFileSync(modlistpath, "utf8"));
 
-							if (args.noDebug)
-							{
-								let isInList = false;
-								modlist.mods = modlist.mods.map((modentry)=>{
-									if (modentry.name === dainfo.name) {
-										isInList = true;
-										return {name:modentry.name,enabled:false};
-									};
-									return modentry;
-								});
-								if (!isInList){
-									modlist.mods.push({name:dainfo.name,enabled:false});
+							let foundmods:{[key:string]:true} = {};
+							modlist.mods = modlist.mods.map((modentry)=>{
+								const adjust = args.adjustMods![modentry.name];
+
+								if (adjust === true || adjust === false) {
+									foundmods[modentry.name] = true;
+									return {name:modentry.name,enabled:adjust};
+								}
+								else if (adjust) {
+									foundmods[modentry.name] = true;
+									return {name:modentry.name,enabled:true,version:adjust};
+								}
+								else if (args.disableExtraMods) {
+									return {name:modentry.name,enabled:false};
+								}
+
+								return modentry;
+							});
+
+							for (const mod in args.adjustMods) {
+								if (args.adjustMods.hasOwnProperty(mod) && foundmods[mod])
+								{
+									const adjust = args.adjustMods[mod];
+									if (adjust === true || adjust === false) {
+
+										modlist.mods.push({name:mod,enabled:adjust});
+									}
+									else {
+
+										modlist.mods.push({name:mod,enabled:true,version:adjust});
+									}
 								}
 							}
-							else
-							{
-								let isInList = false;
-								modlist.mods = modlist.mods.map((modentry)=>{
-									if (modentry.name === dainfo.name) {
-										isInList = true;
-										return {name:modentry.name,enabled:true,version:dainfo.version};
-									} else if(modentry.name === "coverage" || modentry.name === "profiler"){
-										if (modentry.enabled) {
-											FactorioModRuntime.output.appendLine(`incompatible mod "${modentry.name}" disabled`);
-										}
-										return {name:modentry.name,enabled:false};
-									};
-									return modentry;
-								});
-								if (!isInList){
-									modlist.mods.push({name:dainfo.name,enabled:true,version:dainfo.version});
-								}
-							}
+
 							fs.writeFileSync(modlistpath, JSON.stringify(modlist), "utf8");
 							FactorioModRuntime.output.appendLine(`debugadapter ${args.noDebug?"disabled":"enabled"} in mod-list.json`);
 						}
@@ -420,7 +433,7 @@ export class FactorioModRuntime extends EventEmitter {
 			{
 				if(this.manageMod === false)
 				{
-					FactorioModRuntime.output.appendLine(`automatic management of debugadapter mod disabled`);
+					FactorioModRuntime.output.appendLine(`automatic management of mods disabled`);
 				}
 				else
 				{

@@ -394,6 +394,24 @@
                 },
                 "default": [],
                 "description": "Extra command line arguments to pass to Factorio"
+              },
+              "adjustMods": {
+                "description": "Dictionary of modname -> true or version string to enable, false to disable",
+                "additionalProperties": {
+                  "oneOf":[
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "(\\d+\\.){2}\\d+"
+                    }
+                  ]
+                }
+              },
+              "disableExtraMods": {
+                "description": "Disable any mods not named in `adjustMods`",
+                "type":"boolean"
               }
             }
           }
