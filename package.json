@@ -412,6 +412,10 @@
               "disableExtraMods": {
                 "description": "Disable any mods not named in `adjustMods`",
                 "type":"boolean"
+              },
+              "allowDisableBaseMod": {
+                "description": "Allow disabling the base mod. This is normally prevented, as it usually leaves the game in an unusable state.",
+                "type": "boolean"
               }
             }
           }

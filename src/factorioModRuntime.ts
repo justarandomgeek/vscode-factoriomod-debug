@@ -52,6 +52,7 @@ export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArgum
 	factorioArgs?: Array<string>
 	adjustMods?:{[key:string]:boolean|string}
 	disableExtraMods?:boolean
+	allowDisableBaseMod?:boolean
 
 	/** enable logging the Debug Adapter Protocol */
 	trace?: boolean
@@ -133,7 +134,7 @@ export class FactorioModRuntime extends EventEmitter {
 				else
 				{
 					if (!args.adjustMods) {args.adjustMods = {};}
-					args.adjustMods["base"] = true;
+					if (!args.allowDisableBaseMod) {args.adjustMods["base"] = true;}
 					const ext = vscode.extensions.getExtension("justarandomgeek.factoriomod-debug");
 					if (ext)
 					{

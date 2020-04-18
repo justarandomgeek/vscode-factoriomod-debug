@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.16
+
+* Add allowDisableBaseMod to disable protection on `base` in `adjustMods`
+
 ## 0.18.15
 
 * SIGKILL for second attempt to kill Factorio when ending a debug session
