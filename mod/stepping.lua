@@ -155,7 +155,9 @@ function __DebugAdapter.attach()
         elseif info.what == "Lua" then
           -- note that this won't see any entrypoints which are stepIgnore,
           -- which includes all break-on-exception instrumented entry points
-          local remoteFName = remotestepping.isRemote(info.func)
+          -- have to check for remotestepping here as we might also end up here for
+          -- C++ code that invokes Lua metamethods, like _ENV __index
+          local remoteFName = remotestepping and remotestepping.isRemote(info.func)
           if remoteFName then
             -- remote.calls that don't go through my hooks. no stacks, but at least we can name it...
             __DebugAdapter.pushEntryPointName("remote " .. remoteFName)
