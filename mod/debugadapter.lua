@@ -23,6 +23,7 @@ if script then -- don't attempt to hook in data stage
 end
 require("__debugadapter__/evaluate.lua") -- uses pcall
 local json = require('__debugadapter__/json.lua')
+require("__debugadapter__/log.lua") -- uses pcall
 require("__debugadapter__/entrypoints.lua") -- must be after anyone using pcall/xpcall
 
 local script = script
@@ -39,7 +40,7 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
   -- in exceptions    0 getinfo, 1 stackTrace, 2 debug command, 3 debug.debug, 4 xpcall callback, 5 at exception
   -- in instrument ex 0 getinfo, 1 stackTrace, 2 debug command, 3 debug.debug, 4 on_error callback,
   --                  5 pCallWithStackTraceMessageHandler, 6 at exception
-  if __DebugAdapter.instrument and not forRemote and 
+  if __DebugAdapter.instrument and not forRemote and
     debug.getinfo(4,"f").func == __DebugAdapter.on_exception then
     offset = offset + 1
   end

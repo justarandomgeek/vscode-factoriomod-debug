@@ -3,6 +3,7 @@
 ## 0.18.16
 
 * Add allowDisableBaseMod to disable protection on `base` in `adjustMods`
+* Hook `log()` to produce clickable source links
 
 ## 0.18.15
 
