@@ -35,10 +35,11 @@ if __DebugAdapter.instrument then
   --- remote function, and any return value from the remote will be returned with the new stepping state in a table.
   ---@param parentstep string "remote"*("next" | "in" | "over" | "out")
   ---@param parentstack StackFrame[]
+  ---@param pcallresult boolean
   ---@param remotename string
   ---@param fname string
   ---@return table
-  function remotestepping.callInner(parentstep,parentstack,remotename,fname,...)
+  function remotestepping.callInner(parentstep,parentstack,pcallresult,remotename,fname,...)
     __DebugAdapter.pushEntryPointName("hookedremote")
     stacks[#stacks+1] = {
       stack = parentstack,
@@ -57,6 +58,9 @@ if __DebugAdapter.instrument then
     stacks[#stacks] = nil
     __DebugAdapter.popEntryPointName()
     parentstep = parentstep and parentstep:match("^remote(.+)$") or parentstep
+    if pcallresult then
+      table.insert(result,1,true)
+    end
     return {step=parentstep,result=result},true
   end
 
@@ -69,7 +73,7 @@ if __DebugAdapter.instrument then
     if debugname then
       debugname = "__debugadapter_" .. debugname
       local result,multreturn = call(debugname,"remoteCallInner",
-        __DebugAdapter.currentStep(), __DebugAdapter.stackTrace(-2, nil, true),
+        __DebugAdapter.currentStep(), __DebugAdapter.stackTrace(-2, nil, true), false,
         remotename, method, ...)
 
       local childstep = result.step
@@ -92,10 +96,11 @@ else
   --- remote function, and any return value from the remote will be returned with the new stepping state in a table.
   ---@param parentstep string "remote"*("next" | "in" | "over" | "out")
   ---@param parentstack StackFrame[]
+  ---@param pcallresult boolean
   ---@param remotename string
   ---@param fname string
   ---@return table
-  function remotestepping.callInner(parentstep,parentstack,remotename,fname,...)
+  function remotestepping.callInner(parentstep,parentstack,pcallresult,remotename,fname,...)
     __DebugAdapter.pushEntryPointName("hookedremote")
     stacks[#stacks+1] = {
       stack = parentstack,
@@ -114,6 +119,9 @@ else
     stacks[#stacks] = nil
     __DebugAdapter.popEntryPointName()
     parentstep = parentstep and parentstep:match("^remote(.+)$") or parentstep
+    if not pcallresult then
+      table.remove(result,1)
+    end
     return {step=parentstep,result=result},true
   end
 
@@ -126,7 +134,7 @@ else
     if debugname then
       debugname = "__debugadapter_" .. debugname
       local result,multreturn = call(debugname,"remoteCallInner",
-        __DebugAdapter.currentStep(), __DebugAdapter.stackTrace(-2, nil, true),
+        __DebugAdapter.currentStep(), __DebugAdapter.stackTrace(-2, nil, true), true,
         remotename, method, ...)
 
       local childstep = result.step

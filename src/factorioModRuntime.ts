@@ -386,6 +386,15 @@ export class FactorioModRuntime extends EventEmitter {
 					{
 						this.continue();
 					}
+				} else if (event === "on_instrument_settings") {
+					this.continueRequire(vscode.workspace.getConfiguration().get("factorio.debug.hookSettings"));
+				} else if (event === "on_instrument_data") {
+					this.continueRequire(vscode.workspace.getConfiguration().get("factorio.debug.hookData"));
+				} else if (event.startsWith("on_instrument_control ")) {
+					const modname = event.substring(22).trim();
+					const hookmods = vscode.workspace.getConfiguration().get("factorio.debug.selectivelyHookControl",<string[]>[]);
+					const shouldhook = hookmods.length === 0 || hookmods.includes(modname);
+					this.continueRequire(shouldhook);
 				} else {
 					// unexpected event?
 					FactorioModRuntime.output.appendLine("unexpected event: " + event);
@@ -474,6 +483,15 @@ export class FactorioModRuntime extends EventEmitter {
 		if(updateAllBreakpoints || this._breakPointsChanged.size !== 0)
 		{
 			this.updateBreakpoints(updateAllBreakpoints);
+		}
+		// eslint-disable-next-line no-unused-expressions
+		this._factorio.stdin?.write("cont\n");
+	}
+
+	public continueRequire(shouldRequire?:boolean) {
+		if (shouldRequire) {
+			// eslint-disable-next-line no-unused-expressions
+			this._factorio.stdin?.write("__DebugAdapter={}\n");
 		}
 		// eslint-disable-next-line no-unused-expressions
 		this._factorio.stdin?.write("cont\n");

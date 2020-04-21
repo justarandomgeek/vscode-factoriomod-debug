@@ -4,12 +4,7 @@ if ... ~= "__debugadapter__/debugadapter.lua" then
 end
 
 -- this is a global so the vscode extension can get to it from debug.debug()
-__DebugAdapter = {
-  -- on_error is a global available in "Instrument Mode"
-  -- This controls the insertion of debug hooks (don't need xpcall for break-on-exception) and
-  -- stack frame hiding (don't need to hide xpcall)
-  instrument = not not on_error
-}
+__DebugAdapter = __DebugAdapter or {} -- but might have been defined already for selective instrument mode
 local __DebugAdapter = __DebugAdapter
 local require = require
 --this has to be first before requiring other files so they can mark functions as ignored
@@ -268,24 +263,31 @@ function __DebugAdapter.print(expr,alsoLookIn)
 end
 
 __DebugAdapter.stepIgnoreAll(__DebugAdapter)
-if data then
-  log("debugadapter registered for data")
-  __DebugAdapter.attach()
-  print("DBG: on_data")
-  debug.debug()
-elseif script.mod_name ~= "debugadapter" then -- don't hook myself!
-  -- in addition to the global, set up a remote so we can configure from DA's on_tick
-  -- and pass stepping state around remote calls
-  log("debugadapter registered for " .. script.mod_name)
-  remote.add_interface("__debugadapter_" .. script.mod_name ,{
-    setBreakpoints = __DebugAdapter.setBreakpoints,
-    remoteCallInner = remotestepping.callInner,
-    remoteHasInterface = remotestepping.hasInterface
-  })
+do
+  local ininstrument = ""
+  if __DebugAdapter.instrument then
+    ininstrument = " in Instrument Mode"
+  end
 
-  __DebugAdapter.attach()
-  print("DBG: on_parse")
-  debug.debug()
+  if data then
+    log("debugadapter registered for data" .. ininstrument)
+    __DebugAdapter.attach()
+    print("DBG: on_data")
+    debug.debug()
+  elseif script.mod_name ~= "debugadapter" then -- don't hook myself!
+    -- in addition to the global, set up a remote so we can configure from DA's on_tick
+    -- and pass stepping state around remote calls
+    log("debugadapter registered for " .. script.mod_name .. ininstrument)
+    remote.add_interface("__debugadapter_" .. script.mod_name ,{
+      setBreakpoints = __DebugAdapter.setBreakpoints,
+      remoteCallInner = remotestepping.callInner,
+      remoteHasInterface = remotestepping.hasInterface
+    })
+
+    __DebugAdapter.attach()
+    print("DBG: on_parse")
+    debug.debug()
+  end
 end
 
 return __DebugAdapter

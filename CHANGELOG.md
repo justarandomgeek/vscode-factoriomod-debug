@@ -5,6 +5,7 @@
 * Add allowDisableBaseMod to disable protection on `base` in `adjustMods`
 * Hook `log()` to produce clickable source links
 * Error hint for missing config.ini
+* Options to selectively hook install hook in Settings, Data and per-mod in Control stage
 
 ## 0.18.15
 

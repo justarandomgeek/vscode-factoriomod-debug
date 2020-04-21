@@ -115,6 +115,24 @@
           "factorio.package.tagMessage": {
             "type": "string",
             "description": "Message for version tags. Use `$VERSION` to insert the version number."
+          },
+          "factorio.debug.hookSettings": {
+            "type": "boolean",
+            "description": "Hook Settings Stage for stepping/debug",
+            "default":true
+          },
+          "factorio.debug.hookData": {
+            "type": "boolean",
+            "description": "Hook Data Stage for stepping/debug",
+            "default":true
+          },
+          "factorio.debug.selectivelyHookControl": {
+            "type": "array",
+            "description": "List of mods to hook in Control Stage, leave empty for all",
+            "items": {
+              "type":"string"
+            },
+            "default":[]
           }
         }
       }
