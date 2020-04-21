@@ -4,6 +4,7 @@
 
 * Add allowDisableBaseMod to disable protection on `base` in `adjustMods`
 * Hook `log()` to produce clickable source links
+* Error hint for missing config.ini
 
 ## 0.18.15
 

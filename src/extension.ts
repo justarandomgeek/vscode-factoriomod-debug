@@ -149,11 +149,11 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 		if (!fs.existsSync(config.configPath))
 		{
 			if (config.configPathDetected)
-				{return vscode.window.showInformationMessage("Unabled to detect config.ini location").then(_ => {
+				{return vscode.window.showInformationMessage("Unable to detect config.ini location. New Factorio install? Try just launching the game directly once first to create one.").then(_ => {
 					return undefined;	// abort launch
 				});}
 
-			return vscode.window.showInformationMessage("Specified config.ini not found").then(_ => {
+			return vscode.window.showInformationMessage("Specified config.ini not found. New Factorio install? Try just launching the game directly once first to create one.").then(_ => {
 				return undefined;	// abort launch
 			});
 		}
