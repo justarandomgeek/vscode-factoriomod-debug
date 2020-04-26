@@ -10,3 +10,4 @@ generate a mod-list.json stub when not found?
 line coverage testing/decoration for running tests
 profile steps in control
 mod-wide profiling with file decorations
+key 0 listed twice in {[2]=1,[4]=0,[6]=-1,[0]=0}
