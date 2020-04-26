@@ -442,8 +442,7 @@
           {
             "type": "factoriomod",
             "request": "launch",
-            "name": "Factorio Mod Debug",
-            "factorioPath": "d:/factorio/Factorio_0.18/bin/x64/factorio.exe"
+            "name": "Factorio Mod Debug"
           }
         ],
         "configurationSnippets": [
@@ -454,7 +453,7 @@
               "type": "factoriomod",
               "request": "launch",
               "name": "Factorio Mod Debug",
-              "factorioPath": "d:/factorio/Factorio_0.18/bin/x64/factorio.exe"
+              "factorioPath": ""
             }
           }
         ]

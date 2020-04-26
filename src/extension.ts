@@ -107,24 +107,41 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 	 * Massage a debug configuration just before a debug session is being launched,
 	 * e.g. add all missing attributes to the debug configuration.
 	 */
-	resolveDebugConfiguration(folder: vscode.WorkspaceFolder | undefined, config: vscode.DebugConfiguration, token?: vscode.CancellationToken): vscode.ProviderResult<vscode.DebugConfiguration> {
+	async resolveDebugConfiguration(folder: vscode.WorkspaceFolder | undefined, config: vscode.DebugConfiguration, token?: vscode.CancellationToken): Promise<vscode.DebugConfiguration|undefined> {
 		// factorio path exists and is a file (and is a binary?)
-		if (!config.factorioPath || !fs.existsSync(config.factorioPath) ){
-			return vscode.window.showInformationMessage("factorioPath is required").then(_ => {
-				return undefined;	// abort launch
+
+		if (!config.factorioPath) {
+			let factorioPath = await vscode.window.showOpenDialog({
+				canSelectFiles: true,
+				canSelectFolders: false,
+				openLabel: "Select Factorio binary",
+				filters: {
+					"": ["exe", ""]
+				}
 			});
+			if (factorioPath)
+			{
+				config.factorioPath = factorioPath[0].fsPath;
+			}
+		}
+
+		if(!config.factorioPath || !fs.existsSync(config.factorioPath) ){
+			vscode.window.showInformationMessage("factorioPath is required");
+			return undefined;	// abort launch
 		}
 		const args:string[] = config.factorioArgs;
 		if (args)
 		{
 			if (args.includes("--config"))
-				{return vscode.window.showInformationMessage("Factorio --config option is set by configPath and should not be included in factorioArgs").then(_ => {
-					return undefined;	// abort launch
-				});}
+			{
+				vscode.window.showInformationMessage("Factorio --config option is set by configPath and should not be included in factorioArgs");
+				return undefined;	// abort launch
+			}
 			if (args.includes("--mod-directory"))
-				{return vscode.window.showInformationMessage("Factorio --mod-directory option is set by modsPath and should not be included in factorioArgs").then(_ => {
-					return undefined;	// abort launch
-				});}
+			{
+				vscode.window.showInformationMessage("Factorio --mod-directory option is set by modsPath and should not be included in factorioArgs");
+				return undefined;	// abort launch
+			}
 		}
 
 		if (!config.configPath)
@@ -149,13 +166,15 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 		if (!fs.existsSync(config.configPath))
 		{
 			if (config.configPathDetected)
-				{return vscode.window.showInformationMessage("Unable to detect config.ini location. New Factorio install? Try just launching the game directly once first to create one.").then(_ => {
-					return undefined;	// abort launch
-				});}
-
-			return vscode.window.showInformationMessage("Specified config.ini not found. New Factorio install? Try just launching the game directly once first to create one.").then(_ => {
+			{
+				vscode.window.showInformationMessage("Unable to detect config.ini location. New Factorio install? Try just launching the game directly once first to create one.");
 				return undefined;	// abort launch
-			});
+			}
+			else
+			{
+				vscode.window.showInformationMessage("Specified config.ini not found. New Factorio install? Try just launching the game directly once first to create one.");
+				return undefined;	// abort launch
+			}
 		}
 
 		const configdata:{path?:{"read-data"?:string; "write-data"?:string}} = ini.parse(fs.readFileSync(config.configPath,"utf8"));
@@ -186,9 +205,8 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 			const configModsPath = configdata?.path?.["write-data"];
 			if (!configModsPath)
 			{
-				return vscode.window.showInformationMessage("path.write-data missing in config.ini").then(_ => {
-					return undefined;	// abort launch
-				});
+				vscode.window.showInformationMessage("path.write-data missing in config.ini");
+				return undefined;	// abort launch
 			}
 
 			config.modsPathDetected = true;
