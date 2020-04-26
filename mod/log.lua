@@ -9,16 +9,23 @@ end
 
 local oldindex = gmeta.__index
 local oldlog = log
+local keepoldlog = __DebugAdapter.keepoldlog
 local function newlog(mesg)
   local info = debug.getinfo(2,"Sl")
+  local outmesg = mesg
+  if type(mesg) ~= "string" then
+    outmesg = serpent.line(mesg)
+  end
   local body = {
-    category = "console",
-    output = serpent.line(mesg),
+    category = "stdout",
+    output = outmesg,
     line = info.currentline,
     source = normalizeLuaSource(info.source),
     };
   print("DBGprint: " .. json.encode(body))
-  oldlog({"",info.source,":",info.currentline,": ",mesg})
+  if keepoldlog then
+    return oldlog({"",info.source,":",info.currentline,": ",mesg})
+  end
 end
 
 log = nil

@@ -3,7 +3,7 @@
 ## 0.18.16
 
 * Add allowDisableBaseMod to disable protection on `base` in `adjustMods`
-* Hook `log()` to produce clickable source links
+* Hook `log()` to produce Output events with clickable source links. Launch args `hookLog` and `keepOldLog` can adjust this behavior.
 * Error hint for missing config.ini
 * Launch Args to selectively install hooks in Settings, Data and per-mod in Control stage. Settings and Data now default off and must be enabled if desired, Control defaults to hook all mods.
 * Launch Arg factorioPath is no longer required - if absent or empty, will prompt for location

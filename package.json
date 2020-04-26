@@ -434,6 +434,16 @@
                   "type":"string"
                 },
                 "default":true
+              },
+              "hookLog" : {
+                "type": "boolean",
+                "description": "Hook `log()` and convert to Output events",
+                "default":true
+              },
+              "keepOldLog" : {
+                "type": "boolean",
+                "description": "When hooking `log()`, also call original `log()`",
+                "default":false
               }
             }
           }

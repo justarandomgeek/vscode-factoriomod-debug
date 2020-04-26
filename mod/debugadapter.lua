@@ -18,7 +18,9 @@ if script then -- don't attempt to hook in data stage
 end
 require("__debugadapter__/evaluate.lua") -- uses pcall
 local json = require('__debugadapter__/json.lua')
-require("__debugadapter__/log.lua") -- uses pcall
+if __DebugAdapter.hooklog ~= false then
+  require("__debugadapter__/log.lua") -- uses pcall
+end
 require("__debugadapter__/entrypoints.lua") -- must be after anyone using pcall/xpcall
 
 local script = script

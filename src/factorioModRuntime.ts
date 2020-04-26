@@ -83,9 +83,13 @@ export class FactorioModRuntime extends EventEmitter {
 	private modsPath?: string; // absolute path of `mods` directory
 	private dataPath: string; // absolute path of `data` directory
 	private manageMod?: boolean;
+
 	private hookSettings:boolean;
 	private hookData:boolean;
 	private hookControl:string[]|boolean;
+
+	private hookLog?:boolean;
+	private keepOldLog?:boolean;
 
 	private workspaceModInfoReady = new Subject();
 	private workspaceModInfo = new Array<ModPaths>();
@@ -396,14 +400,14 @@ export class FactorioModRuntime extends EventEmitter {
 						this.continue();
 					}
 				} else if (event === "on_instrument_settings") {
-					this.continueRequire(this.hookSettings);
+					this.continueRequire(this.hookSettings,this.hookLog,this.keepOldLog);
 				} else if (event === "on_instrument_data") {
-					this.continueRequire(this.hookData);
+					this.continueRequire(this.hookData,this.hookLog,this.keepOldLog);
 				} else if (event.startsWith("on_instrument_control ")) {
 					const modname = event.substring(22).trim();
 					const hookmods = this.hookControl;
 					const shouldhook = hookmods !== false && (hookmods === true || hookmods.includes(modname));
-					this.continueRequire(shouldhook);
+					this.continueRequire(shouldhook,this.hookLog,this.keepOldLog);
 				} else {
 					// unexpected event?
 					FactorioModRuntime.output.appendLine("unexpected event: " + event);
@@ -414,7 +418,7 @@ export class FactorioModRuntime extends EventEmitter {
 				this.sendEvent('output', logpoint.output, "console", logpoint.filePath, logpoint.line, logpoint.variablesReference);
 			} else if (chunkstr.startsWith("DBGprint: ")) {
 				const body = JSON.parse(chunkstr.substring(10).trim());
-				this.sendEvent('output', body.output, "console", body.source, body.line);
+				this.sendEvent('output', body.output, body.category ?? "console", body.source, body.line);
 			} else if (chunkstr.startsWith("DBGstack: ")) {
 				this._stack.trace = JSON.parse(chunkstr.substring(10).trim());
 				this._stack.notify();
@@ -497,10 +501,20 @@ export class FactorioModRuntime extends EventEmitter {
 		this._factorio.stdin?.write("cont\n");
 	}
 
-	public continueRequire(shouldRequire?:boolean) {
+	public continueRequire(shouldRequire?:boolean,hookLog?:boolean,keepOldLog?:boolean) {
 		if (shouldRequire) {
+			let hookopts = "";
+			if (hookLog !== undefined)
+			{
+				hookopts += `hooklog=${hookLog},`;
+			}
+			if (keepOldLog !== undefined)
+			{
+				hookopts += `keepoldlog=${keepOldLog},`;
+			}
+
 			// eslint-disable-next-line no-unused-expressions
-			this._factorio.stdin?.write("__DebugAdapter={}\n");
+			this._factorio.stdin?.write(`__DebugAdapter={${hookopts}}\n`);
 		}
 		// eslint-disable-next-line no-unused-expressions
 		this._factorio.stdin?.write("cont\n");
