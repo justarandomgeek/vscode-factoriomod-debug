@@ -115,24 +115,6 @@
           "factorio.package.tagMessage": {
             "type": "string",
             "description": "Message for version tags. Use `$VERSION` to insert the version number."
-          },
-          "factorio.debug.hookSettings": {
-            "type": "boolean",
-            "description": "Hook Settings Stage for stepping/debug",
-            "default":true
-          },
-          "factorio.debug.hookData": {
-            "type": "boolean",
-            "description": "Hook Data Stage for stepping/debug",
-            "default":true
-          },
-          "factorio.debug.selectivelyHookControl": {
-            "type": "array",
-            "description": "List of mods to hook in Control Stage, leave empty for all",
-            "items": {
-              "type":"string"
-            },
-            "default":[]
           }
         }
       }
@@ -434,6 +416,24 @@
               "allowDisableBaseMod": {
                 "description": "Allow disabling the base mod. This is normally prevented, as it usually leaves the game in an unusable state.",
                 "type": "boolean"
+              },
+              "hookSettings": {
+                "type": "boolean",
+                "description": "Hook Settings Stage for stepping/debug",
+                "default":false
+              },
+              "hookData": {
+                "type": "boolean",
+                "description": "Hook Data Stage for stepping/debug",
+                "default":false
+              },
+              "hookControl": {
+                "type": ["array", "boolean"],
+                "description": "List of mods to hook in Control Stage, or bool to (un)hook all. Use `level` for scenario/campaign scripts.",
+                "items": {
+                  "type":"string"
+                },
+                "default":true
               }
             }
           }

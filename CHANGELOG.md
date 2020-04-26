@@ -5,7 +5,7 @@
 * Add allowDisableBaseMod to disable protection on `base` in `adjustMods`
 * Hook `log()` to produce clickable source links
 * Error hint for missing config.ini
-* Options to selectively hook install hook in Settings, Data and per-mod in Control stage
+* Launch Args to selectively install hooks in Settings, Data and per-mod in Control stage. Settings and Data now default off and must be enabled if desired, Control defaults to hook all mods.
 
 ## 0.18.15
 

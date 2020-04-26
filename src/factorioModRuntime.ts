@@ -53,6 +53,9 @@ export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArgum
 	adjustMods?:{[key:string]:boolean|string}
 	disableExtraMods?:boolean
 	allowDisableBaseMod?:boolean
+	hookSettings?:boolean
+	hookData?:boolean
+	hookControl?:string[]|boolean
 
 	/** enable logging the Debug Adapter Protocol */
 	trace?: boolean
@@ -80,6 +83,9 @@ export class FactorioModRuntime extends EventEmitter {
 	private modsPath?: string; // absolute path of `mods` directory
 	private dataPath: string; // absolute path of `data` directory
 	private manageMod?: boolean;
+	private hookSettings:boolean;
+	private hookData:boolean;
+	private hookControl:string[]|boolean;
 
 	private workspaceModInfoReady = new Subject();
 	private workspaceModInfo = new Array<ModPaths>();
@@ -105,6 +111,9 @@ export class FactorioModRuntime extends EventEmitter {
 	 */
 	public async start(args: LaunchRequestArguments) {
 		this.manageMod = args.manageMod;
+		this.hookSettings = args.hookSettings ?? false;
+		this.hookData = args.hookData ?? false;
+		this.hookControl = args.hookControl ?? true;
 		FactorioModRuntime.output.appendLine(`using ${args.configPathDetected?"auto-detected":"manually-configured"} config.ini: ${args.configPath}`);
 		await this.workspaceModListsReady.wait(1000);
 		if (this.workspaceModLists.length > 1)
@@ -387,13 +396,13 @@ export class FactorioModRuntime extends EventEmitter {
 						this.continue();
 					}
 				} else if (event === "on_instrument_settings") {
-					this.continueRequire(vscode.workspace.getConfiguration().get("factorio.debug.hookSettings"));
+					this.continueRequire(this.hookSettings);
 				} else if (event === "on_instrument_data") {
-					this.continueRequire(vscode.workspace.getConfiguration().get("factorio.debug.hookData"));
+					this.continueRequire(this.hookData);
 				} else if (event.startsWith("on_instrument_control ")) {
 					const modname = event.substring(22).trim();
-					const hookmods = vscode.workspace.getConfiguration().get("factorio.debug.selectivelyHookControl",<string[]>[]);
-					const shouldhook = hookmods.length === 0 || hookmods.includes(modname);
+					const hookmods = this.hookControl;
+					const shouldhook = hookmods !== false && (hookmods === true || hookmods.includes(modname));
 					this.continueRequire(shouldhook);
 				} else {
 					// unexpected event?
