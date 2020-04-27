@@ -652,12 +652,29 @@ interface ModTaskTerminal {
 async function runScript(term:ModTaskTerminal, name:string|undefined, command:string, cwd:string, env?:NodeJS.ProcessEnv,stdin?:string): Promise<number>
 {
 	const config = vscode.workspace.getConfiguration(undefined,vscode.Uri.parse(cwd) );
-	const configenv = config.get<Object>(
-		os.platform() === "win32" ? "terminal.integrated.env.windows" :
-		os.platform() === "darwin" ? "terminal.integrated.env.osx" :
-		"terminal.integrated.env.linux")!;
+	let configenv: Object | undefined;
+	let configshell: string | undefined;
+	let configautoshell: string | undefined;
+	switch (os.platform()) {
+		case "win32":
+			configenv = config.get<Object>("terminal.integrated.env.windows");
+			configshell = config.get<string>("terminal.integrated.shell.windows");
+			configautoshell = config.get<string>("terminal.integrated.automationShell.windows");
+			break;
+		case "darwin":
+			configenv = config.get<Object>("terminal.integrated.env.osx");
+			configshell = config.get<string>("terminal.integrated.shell.osx");
+			configautoshell = config.get<string>("terminal.integrated.automationShell.osx");
+			break;
+		default:
+			configenv = config.get<Object>("terminal.integrated.env.linux");
+			configshell = config.get<string>("terminal.integrated.shell.linux");
+			configautoshell = config.get<string>("terminal.integrated.automationShell.linux");
+			break;
+	}
 
 	const scriptenv = Object.assign({}, process.env, configenv, env || {} );
+
 	return new Promise((resolve,reject)=>{
 		if(name)
 		{
@@ -669,7 +686,7 @@ async function runScript(term:ModTaskTerminal, name:string|undefined, command:st
 		}
 
 		const scriptProc = exec(command,
-			{ cwd: cwd, encoding: "utf8", env: scriptenv },
+			{ cwd: cwd, encoding: "utf8", env: scriptenv, shell: configautoshell ?? configshell, },
 			(error,stdout,stderr)=>{
 				if(stderr)
 				{
