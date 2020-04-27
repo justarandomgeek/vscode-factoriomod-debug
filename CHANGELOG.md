@@ -7,6 +7,7 @@
 * Error hint for missing config.ini
 * Launch Args to selectively install hooks in Settings, Data and per-mod in Control stage. Settings and Data now default off and must be enabled if desired, Control defaults to hook all mods.
 * Launch Arg factorioPath is no longer required - if absent or empty, will prompt for location
+* More correct handling of tables with unusual numeric keys
 
 ## 0.18.15
 
