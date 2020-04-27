@@ -1,8 +1,6 @@
 task arg to package to move zip
-tasks to enable/disable mods in modlist
 phobos, phobos-tidy, phobos-format
 string.dump serialise to source, or at least disasm, for non-file chunks
-options to only hook conditionally during init stages of various things (settings, data, control, filter by mod)
 locale color widget actually offer multiple formats for colors?
 remove StreamSplitter and Subject if possible?
 update mod description from readme on publish (or other configurable file?)
@@ -10,4 +8,3 @@ generate a mod-list.json stub when not found?
 line coverage testing/decoration for running tests
 profile steps in control
 mod-wide profiling with file decorations
-key 0 listed twice in {[2]=1,[4]=0,[6]=-1,[0]=0}
