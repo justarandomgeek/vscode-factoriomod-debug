@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.17
+
+* Display `[Variables Currently Unavailable]` when variables cannot be displayed for the current stack frame
+
 ## 0.18.16
 
 * Add allowDisableBaseMod to disable protection on `base` in `adjustMods`

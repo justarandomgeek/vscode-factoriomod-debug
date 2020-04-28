@@ -240,7 +240,9 @@ function __DebugAdapter.scopes(frameId)
 
     print("DBGscopes: " .. json.encode({frameId = frameId, scopes = scopes}))
   else
-    print("DBGscopes: " .. json.encode({frameId = frameId, scopes = {}}))
+    print("DBGscopes: " .. json.encode({frameId = frameId, scopes = {
+      { name = "[Variables Currently Unavailable]", variablesReference = 0 }
+    }}))
   end
 end
 
