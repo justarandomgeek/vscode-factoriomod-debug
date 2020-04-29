@@ -3,6 +3,7 @@
 ## 0.18.17
 
 * Display `[Variables Currently Unavailable]` when variables cannot be displayed for the current stack frame
+* Don't pre-load mod zips when launching without debugger
 
 ## 0.18.16
 

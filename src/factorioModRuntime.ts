@@ -282,19 +282,22 @@ export class FactorioModRuntime extends EventEmitter {
 					}
 				}
 
-				const zipext = vscode.extensions.getExtension("slevesque.vscode-zipexplorer");
-				if (zipext)
+				if (!args.noDebug)
 				{
-					fs.readdirSync(this.modsPath,"utf8").filter(s => s.endsWith(".zip")).map(modzip => {
-						const modzipinfo = {
-							fspath: "zip:/" + path.resolve(this.modsPath!,modzip).replace(/\\/g,"/").replace(":","%3A") + "/" + modzip.replace(/\.zip$/,""),
-							modpath: "MOD/" + modzip.replace(/\.zip$/,"")
-						};
-						let zipuri = vscode.Uri.parse("file:/"+ path.resolve(this.modsPath!,modzip).replace(/\\/g,"/"));
-						vscode.commands.executeCommand("zipexplorer.exploreZipFile", zipuri);
-						FactorioModRuntime.output.appendLine(`found mod zip "${modzip}" ${JSON.stringify(modzipinfo)}`);
-						this.workspaceModZips.push(modzipinfo);
-					});
+					const zipext = vscode.extensions.getExtension("slevesque.vscode-zipexplorer");
+					if (zipext)
+					{
+						fs.readdirSync(this.modsPath,"utf8").filter(s => s.endsWith(".zip")).map(modzip => {
+							const modzipinfo = {
+								fspath: "zip:/" + path.resolve(this.modsPath!,modzip).replace(/\\/g,"/").replace(":","%3A") + "/" + modzip.replace(/\.zip$/,""),
+								modpath: "MOD/" + modzip.replace(/\.zip$/,"")
+							};
+							let zipuri = vscode.Uri.parse("file:/"+ path.resolve(this.modsPath!,modzip).replace(/\\/g,"/"));
+							vscode.commands.executeCommand("zipexplorer.exploreZipFile", zipuri);
+							FactorioModRuntime.output.appendLine(`found mod zip "${modzip}" ${JSON.stringify(modzipinfo)}`);
+							this.workspaceModZips.push(modzipinfo);
+						});
+					}
 				}
 			} else {
 				FactorioModRuntime.output.appendLine(`modsPath "${this.modsPath}" does not contain mod-list.json`);
