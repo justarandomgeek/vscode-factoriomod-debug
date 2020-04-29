@@ -9,3 +9,5 @@ generate config.ini stub when not found?
 line coverage testing/decoration for running tests
 profile steps in control
 mod-wide profiling with file decorations
+detect locale duplicate section, offer to combine
+detect locale duplicate key
