@@ -51,7 +51,7 @@ Mods can be automatically Packaged and Published from the "Factorio Mod Packages
 
 ### Publish
 
-Experimental all-in-one command.
+All-in-one command.
 
   * verify no uncomitted changes, on `master`
   * run `info.json#/package/scripts/prepublish` if set
