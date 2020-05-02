@@ -5,14 +5,14 @@ This is a debug adapter for developing Factorio mods. It supports breakpoints, s
 ## Using Factorio Mod Debug
 
 * Install the **Factorio Mod Debug** extension in VS Code.
-* Switch to the run/debug view and select "create a luanch.json file"
+* Switch to the run/debug view (View->Run) and select "create a launch.json file"
 * Select the debug environment "Factorio Mod Debug".
-* Adjust the paths as required. Note that Steam versions of Factorio are not supported at this time.
+* Adjust the paths and launch settings as required. Check Intellisense for additional launch options. Note that Steam versions of Factorio are not supported at this time.
 * Press the green 'play' button or F5 to start debugging.
 
 ## Enabling Debugging In Your Mod
 
-In Factorio >=0.18.10, Instrument Mode is used by default to enable debugging automatically.
+In Factorio >=0.18.10, Instrument Mode is used by default to enable debugging automatically in control stage. Data and Settings stage hooks can be enabled in launch.json.
 
 In a level (scenario/campaign) script, you can also provide a hint to locate the files inside a mod:
 ```lua
