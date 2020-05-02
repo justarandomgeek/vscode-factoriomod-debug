@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.18
+
+* Fix `Version` task failing when symbols in `info.json` cannot be loaded
+
 ## 0.18.17
 
 * Display `[Variables Currently Unavailable]` when variables cannot be displayed for the current stack frame

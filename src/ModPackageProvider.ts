@@ -149,7 +149,8 @@ export class ModPackage extends vscode.TreeItem {
 
 	public async Update()
 	{
-		const modscript: ModPackageInfo = JSON.parse((await vscode.workspace.fs.readFile(this.resourceUri)).toString());
+		const infodoc = await vscode.workspace.openTextDocument(this.resourceUri);
+		const modscript: ModPackageInfo = JSON.parse(infodoc.getText());
 
 		this.label = modscript.name;
 		this.description = modscript.version;
@@ -599,7 +600,8 @@ export class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.Tree
 	private async updateInfoJson(uri: vscode.Uri) {
 		if(uri.scheme === "file")
 		{
-			const modscript: ModPackageInfo = JSON.parse((await vscode.workspace.fs.readFile(uri)).toString());
+			const infodoc = await vscode.workspace.openTextDocument(uri);
+			const modscript: ModPackageInfo = JSON.parse(infodoc.getText());
 			if (modscript.name) {
 				if (this.modPackages.has(uri.toString())) {
 					await this.modPackages.get(uri.toString())?.Update();
