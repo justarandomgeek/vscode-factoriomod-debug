@@ -130,6 +130,10 @@
 			"end": "\\]$"
 		},
 		{
+			"match": "^[#;].*$",
+			"name": "comment.line.factorio-locale"
+		},
+		{
 			"captures": {
 				"1": {
 					"name": "entity.other.attribute-name.factorio-locale"
@@ -148,10 +152,6 @@
 			},
 			"match": "^([^=.]+)(=)(.+)$",
 			"name": "entity.factorio-locale"
-		},
-		{
-			"match": "^[#;].*$",
-			"name": "comment.line.factorio-locale"
 		},
 		{
 			"match": "^.*$",
