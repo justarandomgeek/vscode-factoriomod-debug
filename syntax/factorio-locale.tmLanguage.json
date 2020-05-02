@@ -126,11 +126,11 @@
 	"patterns": [
 		{
 			"name": "entity.name.class.factorio-locale",
-			"begin": "^\\[",
-			"end": "\\]$"
+			"begin": "^[ \t\r]*\\[",
+			"end": "\\][ \t\r]*$"
 		},
 		{
-			"match": "^[#;].*$",
+			"match": "^[ \t\r]*[#;].*$",
 			"name": "comment.line.factorio-locale"
 		},
 		{
@@ -150,7 +150,7 @@
 					]
 				}
 			},
-			"match": "^([^=.]+)(=)(.+)$",
+			"match": "^[ \t\r]*([^=.]+)(=)(.+)$",
 			"name": "entity.factorio-locale"
 		},
 		{

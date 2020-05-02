@@ -3,7 +3,8 @@
 ## 0.18.18
 
 * Fix `Version` task failing when symbols in `info.json` cannot be loaded
-* Correct order of comment syntax rules for locale files
+* Correct order of comment syntax rules for Locale files
+* Show warnings for various problems in Locale files
 
 ## 0.18.17
 

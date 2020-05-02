@@ -5,7 +5,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as ini from 'ini';
 import { FactorioModDebugSession } from './factorioModDebug';
-import { LocaleColorProvider, LocaleDocumentSymbolProvider } from './LocaleLangProvider';
+import { validateLocale, LocaleColorProvider, LocaleDocumentSymbolProvider } from './LocaleLangProvider';
 import { ChangelogCodeActionProvider, validateChangelogTxt, ChangelogDocumentSymbolProvider } from './ChangeLogLangProvider';
 import { ModsTreeDataProvider } from './ModPackageProvider';
 
@@ -33,11 +33,21 @@ export function activate(context: vscode.ExtensionContext) {
 		uris.forEach(async uri=> diagnosticCollection.set(uri, await validateChangelogTxt(uri)));
 	});
 
+	vscode.workspace.findFiles("**/locale/*/*.cfg").then(uris => {
+		// check diagnostics
+		uris.forEach(async uri=> diagnosticCollection.set(uri, await validateLocale(uri)));
+	});
+
 	vscode.workspace.onDidChangeTextDocument(async change =>{
 		if (change.document.languageId === "factorio-changelog")
 		{
 			// if it's changelog.txt, recheck diagnostics...
 			diagnosticCollection.set(change.document.uri, await validateChangelogTxt(change.document));
+		}
+		else if (change.document.languageId === "factorio-locale")
+		{
+			// if it's changelog.txt, recheck diagnostics...
+			diagnosticCollection.set(change.document.uri, await validateLocale(change.document));
 		}
 	});
 	vscode.workspace.onDidDeleteFiles(deleted => {

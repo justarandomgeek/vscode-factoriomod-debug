@@ -1,5 +1,100 @@
 'use strict';
 import * as vscode from 'vscode';
+
+export async function validateLocale(document: vscode.Uri|vscode.TextDocument): Promise<vscode.Diagnostic[]> {
+	if (document instanceof vscode.Uri)
+	{
+		document = await vscode.workspace.openTextDocument(document);
+	}
+	const locale = document.getText().split(/\r?\n/);
+	const diags: vscode.Diagnostic[] = [];
+
+
+	let currentSection:string|undefined;
+	const sections = new Map<string|undefined,Set<String>>();
+	sections.set(undefined,new Set<string>());
+	for (let i = 0; i < locale.length; i++) {
+		const line = locale[i];
+		if (line.match(/^[ \r\t]*[#;]/))
+		{
+			// nothing to check in comments
+		}
+		else if(line.match(/^[ \r\t]*\[/))
+		{
+			const secname = line.match(/^[ \r\t]*\[([^\[]+)\][ \r\t]*$/);
+			if(secname)
+			{
+				// save current category, check for duplicates
+				currentSection = secname[1];
+				if (sections.has(currentSection))
+				{
+					diags.push({
+						"message": "Duplicate Section",
+						"source": "factorio-locale",
+						"severity": vscode.DiagnosticSeverity.Error,
+						"range": new vscode.Range(i, line.indexOf(currentSection), i, line.indexOf(currentSection)+currentSection.length)
+					});
+				}
+				else if (sections.get(undefined)!.has(currentSection))
+				{
+					diags.push({
+						"message": "Section Name conflicts with Key in Root",
+						"source": "factorio-locale",
+						"severity": vscode.DiagnosticSeverity.Error,
+						"range": new vscode.Range(i, line.indexOf(currentSection), i, line.indexOf(currentSection)+currentSection.length)
+					});
+					sections.set(currentSection,new Set<String>());
+				}
+				else
+				{
+					sections.set(currentSection,new Set<String>());
+				}
+			}
+			else
+			{
+				diags.push({
+					"message": "Invalid Section Header",
+					"source": "factorio-locale",
+					"severity": vscode.DiagnosticSeverity.Error,
+					"range": new vscode.Range(i, 0, i, line.length)
+				});
+			}
+		}
+		else if (line.trim().length > 0)
+		{
+			const keyval = line.match(/^[ \r\t]*([^=]*)=(.*)$/);
+			if (keyval)
+			{
+				const key = keyval[1];
+				if (sections.get(currentSection)!.has(key))
+				{
+					diags.push({
+						"message": "Duplicate Key",
+						"source": "factorio-locale",
+						"severity": vscode.DiagnosticSeverity.Error,
+						"range": new vscode.Range(i, line.indexOf(key), i, line.indexOf(key)+key.length)
+					});
+				}
+				else
+				{
+					sections.get(currentSection)!.add(key);
+				}
+				//TODO: validate tags in value (keyval[2])
+			}
+			else
+			{
+				diags.push({
+					"message": "Invalid Key",
+					"source": "factorio-locale",
+					"severity": vscode.DiagnosticSeverity.Error,
+					"range": new vscode.Range(i, 0, i, line.length)
+				});
+			}
+		}
+	}
+	return diags;
+}
+
 export class LocaleColorProvider implements vscode.DocumentColorProvider {
 	constColors = new Map([
 		["default", new vscode.Color(1.000, 0.630, 0.259, 1)],
