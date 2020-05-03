@@ -88,6 +88,9 @@ export class FactorioModRuntime extends EventEmitter {
 	private hookData:boolean;
 	private hookControl:string[]|boolean;
 
+	private inPrompt:boolean = false;
+	private trace:boolean;
+
 	private hookLog?:boolean;
 	private keepOldLog?:boolean;
 
@@ -118,6 +121,7 @@ export class FactorioModRuntime extends EventEmitter {
 		this.hookSettings = args.hookSettings ?? false;
 		this.hookData = args.hookData ?? false;
 		this.hookControl = args.hookControl ?? true;
+		this.trace = args.trace ?? false;
 		FactorioModRuntime.output.appendLine(`using ${args.configPathDetected?"auto-detected":"manually-configured"} config.ini: ${args.configPath}`);
 		await this.workspaceModListsReady.wait(1000);
 		if (this.workspaceModLists.length > 1)
@@ -357,7 +361,9 @@ export class FactorioModRuntime extends EventEmitter {
 		const stdout = this._factorio.stdout?.pipe(StreamSplitter("\n"));
 		stdout.on("token", (chunk:any) => {
 			let chunkstr:string = chunk.toString();
+			if (this.trace && chunkstr.startsWith("DBG")){this.sendEvent('output', `> ${chunkstr}`, "console");}
 			if (chunkstr.startsWith("DBG: ")) {
+				this.inPrompt = true;
 				let event = chunkstr.substring(5).trim();
 				if (event === "on_tick") {
 					//if on_tick, then update breakpoints if needed and continue
@@ -492,19 +498,44 @@ export class FactorioModRuntime extends EventEmitter {
 		}
 	}
 
+	private writeStdin(s:string|Buffer):void
+	{
+		if (!this.inPrompt)
+		{
+			if (this.trace) { this.sendEvent('output', `!! Attempted to writeStdin "${s instanceof Buffer ? `Buffer[${s.length}]` : s}" while not in a prompt`, "console"); }
+			return;
+		}
+
+		if (this.trace) { this.sendEvent('output', `< ${s instanceof Buffer ? `Buffer[${s.length}]` : s}`, "console"); }
+		// eslint-disable-next-line no-unused-expressions
+		this._factorio.stdin?.write(Buffer.concat([s instanceof Buffer ? s : Buffer.from(s),Buffer.from("\n")]));
+	}
+
 	/**
 	 * Continue execution to the end/beginning.
 	 */
 	public continue(updateAllBreakpoints?:boolean) {
+		if (!this.inPrompt)
+		{
+			if (this.trace) { this.sendEvent('output', `!! Attempted to continue while not in a prompt`, "console"); }
+			return;
+		}
+
 		if(updateAllBreakpoints || this._breakPointsChanged.size !== 0)
 		{
 			this.updateBreakpoints(updateAllBreakpoints);
 		}
-		// eslint-disable-next-line no-unused-expressions
-		this._factorio.stdin?.write("cont\n");
+
+		this.writeStdin("cont");
+		this.inPrompt = false;
 	}
 
 	public continueRequire(shouldRequire?:boolean,hookLog?:boolean,keepOldLog?:boolean) {
+		if (!this.inPrompt)
+		{
+			if (this.trace) { this.sendEvent('output', `!! Attempted to continueRequire while not in a prompt`, "console"); }
+			return;
+		}
 		if (shouldRequire) {
 			let hookopts = "";
 			if (hookLog !== undefined)
@@ -516,11 +547,11 @@ export class FactorioModRuntime extends EventEmitter {
 				hookopts += `keepoldlog=${keepOldLog},`;
 			}
 
-			// eslint-disable-next-line no-unused-expressions
-			this._factorio.stdin?.write(`__DebugAdapter={${hookopts}}\n`);
+			this.writeStdin(`__DebugAdapter={${hookopts}}`);
 		}
-		// eslint-disable-next-line no-unused-expressions
-		this._factorio.stdin?.write("cont\n");
+
+		this.writeStdin("cont");
+		this.inPrompt = false;
 	}
 
 	/**
@@ -531,18 +562,15 @@ export class FactorioModRuntime extends EventEmitter {
 		{
 			this.updateBreakpoints();
 		}
-		// eslint-disable-next-line no-unused-expressions
-		this._factorio.stdin?.write(`__DebugAdapter.step("${event}")\n`);
-		// eslint-disable-next-line no-unused-expressions
-		this._factorio.stdin?.write("cont\n");
+		this.writeStdin(`__DebugAdapter.step("${event}")`);
+		this.writeStdin("cont");
 	}
 
 	/**
 	 * Returns a fake 'stacktrace' where every 'stackframe' is a word from the current line.
 	 */
 	public async stack(startFrame: number, endFrame: number): Promise<StackFrame[]> {
-		// eslint-disable-next-line no-unused-expressions
-		this._factorio.stdin?.write(`__DebugAdapter.stackTrace(${startFrame},${endFrame-startFrame})\n`);
+		this.writeStdin(`__DebugAdapter.stackTrace(${startFrame},${endFrame-startFrame})`);
 
 		await this._stack.wait(1000);
 
@@ -550,8 +578,7 @@ export class FactorioModRuntime extends EventEmitter {
 	}
 
 	public async modules(): Promise<Module[]> {
-		// eslint-disable-next-line no-unused-expressions
-		this._factorio.stdin?.write(`__DebugAdapter.modules()\n`);
+		this.writeStdin(`__DebugAdapter.modules()`);
 
 		await this._modules.wait(1000);
 
@@ -574,8 +601,7 @@ export class FactorioModRuntime extends EventEmitter {
 	public async vars(variablesReference: number, seq: number, filter?: string, start?: number, count?: number): Promise<Variable[]> {
 		let subj = new Subject();
 		this._vars.set(seq, subj);
-		// eslint-disable-next-line no-unused-expressions
-		this._factorio.stdin?.write(`__DebugAdapter.variables(${variablesReference},${seq},${filter? `"${filter}"`:"nil"},${start || "nil"},${count || "nil"})\n`);
+		this.writeStdin(`__DebugAdapter.variables(${variablesReference},${seq},${filter? `"${filter}"`:"nil"},${start || "nil"},${count || "nil"})\n`);
 
 		await subj.wait(1000);
 		let vars:Variable[] = subj.vars;
@@ -599,8 +625,7 @@ export class FactorioModRuntime extends EventEmitter {
 	public async setVar(args: DebugProtocol.SetVariableArguments, seq: number): Promise<Variable> {
 		let subj = new Subject();
 		this._setvars.set(seq, subj);
-		// eslint-disable-next-line no-unused-expressions
-		this._factorio.stdin?.write(`__DebugAdapter.setVariable(${args.variablesReference},${this.luaBlockQuote(Buffer.from(args.name))},${this.luaBlockQuote(Buffer.from(args.value))},${seq})\n`);
+		this.writeStdin(`__DebugAdapter.setVariable(${args.variablesReference},${this.luaBlockQuote(Buffer.from(args.name))},${this.luaBlockQuote(Buffer.from(args.value))},${seq})\n`);
 
 		await subj.wait(1000);
 		let setvar:Variable = subj.setvar;
@@ -618,8 +643,7 @@ export class FactorioModRuntime extends EventEmitter {
 
 		let subj = new Subject();
 		this._evals.set(seq, subj);
-		// eslint-disable-next-line no-unused-expressions
-		this._factorio.stdin?.write(`__DebugAdapter.evaluate(${args.frameId},"${args.context}",${this.luaBlockQuote(Buffer.from(args.expression.replace(/\n/g," ")))},${seq})\n`);
+		this.writeStdin(`__DebugAdapter.evaluate(${args.frameId},"${args.context}",${this.luaBlockQuote(Buffer.from(args.expression.replace(/\n/g," ")))},${seq})\n`);
 
 		await subj.wait(1000);
 		let evalresult = subj.evalresult;
@@ -809,8 +833,7 @@ export class FactorioModRuntime extends EventEmitter {
 			}
 		});
 		this._breakPointsChanged.clear();
-		// eslint-disable-next-line no-unused-expressions
-		this._factorio.stdin?.write(Buffer.concat(changes));
+		this.writeStdin(Buffer.concat(changes));
 	}
 
 	/*
