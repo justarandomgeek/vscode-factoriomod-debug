@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.18.18
+
+* Removed StreamSplitter
+* Properly translate Error messages, including multi-line output
+
 ## 0.18.17
 
 * Fix `Version` task failing when symbols in `info.json` cannot be loaded

@@ -2,24 +2,15 @@ local remote = remote and rawget(remote,"__raw") or remote
 
 local oldpcall = pcall
 local oldxpcall = xpcall
-
-local function evil_translate(localisedString)
-  -- Seriously, please don't copy this anywhere, this is horrible.
-  return select(2,oldpcall(remote.call,"debugadapter","error",localisedString)):match("debugadapter.error: (.+)\nstack traceback:")
-end
-
--- localised_print is a proposed api function which would print a LocalisedString to stdout
 local localised_print = localised_print
+
 local function print_exception(type,mesg)
-  if localised_print then
-    localised_print({"","DBG: exception ", type, " ", mesg})
-  elseif script and script.mod_name ~= "debugadapter" and game then
-    -- evil_translate needs to do a remote.call which is only legal in events
-    -- this condition matches all but on_load
-    print("DBG: exception "..type.." " .. evil_translate(mesg):match("^([^\n]+)"))
-  else
-    print("DBG: exception "..type.." " .. __DebugAdapter.describe(mesg))
-  end
+  localised_print({"",
+  "***DebugAdapterBlockPrint***\n"..
+  "DBG: exception ", type, "\n",
+  mesg,"\n"..
+  "***EndDebugAdapterBlockPrint***"
+  })
 end
 
 function __DebugAdapter.breakpoint(mesg)
@@ -53,24 +44,13 @@ if __DebugAdapter.instrument then
   on_exception = function (mesg)
     if not stack_has_location() then return end
     local mtype = type(mesg)
-    if mtype == "string" then
-      -- don't bother breaking when remotestepping rethrows an error, we've already had that one...
-      local ex = mesg:match("^Error when running interface function (.+)$")
-      if ex then return end
-
-      ex = mesg:match("^([^\n]+)")
-      print("DBG: exception unhandled " .. ex)
-      debug.debug()
-      return
-    elseif mtype == "table" and mesg[1] and ({string=true,table=true})[type(mesg[1])] then
-      print_exception("unhandled",mesg)
-      debug.debug()
-      return
-    else
-      print("DBG: exception unhandled " .. __DebugAdapter.describe(mesg))
-      debug.debug()
+    -- don't bother breaking when remotestepping rethrows an error, we've already had that one...
+    if mtype == "string" and mesg:match("^Error when running interface function (.+)$") then
       return
     end
+    print_exception("unhandled",mesg)
+    debug.debug()
+    return
   end
 else
   on_exception = function (mesg)
@@ -107,7 +87,7 @@ else
         return mesg
       end
     else
-      print("DBG: exception unhandled " .. __DebugAdapter.describe(mesg))
+      print_exception("unhandled",mesg)
       debug.debug()
       return mesg
     end
@@ -122,12 +102,10 @@ function __DebugAdapter.getEntryPointName()
   return entrypoint[#entrypoint]
 end
 function __DebugAdapter.pushEntryPointName(entry)
-  --print(script.mod_name .. " push " .. entry)
   entrypoint[#entrypoint+1] = entry
 end
 function __DebugAdapter.popEntryPointName()
   local entry = entrypoint[#entrypoint]
-  --print(script.mod_name .. " pop " .. entry)
   entrypoint[#entrypoint] = nil
   return entry
 end

@@ -9,7 +9,7 @@ export class BufferSplitter extends EventEmitter
 	constructor(instream:Readable,matchers:Buffer|(Buffer|{start:Buffer;end:Buffer})[])
 	{
 		super();
-		this.buf = new Buffer(0);
+		this.buf = Buffer.alloc(0);
 		this.matchers = matchers instanceof Buffer ? [matchers] : matchers;
 		//this.instream = instream;
 		instream.on("close",()=>{
@@ -43,11 +43,10 @@ export class BufferSplitter extends EventEmitter
 						if (index > 0)
 						{
 							this.emit("segment",this.buf.slice(0,index));
+							// adjust buffer to just before `start` in case we don't have end yet
+							// to ensure we get it again on next chunk
+							this.buf = this.buf.slice(index);
 						}
-
-						// adjust buffer to just before `start` in case we don't have end yet
-						// to ensure we get it again on next chunk
-						this.buf = this.buf.slice(index+1);
 
 						// look for a matching `end`
 						const endindex = this.buf.indexOf(match.end,match.start.length);

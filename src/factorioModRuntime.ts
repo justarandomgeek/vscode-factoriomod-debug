@@ -347,17 +347,19 @@ export class FactorioModRuntime extends EventEmitter {
 			this.sendEvent('end');
 		});
 
-		const stderr = new BufferSplitter(this._factorio.stderr!,[new Buffer("\n"),new Buffer("lua_debug>")]);
+		const stderr = new BufferSplitter(this._factorio.stderr!,[Buffer.from("\n"),Buffer.from("lua_debug>")]);
 		stderr.on("segment", (chunk:Buffer) => {
 			let chunkstr : string = chunk.toString();
 			//raise this as a stderr "Output" event
 			this.sendEvent('output', chunkstr, "stderr");
 		});
-		const stdout = new BufferSplitter(this._factorio.stdout!, [new Buffer("\n"),{
-				start:new Buffer("***\xffDebugAdapterBlockPrint\xff***\n"),
-				end:new Buffer("\n***\xffEndDebugAdapterBlockPrint\xff***")}]);
+		const stdout = new BufferSplitter(this._factorio.stdout!, [Buffer.from("\n"),{
+				start: Buffer.from("***DebugAdapterBlockPrint***"),
+				end: Buffer.from("***EndDebugAdapterBlockPrint***")}]);
 		stdout.on("segment", (chunk:Buffer) => {
 			let chunkstr:string = chunk.toString();
+			//chunkstr = chunkstr.replace(/^[\r\n]*/,"").replace(/[\r\n]*$/,"");
+			chunkstr = chunkstr.trim();
 			if (this.trace && chunkstr.startsWith("DBG")){this.sendEvent('output', `> ${chunkstr}`, "console");}
 			if (chunkstr.startsWith("DBG: ")) {
 				this.inPrompt = true;
@@ -394,8 +396,8 @@ export class FactorioModRuntime extends EventEmitter {
 				} else if (event.startsWith("exception")) {
 					// notify stop on exception
 					const sub = event.substr(10);
-					const split = sub.indexOf(" ");
-					const filter = sub.substr(0,split);
+					const split = sub.indexOf("\n");
+					const filter = sub.substr(0,split).trim();
 					const err = sub.substr(split+1);
 					if (filter === "manual" || this._exceptionFilters.has(filter))
 					{
