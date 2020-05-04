@@ -1384,6 +1384,9 @@ return {
       remove_unfiltered_items = {},
       infinity_inventory_filters = {},
     },
+    LuaProfiler = {
+      ["<Translated>"] = {thisTranslated = true},
+    },
     LuaProgrammableSpeakerControlBehavior = {
       type = {readOnly = true},
       entity = {readOnly = true},

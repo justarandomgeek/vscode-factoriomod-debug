@@ -77,9 +77,27 @@ gmeta.__debugchildren = function(t,extra)
 end
 __DebugAdapter.stepIgnore(gmeta.__debugchildren)
 
---- Clear all existing variable references, when stepping invalidates them
-function variables.clear()
-  variables.refs = setmetatable({},refsmeta)
+do
+  local localised_print = localised_print
+  local i = 1
+  function variables.translate(mesg)
+    localised_print({"",
+    "***DebugAdapterBlockPrint***\n"..
+    "DBGtranslate: ", i, "\n",
+    mesg,"\n"..
+    "***EndDebugAdapterBlockPrint***"
+    })
+    local j = i
+    i = i + 1
+    return j
+  end
+
+  --- Clear all existing variable references, when stepping invalidates them
+  function variables.clear()
+    variables.refs = setmetatable({},refsmeta)
+    i = 1
+    print("DBGuntranslate")
+  end
 end
 
 --- Generate a variablesReference for `name` at frame `frameId`
@@ -451,6 +469,20 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
             }
           end
 
+          -- rough heuristic for matching LocalisedStrings
+          -- tables with no meta, and [1] that is string
+          if not mt and type(varRef.table[1]) == "string" then
+            -- print a translation for this with unique id
+            local i = variables.translate(varRef.table)
+            vars[#vars + 1] = {
+              name = "<Translated>",
+              value = "{LocalisedString "..i.."}",
+              type = "LocalisedString",
+              variablesReference = 0,
+              presentationHint = { kind = "property", attributes = { "readOnly" } },
+            }
+          end
+
           local debugpairs = itermode[varRef.mode or "pairs"]
           if debugpairs then
             local f,t,firstk = debugpairs(varRef.table)
@@ -522,6 +554,16 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
                 type = varRef.classname .. "[]",
                 variablesReference = variables.tableRef(object, keyprops.iterMode, false,nil,varRef.evalName),
                 indexedVariables = #object + 1,
+                presentationHint = { kind = "property", attributes = { "readOnly" } },
+              }
+            elseif keyprops.thisTranslated then
+              -- print a translation for this with unique id
+              local i = variables.translate(object)
+              vars[#vars + 1] = {
+                name = "<Translated>",
+                value = "{LocalisedString "..i.."}",
+                type = "LocalisedString",
+                variablesReference = 0,
                 presentationHint = { kind = "property", attributes = { "readOnly" } },
               }
             else

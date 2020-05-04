@@ -78,6 +78,7 @@ export class FactorioModRuntime extends EventEmitter {
 	private _vars = new Map<number, any>();
 	private _setvars = new Map<number, any>();
 	private _evals = new Map<number, any>();
+	private translations = new Map<number, string>();
 
 	private modsPath?: string; // absolute path of `mods` directory
 	private dataPath: string; // absolute path of `data` directory
@@ -347,9 +348,10 @@ export class FactorioModRuntime extends EventEmitter {
 			this.sendEvent('end');
 		});
 
-		const stderr = new BufferSplitter(this._factorio.stderr!,[Buffer.from("\n"),Buffer.from("lua_debug>")]);
+		const stderr = new BufferSplitter(this._factorio.stderr!,[Buffer.from("\n"),Buffer.from("lua_debug> ")]);
 		stderr.on("segment", (chunk:Buffer) => {
 			let chunkstr : string = chunk.toString();
+			chunkstr = chunkstr.replace(/^[\r\n]*/,"").replace(/[\r\n]*$/,"");
 			//raise this as a stderr "Output" event
 			this.sendEvent('output', chunkstr, "stderr");
 		});
@@ -358,8 +360,7 @@ export class FactorioModRuntime extends EventEmitter {
 				end: Buffer.from("***EndDebugAdapterBlockPrint***")}]);
 		stdout.on("segment", (chunk:Buffer) => {
 			let chunkstr:string = chunk.toString();
-			//chunkstr = chunkstr.replace(/^[\r\n]*/,"").replace(/[\r\n]*$/,"");
-			chunkstr = chunkstr.trim();
+			chunkstr = chunkstr.replace(/^[\r\n]*/,"").replace(/[\r\n]*$/,"");
 			if (this.trace && chunkstr.startsWith("DBG")){this.sendEvent('output', `> ${chunkstr}`, "console");}
 			if (chunkstr.startsWith("DBG: ")) {
 				this.inPrompt = true;
@@ -456,6 +457,14 @@ export class FactorioModRuntime extends EventEmitter {
 				let subj = this._evals.get(evalresult.seq);
 				subj.evalresult = evalresult;
 				subj.notify();
+			} else if (chunkstr.startsWith("DBGtranslate: ")) {
+				const sub = chunkstr.substr(14);
+				const split = sub.indexOf("\n");
+				const id = Number.parseInt(sub.substr(0,split).trim());
+				const translation = sub.substr(split+1);
+				this.translations.set(id,translation);
+			} else if (chunkstr === "DBGuntranslate") {
+				this.translations.clear();
 			} else {
 				//raise this as a stdout "Output" event
 				this.sendEvent('output', chunkstr, "stdout");
@@ -605,6 +614,15 @@ export class FactorioModRuntime extends EventEmitter {
 		await subj.wait(1000);
 		let vars:Variable[] = subj.vars;
 		this._vars.delete(seq);
+
+		vars.forEach((a)=>{
+			const lsid = a.value.match(/\{LocalisedString ([0-9]+)\}/);
+			if (lsid)
+			{
+				const id = Number.parseInt(lsid[1]);
+				a.value = this.translations.get(id) ?? `{Missing Translation ID ${id}}`;
+			}
+		});
 
 		return vars;
 	}
