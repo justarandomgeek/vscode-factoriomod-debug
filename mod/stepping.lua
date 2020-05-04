@@ -262,7 +262,7 @@ function __DebugAdapter.step(steptype,internal)
       stepdepth = 0
     end
     if stepdepth ~= 0 then
-      print(("%s with existing depth! %d"):format(steptype,stepdepth))
+      print(("step %s with existing depth! %d"):format(steptype,stepdepth))
     end
   end
 end
