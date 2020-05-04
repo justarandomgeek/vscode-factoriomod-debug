@@ -3,8 +3,7 @@ import { spawn, ChildProcess } from 'child_process';
 import { Breakpoint, Scope, Variable, StackFrame, Module,} from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 const { Subject } = require('await-notify');
-// @ts-ignore there is no @types/stream-splitter
-import StreamSplitter = require('stream-splitter');
+import { BufferSplitter } from './BufferSplitter';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -347,19 +346,17 @@ export class FactorioModRuntime extends EventEmitter {
 		this._factorio.on("exit", (code:number, signal:string) => {
 			this.sendEvent('end');
 		});
-		const stderr = this._factorio.stderr?.pipe(StreamSplitter("\n"));
-		stderr.on("token", (chunk:any) => {
+
+		const stderr = new BufferSplitter(this._factorio.stderr!,[new Buffer("\n"),new Buffer("lua_debug>")]);
+		stderr.on("segment", (chunk:Buffer) => {
 			let chunkstr : string = chunk.toString();
-			chunkstr = chunkstr.replace(/lua_debug>/g,"");
-			chunkstr = chunkstr.trim();
-			if (chunkstr.length > 0 )
-			{
-				//raise this as a stderr "Output" event
-				this.sendEvent('output', chunkstr, "stderr");
-			}
+			//raise this as a stderr "Output" event
+			this.sendEvent('output', chunkstr, "stderr");
 		});
-		const stdout = this._factorio.stdout?.pipe(StreamSplitter("\n"));
-		stdout.on("token", (chunk:any) => {
+		const stdout = new BufferSplitter(this._factorio.stdout!, [new Buffer("\n"),{
+				start:new Buffer("***\xffDebugAdapterBlockPrint\xff***\n"),
+				end:new Buffer("\n***\xffEndDebugAdapterBlockPrint\xff***")}]);
+		stdout.on("segment", (chunk:Buffer) => {
 			let chunkstr:string = chunk.toString();
 			if (this.trace && chunkstr.startsWith("DBG")){this.sendEvent('output', `> ${chunkstr}`, "console");}
 			if (chunkstr.startsWith("DBG: ")) {

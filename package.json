@@ -43,11 +43,11 @@
     "archiver": "^3.1.1",
     "await-notify": "1.0.1",
     "ini": "^1.3.5",
-    "stream-splitter": "^0.3.2",
     "vscode-debugadapter": "^1.39.1",
     "web-request": "^1.0.7"
   },
   "devDependencies": {
+    "@types/buffers": "^0.1.31",
     "@types/ini": "^1.3.30",
     "@types/node": "12.12.6",
     "@types/request": "^2.48.4",
@@ -398,7 +398,7 @@
               "adjustMods": {
                 "description": "Dictionary of modname -> true or version string to enable, false to disable",
                 "additionalProperties": {
-                  "oneOf":[
+                  "oneOf": [
                     {
                       "type": "boolean"
                     },
@@ -411,7 +411,7 @@
               },
               "disableExtraMods": {
                 "description": "Disable any mods not named in `adjustMods`",
-                "type":"boolean"
+                "type": "boolean"
               },
               "allowDisableBaseMod": {
                 "description": "Allow disabling the base mod. This is normally prevented, as it usually leaves the game in an unusable state.",
@@ -420,30 +420,33 @@
               "hookSettings": {
                 "type": "boolean",
                 "description": "Hook Settings Stage for stepping/debug",
-                "default":false
+                "default": false
               },
               "hookData": {
                 "type": "boolean",
                 "description": "Hook Data Stage for stepping/debug",
-                "default":false
+                "default": false
               },
               "hookControl": {
-                "type": ["array", "boolean"],
+                "type": [
+                  "array",
+                  "boolean"
+                ],
                 "description": "List of mods to hook in Control Stage, or bool to (un)hook all. Use `level` for scenario/campaign scripts.",
                 "items": {
-                  "type":"string"
+                  "type": "string"
                 },
-                "default":true
+                "default": true
               },
-              "hookLog" : {
+              "hookLog": {
                 "type": "boolean",
                 "description": "Hook `log()` and convert to Output events",
-                "default":true
+                "default": true
               },
-              "keepOldLog" : {
+              "keepOldLog": {
                 "type": "boolean",
                 "description": "When hooking `log()`, also call original `log()`",
-                "default":false
+                "default": false
               }
             }
           }
