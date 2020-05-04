@@ -1,14 +1,11 @@
 # Changelog
 
-## 0.18.18
+## 0.18.17
 
 * Fix `Version` task failing when symbols in `info.json` cannot be loaded
 * Correct order of comment syntax rules for Locale files
 * Show warnings for various problems in Locale files
 * Fixed F5 while running would queue up incorrect commands
-
-## 0.18.17
-
 * Display `[Variables Currently Unavailable]` when variables cannot be displayed for the current stack frame
 * Don't pre-load mod zips when launching without debugger
 
