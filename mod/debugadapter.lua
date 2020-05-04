@@ -14,7 +14,7 @@ local variables = require("__debugadapter__/variables.lua") -- uses pcall
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local remotestepping
 if script then -- don't attempt to hook in data stage
-  remotestepping = require("__debugadapter__/remotestepping.lua")
+  remotestepping = require("__debugadapter__/remotestepping.lua") -- uses xpcall in non-instrument mode
 end
 require("__debugadapter__/evaluate.lua") -- uses pcall
 local json = require('__debugadapter__/json.lua')

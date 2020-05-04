@@ -12,6 +12,7 @@ local __DebugAdapter = __DebugAdapter
 local script = script
 local setmetatable = setmetatable
 local unpack = table.unpack
+local xpcall = xpcall
 
 ---@type LuaRemote
 local oldremote = remote
@@ -142,14 +143,7 @@ else
 
       if not result[1] then
         local err = result[2]
-        local etype = type(err)
-        if etype == "table" and err[1] and ({string=true,table=true})[type(err[1])] then
-          error({"REMSTEP","Error when running interface function ", remotename, ".", method, ":\n", err}, -1)
-        elseif etype == "string" then
-          error(string.format("REMSTEP\nError when running interface function %s.%s:\n%s", remotename, method, err), -1)
-        else
-          error(string.format("REMSTEP\nError when running interface function %s.%s:\n%s", remotename, method, variables.describe(err)), -1)
-        end
+        error({"REMSTEP","Error when running interface function ", remotename, ".", method, ":\n", err},-1)
       end
 
       __DebugAdapter.step(childstep,true)

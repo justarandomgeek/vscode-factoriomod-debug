@@ -44,7 +44,7 @@ if __DebugAdapter.instrument then
   on_exception = function (mesg)
     if not stack_has_location() then return end
     local mtype = type(mesg)
-    -- don't bother breaking when remotestepping rethrows an error, we've already had that one...
+    -- don't bother breaking when a remote.call's error bubbles up, we've already had that one...
     if mtype == "string" and mesg:match("^Error when running interface function (.+)$") then
       return
     end
@@ -54,38 +54,21 @@ if __DebugAdapter.instrument then
   end
 else
   on_exception = function (mesg)
-    if not stack_has_location() then return end
+    if not stack_has_location() then return mesg end
     local mtype = type(mesg)
     if mtype == "string" then
-      -- don't bother breaking when remotestepping rethrows an error, we've already had that one...
-      local ex = mesg:match("^REMSTEP\n(.+)$")
-      if ex then
-        -- 0=traceback 1=on_exception 2=error (rethrow from hook) 3=remote.call hook 4=calling code to remote.call
-        -- remove two lines -1=try_func or remoteCallInner, -2=xpcall
-        return debug.traceback(ex,4):match("^(.+)\n[^\n]+\n[^\n]+$")
-      else
-        ex = mesg:match("^([^\n]+)")
-        print("DBG: exception unhandled " .. ex)
-        debug.debug()
-        -- 0=traceback 1=on_exception 2=at exception
-        -- remove two lines -1=try_func or remoteCallInner, -2=xpcall
-        return debug.traceback(ex,2):match("^(.+)\n[^\n]+\n[^\n]+$")
-      end
-    elseif mtype == "table" and mesg[1] and ({string=true,table=true})[type(mesg[1])] then
-      if mesg[1] == "REMSTEP" then
-        mesg[1] = ""
-        -- 0=traceback 1=on_exception 2=error (rethrow from hook) 3=remote.call hook 4=calling code to remote.call
-        -- remove two lines -1=try_func or remoteCallInner, -2=xpcall
-        mesg[#mesg+1] = debug.traceback("",4):match("^(.+)\n[^\n]+\n[^\n]+$")
-        return mesg
-      else
-        print_exception("unhandled",mesg)
-        debug.debug()
-        -- 0=traceback 1=on_exception 2=at exception
-        -- remove two lines -1=try_func or remoteCallInner, -2=xpcall
-        mesg = {"",mesg, debug.traceback("",2):match("^(.+)\n[^\n]+\n[^\n]+$")}
+      if mesg:match("^Error when running interface function (.+)$") then
         return mesg
       end
+      print_exception("unhandled", mesg)
+      debug.debug()
+      return mesg
+    elseif mtype == "table" and mesg[1] and mesg[1] == "REMSTEP" then
+      mesg[1] = ""
+      -- 0=traceback 1=on_exception 2=error (rethrow from hook) 3=remote.call hook 4=calling code to remote.call
+      -- remove two lines -1=try_func or remoteCallInner, -2=xpcall
+      mesg[#mesg+1] = debug.traceback("",4):match("^(.+)\n[^\n]+\n[^\n]+$")
+      return mesg
     else
       print_exception("unhandled",mesg)
       debug.debug()
