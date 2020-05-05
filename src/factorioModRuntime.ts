@@ -519,7 +519,7 @@ export class FactorioModRuntime extends EventEmitter {
 			return;
 		}
 
-		if (this.trace) { this.sendEvent('output', `< ${s instanceof Buffer ? `Buffer[${s.length}]` : s}`, "console"); }
+		if (this.trace) { this.sendEvent('output', `< ${s instanceof Buffer ? `Buffer[${s.length}]` : s.replace(/^[\r\n]*/,"").replace(/[\r\n]*$/,"")}`, "console"); }
 		// eslint-disable-next-line no-unused-expressions
 		this._factorio.stdin?.write(Buffer.concat([s instanceof Buffer ? s : Buffer.from(s),Buffer.from("\n")]));
 	}
