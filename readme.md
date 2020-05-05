@@ -12,7 +12,7 @@ This is a debug adapter for developing Factorio mods. It supports breakpoints, s
 
 ## Enabling Debugging In Your Mod
 
-In Factorio >=0.18.10, Instrument Mode is used by default to enable debugging automatically in control stage. Data and Settings stage hooks can be enabled in launch.json.
+In Factorio >=0.18.10, Instrument Mode is used by default to enable debugging automatically in control stage. Data and Settings stage hooks can be enabled in launch.json, as well as filtering which mods hooks are installed in for Control stage.
 
 In a level (scenario/campaign) script, you can also provide a hint to locate the files inside a mod:
 ```lua
