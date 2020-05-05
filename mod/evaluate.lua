@@ -251,7 +251,12 @@ function __DebugAdapter.evaluate(frameId,context,expression,seq)
   local info = debug.getinfo(frameId,"f")
   local evalresult
   if info then
-    local timer,success,result = __DebugAdapter.evaluateInternal(frameId+1,nil,context,expression,true)
+    local timer,success,result
+    if context == "repl" then
+      timer,success,result = __DebugAdapter.evaluateInternal(frameId+1,nil,context,expression,true)
+    else
+      success,result = __DebugAdapter.evaluateInternal(frameId+1,nil,context,expression)
+    end
     if success then
       evalresult = variables.create(nil,result)
       evalresult.result = evalresult.value
