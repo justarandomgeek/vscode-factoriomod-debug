@@ -91,6 +91,17 @@ do
     i = i + 1
     return j
   end
+  if not localised_print then
+    function variables.translate(mesg)
+      print("***DebugAdapterBlockPrint***\n"..
+      "DBGtranslate: "..i.."\n"..
+      __DebugAdapter.describe(mesg).."\n"..
+      "***EndDebugAdapterBlockPrint**")
+      local j = i
+      i = i + 1
+      return j
+    end
+  end
 
   --- Clear all existing variable references, when stepping invalidates them
   function variables.clear()
