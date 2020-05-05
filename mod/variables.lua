@@ -80,23 +80,14 @@ __DebugAdapter.stepIgnore(gmeta.__debugchildren)
 do
   local localised_print = localised_print
   local i = 1
-  function variables.translate(mesg)
-    localised_print({"",
-    "***DebugAdapterBlockPrint***\n"..
-    "DBGtranslate: ", i, "\n",
-    mesg,"\n"..
-    "***EndDebugAdapterBlockPrint***"
-    })
-    local j = i
-    i = i + 1
-    return j
-  end
-  if not localised_print then
+  if localised_print then
     function variables.translate(mesg)
-      print("***DebugAdapterBlockPrint***\n"..
-      "DBGtranslate: "..i.."\n"..
-      __DebugAdapter.describe(mesg).."\n"..
-      "***EndDebugAdapterBlockPrint**")
+      localised_print({"",
+      "***DebugAdapterBlockPrint***\n"..
+      "DBGtranslate: ", i, "\n",
+      mesg,"\n"..
+      "***EndDebugAdapterBlockPrint***"
+      })
       local j = i
       i = i + 1
       return j
@@ -482,7 +473,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
 
           -- rough heuristic for matching LocalisedStrings
           -- tables with no meta, and [1] that is string
-          if not mt and type(varRef.table[1]) == "string" then
+          if variables.translate and not mt and type(varRef.table[1]) == "string" then
             -- print a translation for this with unique id
             local i = variables.translate(varRef.table)
             vars[#vars + 1] = {
@@ -568,11 +559,14 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
                 presentationHint = { kind = "property", attributes = { "readOnly" } },
               }
             elseif keyprops.thisTranslated then
-              -- print a translation for this with unique id
-              local i = variables.translate(object)
+              local value = "<Translation Not Available>"
+              if variables.translate then
+                -- print a translation for this with unique id
+                value = "{LocalisedString "..variables.translate(object).."}"
+              end
               vars[#vars + 1] = {
                 name = "<translated>",
-                value = "{LocalisedString "..i.."}",
+                value = value,
                 type = "LocalisedString",
                 variablesReference = 0,
                 presentationHint = { kind = "property", attributes = { "readOnly" } },

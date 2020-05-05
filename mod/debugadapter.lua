@@ -253,7 +253,7 @@ function __DebugAdapter.print(expr,alsoLookIn)
   local result
   if texpr == "string" then
     result = __DebugAdapter.stringInterp(expr,3,alsoLookIn,"print")
-  elseif texpr == "table" and (expr.object_name == "LuaProfiler" or (not getmetatable(expr) and type(expr[1])=="string")) then
+  elseif variables.translate and texpr == "table" and (expr.object_name == "LuaProfiler" or (not getmetatable(expr) and type(expr[1])=="string")) then
     result = "{LocalisedString "..variables.translate(expr).."}"
   else
     result = __DebugAdapter.describe(expr)
