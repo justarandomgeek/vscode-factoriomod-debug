@@ -3,10 +3,11 @@
 ## 0.18.18
 
 * Removed StreamSplitter
-* Properly translate Error messages, including multi-line output
-* Translate LocalisedStrings and LuaProfilers in Variables view
-* Correctly translate LocalisedStrings in `log` hook and `__DebugAdapter.print`
-* Correctly identify tail calls in `log` hook and `__DebugAdapter.print`, instead of incorrect callsite
+* On Factorio>=0.18.23, use `localised_print` to translate various output (earlier versions will use `__DebugAdapter.describe` instead):
+	* Error messages, including multi-line output
+	* LocalisedStrings and LuaProfilers in Variables view
+	* LocalisedStrings in `log` hook and `__DebugAdapter.print`
+* Correctly identify tailcalls in `log` hook and `__DebugAdapter.print`, instead of incorrect callsite
 
 ## 0.18.17
 
