@@ -4,6 +4,7 @@
 
 * Removed StreamSplitter
 * Properly translate Error messages, including multi-line output
+* Translate LocalisedStrings and LuaProfilers in Variables view
 
 ## 0.18.17
 
