@@ -1385,7 +1385,7 @@ return {
       infinity_inventory_filters = {},
     },
     LuaProfiler = {
-      ["<Translated>"] = {thisTranslated = true},
+      ["<translated>"] = {thisTranslated = true},
     },
     LuaProgrammableSpeakerControlBehavior = {
       type = {readOnly = true},

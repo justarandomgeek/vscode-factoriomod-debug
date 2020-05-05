@@ -1,5 +1,6 @@
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local json = require('__debugadapter__/json.lua')
+local variables = require("__debugadapter__/variables.lua") -- uses pcall
 
 local gmeta = getmetatable(_ENV)
 if not gmeta then
@@ -11,20 +12,32 @@ local oldindex = gmeta.__index
 local oldlog = log
 local keepoldlog = __DebugAdapter.keepoldlog
 local function newlog(mesg)
-  local info = debug.getinfo(2,"Sl")
   local outmesg = mesg
-  if type(mesg) ~= "string" then
-    outmesg = serpent.line(mesg)
+  local tmesg = type(mesg)
+  if tmesg == "table" and (mesg.object_name == "LuaProfiler" or (not getmetatable(mesg) and type(mesg[1])=="string")) then
+    outmesg = "{LocalisedString "..variables.translate(mesg).."}"
+  elseif tmesg ~= "string" then
+    outmesg = variables.describe(mesg)
   end
   local body = {
     category = "stdout",
     output = outmesg,
-    line = info.currentline,
-    source = normalizeLuaSource(info.source),
     };
+  local istail = debug.getinfo(1,"t")
+  local loc
+  if istail.istailcall then
+    body.line = 1
+    body.source = "=(...tailcall...)"
+    loc = "=(...tailcall...)"
+  else
+    local info = debug.getinfo(2,"lS")
+    body.line = info.currentline
+    body.source = normalizeLuaSource(info.source)
+    loc = info.source..":"..info.currentline..": "
+  end
   print("DBGprint: " .. json.encode(body))
   if keepoldlog then
-    return oldlog({"",info.source,":",info.currentline,": ",mesg})
+    return oldlog({"",loc,mesg})
   end
 end
 

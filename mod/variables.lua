@@ -475,7 +475,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
             -- print a translation for this with unique id
             local i = variables.translate(varRef.table)
             vars[#vars + 1] = {
-              name = "<Translated>",
+              name = "<translated>",
               value = "{LocalisedString "..i.."}",
               type = "LocalisedString",
               variablesReference = 0,
@@ -560,7 +560,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
               -- print a translation for this with unique id
               local i = variables.translate(object)
               vars[#vars + 1] = {
-                name = "<Translated>",
+                name = "<translated>",
                 value = "{LocalisedString "..i.."}",
                 type = "LocalisedString",
                 variablesReference = 0,

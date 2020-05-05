@@ -427,6 +427,12 @@ export class FactorioModRuntime extends EventEmitter {
 				this.sendEvent('output', logpoint.output, "console", logpoint.filePath, logpoint.line, logpoint.variablesReference);
 			} else if (chunkstr.startsWith("DBGprint: ")) {
 				const body = JSON.parse(chunkstr.substring(10).trim());
+				const lsid = body.output.match(/\{LocalisedString ([0-9]+)\}/);
+				if (lsid)
+				{
+					const id = Number.parseInt(lsid[1]);
+					body.output = this.translations.get(id) ?? `{Missing Translation ID ${id}}`;
+				}
 				this.sendEvent('output', body.output, body.category ?? "console", body.source, body.line);
 			} else if (chunkstr.startsWith("DBGstack: ")) {
 				this._stack.trace = JSON.parse(chunkstr.substring(10).trim());

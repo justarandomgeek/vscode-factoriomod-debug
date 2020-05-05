@@ -5,6 +5,8 @@
 * Removed StreamSplitter
 * Properly translate Error messages, including multi-line output
 * Translate LocalisedStrings and LuaProfilers in Variables view
+* Correctly translate LocalisedStrings in `log` hook and `__DebugAdapter.print`
+* Correctly identify tail calls in `log` hook and `__DebugAdapter.print`, instead of incorrect callsite
 
 ## 0.18.17
 

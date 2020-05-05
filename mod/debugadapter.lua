@@ -253,16 +253,25 @@ function __DebugAdapter.print(expr,alsoLookIn)
   local result
   if texpr == "string" then
     result = __DebugAdapter.stringInterp(expr,3,alsoLookIn,"print")
+  elseif texpr == "table" and (expr.object_name == "LuaProfiler" or (not getmetatable(expr) and type(expr[1])=="string")) then
+    result = "{LocalisedString "..variables.translate(expr).."}"
   else
     result = __DebugAdapter.describe(expr)
   end
-  local info = debug.getinfo(2,"lS")
+
   local body = {
     category = "console",
     output = result,
-    line = info.currentline,
-    source = normalizeLuaSource(info.source),
-    };
+  }
+  local istail = debug.getinfo(1,"t")
+  if istail.istailcall then
+    body.line = 1
+    body.source = "=(...tailcall...)"
+  else
+    local info = debug.getinfo(2,"lS")
+    body.line = info.currentline
+    body.source = normalizeLuaSource(info.source)
+  end
   print("DBGprint: " .. json.encode(body))
 end
 
