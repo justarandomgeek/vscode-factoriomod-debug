@@ -263,8 +263,14 @@ function __DebugAdapter.evaluate(frameId,context,expression,seq)
       evalresult.value = nil
       evalresult.seq = seq
     else
-      -- describe in case it's a LocalisedString or other non-string error object
-      evalresult = {result = variables.describe(result), type="error", variablesReference=0, seq=seq}
+      local outmesg = result
+      local tmesg = type(result)
+      if variables.translate and tmesg == "table" and (result.object_name == "LuaProfiler" or (not getmetatable(result) and type(result[1])=="string")) then
+        outmesg = "{LocalisedString "..variables.translate(result).."}"
+      elseif tmesg ~= "string" then
+        outmesg = variables.describe(result)
+      end
+      evalresult = {result = outmesg, type="error", variablesReference=0, seq=seq}
     end
     if timer then -- timer won't be present if variables.translate isn't
       evalresult.timer = variables.translate(timer)

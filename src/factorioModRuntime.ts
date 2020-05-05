@@ -473,7 +473,12 @@ export class FactorioModRuntime extends EventEmitter {
 				this._setvars.delete(result.seq);
 			} else if (chunkstr.startsWith("DBGeval: ")) {
 				const evalresult:EvaluateResponseBody = JSON.parse(chunkstr.substring(9).trim());
-
+				const lsid = evalresult.result.match(/\{LocalisedString ([0-9]+)\}/);
+				if (lsid)
+				{
+					const id = Number.parseInt(lsid[1]);
+					evalresult.result = this.translations.get(id) ?? `{Missing Translation ID ${id}}`;
+				}
 				if (evalresult.timer)
 				{
 					const time = this.translations.get(evalresult.timer) ?? `{Missing Translation ID ${evalresult.timer}}`;
