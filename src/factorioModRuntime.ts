@@ -2,7 +2,6 @@ import { EventEmitter } from 'events';
 import { spawn, ChildProcess } from 'child_process';
 import { Breakpoint, Scope, Variable, StackFrame, Module,} from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
-const { Subject } = require('await-notify');
 import { BufferSplitter } from './BufferSplitter';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
@@ -60,6 +59,9 @@ export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArgum
 	trace?: boolean
 }
 
+
+type resolver<T> = (value?: T | PromiseLike<T> | undefined)=>void;
+
 export class FactorioModRuntime extends EventEmitter {
 
 	private _breakPoints = new Map<string, DebugProtocol.SourceBreakpoint[]>();
@@ -72,12 +74,12 @@ export class FactorioModRuntime extends EventEmitter {
 
 	private _factorio : ChildProcess;
 
-	private _stack = new Subject();
-	private _modules = new Subject();
-	private _scopes = new Map<number, any>();
-	private _vars = new Map<number, any>();
-	private _setvars = new Map<number, any>();
-	private _evals = new Map<number, any>();
+	private _stack?: resolver<StackFrame[]>;
+	private _modules?: resolver<Module[]>;
+	private _scopes = new Map<number, resolver<Scope[]>>();
+	private _vars = new Map<number, resolver<Variable[]>>();
+	private _setvars = new Map<number, resolver<Variable>>();
+	private _evals = new Map<number, resolver<any>>();
 	private translations = new Map<number, string>();
 
 	private modsPath?: string; // absolute path of `mods` directory
@@ -94,11 +96,11 @@ export class FactorioModRuntime extends EventEmitter {
 	private hookLog?:boolean;
 	private keepOldLog?:boolean;
 
-	private workspaceModInfoReady = new Subject();
+	private workspaceModInfoReady:Promise<void>;
 	private workspaceModInfo = new Array<ModPaths>();
 	private workspaceModZips = new Array<ModPaths>();
-	private workspaceModListsReady = new Subject();
-	private workspaceModLists = new Array<vscode.Uri>();
+
+	private workspaceModLists:Thenable<vscode.Uri[]>;
 
 	private static output:vscode.OutputChannel;
 
@@ -106,11 +108,12 @@ export class FactorioModRuntime extends EventEmitter {
 		super();
 		FactorioModRuntime.output = FactorioModRuntime.output || vscode.window.createOutputChannel("Factorio Mod Debug");
 		FactorioModRuntime.output.appendLine("---------------------------------------------------------------------------------------------------");
-		vscode.workspace.findFiles("**/mod-list.json")
-			.then((modlists)=>{this.workspaceModLists = modlists; this.workspaceModListsReady.notify();});
-		vscode.workspace.findFiles('**/info.json')
-			.then(infos=>{infos.forEach(this.updateInfoJson,this);})
-			.then(()=>{this.workspaceModInfoReady.notify();});
+		this.workspaceModLists = vscode.workspace.findFiles("**/mod-list.json");
+		this.workspaceModInfoReady = new Promise(async (resolve)=>{
+			const infos = await vscode.workspace.findFiles('**/info.json');
+			infos.forEach(this.updateInfoJson,this);
+			resolve();
+		});
 	}
 
 	/**
@@ -123,14 +126,14 @@ export class FactorioModRuntime extends EventEmitter {
 		this.hookControl = args.hookControl ?? true;
 		this.trace = args.trace ?? false;
 		FactorioModRuntime.output.appendLine(`using ${args.configPathDetected?"auto-detected":"manually-configured"} config.ini: ${args.configPath}`);
-		await this.workspaceModListsReady.wait(1000);
-		if (this.workspaceModLists.length > 1)
+		const workspaceModLists = await this.workspaceModLists;
+		if (workspaceModLists.length > 1)
 		{
 			FactorioModRuntime.output.appendLine(`multiple mod-list.json in workspace`);
 		}
-		else if (this.workspaceModLists.length === 1)
+		else if (workspaceModLists.length === 1)
 		{
-			const workspaceModList = this.workspaceModLists[0].path;
+			const workspaceModList = workspaceModLists[0].path;
 			FactorioModRuntime.output.appendLine(`found mod-list.json in workspace: ${workspaceModList}`);
 			args.modsPath = path.dirname(workspaceModList);
 			args.modsPathDetected = false;
@@ -314,7 +317,7 @@ export class FactorioModRuntime extends EventEmitter {
 		this.dataPath = args.dataPath.replace(/\\/g,"/");
 		FactorioModRuntime.output.appendLine(`using dataPath ${this.dataPath}`);
 
-		await this.workspaceModInfoReady.wait(1000);
+		await this.workspaceModInfoReady;
 
 		let renamedbps = new Map<string, DebugProtocol.SourceBreakpoint[]>();
 		this._breakPointsChanged.clear();
@@ -435,34 +438,30 @@ export class FactorioModRuntime extends EventEmitter {
 				}
 				this.sendEvent('output', body.output, body.category ?? "console", body.source, body.line);
 			} else if (chunkstr.startsWith("DBGstack: ")) {
-				this._stack.trace = JSON.parse(chunkstr.substring(10).trim());
-				this._stack.notify();
+				this._stack!(JSON.parse(chunkstr.substring(10).trim()));
+				this._stack = undefined;
 			} else if (chunkstr.startsWith("DBGmodules: ")) {
-				this._modules.modules = JSON.parse(chunkstr.substring(12).trim());
-				this._modules.notify();
+				this._modules!(JSON.parse(chunkstr.substring(12).trim()));
+				this._modules = undefined;
 			} else if (chunkstr.startsWith("EVTmodules: ")) {
 				const modules = JSON.parse(chunkstr.substring(12).trim());
 				this.sendEvent('modules',modules);
 			} else if (chunkstr.startsWith("DBGscopes: ")) {
 				const scopes = JSON.parse(chunkstr.substring(11).trim());
-				let subj = this._scopes.get(scopes.frameId);
-				subj.scopes = scopes.scopes;
-				subj.notify();
+				this._scopes.get(scopes.frameId)!(scopes.scopes);
+				this._scopes.delete(scopes.frameId);
 			} else if (chunkstr.startsWith("DBGvars: ")) {
 				const vars = JSON.parse(chunkstr.substring(9).trim());
-				let subj = this._vars.get(vars.seq);
-				subj.vars = vars.vars;
-				subj.notify();
+				this._vars.get(vars.seq)!(vars.vars);
+				this._vars.delete(vars.seq);
 			} else if (chunkstr.startsWith("DBGsetvar: ")) {
 				const result = JSON.parse(chunkstr.substring(11).trim());
-				let subj = this._setvars.get(result.seq);
-				subj.setvar = result.body;
-				subj.notify();
+				this._setvars.get(result.seq)!(result.body);
+				this._setvars.delete(result.seq);
 			} else if (chunkstr.startsWith("DBGeval: ")) {
 				const evalresult = JSON.parse(chunkstr.substring(9).trim());
-				let subj = this._evals.get(evalresult.seq);
-				subj.evalresult = evalresult;
-				subj.notify();
+				this._evals.get(evalresult.seq)!(evalresult);
+				this._evals.delete(evalresult.seq);
 			} else if (chunkstr.startsWith("DBGtranslate: ")) {
 				const sub = chunkstr.substr(14);
 				const split = sub.indexOf("\n");
@@ -584,42 +583,31 @@ export class FactorioModRuntime extends EventEmitter {
 	 * Returns a fake 'stacktrace' where every 'stackframe' is a word from the current line.
 	 */
 	public async stack(startFrame: number, endFrame: number): Promise<StackFrame[]> {
-		this.writeStdin(`__DebugAdapter.stackTrace(${startFrame},${endFrame-startFrame})`);
-
-		await this._stack.wait(1000);
-
-		return this._stack.trace;
+		return new Promise<StackFrame[]>((resolve)=>{
+			this._stack = resolve;
+			this.writeStdin(`__DebugAdapter.stackTrace(${startFrame},${endFrame-startFrame})`);
+		});
 	}
 
 	public async modules(): Promise<Module[]> {
-		this.writeStdin(`__DebugAdapter.modules()`);
-
-		await this._modules.wait(1000);
-
-		return this._modules.modules;
+		return new Promise<Module[]>((resolve)=>{
+			this._modules = resolve;
+			this.writeStdin(`__DebugAdapter.modules()`);
+		});
 	}
 
 	public async scopes(frameId: number): Promise<Scope[]> {
-		let subj = new Subject();
-		this._scopes.set(frameId, subj);
-		// eslint-disable-next-line no-unused-expressions
-		this._factorio.stdin?.write(`__DebugAdapter.scopes(${frameId})\n`);
-
-		await subj.wait(1000);
-		let scopes:Scope[] = subj.scopes;
-		this._scopes.delete(frameId);
-
-		return scopes;
+		return new Promise<Scope[]>((resolve)=>{
+			this._scopes.set(frameId, resolve);
+			this.writeStdin(`__DebugAdapter.scopes(${frameId})\n`);
+		});
 	}
 
 	public async vars(variablesReference: number, seq: number, filter?: string, start?: number, count?: number): Promise<Variable[]> {
-		let subj = new Subject();
-		this._vars.set(seq, subj);
-		this.writeStdin(`__DebugAdapter.variables(${variablesReference},${seq},${filter? `"${filter}"`:"nil"},${start || "nil"},${count || "nil"})\n`);
-
-		await subj.wait(1000);
-		let vars:Variable[] = subj.vars;
-		this._vars.delete(seq);
+		let vars:Variable[] = await new Promise<Variable[]>((resolve)=>{
+			this._vars.set(seq, resolve);
+			this.writeStdin(`__DebugAdapter.variables(${variablesReference},${seq},${filter? `"${filter}"`:"nil"},${start || "nil"},${count || "nil"})\n`);
+		});
 
 		vars.forEach((a)=>{
 			const lsid = a.value.match(/\{LocalisedString ([0-9]+)\}/);
@@ -646,33 +634,23 @@ export class FactorioModRuntime extends EventEmitter {
 	}
 
 	public async setVar(args: DebugProtocol.SetVariableArguments, seq: number): Promise<Variable> {
-		let subj = new Subject();
-		this._setvars.set(seq, subj);
-		this.writeStdin(`__DebugAdapter.setVariable(${args.variablesReference},${this.luaBlockQuote(Buffer.from(args.name))},${this.luaBlockQuote(Buffer.from(args.value))},${seq})\n`);
-
-		await subj.wait(1000);
-		let setvar:Variable = subj.setvar;
-		this._setvars.delete(seq);
-
-		return setvar;
+		return new Promise<Variable>((resolve)=>{
+			this._setvars.set(seq, resolve);
+			this.writeStdin(`__DebugAdapter.setVariable(${args.variablesReference},${this.luaBlockQuote(Buffer.from(args.name))},${this.luaBlockQuote(Buffer.from(args.value))},${seq})\n`);
+		});
 	}
 
 	public async evaluate(args: DebugProtocol.EvaluateArguments, seq: number): Promise<any> {
-		if(args.context === "repl" && !args.frameId)
-		{
-			let evalresult = {result:"cannot evaluate while running",type:"error",variablesReference:0};
-			return evalresult;
-		}
+		return new Promise<any>((resolve)=>{
+			if(args.context === "repl" && !args.frameId)
+			{
+				let evalresult = {result:"cannot evaluate while running",type:"error",variablesReference:0};
+				resolve(evalresult);
+			}
 
-		let subj = new Subject();
-		this._evals.set(seq, subj);
-		this.writeStdin(`__DebugAdapter.evaluate(${args.frameId},"${args.context}",${this.luaBlockQuote(Buffer.from(args.expression.replace(/\n/g," ")))},${seq})\n`);
-
-		await subj.wait(1000);
-		let evalresult = subj.evalresult;
-		this._evals.delete(seq);
-
-		return evalresult;
+			this._evals.set(seq, resolve);
+			this.writeStdin(`__DebugAdapter.evaluate(${args.frameId},"${args.context}",${this.luaBlockQuote(Buffer.from(args.expression.replace(/\n/g," ")))},${seq})\n`);
+		});
 	}
 
 	private encodeVarInt(val:number) : Buffer {
