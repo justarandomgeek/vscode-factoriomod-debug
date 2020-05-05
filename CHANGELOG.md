@@ -7,6 +7,7 @@
 	* Error messages, including multi-line output
 	* LocalisedStrings and LuaProfilers in Variables view
 	* LocalisedStrings in `log` hook and `__DebugAdapter.print`
+	* Duration of Debug Console commands
 * Correctly identify tailcalls in `log` hook and `__DebugAdapter.print`, instead of incorrect callsite
 
 ## 0.18.17

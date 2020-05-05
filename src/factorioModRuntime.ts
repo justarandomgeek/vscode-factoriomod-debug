@@ -59,6 +59,19 @@ export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArgum
 	trace?: boolean
 }
 
+interface EvaluateResponseBody {
+	result: string
+	type?: string
+	presentationHint?: DebugProtocol.VariablePresentationHint
+	variablesReference: number
+	namedVariables?: number
+	indexedVariables?: number
+
+	// sequence number of this eval
+	seq: number
+	// translation ID for time this eval ran
+	timer?: number
+}
 
 type resolver<T> = (value?: T | PromiseLike<T> | undefined)=>void;
 
@@ -79,7 +92,7 @@ export class FactorioModRuntime extends EventEmitter {
 	private _scopes = new Map<number, resolver<Scope[]>>();
 	private _vars = new Map<number, resolver<Variable[]>>();
 	private _setvars = new Map<number, resolver<Variable>>();
-	private _evals = new Map<number, resolver<any>>();
+	private _evals = new Map<number, resolver<EvaluateResponseBody>>();
 	private translations = new Map<number, string>();
 
 	private modsPath?: string; // absolute path of `mods` directory
@@ -459,7 +472,14 @@ export class FactorioModRuntime extends EventEmitter {
 				this._setvars.get(result.seq)!(result.body);
 				this._setvars.delete(result.seq);
 			} else if (chunkstr.startsWith("DBGeval: ")) {
-				const evalresult = JSON.parse(chunkstr.substring(9).trim());
+				const evalresult:EvaluateResponseBody = JSON.parse(chunkstr.substring(9).trim());
+
+				if (evalresult.timer)
+				{
+					const time = this.translations.get(evalresult.timer) ?? `{Missing Translation ID ${evalresult.timer}}`;
+					evalresult.result += "\n⏱️" + time;
+				}
+
 				this._evals.get(evalresult.seq)!(evalresult);
 				this._evals.delete(evalresult.seq);
 			} else if (chunkstr.startsWith("DBGtranslate: ")) {
@@ -640,11 +660,11 @@ export class FactorioModRuntime extends EventEmitter {
 		});
 	}
 
-	public async evaluate(args: DebugProtocol.EvaluateArguments, seq: number): Promise<any> {
-		return new Promise<any>((resolve)=>{
+	public async evaluate(args: DebugProtocol.EvaluateArguments, seq: number): Promise<EvaluateResponseBody> {
+		return new Promise<EvaluateResponseBody>((resolve)=>{
 			if(args.context === "repl" && !args.frameId)
 			{
-				let evalresult = {result:"cannot evaluate while running",type:"error",variablesReference:0};
+				let evalresult = {result:"cannot evaluate while running",type:"error",variablesReference:0,seq:seq};
 				resolve(evalresult);
 			}
 

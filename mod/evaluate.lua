@@ -8,6 +8,17 @@ local pcall = pcall -- capture pcall early before entrypoints wraps it
 local setmetatable = setmetatable
 local load = load
 
+local function timedpcall(f)
+  if game and variables.translate then
+    local t = game.create_profiler()
+    local res = {pcall(f)}
+    t.stop()
+    return t,table.unpack(res)
+  else
+    return nil,pcall(f)
+  end
+end
+
 local function evalmeta(frameId,alsoLookIn)
   local getinfo = debug.getinfo
   local getlocal = debug.getlocal
@@ -56,7 +67,7 @@ local function evalmeta(frameId,alsoLookIn)
           local info = getinfo(i,"f")
           if info then
             local func = info.func
-            if func == __DebugAdapter.evaluateInternal then
+            if func == __DebugAdapter.evaluateInternal or func == timedpcall then
               offset = i - 1
               break
             end
@@ -118,7 +129,7 @@ local function evalmeta(frameId,alsoLookIn)
           local info = getinfo(i,"f")
           if info then
             local func = info.func
-            if func == __DebugAdapter.evaluateInternal then
+            if func == __DebugAdapter.evaluateInternal or func == timedpcall then
               offset = i - 1
               break
             end
@@ -173,7 +184,7 @@ __DebugAdapter.stepIgnore(evalmeta)
 ---@param expression string
 ---@return boolean
 ---@return any
-function __DebugAdapter.evaluateInternal(frameId,alsoLookIn,context,expression)
+function __DebugAdapter.evaluateInternal(frameId,alsoLookIn,context,expression,timed)
   local env = _ENV
   if frameId or alsoLookIn then
     env = setmetatable({},evalmeta(frameId,alsoLookIn))
@@ -187,6 +198,7 @@ function __DebugAdapter.evaluateInternal(frameId,alsoLookIn,context,expression)
     return false,res
   end
 
+  local pcall = timed and timedpcall or pcall
   return pcall(f)
 end
 
@@ -239,7 +251,7 @@ function __DebugAdapter.evaluate(frameId,context,expression,seq)
   local info = debug.getinfo(frameId,"f")
   local evalresult
   if info then
-    local success,result = __DebugAdapter.evaluateInternal(frameId+1,nil,context,expression)
+    local timer,success,result = __DebugAdapter.evaluateInternal(frameId+1,nil,context,expression,true)
     if success then
       evalresult = variables.create(nil,result)
       evalresult.result = evalresult.value
@@ -248,6 +260,9 @@ function __DebugAdapter.evaluate(frameId,context,expression,seq)
     else
       -- describe in case it's a LocalisedString or other non-string error object
       evalresult = {result = variables.describe(result), type="error", variablesReference=0, seq=seq}
+    end
+    if timer then -- timer won't be present if variables.translate isn't
+      evalresult.timer = variables.translate(timer)
     end
   else
     evalresult = {result = "Cannot Evaluate in Remote Frame", type="error", variablesReference=0, seq=seq}
