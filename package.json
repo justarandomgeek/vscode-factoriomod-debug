@@ -114,6 +114,55 @@
           "factorio.package.tagMessage": {
             "type": "string",
             "description": "Message for version tags. Use `$VERSION` to insert the version number."
+          },
+          "factorio.profile.timerHighlightColor": {
+            "type": "string",
+            "description": "Color to be used to highlight hot timers",
+            "pattern": "^#[0-9a-fA-F]{6}$",
+            "default": "#FF0000"
+          },
+          "factorio.profile.timerTextColor": {
+            "type": "string",
+            "description": "Color to be used display timer text",
+            "pattern": "^#[0-9a-fA-F]{1,8}$",
+            "default": "#FFFFFF"
+          },
+          "factorio.profile.colorByCount": {
+            "type":"boolean",
+            "description": "Color highlights by count instead of time.",
+            "default":false
+          },
+          "factorio.profile.displayAverageTime": {
+            "type":"boolean",
+            "description": "Display average time instead of cumulative time. Higlighting will still use cumulative time.",
+            "default":false
+          },
+          "factorio.profile.rulers": {
+            "type": "array",
+            "description": "Ruler colors and thresholds to display hotspots in the scrollbar",
+            "items": {
+              "properties": {
+                "color": {
+                  "type":"string",
+                  "pattern": "^#[0-9a-fA-F]{1,8}$"
+                },
+                "threshold": {
+                  "type":"number",
+                  "maximum": 1,
+                  "minimum": 0
+                }
+              }
+            },
+            "default": [
+              {
+                "color": "#FF0000",
+                "threshold": 0.75
+              },
+              {
+                "color": "#FF6600",
+                "threshold": 0.5
+              }
+            ]
           }
         }
       }
@@ -436,6 +485,11 @@
                   "type": "string"
                 },
                 "default": true
+              },
+              "hookMode": {
+                "enum": ["debug","profile"],
+                "default": "debug",
+                "description": "Select hook to install. Default is `debug` for stepping. Select `profile` for live profiling."
               },
               "hookLog": {
                 "type": "boolean",

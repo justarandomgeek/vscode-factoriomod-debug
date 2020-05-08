@@ -1,4 +1,9 @@
-__DebugAdapter = {}
+if __Profiler then
+  require("__debugadapter__/profile_control.lua")
+  return
+end
+
+__DebugAdapter = __DebugAdapter or {}
 
 local datastring = require("__debugadapter__/datastring.lua")
 local ReadBreakpoints = datastring.ReadBreakpoints

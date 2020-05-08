@@ -8,6 +8,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { Buffer } from 'buffer';
+import { Profile } from './Profile';
 
 
 interface ModEntry{
@@ -37,6 +38,8 @@ interface ModPaths{
 	modpath: string
 }
 
+type HookMode = "debug"|"profile";
+
 
 export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 	factorioPath: string // path of factorio binary to launch
@@ -54,6 +57,7 @@ export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArgum
 	hookSettings?:boolean
 	hookData?:boolean
 	hookControl?:string[]|boolean
+	hookMode?:HookMode
 
 	/** enable logging the Debug Adapter Protocol */
 	trace?: boolean
@@ -103,6 +107,9 @@ export class FactorioModRuntime extends EventEmitter {
 	private hookData:boolean;
 	private hookControl:string[]|boolean;
 
+	private hookMode:HookMode;
+	private profile?: Profile;
+
 	private inPrompt:boolean = false;
 	private trace:boolean;
 
@@ -127,6 +134,13 @@ export class FactorioModRuntime extends EventEmitter {
 			infos.forEach(this.updateInfoJson,this);
 			resolve();
 		});
+		vscode.window.onDidChangeActiveTextEditor(editor =>{
+			if (editor && this.profile)
+			{
+				const profname = this.convertClientPathToDebugger(editor.document.uri.fsPath);
+				this.profile.render(editor,profname);
+			}
+		});
 	}
 
 	/**
@@ -137,6 +151,8 @@ export class FactorioModRuntime extends EventEmitter {
 		this.hookSettings = args.hookSettings ?? false;
 		this.hookData = args.hookData ?? false;
 		this.hookControl = args.hookControl ?? true;
+		this.hookMode = args.hookMode ?? "debug";
+		if (this.hookMode === "profile") {this.profile = new Profile();}
 		this.trace = args.trace ?? false;
 		FactorioModRuntime.output.appendLine(`using ${args.configPathDetected?"auto-detected":"manually-configured"} config.ini: ${args.configPath}`);
 		const workspaceModLists = await this.workspaceModLists;
@@ -361,6 +377,11 @@ export class FactorioModRuntime extends EventEmitter {
 		}
 		this._factorio = spawn(args.factorioPath,args.factorioArgs);
 		this._factorio.on("exit", (code:number, signal:string) => {
+			if (this.profile)
+			{
+				this.profile.dispose();
+				this.profile = undefined;
+			}
 			this.sendEvent('end');
 		});
 
@@ -377,6 +398,7 @@ export class FactorioModRuntime extends EventEmitter {
 		stdout.on("segment", (chunk:Buffer) => {
 			let chunkstr:string = chunk.toString();
 			chunkstr = chunkstr.replace(/^[\r\n]*/,"").replace(/[\r\n]*$/,"");
+			if (!chunkstr) { return; }
 			if (this.trace && chunkstr.startsWith("DBG")){this.sendEvent('output', `> ${chunkstr}`, "console");}
 			if (chunkstr.startsWith("DBG: ")) {
 				this.inPrompt = true;
@@ -425,14 +447,35 @@ export class FactorioModRuntime extends EventEmitter {
 						this.continue();
 					}
 				} else if (event === "on_instrument_settings") {
-					this.continueRequire(this.hookSettings,this.hookLog,this.keepOldLog);
+					if (this.hookMode === "profile")
+					{
+						this.continueRequire(false);
+					}
+					else
+					{
+						this.continueRequire(this.hookSettings,this.hookLog,this.keepOldLog);
+					}
 				} else if (event === "on_instrument_data") {
-					this.continueRequire(this.hookData,this.hookLog,this.keepOldLog);
+					if (this.hookMode === "profile")
+					{
+						this.continueRequire(false);
+					}
+					else
+					{
+						this.continueRequire(this.hookData,this.hookLog,this.keepOldLog);
+					}
 				} else if (event.startsWith("on_instrument_control ")) {
-					const modname = event.substring(22).trim();
-					const hookmods = this.hookControl;
-					const shouldhook = hookmods !== false && (hookmods === true || hookmods.includes(modname));
-					this.continueRequire(shouldhook,this.hookLog,this.keepOldLog);
+					if (this.hookMode === "profile")
+					{
+						this.continueProfile();
+					}
+					else
+					{
+						const modname = event.substring(22).trim();
+						const hookmods = this.hookControl;
+						const shouldhook = hookmods !== false && (hookmods === true || hookmods.includes(modname));
+						this.continueRequire(shouldhook,this.hookLog,this.keepOldLog);
+					}
 				} else {
 					// unexpected event?
 					FactorioModRuntime.output.appendLine("unexpected event: " + event);
@@ -482,7 +525,7 @@ export class FactorioModRuntime extends EventEmitter {
 				if (evalresult.timer)
 				{
 					const time = this.translations.get(evalresult.timer) ?? `{Missing Translation ID ${evalresult.timer}}`;
-					evalresult.result += "\n⏱️" + time;
+					evalresult.result += "\n⏱️ " + time.replace(/^.*: /,"");
 				}
 
 				this._evals.get(evalresult.seq)!(evalresult);
@@ -495,6 +538,17 @@ export class FactorioModRuntime extends EventEmitter {
 				this.translations.set(id,translation);
 			} else if (chunkstr === "DBGuntranslate") {
 				this.translations.clear();
+			} else if (chunkstr.startsWith("PROFILE:")) {
+				if (this.profile)
+				{
+					const editor = vscode.window.activeTextEditor;
+					this.profile.parse(chunkstr);
+					if (editor)
+					{
+						const profname = this.convertClientPathToDebugger(editor.document.uri.fsPath);
+						this.profile.render(editor,profname);
+					}
+				}
 			} else {
 				//raise this as a stdout "Output" event
 				this.sendEvent('output', chunkstr, "stdout");
@@ -504,6 +558,12 @@ export class FactorioModRuntime extends EventEmitter {
 
 	public terminate()
 	{
+		if (this.profile)
+		{
+			this.profile.dispose();
+			this.profile = undefined;
+		}
+
 		this._factorio.kill();
 		try {
 			// this covers some weird hangs on closing on macs and
@@ -587,6 +647,18 @@ export class FactorioModRuntime extends EventEmitter {
 
 			this.writeStdin(`__DebugAdapter={${hookopts}}`);
 		}
+
+		this.writeStdin("cont");
+		this.inPrompt = false;
+	}
+
+	public continueProfile() {
+		if (!this.inPrompt)
+		{
+			if (this.trace) { this.sendEvent('output', `!! Attempted to continueProfile while not in a prompt`, "console"); }
+			return;
+		}
+		this.writeStdin(`__Profiler={}`);
 
 		this.writeStdin("cont");
 		this.inPrompt = false;

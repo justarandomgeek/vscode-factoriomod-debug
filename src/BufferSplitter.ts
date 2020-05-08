@@ -56,6 +56,11 @@ export class BufferSplitter extends EventEmitter
 							this.emit("segment",this.buf.slice(match.start.length,endindex));
 							this.buf = this.buf.slice(endindex+match.end.length);
 						}
+						else
+						{
+							// return to wait for another chunk that might finish this...
+							return;
+						}
 					}
 				}
 				else

@@ -6,4 +6,6 @@ if __DebugAdapter then
   -- stack frame hiding (don't need to hide xpcall)
   __DebugAdapter.instrument = true
   require("__debugadapter__/debugadapter.lua")
+elseif __Profiler then
+  require("__debugadapter__/profile.lua")
 end

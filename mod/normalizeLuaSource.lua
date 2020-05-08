@@ -8,12 +8,14 @@ local levelpath
 if script and script.mod_name == "level" then
   ---@param modname string
   ---@param basepath string
-  function __DebugAdapter.levelPath(modname,basepath)
+  local function levelPath(modname,basepath)
     levelpath = {
       modname = modname,
       basepath = basepath,
     }
   end
+  if __DebugAdapter then __DebugAdapter.levelPath = levelPath end
+  if __Profiler then __Profiler.levelPath = levelPath end
 end
 
 local mods = mods or script.active_mods -- capture mods to a consistent name
@@ -69,5 +71,7 @@ local function normalizeLuaSource(source)
     return result
   end
 end
-__DebugAdapter.stepIgnore(normalizeLuaSource)
+if __DebugAdapter then
+  __DebugAdapter.stepIgnore(normalizeLuaSource)
+end
 return normalizeLuaSource

@@ -8,7 +8,8 @@
 	* LocalisedStrings and LuaProfilers in Variables view
 	* LocalisedStrings in `log` hook and `__DebugAdapter.print`
 	* LocalisedStrings in Debug Console output or errors
-	* Duration of Debug Console commands
+	* Duration of Debug Console commands, timers for profiling
+* Alternate hook mode for live-ish profiling in control stage
 * Correctly identify tailcalls in `log` hook and `__DebugAdapter.print`, instead of incorrect callsite
 
 ## 0.18.17
