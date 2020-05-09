@@ -3,6 +3,11 @@ if ... ~= "__debugadapter__/debugadapter.lua" then
   return require("__debugadapter__/debugadapter.lua")
 end
 
+if __Profiler then
+  log{"", "Attempted to require debugadapter in ", script.mod_name, " with profile hook already installed"}
+  return
+end
+
 -- this is a global so the vscode extension can get to it from debug.debug()
 __DebugAdapter = __DebugAdapter or {} -- but might have been defined already for selective instrument mode
 local __DebugAdapter = __DebugAdapter
