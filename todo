@@ -6,7 +6,4 @@ remove Subject if possible?
 update mod description from readme on publish (or other configurable file?)
 generate a mod-list.json stub when not found?
 generate config.ini stub when not found?
-line coverage testing/decoration for running tests
-profile steps in control
-mod-wide profiling with file decorations
 offer to combine duplicate locale sections

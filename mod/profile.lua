@@ -1,20 +1,30 @@
+__Profiler = __Profiler or {
+  dump = function ()
+    remote.call("profiler","dump")
+  end,
+  clear = function()
+    remote.call("profiler","clear")
+  end,
+  set_refresh_rate = function()
+    remote.call("profiler","set_refresh_rate")
+  end,
+}
+
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 
-__Profiler = __Profiler or {}
-local __Profiler = __Profiler
-__Profiler.linetimers = {}
-__Profiler.linecounts = {}
+local linetimers = {}
+local linecounts = {}
 
-function __Profiler.getlinetimer(file,line)
-  local f = __Profiler.linetimers[file]
+local function getlinetimer(file,line)
+  local f = linetimers[file]
   if not f then
     f = {}
-    __Profiler.linetimers[file] = f
+    linetimers[file] = f
   end
-  local fc = __Profiler.linecounts[file]
+  local fc = linecounts[file]
   if not fc then
     fc = {}
-    __Profiler.linecounts[file] = fc
+    linecounts[file] = fc
   end
 
   local t = f[line]
@@ -34,7 +44,7 @@ end
 
 local pause_profile = true
 local activeline
-function __Profiler.attach()
+local function attach()
   local getinfo = debug.getinfo
   local sub = string.sub
   debug.sethook(function(event,line)
@@ -48,7 +58,7 @@ function __Profiler.attach()
       if game and sub(s,1,1) == "@" then
         s = normalizeLuaSource(s)
         -- switch/start line timer
-        activeline = __Profiler.getlinetimer(s,line)
+        activeline = getlinetimer(s,line)
       else
         -- stop line timer
         activeline = nil
@@ -90,22 +100,22 @@ function __Profiler.attach()
 end
 
 -- clear a timer
-function __Profiler.clear()
+local function clear()
   pause_profile = true
   if activeline then activeline.stop() end
-  __Profiler.linetimers = {}
-  __Profiler.linecounts = {}
+  linetimers = {}
+  linecounts = {}
   pause_profile = nil
 end
 
-function __Profiler.dump()
+local function dump()
   pause_profile = true
   if activeline then activeline.stop() end
   print("PMN:"..script.mod_name)
-  for file,f in pairs(__Profiler.linetimers) do
+  for file,f in pairs(linetimers) do
     print("PFN:"..file)
     for line,timer in pairs(f) do
-      local count = __Profiler.linecounts[file][line]
+      local count = linecounts[file][line]
       localised_print{"","PLN:",line,":",timer,":",count}
     end
   end
@@ -117,8 +127,9 @@ if script.mod_name ~= "debugadapter" then -- don't hook myself!
   -- and pass stepping state around remote calls
   log("profiler registered for " .. script.mod_name)
   remote.add_interface("__profiler_" .. script.mod_name ,{
-    dump = __Profiler.dump,
+    dump = dump,
+    clear = clear,
   })
 
-  __Profiler.attach()
+  attach()
 end

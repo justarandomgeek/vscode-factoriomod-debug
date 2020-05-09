@@ -1,4 +1,4 @@
-local function dumpAll()
+local function dump_all()
   if game then
     local t = game.create_profiler()
     print("***DebugAdapterBlockPrint***\nPROFILE:")
@@ -16,18 +16,42 @@ local function dumpAll()
   end
 end
 
---TODO: correctly handle dumping everything just before migrations and hooking just after them
-script.on_nth_tick(2,function(e)
-  script.on_nth_tick(2,nil)
-  game.autosave_enabled = false
-  dumpAll()
-end)
+local function clear_all()
+  if game then
+    local call = remote.call
+    local match = string.match
+    for remotename,_ in pairs(remote.interfaces) do
+      local modname = match(remotename,"^__profiler_(.+)$")
+      if modname then
+        call(remotename,"clear")
+      end
+    end
+  end
+end
 
---TODO: adjustable auto-dump schedule?
-script.on_nth_tick(600,function(e)
-  dumpAll()
-end)
+local function begin()
+  -- start profiling early...
+  script.on_nth_tick(2,function(e)
+    script.on_nth_tick(2,nil)
+    game.autosave_enabled = false
+    dump_all()
+  end)
+end
+
+script.on_init(begin)
+script.on_load(begin)
+
+local function set_refresh_rate(ticks)
+  script.on_nth_tick(nil)
+  script.on_nth_tick(ticks,function(e)
+    dump_all()
+  end)
+end
+
+set_refresh_rate(100)
 
 remote.add_interface("profiler",{
-  dump = dumpAll,
+  dump = dump_all,
+  clear = clear_all,
+  set_refresh_rate = set_refresh_rate,
 })
