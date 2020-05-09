@@ -54,7 +54,7 @@
     },
     "package": {
       "type":"object",
-      "description": "Configuration for automaticaly packaging and publishing this mod [VSCode Extension]",
+      "description": "Configuration for automatically packaging and publishing this mod [VSCode Extension]",
       "properties": {
         "ignore":{
           "type":"array",

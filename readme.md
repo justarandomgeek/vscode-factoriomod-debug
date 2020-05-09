@@ -53,11 +53,11 @@ Mods can be automatically Packaged and Published from the "Factorio Mod Packages
 
 All-in-one command.
 
-  * verify no uncomitted changes, on `master`
+  * verify no uncommitted changes, on `master`
   * run `info.json#/package/scripts/prepublish` if set
   * run **Datestamp**
   * git commit "preparing release of version x.y.z", tag x.y.z
-  * run **Packge**
+  * run **Package**
   * run **Increment Version**
   * run `info.json#/package/scripts/publish` if set
   * commit "moved to version x.y.z"
@@ -95,7 +95,7 @@ If normal breakpoints are unusable for some reason, you can call `__DebugAdapter
 
 ## Custom Debug Views
 
-When displaying tables in the Variables window, the debugger will check for metatables, and display them as a special member `<metatable>`. The default lineitem for a table can be overridden by the metamethod `__debugline`, which can be either a string (with expressions in `{}` interpolated) or a function which takes the table as an argument and returns a string. The contents of the table can be overriden by the `__debugchildren` metamethod, which can be `false` to disable expanding children or a function which takes the table as an argument and returns `DebugAdapter.Variable[]`.
+When displaying tables in the Variables window, the debugger will check for metatables, and display them as a special member `<metatable>`. The default lineitem for a table can be overridden by the metamethod `__debugline`, which can be either a string (with expressions in `{}` interpolated) or a function which takes the table as an argument and returns a string. The contents of the table can be overridden by the `__debugchildren` metamethod, which can be `false` to disable expanding children or a function which takes the table as an argument and returns `DebugAdapter.Variable[]`.
 
 The `variables` module can be used to prepare custom expansions.
 ```lua

@@ -4,7 +4,7 @@ A lot of people ask how to set up a workspace when they first start modding, so 
 
 ## Workspace Layout
 
-I open the Factorio `mods` directory as the root of my workspace in VSCode, and check out each mod's git repo directoy into that. This simplifies debugger config as it is able to detect `mod-list.json` in the workspace and automatically configure all unspecified `modsPath`s in `launch.json`.
+I open the Factorio `mods` directory as the root of my workspace in VSCode, and check out each mod's git repo directory into that. This simplifies debugger config as it is able to detect `mod-list.json` in the workspace and automatically configure all unspecified `modsPath`s in `launch.json`.
 
   * `mods/`
     * `.vscode/`

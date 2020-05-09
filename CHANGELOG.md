@@ -142,7 +142,7 @@
 ## 0.18.0
 
 * Update for Factorio 0.18
-* use `script.active_mods` to remove last dependancies on `game`. Enables stepping in control.lua main chunk and on_load, and break-on-exception in on_load. Removed various workarounds for not having this.
+* use `script.active_mods` to remove last dependencies on `game`. Enables stepping in control.lua main chunk and on_load, and break-on-exception in on_load. Removed various workarounds for not having this.
 * use LuaObject.object_name to classify objects. Detailed views of LuaStructs.
 
 ## 0.17.8
@@ -182,7 +182,7 @@
 ## 0.17.4
 
 * include for loop internals in `<temporaries>` section
-* bring my own json to remove many dependancies on `game` object
+* bring my own json to remove many dependencies on `game` object
 * optimizations
 * name `(main chunk)` in stack traces
 * set breakpoints earlier (still can't attach before `game` is available though)

@@ -146,7 +146,7 @@ local function ReadSourceBreakpoint(strdata,i)
     local mask = sbyte(strdata,i)
     i = i + 1
 
-    -- 0x18 reseved in mask to prevent creating reserved bytes 10/13/26
+    -- 0x18 reserved in mask to prevent creating reserved bytes 10/13/26
     if band(mask,0x01) ~= 0 then
         bp.condition,i = ReadString(strdata,i)
     end

@@ -49,7 +49,7 @@ local function evalmeta(frameId,alsoLookIn)
       if frameId then
         -- find how deep we are, if the expression includes defining new functions and calling them...
         -- if this table lives longer than the expression (by being returned), this will end up failing
-        -- to locate teh correct stack and fall back to only the global lookups
+        -- to locate the correct stack and fall back to only the global lookups
         local i = 0
         local offset
         while true do

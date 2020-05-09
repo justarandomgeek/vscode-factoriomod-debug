@@ -317,7 +317,7 @@ export class ModPackage extends vscode.TreeItem {
 	public async PostToPortal(packagepath: string, packageversion:string, term:ModTaskTerminal)
 	{
 		// upload to portal
-		// TS says this type doens't work, but it really does...
+		// TS says this type doesn't work, but it really does...
 		let cookiejar = <WebRequest.CookieJar><unknown>jar();
 		try {
 			const loginform = await WebRequest.get("https://mods.factorio.com/login",{jar:cookiejar});
@@ -443,7 +443,7 @@ export class ModPackage extends vscode.TreeItem {
 
 		if (repo)
 		{
-			// throw if uncomitted changes
+			// throw if uncommitted changes
 			if (repo.state.workingTreeChanges.length > 0)
 			{
 				term.write("Cannot Publish with uncommitted changes\r\n");
