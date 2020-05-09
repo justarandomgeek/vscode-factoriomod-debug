@@ -133,7 +133,7 @@ export class Profile implements Disposable {
 				const count = filecounts.get(line)!;
 				const displayTime = displayAverageTime ? time/count : time;
 				const t = Math.log(colorByCount?count:time)/colorscale;
-				const range = editor.document.validateRange(new Range(line-1,0,line-1,65535/0));
+				const range = editor.document.validateRange(new Range(line-1,0,line-1,1/0));
 				decs.push({
 					range: range,
 					renderOptions: {
