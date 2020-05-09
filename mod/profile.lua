@@ -5,19 +5,6 @@ local __Profiler = __Profiler
 __Profiler.linetimers = {}
 __Profiler.linecounts = {}
 
--- clear a timer
-function __Profiler.clear()
-  pause_profile = true
-  do
-    local activeline =  __Profiler.active
-    if activeline then activeline.stop() end
-  end
-  __Profiler.active = nil
-  __Profiler.linetimers = {}
-  __Profiler.linecounts = {}
-  pause_profile = nil
-end
-
 function __Profiler.getlinetimer(file,line)
   local f = __Profiler.linetimers[file]
   if not f then
@@ -46,15 +33,13 @@ function __Profiler.getlinetimer(file,line)
 end
 
 local pause_profile = true
+local activeline
 function __Profiler.attach()
   local getinfo = debug.getinfo
   local sub = string.sub
   debug.sethook(function(event,line)
     if pause_profile then return end
-    do
-      local activeline = __Profiler.active
-      if activeline then activeline.stop() end
-    end
+    if activeline then activeline.stop() end
     if event == "line" then
       local info = getinfo(2,"Slf")
       local s = info.source
@@ -63,10 +48,10 @@ function __Profiler.attach()
       if game and sub(s,1,1) == "@" then
         s = normalizeLuaSource(s)
         -- switch/start line timer
-        __Profiler.active = __Profiler.getlinetimer(s,line)
+        activeline = __Profiler.getlinetimer(s,line)
       else
         -- stop line timer
-        __Profiler.active = nil
+        activeline = nil
       end
     else
       if event == "return" or event == "tail call" then
@@ -81,24 +66,21 @@ function __Profiler.attach()
         if not parent then
           -- top of stack
           if info.what == "main" or info.what == "Lua" then
-            __Profiler.active = nil
+            activeline = nil
           end
         end
       end
-      if event == "call" or event == "tail call" then
-        local info = getinfo(2,"Slf")
-        local s = info.source
-        if sub(s,1,1) == "@" then
-          -- switch/start function timer
-        else
-          -- ??
-        end
-      end
+      --if event == "call" or event == "tail call" then
+      --  local info = getinfo(2,"Slf")
+      --  local s = info.source
+      --  if sub(s,1,1) == "@" then
+      --    -- switch/start function timer
+      --  else
+      --    -- ??
+      --  end
+      --end
     end
-    do
-      local activeline = __Profiler.active
-      if activeline then activeline.restart() end
-    end
+    if activeline then activeline.restart() end
   end,"lr")
 
   on_error(function(mesg)
@@ -107,12 +89,18 @@ function __Profiler.attach()
   end)
 end
 
+-- clear a timer
+function __Profiler.clear()
+  pause_profile = true
+  if activeline then activeline.stop() end
+  __Profiler.linetimers = {}
+  __Profiler.linecounts = {}
+  pause_profile = nil
+end
+
 function __Profiler.dump()
   pause_profile = true
-  do
-    local activeline =  __Profiler.active
-    if activeline then activeline.stop() end
-  end
+  if activeline then activeline.stop() end
   print("PMN:"..script.mod_name)
   for file,f in pairs(__Profiler.linetimers) do
     print("PFN:"..file)
