@@ -11,6 +11,8 @@
 	* Duration of Debug Console commands, timers for profiling
 * Alternate hook mode for live-ish profiling in control stage
 * Correctly identify tailcalls in `log` hook and `__DebugAdapter.print`, instead of incorrect callsite
+* Use a more permissive JSON schema for `info.json` inside `data`
+* Correctly exclude locale `info.json` files from mod/data schema
 
 ## 0.18.17
 

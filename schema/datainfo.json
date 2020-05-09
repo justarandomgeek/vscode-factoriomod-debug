@@ -1,0 +1,53 @@
+{
+  "title": "Factorio Data info.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "name":{
+      "type":"string",
+      "title": "Internal name of the mod",
+      "pattern": "[a-zA-Z0-9_-]+"
+    },
+    "version": {
+      "type":"string",
+      "title": "Version String",
+      "pattern": "(\\d+\\.){2}\\d+"
+    },
+    "title": {
+      "type": "string",
+      "title": "Display name of the mod",
+      "description": "Can be overwritten by locale entry in the `mod-name` category"
+    },
+    "author": {
+      "type": "string",
+      "title": "Author of the mod"
+    },
+    "contact": {
+      "type":"string",
+      "title": "Contact for this mod"
+    },
+    "homepage": {
+      "type": "string",
+      "title": "Homepage for the mod",
+      "description": "Please don't put \"None\" here, just leave it empty if none"
+    },
+    "description": {
+      "type": "string",
+      "title": "A short description of the mod to show in-game",
+      "description": "Can be overwritten by locale entry in the `mod-description` category"
+    },
+    "factorio_version": {
+      "type":"string",
+      "title": "The Factorio major version this mod supports",
+      "pattern": "\\d+\\.\\d+"
+    },
+    "dependencies": {
+      "type":"array",
+      "title": "Mods this mod depends on or are incompatible with",
+      "items": {
+        "type":"string",
+        "pattern": "^(([!?]|\\(\\?\\)) *)?([a-zA-Z0-9_-]+)( *([<>=]=?) *((\\d+\\.){1,2}\\d+))?$"
+      }
+    }
+  }
+}

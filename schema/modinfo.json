@@ -1,104 +1,65 @@
 {
   "title": "Factorio Mod info.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
-  "required":[
-    "name", "version", "title", "author", "factorio_version"
-  ],
-  "properties": {
-    "name":{
-      "type":"string",
-      "title": "Internal name of the mod",
-      "pattern": "[a-zA-Z0-9_-]+"
+  "allOf":[
+    {
+      "$ref": "datainfo.json"
     },
-    "version": {
-      "type":"string",
-      "title": "Version String",
-      "pattern": "(\\d+\\.){2}\\d+"
-    },
-    "title": {
-      "type": "string",
-      "title": "Display name of the mod",
-      "description": "Can be overwritten by locale entry in the `mod-name` category"
-    },
-    "author": {
-      "type": "string",
-      "title": "Author of the mod"
-    },
-    "contact": {
-      "type":"string",
-      "title": "Contact for this mod"
-    },
-    "homepage": {
-      "type": "string",
-      "title": "Homepage for the mod",
-      "description": "Please don't put \"None\" here, just leave it empty if none"
-    },
-    "description": {
-      "type": "string",
-      "title": "A short description of the mod to show in-game",
-      "description": "Can be overwritten by locale entry in the `mod-description` category"
-    },
-    "factorio_version": {
-      "type":"string",
-      "title": "The Factorio major version this mod supports",
-      "pattern": "\\d+\\.\\d+"
-    },
-    "dependencies": {
-      "type":"array",
-      "title": "Mods this mod depends on or are incompatible with",
-      "items": {
-        "type":"string",
-        "pattern": "^(([!?]|\\(\\?\\)) *)?([a-zA-Z0-9_-]+)( *([<>=]=?) *((\\d+\\.){1,2}\\d+))?$"
-      }
-    },
-    "package": {
-      "type":"object",
-      "description": "Configuration for automaticaly packaging and publishing this mod [VSCode Extension]",
+    {
+      "type": "object",
+      "required":[
+        "name", "version", "title", "author", "factorio_version"
+      ],
       "properties": {
-        "ignore":{
-          "type":"array",
-          "description": "Globs to ignore when building zip package",
-          "items": {
-            "type":"string",
-            "format": "glob"
-          }
-        },
-        "no_git_push": {
-          "type":"boolean",
-          "description": "Don't automatically `git push` in Publish"
-        },
-        "no_portal_upload": {
-          "type":"boolean",
-          "description": "Don't automatically upload to the mod portal in Publish"
-        },
-        "scripts":{
+        "package": {
           "type":"object",
-          "description": "Additional scripts to run while packaging/publishing mods",
+          "description": "Configuration for automaticaly packaging and publishing this mod [VSCode Extension]",
           "properties": {
-            "prepublish": {
-              "type":"string",
-              "description": "Command to run while preparing the pre-publish commit. Files added to git during this command will be included in that commit."
+            "ignore":{
+              "type":"array",
+              "description": "Globs to ignore when building zip package",
+              "items": {
+                "type":"string",
+                "format": "glob"
+              }
             },
-            "datestamp": {
-              "type":"string",
-              "description": "Command to run after datestamping the changelog."
+            "no_git_push": {
+              "type":"boolean",
+              "description": "Don't automatically `git push` in Publish"
             },
-            "prepackage": {
-              "type":"string",
-              "description": "Command to run while preparing the zip package. Files created/changed during this command will be included in the zip."
+            "no_portal_upload": {
+              "type":"boolean",
+              "description": "Don't automatically upload to the mod portal in Publish"
             },
-            "version": {
-              "type":"string",
-              "description": "Command to run after incrementing the version."
-            },
-            "publish": {
-              "type":"string",
-              "description": "Command to run while preparing the post-publish commit, after incrementing the version. Files added to git during this command will be included in that commit."
+            "scripts":{
+              "type":"object",
+              "description": "Additional scripts to run while packaging/publishing mods",
+              "properties": {
+                "prepublish": {
+                  "type":"string",
+                  "description": "Command to run while preparing the pre-publish commit. Files added to git during this command will be included in that commit."
+                },
+                "datestamp": {
+                  "type":"string",
+                  "description": "Command to run after datestamping the changelog."
+                },
+                "prepackage": {
+                  "type":"string",
+                  "description": "Command to run while preparing the zip package. Files created/changed during this command will be included in the zip."
+                },
+                "version": {
+                  "type":"string",
+                  "description": "Command to run after incrementing the version."
+                },
+                "publish": {
+                  "type":"string",
+                  "description": "Command to run while preparing the post-publish commit, after incrementing the version. Files added to git during this command will be included in that commit."
+                }
+              }
             }
           }
         }
       }
     }
-  }
+  ]
 }

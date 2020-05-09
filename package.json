@@ -362,20 +362,24 @@
     },
     "jsonValidation": [
       {
-        "fileMatch": "map-gen-settings.json",
+        "fileMatch": ["map-gen-settings.json","map-gen-settings.example.json"],
         "url": "./schema/mapgen.json"
       },
       {
-        "fileMatch": "map-settings.json",
+        "fileMatch": ["map-settings.json","map-settings.example.json"],
         "url": "./schema/mapsettings.json"
       },
       {
-        "fileMatch": "server-settings.json",
+        "fileMatch": ["server-settings.json","server-settings.example.json"],
         "url": "./schema/serversettings.json"
       },
       {
-        "fileMatch": "info.json",
+        "fileMatch": ["info.json","!locale/*/info.json", "!data/**/info.json","!tests/**/info.json"],
         "url": "./schema/modinfo.json"
+      },
+      {
+        "fileMatch": ["data/**/info.json","tests/**/info.json","!locale/*/info.json"],
+        "url": "./schema/datainfo.json"
       },
       {
         "fileMatch": "locale/*/info.json",
