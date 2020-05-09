@@ -120,6 +120,7 @@ export class Profile implements Disposable {
 		});
 		const displayAverageTime = workspace.getConfiguration().get("factorio.profile.displayAverageTime");
 		const colorByCount = workspace.getConfiguration().get("factorio.profile.colorByCount");
+		const highlightColor = workspace.getConfiguration().get("factorio.profile.timerHighlightColor");
 		const colorscale = Math.log(colorByCount?maxcount:maxtime);
 		const countwidth = Math.ceil(Math.log10(maxcount))+1;
 		const timewidth = Math.ceil(Math.log10(Math.floor(maxtime)))+4+1;
@@ -137,13 +138,13 @@ export class Profile implements Disposable {
 					range: range,
 					renderOptions: {
 						before: {
-							backgroundColor: `#FF0000${Math.floor(255*t).toString(16)}`,
+							backgroundColor: `${highlightColor}${Math.floor(255*t).toString(16)}`,
 							contentText: `${count.toString().padStart(countwidth,"\u00A0")}${displayTime.toFixed(3).padStart(timewidth,"\u00A0")}\u00A0ms`,
 							width: `${width+1}ch`,
 						}
 					}
 				});
-				let ruler = rulerthresholds.find(ruler=>{return t > ruler.threshold;});
+				let ruler = rulerthresholds.find(ruler=>{return t >= ruler.threshold;});
 				if (ruler)
 				{
 					ruler.decs.push({
