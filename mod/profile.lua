@@ -12,34 +12,31 @@ __Profiler = __Profiler or {
 
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 
-local linetimers = {}
-local linecounts = {}
+local linedata = {}
 
 local function getlinetimer(file,line)
-  local f = linetimers[file]
+  local f = linedata[file]
   if not f then
     f = {}
-    linetimers[file] = f
-  end
-  local fc = linecounts[file]
-  if not fc then
-    fc = {}
-    linecounts[file] = fc
+    linedata[file] = f
   end
 
-  local t = f[line]
-  if not t then
+  local ld = f[line]
+  if not ld then
+    ld = {count=0}
+    f[line] = ld
     -- try to start stopped, create_profiler did not
     -- check arg count before it got `stopped:boolean`
     -- so it's safe to set regardless
-    t = game.create_profiler(true)
+    local t = game.create_profiler(true)
     -- but stop anyway, just in case it doesn't have it yet
     t.stop()
     --localised_print{"","created "..file..":"..line.." ",t}
-    f[line] = t
+    ld.timer = t
+
   end
-  fc[line] = (fc[line] or 0) + 1
-  return t
+  ld.count = ld.count + 1
+  return ld.timer
 end
 
 local pause_profile = true
@@ -103,8 +100,7 @@ end
 local function clear()
   pause_profile = true
   if activeline then activeline.stop() end
-  linetimers = {}
-  linecounts = {}
+  linedata = {}
   pause_profile = nil
 end
 
@@ -112,11 +108,10 @@ local function dump()
   pause_profile = true
   if activeline then activeline.stop() end
   print("PMN:"..script.mod_name)
-  for file,f in pairs(linetimers) do
+  for file,f in pairs(linedata) do
     print("PFN:"..file)
-    for line,timer in pairs(f) do
-      local count = linecounts[file][line]
-      localised_print{"","PLN:",line,":",timer,":",count}
+    for line,ld in pairs(f) do
+      localised_print{"","PLN:",line,":",ld.timer,":",ld.count}
     end
   end
   pause_profile = nil
