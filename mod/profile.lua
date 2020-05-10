@@ -1,14 +1,13 @@
-__Profiler = __Profiler or {
-  dump = function ()
-    remote.call("profiler","dump")
-  end,
-  clear = function()
-    remote.call("profiler","clear")
-  end,
-  set_refresh_rate = function()
-    remote.call("profiler","set_refresh_rate")
-  end,
-}
+__Profiler = __Profiler or {}
+function __Profiler.dump()
+  remote.call("profiler","dump")
+end
+function __Profiler.clear()
+  remote.call("profiler","clear")
+end
+function __Profiler.set_refresh_rate(ticks)
+  remote.call("profiler","set_refresh_rate",ticks)
+end
 
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 
