@@ -362,15 +362,15 @@
     },
     "jsonValidation": [
       {
-        "fileMatch": ["map-gen-settings.json","map-gen-settings.example.json"],
+        "fileMatch": ["map-gen-settings.json","map-gen-settings.*.json","*.map-gen-settings.json","map-gen-settings.example.json"],
         "url": "./schema/mapgen.json"
       },
       {
-        "fileMatch": ["map-settings.json","map-settings.example.json"],
+        "fileMatch": ["map-settings.json","map-settings.*.json","*.map-settings.json","map-settings.example.json"],
         "url": "./schema/mapsettings.json"
       },
       {
-        "fileMatch": ["server-settings.json","server-settings.example.json"],
+        "fileMatch": ["server-settings.json","server-settings.*.json","*.server-settings.json","server-settings.example.json"],
         "url": "./schema/serversettings.json"
       },
       {
