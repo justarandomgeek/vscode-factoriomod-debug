@@ -48,6 +48,7 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
   end
   local i = (startFrame or 0) + offset
   local stackFrames = {}
+  local stackIsTrucated = false
   while true do
     local info = debug.getinfo(i,"nSlutf")
     if not info then break end
@@ -81,7 +82,12 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
     end
     stackFrames[#stackFrames+1] = stackFrame
     i = i + 1
-    if #stackFrames == levels then break end
+    if #stackFrames == levels then
+      if debug.getinfo(i,"f") then
+        stackIsTrucated = true
+      end
+      break
+    end
   end
 
   if script then
@@ -137,7 +143,7 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
         }
         stackFrames[#stackFrames+1] = stackFrame
         i = i + 1
-      else
+      elseif not stackIsTrucated then
         -- instrumented event/remote handler has one or two extra frames.
         -- Delete them and rename the next bottom frame...
         -- this leaves a gap in `i`. Maybe later allow expanding hidden frames?

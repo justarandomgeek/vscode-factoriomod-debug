@@ -139,6 +139,8 @@ function variables.tableRef(table, mode, showMeta)
 function variables.luaObjectRef(luaObject,classname)
 ```
 
+Additionally, if using [hediet.debug-visualizer](https://marketplace.visualstudio.com/items?itemName=hediet.debug-visualizer), you can configure it to use `"context": "visualize"` to get json output on its eval requests. You must provide your own object conversions to produce objects compatible with the visualizer interface types.
+
 ## Ignore Functions in Stepping
 
 Functions can be excluded from stepping with `__DebugAdapter.stepIgnore(func)` or `__DebugAdapter.stepIgnoreAll(table)`.

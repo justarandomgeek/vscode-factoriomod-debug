@@ -260,6 +260,9 @@ function __DebugAdapter.evaluate(frameId,context,expression,seq)
     if success then
       evalresult = variables.create(nil,result)
       evalresult.result = evalresult.value
+      if context == "visualize" then
+        evalresult.result = json.encode(result)
+      end
       evalresult.value = nil
       evalresult.seq = seq
     else
