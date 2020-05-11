@@ -103,7 +103,7 @@ function encode(value, stack)
   if f then
     return f(value, stack)
   else
-    return [["<badtype>"]]
+    return '"<'..t..'>"'
   end
 end
 stepIgnore(encode)
