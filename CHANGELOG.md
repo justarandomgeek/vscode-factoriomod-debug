@@ -14,7 +14,9 @@
 * Use a more permissive JSON schema for `info.json` inside `data`
 * Correctly exclude locale `info.json` files from mod/data schema
 * Support [hediet.debug-visualizer](https://marketplace.visualstudio.com/items?itemName=hediet.debug-visualizer), with eval context "visualize" and user-provided visualization converters
-* print type of invalid objects in json
+* Print type of invalid objects in json
+* Correctly show children of tables with large gaps in array segment
+
 
 ## 0.18.17
 

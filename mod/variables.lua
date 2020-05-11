@@ -504,7 +504,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
               -- skip ahead some names? limit them? vscode does not currently ask for limited names
             end
             for k,v in f,t,firstk do
-              if filter == "indexed" and ((type(k) ~= "number") or (k > maxindex) or (k == 0) or (k % 1 ~= 0)) then
+              if filter == "indexed" and ((type(k) ~= "number") or (k > maxindex) or (k >= start+count) or (k == 0) or (k % 1 ~= 0)) then
                 break
               end
               local evalName
