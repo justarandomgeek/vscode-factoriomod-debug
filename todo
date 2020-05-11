@@ -8,4 +8,3 @@ generate a mod-list.json stub when not found?
 generate config.ini stub when not found?
 offer to combine duplicate locale sections
 detect (and disable?) data stage caching when hooking settings/data stage
-very large array with large leading gap produces incorrect display
