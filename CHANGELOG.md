@@ -2,6 +2,8 @@
 
 ## 0.18.19
 
+* Capture `print` and `localised_print` in `profile.lua` for compatiblity with mods that overwrite them
+
 ## 0.18.18
 
 * Removed StreamSplitter

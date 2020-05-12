@@ -10,6 +10,8 @@ function __Profiler.set_refresh_rate(ticks)
 end
 
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
+local print = print
+local localised_print = localised_print
 
 local linedata = {}
 
