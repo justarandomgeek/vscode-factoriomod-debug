@@ -3,7 +3,7 @@
 ## 0.18.18
 
 * Removed StreamSplitter
-* On Factorio>=0.18.23, use `localised_print` to translate various output:
+* On Factorio>=0.18.24, use `localised_print` to translate various output:
 	* Error messages, including multi-line output
 	* LocalisedStrings and LuaProfilers in Variables view
 	* LocalisedStrings in `log` hook and `__DebugAdapter.print`

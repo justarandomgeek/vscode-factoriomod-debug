@@ -8,7 +8,7 @@ if __DebugAdapter then
   require("__debugadapter__/debugadapter.lua")
 elseif __Profiler then
   if not localised_print then
-    error("Profiling requires Factorio >= 0.18.23")
+    error("Profiling requires Factorio >= 0.18.24")
   end
   require("__debugadapter__/profile.lua")
 end
