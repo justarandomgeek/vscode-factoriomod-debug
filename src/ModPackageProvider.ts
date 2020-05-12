@@ -5,7 +5,8 @@ import * as path from 'path';
 import * as Git from './git';
 import * as WebRequest from 'web-request';
 import { jar } from 'request';
-import { exec } from 'child_process';
+import { spawn } from 'child_process';
+import { BufferSplitter } from './BufferSplitter';
 
 let archiver = require('archiver');
 
@@ -687,30 +688,45 @@ async function runScript(term:ModTaskTerminal, name:string|undefined, command:st
 			term.write(`${command}\r\n`);
 		}
 
-		const scriptProc = exec(command,
-			{ cwd: cwd, encoding: "utf8", env: scriptenv, shell: configautoshell ?? configshell, },
-			(error,stdout,stderr)=>{
-				if(stderr)
-				{
-					term.write(stderr.replace(/([^\r])\n/g,"$1\r\n"));
-					if(!stderr.endsWith("\n"))
-						{term.write("\r\n");}
-				}
-				if(stdout)
-				{
-					term.write(stdout.replace(/([^\r])\n/g,"$1\r\n"));
-					if(!stdout.endsWith("\n"))
-						{term.write("\r\n");}
-				}
-				if(name)
-					{term.write(`>> Mod script "${name}" returned ${error?.code || 0} <<\r\n`);}
-				resolve(error?.code || 0);
+		const scriptProc = spawn(command, {
+				cwd: cwd,
+				env: scriptenv,
+				shell: configautoshell ?? configshell ?? true,
+				stdio: "pipe"
 			});
+
+		const stdout = new BufferSplitter(scriptProc.stdout, Buffer.from("\n"));
+		stdout.on("segment", (chunk:Buffer) => {
+			term.write(chunk.toString()+"\r\n");
+		});
+		const stderr = new BufferSplitter(scriptProc.stderr, Buffer.from("\n"));
+		stderr.on("segment", (chunk:Buffer) => {
+			term.write(chunk.toString()+"\r\n");
+		});
+		scriptProc.on('close', (code,signal) => {
+			if(name)
+			{
+				term.write(`>> Mod script "${name}" returned ${code} <<\r\n`);
+			}
+			resolve(code);
+		});
+
+		scriptProc.on("error", (error) => {
+			if(name)
+			{
+				term.write(`>> Mod script "${name}" failed: ${error.message} <<\r\n`);
+			}
+			else
+			{
+				term.write(`${error.message}\r\n`);
+			}
+		});
+
 		if (stdin)
 		{
-			scriptProc.stdin!.write(stdin);
+			scriptProc.stdin.write(stdin);
 		}
-		scriptProc.stdin!.end();
+		scriptProc.stdin.end();
 	});
 
 }

@@ -16,6 +16,7 @@
 * Support [hediet.debug-visualizer](https://marketplace.visualstudio.com/items?itemName=hediet.debug-visualizer), with eval context "visualize" and user-provided visualization converters
 * Print type of invalid objects in json
 * Correctly show children of tables with large gaps in array segment
+* Live terminal output for mod scripts in packaging tasks
 
 
 ## 0.18.17
