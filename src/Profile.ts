@@ -5,6 +5,12 @@ type FileCountData = Map<number,number>;
 type ModProfileData = Map<string,{profile:FileProfileData;count:FileCountData}>;
 
 
+function NaN_safe_max(a:number,b:number):number {
+	if (isNaN(a)) { return b; }
+	if (isNaN(b)) { return a; }
+	return Math.max(a,b);
+}
+
 export class Profile implements Disposable {
 	private profileData = new Map<string,ModProfileData>();
 	private profileOverhead:number;
@@ -100,12 +106,12 @@ export class Profile implements Disposable {
 			{
 				file.profile.forEach((time,line) => {
 					const newtime = time + (filetimes.get(line)??0);
-					maxtime = Math.max(maxtime,newtime);
+					maxtime = NaN_safe_max(maxtime,newtime);
 					filetimes.set(line,newtime);
 				});
 				file.count.forEach((count,line) => {
 					const newcount = count + (filecounts.get(line)??0);
-					maxcount = Math.max(maxcount,newcount);
+					maxcount = NaN_safe_max(maxcount,newcount);
 					filecounts.set(line,newcount);
 				});
 			}
@@ -121,9 +127,10 @@ export class Profile implements Disposable {
 		const displayAverageTime = workspace.getConfiguration().get("factorio.profile.displayAverageTime");
 		const colorByCount = workspace.getConfiguration().get("factorio.profile.colorByCount");
 		const highlightColor = workspace.getConfiguration().get("factorio.profile.timerHighlightColor");
-		const colorscale = Math.log(colorByCount?maxcount:maxtime);
-		const countwidth = Math.ceil(Math.log10(maxcount))+1;
-		const timewidth = Math.ceil(Math.log10(Math.floor(maxtime)))+4+1;
+		const scalechoice = colorByCount?maxcount:maxtime;
+		const colorscale = scalechoice <= 10 ? 1 : Math.log(scalechoice);
+		const countwidth = maxcount.toFixed(0).length+1;
+		const timewidth = maxtime.toFixed(3).length+1;
 		const width = countwidth+timewidth+3;
 
 		for (let line = 1; line <= editor.document.lineCount; line++) {
@@ -139,7 +146,7 @@ export class Profile implements Disposable {
 					renderOptions: {
 						before: {
 							backgroundColor: `${highlightColor}${Math.floor(255*t).toString(16)}`,
-							contentText: `${count.toString().padStart(countwidth,"\u00A0")}${displayTime.toFixed(3).padStart(timewidth,"\u00A0")}\u00A0ms`,
+							contentText: `${count.toFixed(0).padStart(countwidth,"\u00A0")}${displayTime.toFixed(3).padStart(timewidth,"\u00A0")}\u00A0ms`,
 							width: `${width+1}ch`,
 						}
 					}
@@ -155,7 +162,7 @@ export class Profile implements Disposable {
 			else
 			{
 				decs.push({
-					range: editor.document.validateRange(new Range(line-1,0,line-1,65535)),
+					range: editor.document.validateRange(new Range(line-1,0,line-1,1/0)),
 					renderOptions: {
 						before: {
 							width: `${width+1}ch`,

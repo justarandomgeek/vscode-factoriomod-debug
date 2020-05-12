@@ -3,6 +3,7 @@
 ## 0.18.19
 
 * Capture `print` and `localised_print` in `profile.lua` for compatiblity with mods that overwrite them
+* Better calculation of profile column width
 
 ## 0.18.18
 
