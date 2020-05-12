@@ -473,7 +473,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
 
           -- rough heuristic for matching LocalisedStrings
           -- tables with no meta, and [1] that is string
-          if variables.translate and not mt and type(varRef.table[1]) == "string" then
+          if variables.translate and filter == "named" and not mt and type(varRef.table[1]) == "string" then
             -- print a translation for this with unique id
             local i = variables.translate(varRef.table)
             vars[#vars + 1] = {
@@ -503,8 +503,9 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
               end
               -- skip ahead some names? limit them? vscode does not currently ask for limited names
             end
+            local limit = (filter == "indexed") and (start+count)
             for k,v in f,t,firstk do
-              if filter == "indexed" and ((type(k) ~= "number") or (k > maxindex) or (k >= start+count) or (k == 0) or (k % 1 ~= 0)) then
+              if filter == "indexed" and ((type(k) ~= "number") or (k > maxindex) or (k >= limit) or (k == 0) or (k % 1 ~= 0)) then
                 break
               end
               local evalName

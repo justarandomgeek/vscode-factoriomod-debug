@@ -4,6 +4,7 @@
 
 * Capture `print` and `localised_print` in `profile.lua` for compatiblity with mods that overwrite them
 * Better calculation of profile column width
+* Fix an error in prior update's change to display of array-like tables
 
 ## 0.18.18
 
