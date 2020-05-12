@@ -23,7 +23,7 @@ local luaObjectLines = {
 __DebugAdapter.stepIgnoreAll(luaObjectLines)
 
 
--- class data last updated factorio 0.18.18
+-- class data last updated factorio 0.18.24
 return {
   alwaysValid = {
     LuaRemote = true,
@@ -289,6 +289,10 @@ return {
       crafting_speed = {readOnly = true},
       crafting_progress = {},
       bonus_progress = {},
+      productivity_bonus = {readOnly = true},
+      pollution_bonus = {readOnly = true},
+      speed_bonus = {readOnly = true},
+      consumption_bonus = {readOnly = true},
       belt_to_ground_type = {readOnly = true},
       loader_type = {},
       rocket_parts = {},
@@ -549,6 +553,10 @@ return {
       terrain_friction_modifier = {readOnly = true},
       max_distance_of_sector_revealed = {readOnly = true},
       max_distance_of_nearby_sector_revealed = {readOnly = true},
+      adjacent_tile_collision_box = {readOnly = true},
+      adjacent_tile_collision_mask = {readOnly = true},
+      adjacent_tile_collision_test = {readOnly = true},
+      center_collision_mask = {readOnly = true},
       running_speed = {readOnly = true},
       maximum_corner_sliding_distance = {readOnly = true},
       build_distance = {readOnly = true},
@@ -807,6 +815,15 @@ return {
       autosave_enabled = {},
       draw_resource_selection = {},
       pollution_statistics = {readOnly = true},
+      max_force_distraction_distance = {readOnly = true},
+      max_force_distraction_chunk_distance = {readOnly = true},
+      max_electric_pole_supply_area_distance = {readOnly = true},
+      max_electric_pole_connection_distance = {readOnly = true},
+      max_beacon_supply_area_distance = {readOnly = true},
+      max_gate_activation_distance = {readOnly = true},
+      max_inserter_reach_distance = {readOnly = true},
+      max_pipe_to_ground_distance = {readOnly = true},
+      max_underground_belt_distance = {readOnly = true},
     },
     LuaGameViewSettings = {
       show_controller_gui = {},
@@ -876,6 +893,7 @@ return {
       show_percent_for_small_numbers = {},
       location = {},
       auto_center = {},
+      badge_text = {},
       position = {},
       surface_index = {},
       zoom = {},
@@ -944,6 +962,7 @@ return {
       entity_owner = {readOnly = true},
       player_owner = {readOnly = true},
       equipment_owner = {readOnly = true},
+      mod_owner = {readOnly = true},
       ["[]"] = {readOnly = true, thisAsTable = true, iterMode = "count" }
     },
     LuaItemPrototype = {
@@ -976,7 +995,6 @@ return {
       resistances = {readOnly = true},
       inventory_size_bonus = {readOnly = true},
       capsule_action = {readOnly = true},
-      robot_action = {readOnly = true},
       attack_parameters = {readOnly = true},
       inventory_size = {readOnly = true},
       item_filters = {readOnly = true},
@@ -1265,6 +1283,7 @@ return {
       allowed_values = {readOnly = true},
       allow_blank = {readOnly = true},
       auto_trim = {readOnly = true},
+      hidden = {readOnly = true},
     },
     LuaModuleCategoryPrototype = {
       name = {readOnly = true},

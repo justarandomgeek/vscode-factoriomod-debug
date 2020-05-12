@@ -17,6 +17,7 @@
 * Print type of invalid objects in json
 * Correctly show children of tables with large gaps in array segment
 * Live terminal output for mod scripts in packaging tasks
+* Updated class data to Factorio 0.18.24
 
 
 ## 0.18.17
