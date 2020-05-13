@@ -3,6 +3,7 @@
 ## 0.18.20
 
 * Use Lua Registry to enforce certain libraries are singletons even when package.loaded is cleared in data stage
+* Correctly report parse errors in timed eval requests
 
 ## 0.18.19
 

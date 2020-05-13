@@ -195,7 +195,11 @@ function __DebugAdapter.evaluateInternal(frameId,alsoLookIn,context,expression,t
 
   if not f then
     -- invalid expression...
-    return false,res
+    if timed then
+      return nil,false,res
+    else
+      return false,res
+    end
   end
 
   local pcall = timed and timedpcall or pcall
