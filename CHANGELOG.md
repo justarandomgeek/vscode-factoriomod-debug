@@ -2,7 +2,7 @@
 
 ## 0.18.20
 
-
+* Use Lua Registry to enforce certain libraries are singletons even when package.loaded is cleared in data stage
 
 ## 0.18.19
 

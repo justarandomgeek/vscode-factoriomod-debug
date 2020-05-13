@@ -3,6 +3,14 @@ local require = require
 if ... ~= "__debugadapter__/variables.lua" then
   return require("__debugadapter__/variables.lua")
 end
+
+if data then
+  -- data stage clears package.loaded between files, so we stash a copy in Lua registry too
+  local reg = debug.getregistry()
+  local regvars = reg.__DAVariables
+  if regvars then return regvars end
+end
+
 local luaObjectInfo = require("__debugadapter__/luaobjectinfo.lua")
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local json = require("__debugadapter__/json.lua")
@@ -710,4 +718,9 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
 end
 
 __DebugAdapter.stepIgnoreAll(variables)
+if data then
+  -- data stage clears package.loaded between files, so we stash a copy in Lua registry too
+  local reg = debug.getregistry()
+  reg.__DAVariables = variables
+end
 return variables
