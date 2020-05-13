@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.20
+
+
+
 ## 0.18.19
 
 * Capture `print` and `localised_print` in `profile.lua` for compatiblity with mods that overwrite them
