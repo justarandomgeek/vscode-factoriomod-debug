@@ -4,6 +4,7 @@
 
 * Use Lua Registry to enforce certain libraries are singletons even when package.loaded is cleared in data stage
 * Correctly report parse errors in timed eval requests
+* Don't flag spaces in mod names in dependencies as errors (old mods with spaces exist)
 
 ## 0.18.19
 

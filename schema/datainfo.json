@@ -46,7 +46,7 @@
       "title": "Mods this mod depends on or are incompatible with",
       "items": {
         "type":"string",
-        "pattern": "^(([!?]|\\(\\?\\)) *)?([a-zA-Z0-9_-]+)( *([<>=]=?) *((\\d+\\.){1,2}\\d+))?$"
+        "pattern": "^(([!?]|\\(\\?\\)) *)?([a-zA-Z0-9_- ]+)( *([<>=]=?) *((\\d+\\.){1,2}\\d+))?$"
       }
     }
   }
