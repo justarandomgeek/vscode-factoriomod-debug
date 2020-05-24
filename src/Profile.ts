@@ -1,8 +1,9 @@
-import { TextEditor, window, TextEditorDecorationType, DecorationOptions, Range, OverviewRulerLane, Disposable, StatusBarItem, workspace } from "vscode";
+import { TextEditor, window, TextEditorDecorationType, DecorationOptions, Range, OverviewRulerLane, Disposable, StatusBarItem, workspace, ThemeColor } from "vscode";
 
 type FileProfileData = Map<number,number>;
 type FileCountData = Map<number,number>;
-type ModProfileData = Map<string,{profile:FileProfileData;count:FileCountData}>;
+type ModFileProfileData = {profile:FileProfileData;count:FileCountData;fnprofile:FileProfileData;fncount:FileCountData};
+type ModProfileData = Map<string,ModFileProfileData>;
 
 
 function NaN_safe_max(a:number,b:number):number {
@@ -15,6 +16,7 @@ export class Profile implements Disposable {
 	private profileData = new Map<string,ModProfileData>();
 	private profileOverhead:number;
 	private timeDecorationType: TextEditorDecorationType;
+	private funcDecorationType: TextEditorDecorationType;
 	private rulerDecorationTypes: {type:TextEditorDecorationType;threshold:number}[];
 	private statusBar: StatusBarItem;
 
@@ -25,6 +27,12 @@ export class Profile implements Disposable {
 				contentText:"",
 				color: workspace.getConfiguration().get("factorio.profile.timerTextColor"),
 			}
+		});
+		this.funcDecorationType = window.createTextEditorDecorationType({
+			after: {
+				contentText: "",
+				color: workspace.getConfiguration().get("factorio.profile.timerTextColor"),
+			},
 		});
 
 		let rulers = workspace.getConfiguration().get<{color:string;threshold:number}[]>("factorio.profile.rulers",[]);
@@ -42,6 +50,7 @@ export class Profile implements Disposable {
 	}
 	dispose() {
 		this.timeDecorationType.dispose();
+		this.funcDecorationType.dispose();
 		this.rulerDecorationTypes.forEach(ruler=>{ruler.type.dispose();});
 		this.statusBar.dispose();
 	}
@@ -61,14 +70,19 @@ export class Profile implements Disposable {
 					break;
 				case "PMN": // PMN:modname
 					currmod = parts[1].replace(/[\r\n]*/g,"");
-					newprofile.set(currmod,new Map<string,{profile:FileProfileData;count:FileCountData}>());
+					newprofile.set(currmod,new Map<string,ModFileProfileData>());
 					break;
 				case "PFN": // PFN:filename
 					if (currmod)
 					{
 						const mod = newprofile.get(currmod)!;
 						currfile = parts[1].replace(/[\r\n]*/g,"");
-						mod.set(currfile,{profile:new Map<number,number>(),count:new Map<number,number>()});
+						mod.set(currfile,{
+							profile:new Map<number,number>(),
+							count:new Map<number,number>(),
+							fnprofile:new Map<number,number>(),
+							fncount:new Map<number,number>(),
+						});
 					}
 					break;
 				case "PLN": // PLN:line:label: time:count
@@ -76,11 +90,23 @@ export class Profile implements Disposable {
 					{
 						const mod = newprofile.get(currmod)!;
 						const file = mod.get(currfile)!;
-						const line =  parseInt(parts[1]);
-						const time =  parseFloat(parts[3]);
-						const count =  parseInt(parts[4]);
+						const line = parseInt(parts[1]);
+						const time = parseFloat(parts[3]);
+						const count = parseInt(parts[4]);
 						file.profile.set(line,time);
 						file.count.set(line,count);
+					}
+					break;
+				case "PFT": // PFT:line:label: time:count
+					if (currmod && currfile)
+					{
+						const mod = newprofile.get(currmod)!;
+						const file = mod.get(currfile)!;
+						const line = parseInt(parts[1]);
+						const time = parseFloat(parts[3]);
+						const count = parseInt(parts[4]);
+						file.fnprofile.set(line,time);
+						file.fncount.set(line,count);
 					}
 					break;
 				case "POV": //POV:label: time
@@ -98,8 +124,14 @@ export class Profile implements Disposable {
 	{
 		const filetimes = new Map<number,number>();
 		const filecounts = new Map<number,number>();
+		const filefntimes = new Map<number,number>();
+		const filefncounts = new Map<number,number>();
 		let maxtime = 0.0;
+		let maxavg = 0.0;
 		let maxcount = 0;
+		let maxfntime = 0.0;
+		let maxfnavg = 0.0;
+		let maxfncount = 0;
 		this.profileData.forEach(modprofile => {
 			const file = modprofile.get(filename);
 			if (file)
@@ -107,6 +139,8 @@ export class Profile implements Disposable {
 				file.profile.forEach((time,line) => {
 					const newtime = time + (filetimes.get(line)??0);
 					maxtime = NaN_safe_max(maxtime,newtime);
+					const newavg = newtime / file.count.get(line)!;
+					maxavg = NaN_safe_max(maxavg,newavg);
 					filetimes.set(line,newtime);
 				});
 				file.count.forEach((count,line) => {
@@ -114,9 +148,23 @@ export class Profile implements Disposable {
 					maxcount = NaN_safe_max(maxcount,newcount);
 					filecounts.set(line,newcount);
 				});
+				file.fnprofile.forEach((time,line) => {
+					const newtime = time + (filefntimes.get(line)??0);
+					maxfntime = NaN_safe_max(maxfntime,newtime);
+					const newavg = newtime / file.fncount.get(line)!;
+					maxfnavg = NaN_safe_max(maxfnavg,newavg);
+					filefntimes.set(line,newtime);
+				});
+
+				file.fncount.forEach((count,line) => {
+					const newcount = count + (filefncounts.get(line)??0);
+					maxfncount = NaN_safe_max(maxfncount,newcount);
+					filefncounts.set(line,newcount);
+				});
 			}
 		});
-		let decs = new Array<DecorationOptions>();
+		let linedecs = new Array<DecorationOptions>();
+		let funcdecs = new Array<DecorationOptions>();
 		let rulerthresholds = this.rulerDecorationTypes.map((ruler,i)=>{
 			return {
 				type: ruler.type,
@@ -125,12 +173,19 @@ export class Profile implements Disposable {
 			};
 		});
 		const displayAverageTime = workspace.getConfiguration().get("factorio.profile.displayAverageTime");
-		const colorByCount = workspace.getConfiguration().get("factorio.profile.colorByCount");
+		const colorBy = workspace.getConfiguration().get<"count"|"totaltime"|"averagetime">("factorio.profile.colorBy","totaltime");
+
 		const highlightColor = workspace.getConfiguration().get("factorio.profile.timerHighlightColor");
-		const scalechoice = colorByCount?maxcount:maxtime;
-		const colorscale = scalechoice <= 10 ? 1 : Math.log(scalechoice);
+		const scalemax = {"count": maxcount, "totaltime":maxtime, "averagetime":maxavg }[colorBy];
+		const scale = {
+			"boost": (x:number)=>{return Math.log(1+x)/Math.log(1+scalemax);},
+			"custom": (x:number)=>{return Math.pow(x/scalemax,workspace.getConfiguration().get<number>("factorio.profile.colorScaleCustom",1));},
+			"mute": (x:number)=>{return (Math.pow(1+scalemax,x/scalemax)-1)/scalemax;},
+		}[workspace.getConfiguration().get<"boost"|"custom"|"mute">("factorio.profile.colorScaleMode","boost")];
+
 		const countwidth = maxcount.toFixed(0).length+1;
-		const timewidth = maxtime.toFixed(3).length+1;
+		const timeprecision = displayAverageTime ? 6 : 3;
+		const timewidth = maxtime.toFixed(timeprecision).length+1;
 		const width = countwidth+timewidth+3;
 
 		for (let line = 1; line <= editor.document.lineCount; line++) {
@@ -139,14 +194,14 @@ export class Profile implements Disposable {
 			{
 				const count = filecounts.get(line)!;
 				const displayTime = displayAverageTime ? time/count : time;
-				const t = Math.log(colorByCount?count:time)/colorscale;
+				const t = scale({"count": count, "totaltime":time, "averagetime":time/count }[colorBy]);
 				const range = editor.document.validateRange(new Range(line-1,0,line-1,1/0));
-				decs.push({
+				linedecs.push({
 					range: range,
 					renderOptions: {
 						before: {
 							backgroundColor: `${highlightColor}${Math.floor(255*t).toString(16)}`,
-							contentText: `${count.toFixed(0).padStart(countwidth,"\u00A0")}${displayTime.toFixed(3).padStart(timewidth,"\u00A0")}\u00A0ms`,
+							contentText: `${count.toFixed(0).padStart(countwidth,"\u00A0")}${displayTime.toFixed(timeprecision).padStart(timewidth,"\u00A0")}\u00A0ms`,
 							width: `${width+1}ch`,
 						}
 					}
@@ -161,7 +216,7 @@ export class Profile implements Disposable {
 			}
 			else
 			{
-				decs.push({
+				linedecs.push({
 					range: editor.document.validateRange(new Range(line-1,0,line-1,1/0)),
 					renderOptions: {
 						before: {
@@ -170,9 +225,26 @@ export class Profile implements Disposable {
 					}
 				});
 			}
+
+			const functime = filefntimes.get(line);
+			if (functime)
+			{
+				const count = filefncounts.get(line)!;
+				const displayTime = displayAverageTime ? functime/count : functime;
+				const range = editor.document.validateRange(new Range(line-1,0,line-1,1/0));
+				funcdecs.push({
+					range: range,
+					renderOptions: {
+						after: {
+							contentText: ` ${count.toFixed(0)}\u00A0${displayTime.toFixed(timeprecision)} ms`,
+						}
+					}
+				});
+			}
 		}
 
-		editor.setDecorations(this.timeDecorationType,decs);
+		editor.setDecorations(this.timeDecorationType,linedecs);
+		editor.setDecorations(this.funcDecorationType,funcdecs);
 
 		rulerthresholds.forEach((ruler)=>{
 			editor.setDecorations(ruler.type,ruler.decs);
@@ -185,6 +257,7 @@ export class Profile implements Disposable {
 	{
 		window.visibleTextEditors.forEach(editor => {
 			editor.setDecorations(this.timeDecorationType,[]);
+			editor.setDecorations(this.funcDecorationType,[]);
 			this.rulerDecorationTypes.forEach(ruler=>{
 				editor.setDecorations(ruler.type,[]);
 			});
