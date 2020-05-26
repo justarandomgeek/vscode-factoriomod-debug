@@ -25,22 +25,39 @@ export class Profile implements Disposable {
 		this.timeDecorationType = window.createTextEditorDecorationType({
 			before: {
 				contentText:"",
-				color: workspace.getConfiguration().get("factorio.profile.timerTextColor"),
+				color: new ThemeColor("factorio.ProfileTimerForeground"),
 			}
 		});
 		this.funcDecorationType = window.createTextEditorDecorationType({
 			after: {
 				contentText: "",
-				color: workspace.getConfiguration().get("factorio.profile.timerTextColor"),
+				color: new ThemeColor("factorio.ProfileTimerForeground"),
 			},
 		});
 
-		let rulers = workspace.getConfiguration().get<{color:string;threshold:number}[]>("factorio.profile.rulers",[]);
-		this.rulerDecorationTypes = rulers.map(ruler=>{
+		let rulers = workspace.getConfiguration().get<{color?:string;themeColor?:string;threshold:number;lane?:string}[]>("factorio.profile.rulers",[]);
+		this.rulerDecorationTypes = rulers.filter(ruler=>{return ruler.color || ruler.themeColor;}).map(ruler=>{
+			let lane = OverviewRulerLane.Right;
+			switch (ruler.lane) {
+				case "Right":
+					lane = OverviewRulerLane.Right;
+					break;
+				case "Center":
+					lane = OverviewRulerLane.Center;
+					break;
+				case "Left":
+					lane = OverviewRulerLane.Left;
+					break;
+				case "Full":
+					lane = OverviewRulerLane.Full;
+					break;
+				default:
+					break;
+			}
 			return {
 				type: window.createTextEditorDecorationType({
-					overviewRulerColor: ruler.color,
-					overviewRulerLane: OverviewRulerLane.Right
+					overviewRulerColor: ruler.color ?? new ThemeColor(ruler.themeColor!),
+					overviewRulerLane: lane,
 				}),
 				threshold: ruler.threshold
 			};
@@ -177,11 +194,12 @@ export class Profile implements Disposable {
 
 		const highlightColor = workspace.getConfiguration().get("factorio.profile.timerHighlightColor");
 		const scalemax = {"count": maxcount, "totaltime":maxtime, "averagetime":maxavg }[colorBy];
+		const colorScaleFactor = Math.max(Number.MIN_VALUE, workspace.getConfiguration().get<number>("factorio.profile.colorScaleFactor",1));
 		const scale = {
-			"boost": (x:number)=>{return Math.log(1+x)/Math.log(1+scalemax);},
-			"custom": (x:number)=>{return Math.pow(x/scalemax,workspace.getConfiguration().get<number>("factorio.profile.colorScaleCustom",1));},
-			"mute": (x:number)=>{return (Math.pow(1+scalemax,x/scalemax)-1)/scalemax;},
-		}[workspace.getConfiguration().get<"boost"|"custom"|"mute">("factorio.profile.colorScaleMode","boost")];
+			"boost": (x:number)=>{return Math.log1p(x*colorScaleFactor)/Math.log1p(scalemax*colorScaleFactor);},
+			"linear": (x:number)=>{return x/scalemax;},
+			"mute": (x:number)=>{return (Math.pow(1+scalemax,(x*colorScaleFactor)/scalemax)-1)/(scalemax*colorScaleFactor);},
+		}[workspace.getConfiguration().get<"boost"|"linear"|"mute">("factorio.profile.colorScaleMode","boost")];
 
 		const countwidth = maxcount.toFixed(0).length+1;
 		const timeprecision = displayAverageTime ? 6 : 3;

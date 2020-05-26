@@ -68,6 +68,17 @@
     "onView:factoriomods"
   ],
   "contributes": {
+    "colors": [
+      {
+        "id": "factorio.ProfileTimerForeground",
+        "description": "Color for timer text when running Factorio Mod profiler",
+        "defaults": {
+          "dark": "#ffffff",
+          "highContrast": "#ffffff",
+          "light": "#000000"
+        }
+      }
+    ],
     "configuration": [
       {
         "title": "Factorio",
@@ -121,35 +132,62 @@
             "pattern": "^#[0-9a-fA-F]{6}$",
             "default": "#FF0000"
           },
-          "factorio.profile.timerTextColor": {
-            "type": "string",
-            "description": "Color to be used display timer text",
-            "pattern": "^#[0-9a-fA-F]{1,8}$",
-            "default": "#FFFFFF"
-          },
-          "factorio.profile.colorByCount": {
-            "type":"boolean",
-            "description": "Color highlights by count instead of time.",
-            "default":false
-          },
           "factorio.profile.displayAverageTime": {
             "type":"boolean",
-            "description": "Display average time instead of cumulative time. Higlighting will still use cumulative time.",
-            "default":false
+            "description": "Display average time in labels instead of cumulative time.",
+            "default":true
+          },
+          "factorio.profile.colorBy": {
+            "type":"string",
+            "description": "Which attribute to color labels by",
+            "enum": ["count","totaltime","averagetime"],
+            "default":"totaltime"
+          },
+          "factorio.profile.colorScaleFactor": {
+            "type":"number",
+            "description": "Adjustment factor for color scale function",
+            "default":1,
+            "exclusiveMinimum": 0
+          },
+          "factorio.profile.colorScaleMode": {
+            "type":"string",
+            "description": "Scale function for coloring timer labels",
+            "enum": ["boost","linear","mute"],
+            "default":"boost"
           },
           "factorio.profile.rulers": {
             "type": "array",
             "description": "Ruler colors and thresholds to display hotspots in the scrollbar",
             "items": {
-              "properties": {
-                "color": {
-                  "type":"string",
-                  "pattern": "^#[0-9a-fA-F]{1,8}$"
+              "oneOf": [
+                {
+                  "required": ["color"],
+                  "properties": {
+                    "color": {
+                      "type":"string",
+                      "pattern": "^#[0-9a-fA-F]{1,8}$"
+                    }
+                  }
                 },
+                {
+                  "required": ["themeColor"],
+                  "properties": {
+                    "themeColor": {
+                      "type":"string"
+                    }
+                  }
+                }
+              ],
+              "required": ["threshold"],
+              "properties": {
                 "threshold": {
                   "type":"number",
                   "maximum": 1,
                   "minimum": 0
+                },
+                "lane":{
+                  "enum": ["Left", "Center", "Right", "Full"],
+                  "default": "Right"
                 }
               }
             },
