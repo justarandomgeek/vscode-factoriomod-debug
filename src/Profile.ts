@@ -14,7 +14,9 @@ function NaN_safe_max(a:number,b:number):number {
 
 export class Profile implements Disposable {
 	private profileData = new Map<string,ModProfileData>();
-	private profileOverhead:number;
+	private profileOverheadTime:number = 0;
+	private profileOverheadTimeLast:number = 0;
+	private profileOverheadCount:number = 0;
 	private timeDecorationType: TextEditorDecorationType;
 	private funcDecorationType: TextEditorDecorationType;
 	private rulerDecorationTypes: {type:TextEditorDecorationType;threshold:number}[];
@@ -75,8 +77,7 @@ export class Profile implements Disposable {
 	public parse(profile:string)
 	{
 		const lines = profile.split("\n");
-		const newprofile = new Map<string,ModProfileData>();
-		let newoverhead:number = NaN;
+		const newprofile = this.profileData;
 		let currmod:string;
 		let currfile:string;
 		lines.forEach(line => {
@@ -87,19 +88,25 @@ export class Profile implements Disposable {
 					break;
 				case "PMN": // PMN:modname
 					currmod = parts[1].replace(/[\r\n]*/g,"");
-					newprofile.set(currmod,new Map<string,ModFileProfileData>());
+					if(!newprofile.has(currmod))
+					{
+						newprofile.set(currmod,new Map<string,ModFileProfileData>());
+					}
 					break;
 				case "PFN": // PFN:filename
 					if (currmod)
 					{
 						const mod = newprofile.get(currmod)!;
 						currfile = parts[1].replace(/[\r\n]*/g,"");
-						mod.set(currfile,{
-							profile:new Map<number,number>(),
-							count:new Map<number,number>(),
-							fnprofile:new Map<number,number>(),
-							fncount:new Map<number,number>(),
-						});
+						if (!mod.has(currfile))
+						{
+							mod.set(currfile,{
+								profile:new Map<number,number>(),
+								count:new Map<number,number>(),
+								fnprofile:new Map<number,number>(),
+								fncount:new Map<number,number>(),
+							});
+						}
 					}
 					break;
 				case "PLN": // PLN:line:label: time:count
@@ -110,8 +117,8 @@ export class Profile implements Disposable {
 						const line = parseInt(parts[1]);
 						const time = parseFloat(parts[3]);
 						const count = parseInt(parts[4]);
-						file.profile.set(line,time);
-						file.count.set(line,count);
+						file.profile.set(line,time + (file.profile.get(line)??0));
+						file.count.set(line,count + (file.count.get(line)??0));
 					}
 					break;
 				case "PFT": // PFT:line:label: time:count
@@ -122,19 +129,20 @@ export class Profile implements Disposable {
 						const line = parseInt(parts[1]);
 						const time = parseFloat(parts[3]);
 						const count = parseInt(parts[4]);
-						file.fnprofile.set(line,time);
-						file.fncount.set(line,count);
+						file.fnprofile.set(line,time + (file.fnprofile.get(line)??0));
+						file.fncount.set(line,count + (file.fncount.get(line)??0));
 					}
 					break;
 				case "POV": //POV:label: time
 					{
 						const time =  parseFloat(parts[2]);
-						newoverhead = time;
+						this.profileOverheadTime += time;
+						this.profileOverheadTimeLast = time;
+						this.profileOverheadCount += 1;
 					}
 			}
 		});
 		this.profileData = newprofile;
-		this.profileOverhead = newoverhead;
 	}
 
 	public render(editor:TextEditor,filename:string)
@@ -267,7 +275,7 @@ export class Profile implements Disposable {
 		rulerthresholds.forEach((ruler)=>{
 			editor.setDecorations(ruler.type,ruler.decs);
 		});
-		this.statusBar.text = `Profile Dump took ${this.profileOverhead.toFixed(3)} ms`;
+		this.statusBar.text = `Profile Dump last ${this.profileOverheadTimeLast} avg ${(this.profileOverheadTime/this.profileOverheadCount).toFixed(3)} ms`;
 		this.statusBar.show();
 	}
 

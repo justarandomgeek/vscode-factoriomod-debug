@@ -30,7 +30,7 @@ If [Zip File Explorer](https://marketplace.visualstudio.com/items?itemName=sleve
 
 ## Profiling
 
-In Factorio >= 0.18.24, you enable an alternate hook mode for profiling. This mode does not provide stepping or inspection, but instead provides inline timing/hitcount data for every line executed. Higlighting and rulers are also provided to assist in finding hotspots. In this mode `__DebugAdapter` is not provided, but `__Profiler` is, with `__Profiler.levelPath()`. Additionally, any mod can request an immediate dump with `__Profiler.dump()`, clear all timers with `__Profiler.clear()`, and adjust the refresh rate (default 100) with `__Profiler.set_refresh_rate(ticks)`.
+In Factorio >= 0.18.27, you enable an alternate hook mode for profiling. This mode does not provide stepping or inspection, but instead provides inline timing/hitcount data for every line executed. Higlighting and rulers are also provided to assist in finding hotspots. In this mode `__DebugAdapter` is not provided, but `__Profiler` is, with `__Profiler.levelPath()` which works the same as `__DebugAdapter.levelPath()`.
 
 ## Automatic Mod Packaging and Publishing
 

@@ -1,13 +1,4 @@
 __Profiler = __Profiler or {}
-function __Profiler.dump()
-  remote.call("profiler","dump")
-end
-function __Profiler.clear()
-  remote.call("profiler","clear")
-end
-function __Profiler.set_refresh_rate(ticks)
-  remote.call("profiler","set_refresh_rate",ticks)
-end
 
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local print = print
@@ -56,7 +47,7 @@ local function getfunctimer(file,line)
   return fd.timer
 end
 
-local pause_profile = true
+local dumpcount = 0
 local hooktimer -- time not yet accumulated to specific line/function timer(s)
 local activeline -- the timer for the current line, if any
 local callstack = {} -- the timers for lines higher up the callstack, if any
@@ -78,21 +69,50 @@ local function accumulate_hook_time()
   end
 end
 
+local function dump()
+  local t = game.create_profiler()
+  print("***DebugAdapterBlockPrint***\nPROFILE:")
+  print("PMN:"..script.mod_name)
+  for file,f in pairs(linedata) do
+    print("PFN:"..file)
+    for line,ld in pairs(f) do
+      localised_print{"","PLN:",line,":",ld.timer,":",ld.count}
+    end
+    local fd = funcdata[file]
+    if fd then
+      for line,ft in pairs(fd) do
+        localised_print{"","PFT:",line,":",ft.timer,":",ft.count}
+      end
+    end
+  end
+  t.stop()
+  localised_print{"","POV:",t}
+  print("***EndDebugAdapterBlockPrint***")
+  linedata = {}
+  funcdata = {}
+  activeline = nil
+  for _,frame in pairs(callstack) do
+    frame.linetimer = nil
+    frame.functimer = nil
+  end
+  hooktimer = nil
+end
+
 local function attach()
   local getinfo = debug.getinfo
   local sub = string.sub
   debug.sethook(function(event,line)
-    if pause_profile then return end
+    if not game then return end
     if hooktimer then
       hooktimer.stop()
-    elseif game then
+    else
       hooktimer = game.create_profiler(true)
     end
     if event == "line" then
       accumulate_hook_time()
       local info = getinfo(2,"S")
       local s = info.source
-      if game and sub(s,1,1) == "@" then
+      if sub(s,1,1) == "@" then
         s = normalizeLuaSource(s)
         activeline = getlinetimer(s,line)
         --print("line @"..s..":"..line)
@@ -104,7 +124,7 @@ local function attach()
       local info = getinfo(2,"S")
       local s = info.source
       local functimer
-      if game and sub(s,1,1) == "@" then
+      if sub(s,1,1) == "@" then
         s = normalizeLuaSource(s)
         functimer = getfunctimer(s,info.linedefined)
       end
@@ -133,7 +153,10 @@ local function attach()
       if not parent then
         -- top of stack
         if info.what == "main" or info.what == "Lua" then
-          activeline = nil
+          dumpcount = dumpcount + 1
+          if dumpcount < 100 or dumpcount % 1000 == 0 then
+            dump()
+          end
         end
       end
     end
@@ -148,46 +171,9 @@ local function attach()
   --end)
 end
 
-local function clear()
-  pause_profile = true
-  if hooktimer then hooktimer.stop() end
-  linedata = {}
-  funcdata = {}
-  activeline = nil
-  for _,frame in pairs(callstack) do
-    frame.linetimer = nil
-    frame.functimer = nil
-  end
-  pause_profile = nil
-end
-
-local function dump()
-  pause_profile = true
-  if hooktimer then hooktimer.stop() end
-  print("PMN:"..script.mod_name)
-  for file,f in pairs(linedata) do
-    print("PFN:"..file)
-    for line,ld in pairs(f) do
-      localised_print{"","PLN:",line,":",ld.timer,":",ld.count}
-    end
-    local fd = funcdata[file]
-    if fd then
-      for line,ft in pairs(fd) do
-        localised_print{"","PFT:",line,":",ft.timer,":",ft.count}
-      end
-    end
-  end
-  pause_profile = nil
-end
-
 if script.mod_name ~= "debugadapter" then -- don't hook myself!
   -- in addition to the global, set up a remote so we can configure from DA's on_tick
   -- and pass stepping state around remote calls
   log("profiler registered for " .. script.mod_name)
-  remote.add_interface("__profiler_" .. script.mod_name ,{
-    dump = dump,
-    clear = clear,
-  })
-
   attach()
 end
