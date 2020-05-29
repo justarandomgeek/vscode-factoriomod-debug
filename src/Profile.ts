@@ -15,7 +15,6 @@ function NaN_safe_max(a:number,b:number):number {
 export class Profile implements Disposable {
 	private profileData = new Map<string,ModProfileData>();
 	private profileOverheadTime:number = 0;
-	private profileOverheadTimeLast:number = 0;
 	private profileOverheadCount:number = 0;
 	private timeDecorationType: TextEditorDecorationType;
 	private funcDecorationType: TextEditorDecorationType;
@@ -33,7 +32,10 @@ export class Profile implements Disposable {
 		this.funcDecorationType = window.createTextEditorDecorationType({
 			after: {
 				contentText: "",
-				color: new ThemeColor("factorio.ProfileTimerForeground"),
+				color: new ThemeColor("factorio.ProfileFunctionTimerForeground"),
+				borderColor: new ThemeColor("factorio.ProfileFunctionTimerForeground"),
+				border: "1px solid",
+				margin: "0 0 0 3ch",
 			},
 		});
 
@@ -137,7 +139,6 @@ export class Profile implements Disposable {
 					{
 						const time =  parseFloat(parts[2]);
 						this.profileOverheadTime += time;
-						this.profileOverheadTimeLast = time;
 						this.profileOverheadCount += 1;
 					}
 			}
@@ -262,7 +263,12 @@ export class Profile implements Disposable {
 					range: range,
 					renderOptions: {
 						after: {
-							contentText: ` ${count.toFixed(0)}\u00A0${displayTime.toFixed(timeprecision)} ms`,
+							contentText: `\u00A0${count.toFixed(0)}\u00A0|\u00A0${displayTime.toFixed(timeprecision)}\u00A0ms\u00A0`,
+
+							// have to repeat some properties here or gitlens will win when we both try to render on the same line
+							color: new ThemeColor("factorio.ProfileFunctionTimerForeground"),
+							borderColor: new ThemeColor("factorio.ProfileFunctionTimerForeground"),
+							margin: "0 0 0 3ch",
 						}
 					}
 				});
@@ -275,7 +281,7 @@ export class Profile implements Disposable {
 		rulerthresholds.forEach((ruler)=>{
 			editor.setDecorations(ruler.type,ruler.decs);
 		});
-		this.statusBar.text = `Profile Dump last ${this.profileOverheadTimeLast} avg ${(this.profileOverheadTime/this.profileOverheadCount).toFixed(3)} ms`;
+		this.statusBar.text = `Profile Dump Avg ${(this.profileOverheadTime/this.profileOverheadCount).toFixed(3)} ms`;
 		this.statusBar.show();
 	}
 

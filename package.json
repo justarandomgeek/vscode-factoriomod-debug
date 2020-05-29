@@ -71,9 +71,18 @@
     "colors": [
       {
         "id": "factorio.ProfileTimerForeground",
-        "description": "Color for timer text when running Factorio Mod profiler",
+        "description": "Color for line timer text when running Factorio Mod profiler",
         "defaults": {
           "dark": "#ffffff",
+          "highContrast": "#ffffff",
+          "light": "#000000"
+        }
+      },
+      {
+        "id": "factorio.ProfileFunctionTimerForeground",
+        "description": "Color for function timer text when running Factorio Mod profiler",
+        "defaults": {
+          "dark": "#ffffff66",
           "highContrast": "#ffffff",
           "light": "#000000"
         }
