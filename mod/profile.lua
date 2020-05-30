@@ -7,6 +7,13 @@ local localised_print = localised_print
 local linedata = {}
 local funcdata = {}
 
+if not __Profiler.slowStart then
+  __Profiler.slowStart = 20
+end
+if not __Profiler.updateRate then
+  __Profiler.updateRate = 500
+end
+
 local function getlinetimer(file,line)
   local f = linedata[file]
   if not f then
@@ -154,7 +161,7 @@ local function attach()
         -- top of stack
         if info.what == "main" or info.what == "Lua" then
           dumpcount = dumpcount + 1
-          if dumpcount < 100 or dumpcount % 1000 == 0 then
+          if dumpcount < __Profiler.slowStart or dumpcount % __Profiler.updateRate == 0 then
             dump()
           end
         end

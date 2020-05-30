@@ -59,6 +59,9 @@ export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArgum
 	hookControl?:string[]|boolean
 	hookMode?:HookMode
 
+	profileSlowStart?: number
+	profileUpdateRate?: number
+
 	/** enable logging the Debug Adapter Protocol */
 	trace?: boolean
 }
@@ -109,6 +112,8 @@ export class FactorioModRuntime extends EventEmitter {
 
 	private hookMode:HookMode;
 	private profile?: Profile;
+	private profileSlowStart?: number;
+	private profileUpdateRate?: number;
 
 	private inPrompt:boolean = false;
 	private trace:boolean;
@@ -152,6 +157,8 @@ export class FactorioModRuntime extends EventEmitter {
 		this.hookData = args.hookData ?? false;
 		this.hookControl = args.hookControl ?? true;
 		this.hookMode = args.hookMode ?? "debug";
+		this.profileSlowStart = args.profileSlowStart;
+		this.profileUpdateRate = args.profileUpdateRate;
 		if (this.hookMode === "profile") {this.profile = new Profile();}
 		this.trace = args.trace ?? false;
 		FactorioModRuntime.output.appendLine(`using ${args.configPathDetected?"auto-detected":"manually-configured"} config.ini: ${args.configPath}`);
@@ -465,15 +472,15 @@ export class FactorioModRuntime extends EventEmitter {
 						this.continueRequire(this.hookData,this.hookLog,this.keepOldLog);
 					}
 				} else if (event.startsWith("on_instrument_control ")) {
+					const modname = event.substring(22).trim();
+					const hookmods = this.hookControl;
+					const shouldhook = hookmods !== false && (hookmods === true || hookmods.includes(modname));
 					if (this.hookMode === "profile")
 					{
-						this.continueProfile();
+						this.continueProfile(shouldhook,this.profileSlowStart,this.profileUpdateRate);
 					}
 					else
 					{
-						const modname = event.substring(22).trim();
-						const hookmods = this.hookControl;
-						const shouldhook = hookmods !== false && (hookmods === true || hookmods.includes(modname));
 						this.continueRequire(shouldhook,this.hookLog,this.keepOldLog);
 					}
 				} else {
@@ -628,7 +635,7 @@ export class FactorioModRuntime extends EventEmitter {
 		this.inPrompt = false;
 	}
 
-	public continueRequire(shouldRequire?:boolean,hookLog?:boolean,keepOldLog?:boolean) {
+	public continueRequire(shouldRequire:boolean,hookLog?:boolean,keepOldLog?:boolean) {
 		if (!this.inPrompt)
 		{
 			if (this.trace) { this.sendEvent('output', `!! Attempted to continueRequire while not in a prompt`, "console"); }
@@ -652,13 +659,24 @@ export class FactorioModRuntime extends EventEmitter {
 		this.inPrompt = false;
 	}
 
-	public continueProfile() {
+	public continueProfile(shouldRequire:boolean,slowStart?:number,updateRate?:number) {
 		if (!this.inPrompt)
 		{
 			if (this.trace) { this.sendEvent('output', `!! Attempted to continueProfile while not in a prompt`, "console"); }
 			return;
 		}
-		this.writeStdin(`__Profiler={}`);
+		if (shouldRequire) {
+			let hookopts = "";
+			if (slowStart !== undefined)
+			{
+				hookopts += `slowStart=${slowStart},`;
+			}
+			if (updateRate !== undefined)
+			{
+				hookopts += `updateRate=${updateRate},`;
+			}
+			this.writeStdin(`__Profiler={${hookopts}}`);
+		}
 
 		this.writeStdin("cont");
 		this.inPrompt = false;

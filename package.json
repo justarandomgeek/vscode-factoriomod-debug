@@ -551,6 +551,18 @@
                 "type": "boolean",
                 "description": "When hooking `log()`, also call original `log()`",
                 "default": false
+              },
+              "profileSlowStart": {
+                "type": "integer",
+                "description": "Number of ticks to dump profilers after every Lua stack at startup (to allow for saving for migration). Increase this if you're getting errors at startup while profiling.",
+                "default": 20,
+                "minimum": 0
+              },
+              "profileUpdateRate": {
+                "type": "integer",
+                "description": "Number of Lua stacks to accumulate (per mod) after slow-start before dumping",
+                "default": 500,
+                "minimum": 0
               }
             }
           }
