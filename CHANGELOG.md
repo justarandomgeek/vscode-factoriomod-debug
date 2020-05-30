@@ -5,9 +5,9 @@
 * Use Lua Registry to enforce certain libraries are singletons even when package.loaded is cleared in data stage
 * Correctly report parse errors in timed eval requests
 * Don't flag spaces in mod names in dependencies as errors (old mods with spaces exist)
-* Profile line timers now include called function time
+* Profile line timers now include called function time, added function timers
 * Incremental dumping of profile timers to reduce stutter while profiling
-* Reworked profile coloring options
+* Reworked profile line timer coloring options
 
 ## 0.18.19
 
