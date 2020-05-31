@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.21
+
+* Fixed incorrect regex in info.json schema
+
 ## 0.18.20
 
 * Use Lua Registry to enforce certain libraries are singletons even when package.loaded is cleared in data stage
