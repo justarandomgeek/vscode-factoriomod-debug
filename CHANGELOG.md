@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.18.22
+
 ## 0.18.21
 
 * Fixed incorrect regex in info.json schema
