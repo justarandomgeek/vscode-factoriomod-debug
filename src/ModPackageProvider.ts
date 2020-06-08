@@ -234,7 +234,7 @@ export class ModPackage extends vscode.TreeItem {
 		let zipoutput = fs.createWriteStream(packagepath);
 		let archive = archiver('zip', { zlib: { level: 9 }});
 		archive.pipe(zipoutput);
-		archive.glob("**",{ cwd: moddir, root: moddir, nodir: true, ignore: ["**/*.zip"].concat(this.packageIgnore||[]) },{ prefix: `${this.label}_${this.description}` });
+		archive.glob("**",{ cwd: moddir, root: moddir, nodir: true, ignore: [`**/${this.label}_*.zip`].concat(this.packageIgnore||[]) },{ prefix: `${this.label}_${this.description}` });
 		let bytesWritten = await new Promise((resolve,reject)=>{
 			zipoutput.on("close",()=>resolve(archive.pointer()));
 			archive.finalize();

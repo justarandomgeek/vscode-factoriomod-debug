@@ -2,6 +2,8 @@
 
 ## 0.18.22
 
+* Changed automatic zip exclusion when packaging from `**/*.zip` to `**/modname_*.zip`, to prevent excluding `blueprint.zip` in scenarios.
+
 ## 0.18.21
 
 * Fixed incorrect regex in info.json schema
