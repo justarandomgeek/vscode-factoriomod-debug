@@ -12,8 +12,114 @@ function NaN_safe_max(a:number,b:number):number {
 	return Math.max(a,b);
 }
 
+/*
+profile data
+	total time in all lua
+	modname -> mod data
+		total time in lua state
+		filename -> file data
+			linedefined -> function data
+				timer
+				count
+			line -> line data
+				timer
+				count
+	query for:
+
+*/
+
+class TimerAndCount {
+	timer = 0;
+	count = 0;
+}
+
+class ProfileFileData {
+	functions = new Map<number,TimerAndCount>();
+	lines = new Map<number,TimerAndCount>();
+}
+
+class ProfileModData {
+	totalTime:number = 0;
+	file = new Map<string,ProfileFileData>();
+}
+class ProfileData {
+	private totalTime:number = 0;
+	private mod = new Map<string,ProfileModData>();
+
+	private getMod(modname:string)
+	{
+		let mod = this.mod.get(modname);
+		if (!mod)
+		{
+			mod = new ProfileModData();
+			this.mod.set(modname,mod);
+		}
+		return mod;
+	}
+
+	private getFile(modname:string,filename:string)
+	{
+		const mod = this.getMod(modname);
+		let file = mod.file.get(filename);
+		if (!file)
+		{
+			file = new ProfileFileData();
+			mod.file.set(filename,file);
+		}
+		return file;
+	}
+
+	AddModTime(modname:string,modtime:number)
+	{
+		this.totalTime += modtime;
+		this.getMod(modname).totalTime+=modtime;
+	}
+
+	AddLineTime(modname:string,filename:string,line:number,time:number,count:number)
+	{
+		const file = this.getFile(modname,filename);
+		let linedata = file.lines.get(line);
+		if (!linedata)
+		{
+			linedata = new TimerAndCount();
+			file.lines.set(line,linedata);
+		}
+		linedata.count+=count;
+		linedata.timer+=time;
+	}
+
+	AddFuncTime(modname:string,filename:string,linedefined:number,time:number,count:number)
+	{
+		const file = this.getFile(modname,filename);
+		let funcdata = file.functions.get(linedefined);
+		if (!funcdata)
+		{
+			funcdata = new TimerAndCount();
+			file.functions.set(linedefined,funcdata);
+		}
+		funcdata.count+=count;
+		funcdata.timer+=time;
+
+	}
+
+
+
+	Report(filename:string)
+	{
+		return {
+			totalTime: this.totalTime,
+
+		};
+	}
+}
+
+
+
+
 export class Profile implements Disposable {
 	private profileData = new Map<string,ModProfileData>();
+	private profileTotals = new Map<string,number>();
+	private profileTotal = 0;
 	private profileOverheadTime:number = 0;
 	private profileOverheadCount:number = 0;
 	private timeDecorationType: TextEditorDecorationType;
@@ -79,7 +185,6 @@ export class Profile implements Disposable {
 	public parse(profile:string)
 	{
 		const lines = profile.split("\n");
-		const newprofile = this.profileData;
 		let currmod:string;
 		let currfile:string;
 		lines.forEach(line => {
@@ -88,17 +193,20 @@ export class Profile implements Disposable {
 			{
 				case "PROFILE": // nothing
 					break;
-				case "PMN": // PMN:modname
+				case "PMN": // PMN:modname:label: time
 					currmod = parts[1].replace(/[\r\n]*/g,"");
-					if(!newprofile.has(currmod))
+					const time = parseFloat(parts[3]);
+					if(!this.profileData.has(currmod))
 					{
-						newprofile.set(currmod,new Map<string,ModFileProfileData>());
+						this.profileData.set(currmod,new Map<string,ModFileProfileData>());
 					}
+					this.profileTotals.set(currmod, time + (this.profileTotals.get(currmod)??0));
+					this.profileTotal += time;
 					break;
 				case "PFN": // PFN:filename
 					if (currmod)
 					{
-						const mod = newprofile.get(currmod)!;
+						const mod = this.profileData.get(currmod)!;
 						currfile = parts[1].replace(/[\r\n]*/g,"");
 						if (!mod.has(currfile))
 						{
@@ -114,7 +222,7 @@ export class Profile implements Disposable {
 				case "PLN": // PLN:line:label: time:count
 					if (currmod && currfile)
 					{
-						const mod = newprofile.get(currmod)!;
+						const mod = this.profileData.get(currmod)!;
 						const file = mod.get(currfile)!;
 						const line = parseInt(parts[1]);
 						const time = parseFloat(parts[3]);
@@ -126,7 +234,7 @@ export class Profile implements Disposable {
 				case "PFT": // PFT:line:label: time:count
 					if (currmod && currfile)
 					{
-						const mod = newprofile.get(currmod)!;
+						const mod = this.profileData.get(currmod)!;
 						const file = mod.get(currfile)!;
 						const line = parseInt(parts[1]);
 						const time = parseFloat(parts[3]);
@@ -143,7 +251,6 @@ export class Profile implements Disposable {
 					}
 			}
 		});
-		this.profileData = newprofile;
 	}
 
 	public render(editor:TextEditor,filename:string)

@@ -4,7 +4,11 @@ local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local print = print
 local localised_print = localised_print
 
+--- Total time accumulated in this lua state
+local luatotal
+--- Time accumulated per line
 local linedata = {}
+--- Time accumulated per function
 local funcdata = {}
 
 if not __Profiler.slowStart then
@@ -60,6 +64,10 @@ local activeline -- the timer for the current line, if any
 local callstack = {} -- the timers for lines higher up the callstack, if any
 local function accumulate_hook_time()
   if hooktimer then
+    if not luatotal then
+      luatotal = game.create_profiler(true)
+    end
+    luatotal.add(hooktimer)
     if activeline then
       activeline.add(hooktimer)
     end
@@ -79,7 +87,8 @@ end
 local function dump()
   local t = game.create_profiler()
   print("***DebugAdapterBlockPrint***\nPROFILE:")
-  print("PMN:"..script.mod_name)
+  localised_print{"","PMN:",script.mod_name,":",luatotal}
+  luatotal = nil
   for file,f in pairs(linedata) do
     print("PFN:"..file)
     for line,ld in pairs(f) do
