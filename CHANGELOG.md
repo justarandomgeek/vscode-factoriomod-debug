@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.18.23
+
 ## 0.18.22
 
 * Changed automatic zip exclusion when packaging from `**/*.zip` to `**/modname_*.zip`, to prevent excluding `blueprint.zip` in scenarios.
