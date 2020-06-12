@@ -3,6 +3,7 @@
 ## 0.18.23
 
 * Correctly encode Infinity, -Infinity and NaN in json
+* Set stepIgnore on log hook functions
 
 ## 0.18.22
 

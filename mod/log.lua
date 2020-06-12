@@ -40,6 +40,7 @@ local function newlog(mesg)
     return oldlog({"",loc,mesg})
   end
 end
+__DebugAdapter.stepIgnore(newlog)
 
 log = nil
 local do_old_index = ({
@@ -64,3 +65,4 @@ function gmeta.__index(t,k)
   end
   return do_old_index(t,k)
 end
+__DebugAdapter.stepIgnore(gmeta.__index)
