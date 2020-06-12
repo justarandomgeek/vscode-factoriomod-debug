@@ -35,11 +35,11 @@ stepIgnore(encode_string)
 local function encode_number(val)
   -- Check for NaN, -inf and inf
   if val ~= val then
-    return "0/0"
+    return [["NaN"]]
   elseif val <= -mhuge then
-    return "-1/0"
+    return [["-Infinity"]]
   elseif val >= mhuge then
-    return "1/0"
+    return [["Infinity"]]
   else
     return sformat("%.14g", val)
   end
