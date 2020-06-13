@@ -6,6 +6,7 @@
 * Set stepIgnore on log hook functions
 * Support new metamethod `__debugvisualize(self)` for formatting values for [hediet.debug-visualizer](https://marketplace.visualstudio.com/items?itemName=hediet.debug-visualizer)
 * Debug line and visualizer for noise expressions
+* Warn on first assignment to undefined Lua global variables
 
 ## 0.18.22
 
