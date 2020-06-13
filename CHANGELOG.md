@@ -4,6 +4,7 @@
 
 * Correctly encode Infinity, -Infinity and NaN in json
 * Set stepIgnore on log hook functions
+* Support new metamethod `__debugvisualize(self)` for formatting values for [hediet.debug-visualizer](https://marketplace.visualstudio.com/items?itemName=hediet.debug-visualizer)
 
 ## 0.18.22
 

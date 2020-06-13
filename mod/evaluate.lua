@@ -5,6 +5,7 @@ local debug = debug
 local string = string
 local print = print
 local pcall = pcall -- capture pcall early before entrypoints wraps it
+local xpcall = xpcall -- ditto
 local setmetatable = setmetatable
 local load = load
 
@@ -265,6 +266,12 @@ function __DebugAdapter.evaluate(frameId,context,expression,seq)
       evalresult = variables.create(nil,result)
       evalresult.result = evalresult.value
       if context == "visualize" then
+        local mtresult = getmetatable(result)
+        if mtresult and mtresult.__debugvisualize then
+          local function err(e) return debug.traceback("__debugvisualize error: "..e) end
+          __DebugAdapter.stepIgnore(err)
+          success,result = xpcall(mtresult.__debugvisualize,err,result)
+        end
         evalresult.result = json.encode(result)
       end
       evalresult.value = nil

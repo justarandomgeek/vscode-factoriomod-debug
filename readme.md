@@ -139,7 +139,7 @@ function variables.tableRef(table, mode, showMeta)
 function variables.luaObjectRef(luaObject,classname)
 ```
 
-Additionally, if using [hediet.debug-visualizer](https://marketplace.visualstudio.com/items?itemName=hediet.debug-visualizer), you can configure it to use `"context": "visualize"` to get json output on its eval requests. You must provide your own object conversions to produce objects compatible with the visualizer interface types.
+Additionally, if using [hediet.debug-visualizer](https://marketplace.visualstudio.com/items?itemName=hediet.debug-visualizer), you can configure it to use `"context": "visualize"` to get json output on its eval requests. You must provide your own object conversions to produce objects compatible with the visualizer interface types. If the eval result has a `__debugvisualize(self)` metamethod, it will be called automatically before being converted to json.
 
 ## Ignore Functions in Stepping
 
