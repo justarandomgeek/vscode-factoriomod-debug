@@ -172,6 +172,22 @@ function __DebugAdapter.attach()
       local info = getinfo(2,"Slf")
       local s = info.source
       if sub(s,1,1) == "@" then
+        if info.what == "main" then
+          if s == "@__core__/lualib/noise.lua" then
+            local i,k,v
+            i = 0
+            repeat
+              i = i + 1
+              k,v = debug.getlocal(2,i)
+            until not k or k == "noise_expression_metatable"
+            if v then
+              require("__debugadapter__/noise.lua")(v)
+              log("installed noise expression hook")
+            else
+              log("failed to install noise expression hook")
+            end
+          end
+        end
         local smode = stepmode
         if smode == "over" then
           stepdepth = stepdepth - 1
