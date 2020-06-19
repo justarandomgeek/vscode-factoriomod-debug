@@ -305,7 +305,7 @@ export class FactorioModRuntime extends EventEmitter {
 							});
 
 							for (const mod in args.adjustMods) {
-								if (args.adjustMods.hasOwnProperty(mod) && foundmods[mod])
+								if (args.adjustMods.hasOwnProperty(mod) && !foundmods[mod])
 								{
 									const adjust = args.adjustMods[mod];
 									if (adjust === true || adjust === false) {
