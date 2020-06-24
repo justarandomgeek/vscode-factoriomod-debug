@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.18.24
+
 ## 0.18.23
 
 * Correctly encode Infinity, -Infinity and NaN in json
