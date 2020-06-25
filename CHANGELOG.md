@@ -2,6 +2,8 @@
 
 ## 0.18.24
 
+* Nicer log() hook on Factorio >= 0.18.34
+
 ## 0.18.23
 
 * Correctly encode Infinity, -Infinity and NaN in json

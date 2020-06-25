@@ -2,13 +2,6 @@ local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local json = require('__debugadapter__/json.lua')
 local variables = require("__debugadapter__/variables.lua") -- uses pcall
 
-local gmeta = getmetatable(_ENV)
-if not gmeta then
-  gmeta = {}
-  setmetatable(_ENV,gmeta)
-end
-
-local oldindex = gmeta.__index
 local oldlog = log
 local keepoldlog = __DebugAdapter.keepoldlog
 local function newlog(mesg)
@@ -42,7 +35,23 @@ local function newlog(mesg)
 end
 __DebugAdapter.stepIgnore(newlog)
 
+-- log protection is disabled in Instrument Mode on Factorio >= 0.18.34
+if __DebugAdapter.instrument then
+  local a,b,c = script.active_mods.base:match("(%d+).(%d+).(%d+)")
+  if not (a=="0" and b=="18" and (tonumber(c) or 0)>=34) then
+    log = newlog
+    return
+  end
+end
+
+-- older version still require the evil version of the hook
 log = nil
+local gmeta = getmetatable(_ENV)
+if not gmeta then
+  gmeta = {}
+  setmetatable(_ENV,gmeta)
+end
+local oldindex = gmeta.__index
 local do_old_index = ({
   ["nil"] = function(t,k)
     return nil
