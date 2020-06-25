@@ -240,7 +240,8 @@ export class FactorioModRuntime extends EventEmitter {
 										FactorioModRuntime.output.appendLine("existing debugadapter in modsPath is not a zip");
 										const modinfopath = path.resolve(args.modsPath, mods[0], "./info.json");
 
-										if(mods[0] !== `${dainfo.name}_${dainfo.version}` || !fs.existsSync(modinfopath))
+										if(!(mods[0] === `${dainfo.name}_${dainfo.version}`||mods[0] === dainfo.name)
+											|| !fs.existsSync(modinfopath))
 										{
 											FactorioModRuntime.output.appendLine(`existing debugadapter is wrong version or does not contain info.json`);
 											fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`));
@@ -261,13 +262,17 @@ export class FactorioModRuntime extends EventEmitter {
 								else
 								{
 									FactorioModRuntime.output.appendLine("multiple debugadapters in modsPath");
-									if (mods.find(s=> s === `${dainfo.name}_${dainfo.version}.zip` ))
+									if(mods.find(s=> s === `${dainfo.name}` ))
 									{
-										FactorioModRuntime.output.appendLine(`using existing ${dainfo.name}_${dainfo.version}.zip`);
+										FactorioModRuntime.output.appendLine(`using existing ${dainfo.name}`);
 									}
 									else if(mods.find(s=> s === `${dainfo.name}_${dainfo.version}` ))
 									{
 										FactorioModRuntime.output.appendLine(`using existing ${dainfo.name}_${dainfo.version}`);
+									}
+									else if (mods.find(s=> s === `${dainfo.name}_${dainfo.version}.zip` ))
+									{
+										FactorioModRuntime.output.appendLine(`using existing ${dainfo.name}_${dainfo.version}.zip`);
 									}
 									else
 									{
