@@ -2,7 +2,6 @@ task arg to package to move zip
 phobos, phobos-tidy, phobos-format
 string.dump serialise to source, or at least disasm, for non-file chunks
 locale color widget actually offer multiple formats for colors?
-remove Subject if possible?
 update mod description from readme on publish (or other configurable file?)
 generate a mod-list.json stub when not found?
 generate config.ini stub when not found?

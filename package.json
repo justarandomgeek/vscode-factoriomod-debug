@@ -40,7 +40,6 @@
   },
   "dependencies": {
     "archiver": "^3.1.1",
-    "await-notify": "1.0.1",
     "ini": "^1.3.5",
     "vscode-debugadapter": "^1.39.1",
     "web-request": "^1.0.7"
@@ -142,27 +141,35 @@
             "default": "#FF0000"
           },
           "factorio.profile.displayAverageTime": {
-            "type":"boolean",
+            "type": "boolean",
             "description": "Display average time in labels instead of cumulative time.",
-            "default":true
+            "default": true
           },
           "factorio.profile.colorBy": {
-            "type":"string",
+            "type": "string",
             "description": "Which attribute to color labels by",
-            "enum": ["count","totaltime","averagetime"],
-            "default":"totaltime"
+            "enum": [
+              "count",
+              "totaltime",
+              "averagetime"
+            ],
+            "default": "totaltime"
           },
           "factorio.profile.colorScaleFactor": {
-            "type":"number",
+            "type": "number",
             "description": "Adjustment factor for color scale function",
-            "default":1,
+            "default": 1,
             "exclusiveMinimum": 0
           },
           "factorio.profile.colorScaleMode": {
-            "type":"string",
+            "type": "string",
             "description": "Scale function for coloring timer labels",
-            "enum": ["boost","linear","mute"],
-            "default":"boost"
+            "enum": [
+              "boost",
+              "linear",
+              "mute"
+            ],
+            "default": "boost"
           },
           "factorio.profile.rulers": {
             "type": "array",
@@ -170,32 +177,43 @@
             "items": {
               "oneOf": [
                 {
-                  "required": ["color"],
+                  "required": [
+                    "color"
+                  ],
                   "properties": {
                     "color": {
-                      "type":"string",
+                      "type": "string",
                       "pattern": "^#[0-9a-fA-F]{1,8}$"
                     }
                   }
                 },
                 {
-                  "required": ["themeColor"],
+                  "required": [
+                    "themeColor"
+                  ],
                   "properties": {
                     "themeColor": {
-                      "type":"string"
+                      "type": "string"
                     }
                   }
                 }
               ],
-              "required": ["threshold"],
+              "required": [
+                "threshold"
+              ],
               "properties": {
                 "threshold": {
-                  "type":"number",
+                  "type": "number",
                   "maximum": 1,
                   "minimum": 0
                 },
-                "lane":{
-                  "enum": ["Left", "Center", "Right", "Full"],
+                "lane": {
+                  "enum": [
+                    "Left",
+                    "Center",
+                    "Right",
+                    "Full"
+                  ],
                   "default": "Right"
                 }
               }
@@ -409,23 +427,47 @@
     },
     "jsonValidation": [
       {
-        "fileMatch": ["map-gen-settings.json","map-gen-settings.*.json","*.map-gen-settings.json","map-gen-settings.example.json"],
+        "fileMatch": [
+          "map-gen-settings.json",
+          "map-gen-settings.*.json",
+          "*.map-gen-settings.json",
+          "map-gen-settings.example.json"
+        ],
         "url": "./schema/mapgen.json"
       },
       {
-        "fileMatch": ["map-settings.json","map-settings.*.json","*.map-settings.json","map-settings.example.json"],
+        "fileMatch": [
+          "map-settings.json",
+          "map-settings.*.json",
+          "*.map-settings.json",
+          "map-settings.example.json"
+        ],
         "url": "./schema/mapsettings.json"
       },
       {
-        "fileMatch": ["server-settings.json","server-settings.*.json","*.server-settings.json","server-settings.example.json"],
+        "fileMatch": [
+          "server-settings.json",
+          "server-settings.*.json",
+          "*.server-settings.json",
+          "server-settings.example.json"
+        ],
         "url": "./schema/serversettings.json"
       },
       {
-        "fileMatch": ["info.json","!locale/*/info.json", "!data/**/info.json","!tests/**/info.json"],
+        "fileMatch": [
+          "info.json",
+          "!locale/*/info.json",
+          "!data/**/info.json",
+          "!tests/**/info.json"
+        ],
         "url": "./schema/modinfo.json"
       },
       {
-        "fileMatch": ["data/**/info.json","tests/**/info.json","!locale/*/info.json"],
+        "fileMatch": [
+          "data/**/info.json",
+          "tests/**/info.json",
+          "!locale/*/info.json"
+        ],
         "url": "./schema/datainfo.json"
       },
       {
@@ -538,7 +580,10 @@
                 "default": true
               },
               "hookMode": {
-                "enum": ["debug","profile"],
+                "enum": [
+                  "debug",
+                  "profile"
+                ],
                 "default": "debug",
                 "description": "Select hook to install. Default is `debug` for stepping. Select `profile` for live profiling."
               },
