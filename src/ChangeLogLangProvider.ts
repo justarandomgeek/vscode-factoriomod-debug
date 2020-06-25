@@ -2,7 +2,7 @@
 import * as vscode from 'vscode';
 export async function validateChangelogTxt(document: vscode.Uri|vscode.TextDocument): Promise<vscode.Diagnostic[]> {
 	const changelog = (document instanceof vscode.Uri ?
-		(await vscode.workspace.fs.readFile(document)).toString() : document.getText()).split(/\r?\n/);
+		(await vscode.workspace.fs.readFile(document)).toString().replace(/^\uFEFF/, '') : document.getText()).split(/\r?\n/);
 	let diags: vscode.Diagnostic[] = [];
 	let seenStart = false;
 	let seenStartLast = false;

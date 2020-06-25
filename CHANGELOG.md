@@ -3,6 +3,7 @@
 ## 0.18.24
 
 * Nicer log() hook on Factorio >= 0.18.34
+* Ignore Unicode BOM in Changelog files
 
 ## 0.18.23
 
