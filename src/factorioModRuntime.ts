@@ -91,8 +91,6 @@ export class FactorioModRuntime extends EventEmitter {
 	// unhandled only by default
 	private _exceptionFilters = new Set<string>(["unhandled"]);
 
-	private _breakAddresses = new Set<string>();
-
 	private _factorio : ChildProcess;
 
 	private _stack?: resolver<StackFrame[]>;
@@ -1048,29 +1046,11 @@ export class FactorioModRuntime extends EventEmitter {
 		return (bps || []).map((bp) => { return {line:bp.line, verified:true }; });
 	}
 
-	/*
-	 * Set data breakpoint.
-	 */
-	public setDataBreakpoint(address: string): boolean {
-		if (address) {
-			this._breakAddresses.add(address);
-			return true;
-		}
-		return false;
-	}
-
 	public setExceptionBreakpoints(filters: string[])
 	{
 		this._exceptionFilters.clear();
 		filters.forEach(f=>this._exceptionFilters.add(f));
 	}
-	/*
-	 * Clear all data breakpoints.
-	 */
-	public clearAllDataBreakpoints(): void {
-		this._breakAddresses.clear();
-	}
-
 
 	private updateInfoJson(uri:vscode.Uri)
 	{

@@ -16,8 +16,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	private _runtime: FactorioModRuntime;
 
-	private _variableHandles = new Handles<string>();
-
 	/**
 	 * Creates a new debug adapter that is used for one debug session.
 	 * We configure the default implementation of a debug adapter here.
@@ -40,9 +38,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		});
 		this._runtime.on('stopOnBreakpoint', () => {
 			this.sendEvent(new StoppedEvent('breakpoint', FactorioModDebugSession.THREAD_ID));
-		});
-		this._runtime.on('stopOnDataBreakpoint', () => {
-			this.sendEvent(new StoppedEvent('data breakpoint', FactorioModDebugSession.THREAD_ID));
 		});
 		this._runtime.on('stopOnException', (exceptionText:string) => {
 			this.sendEvent(new StoppedEvent('exception', FactorioModDebugSession.THREAD_ID,exceptionText));
@@ -244,50 +239,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this._runtime.setExceptionBreakpoints(args.filters);
 		this.sendResponse(response);
 	}
-
-	protected dataBreakpointInfoRequest(response: DebugProtocol.DataBreakpointInfoResponse, args: DebugProtocol.DataBreakpointInfoArguments): void {
-
-		response.body = {
-            dataId: null,
-            description: "cannot break on data access",
-            accessTypes: undefined,
-            canPersist: false
-        };
-
-		if (args.variablesReference && args.name) {
-			const id = this._variableHandles.get(args.variablesReference);
-			if (id.startsWith("global_")) {
-				response.body.dataId = args.name;
-				response.body.description = args.name;
-				response.body.accessTypes = [ "read" ];
-				response.body.canPersist = false;
-			}
-		}
-
-		this.sendResponse(response);
-	}
-
-	protected setDataBreakpointsRequest(response: DebugProtocol.SetDataBreakpointsResponse, args: DebugProtocol.SetDataBreakpointsArguments): void {
-
-		// clear all data breakpoints
-		this._runtime.clearAllDataBreakpoints();
-
-		response.body = {
-			breakpoints: []
-		};
-
-		for (let dbp of args.breakpoints) {
-			// assume that id is the "address" to break on
-			const ok = this._runtime.setDataBreakpoint(dbp.dataId);
-			response.body.breakpoints.push({
-				verified: ok
-			});
-		}
-
-		this.sendResponse(response);
-	}
-
-	//---- helpers
 
 	private createSource(filePath: string): Source {
 		return new Source(path.basename(filePath), this.convertDebuggerPathToClient(filePath));
