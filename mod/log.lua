@@ -38,13 +38,15 @@ __DebugAdapter.stepIgnore(newlog)
 -- log protection is disabled in Instrument Mode on Factorio >= 0.18.34
 if __DebugAdapter.instrument then
   local a,b,c = (mods or script.active_mods).base:match("(%d+).(%d+).(%d+)")
-  if not (a=="0" and b=="18" and (tonumber(c) or 0)>=34) then
+  if (a=="0" and b=="18" and (tonumber(c) or 0)>=34) then
     log = newlog
     return
   end
 end
 
 -- older version still require the evil version of the hook
+newlog("installing legacy `log` hook in " .. (data and "data" or script.mod_name or "?"))
+
 log = nil
 local gmeta = getmetatable(_ENV)
 if not gmeta then
