@@ -11,7 +11,7 @@
   * Load only used zips when launching debug
   * Clear previously loaded zips before reloading
   * If using manual require in settings stage, it may now be needed to list debugadapter as an optional dependency to ensure Modules event is completed first. Instrument mode handles this automatically.
-
+* Updated class data to Factorio 0.18.34
 
 ## 0.18.23
 

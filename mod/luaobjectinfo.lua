@@ -23,7 +23,7 @@ local luaObjectLines = {
 __DebugAdapter.stepIgnoreAll(luaObjectLines)
 
 
--- class data last updated factorio 0.18.24
+-- class data last updated factorio 0.18.34
 return {
   alwaysValid = {
     LuaRemote = true,
@@ -557,6 +557,8 @@ return {
       adjacent_tile_collision_mask = {readOnly = true},
       adjacent_tile_collision_test = {readOnly = true},
       center_collision_mask = {readOnly = true},
+      grid_prototype = {readOnly = true},
+      remove_decoratives = {readOnly = true},
       running_speed = {readOnly = true},
       maximum_corner_sliding_distance = {readOnly = true},
       build_distance = {readOnly = true},
@@ -901,6 +903,7 @@ return {
       force = {},
       elem_type = {readOnly = true},
       elem_value = {},
+      elem_filters = {},
       selectable = {},
       word_wrap = {},
       read_only = {},
@@ -1380,6 +1383,7 @@ return {
       gui = {readOnly = true},
       opened_self = {readOnly = true},
       controller_type = {readOnly = true},
+      stashed_controller_type = {readOnly = true},
       game_view_settings = {},
       minimap_enabled = {},
       color = {},
@@ -1402,6 +1406,7 @@ return {
       spectator = {},
       remove_unfiltered_items = {},
       infinity_inventory_filters = {},
+      auto_sort_main_inventory = {readOnly = true},
     },
     LuaProfiler = {
       ["<translated>"] = {thisTranslated = true},
@@ -1485,6 +1490,7 @@ return {
       always_show_products = {readOnly = true},
       emissions_multiplier = {readOnly = true},
       allow_decomposition = {readOnly = true},
+      unlock_results = {readOnly = true},
     },
     LuaRemote = {
       interfaces = {readOnly = true},
@@ -1589,6 +1595,7 @@ return {
       name = {},
       index = {readOnly = true},
       map_gen_settings = {},
+      generate_with_lab_tiles = {},
       always_day = {},
       daytime = {},
       darkness = {readOnly = true},
@@ -1605,6 +1612,7 @@ return {
       solar_power_multiplier = {},
       min_brightness = {},
       brightness_visual_weights = {},
+      show_clouds = {},
     },
     LuaTechnology = {
       force = {readOnly = true},
