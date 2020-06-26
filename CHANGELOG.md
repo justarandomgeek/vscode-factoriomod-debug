@@ -13,6 +13,7 @@
   * If using manual require in settings stage, it may now be needed to list debugadapter as an optional dependency to ensure Modules event is completed first. Instrument mode handles this automatically.
 * Updated class data to Factorio 0.18.34
 * Wrap new script.raise_* methods to pass call stack, matching raise_event wrapper
+* Don't omit source on stepIgnore functions
 
 ## 0.18.23
 

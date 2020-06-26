@@ -85,7 +85,8 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
     }
     if noSource or __DebugAdapter.isStepIgnore(info.func) then
       stackFrame.source.presentationHint = "deemphasize"
-    else
+    end
+    if not noSource then
       stackFrame.source.path = source
     end
     stackFrames[#stackFrames+1] = stackFrame
