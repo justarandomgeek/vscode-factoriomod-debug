@@ -2,7 +2,7 @@ import {
 	Logger, logger,
 	LoggingDebugSession,
 	TerminatedEvent, StoppedEvent, OutputEvent,
-	Thread, Source, Handles, Module, ModuleEvent, InitializedEvent
+	Thread, Source, Module, ModuleEvent, InitializedEvent
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import * as path from 'path';
