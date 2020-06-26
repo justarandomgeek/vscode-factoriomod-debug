@@ -320,6 +320,32 @@ function newscript.raise_event(event,eventdata)
   oldscript.raise_event(event,eventdata)
 end
 
+local function wrap_raise(key)
+  if type(oldscript[key])=="function" then
+    newscript[key] = function (eventdata)
+      -- factorio adds `mod_name`, so i don't need to
+      eventdata.__debug = {
+        stack = __DebugAdapter.stackTrace(-2, nil, true),
+      }
+      oldscript[key](eventdata)
+    end
+  end
+end
+
+for _,fname in pairs{
+  "raise_console_chat",
+  "raise_player_crafted_item",
+  "raise_player_fast_transferred",
+  "raise_biter_base_built",
+  "raise_market_item_purchased",
+  "raise_script_built",
+  "raise_script_destroy",
+  "raise_script_revive",
+  "raise_script_set_tiles",
+} do
+  wrap_raise(fname)
+end
+
 local newscriptmeta = {
   __index = oldscript,
   __newindex = function(t,k,v) oldscript[k] = v end,
