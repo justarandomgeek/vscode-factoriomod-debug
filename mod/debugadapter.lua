@@ -70,7 +70,8 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
       framename = ("[%s] %s"):format(script.mod_name, framename)
     end
     local source = normalizeLuaSource(info.source)
-    local noSource = (info.what == "C") or (source:sub(1,1) == "=")
+    local isC = info.what == "C"
+    local noSource = isC or (source:sub(1,1) == "=")
     local stackFrame = {
       id = i,
       name = framename,
@@ -79,7 +80,7 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
       moduleId = forRemote and script.mod_name,
       presentationHint = forRemote and "subtle",
       source = {
-        name = info.what == "C" and "C" or source,
+        name = isC and "C" or source,
       }
     }
     if noSource or __DebugAdapter.isStepIgnore(info.func) then
