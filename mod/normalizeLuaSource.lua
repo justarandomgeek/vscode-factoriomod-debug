@@ -1,6 +1,5 @@
 local __DebugAdapter = __DebugAdapter
 local string = string
-local sformat = string.format
 local ssub = string.sub
 local smatch = string.match
 
@@ -18,7 +17,6 @@ if script and script.mod_name == "level" then
   if __Profiler then __Profiler.levelPath = levelPath end
 end
 
-local mods = mods or script.active_mods -- capture mods to a consistent name
 local knownSources = {}
 
 ---@param source string
@@ -29,7 +27,6 @@ local function normalizeLuaSource(source)
   if first ~= "@" then return "=(dostring)" end
   local known = knownSources[source]
   if known then return known end
-  local smatch = smatch
   local filename = smatch(source,"__level__/(.+)")
   if not filename then
     --main scenario script gets absolute path, check for that too...

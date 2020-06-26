@@ -67,7 +67,6 @@ local do_old_index = ({
 function gmeta.__index(t,k)
   if k == "log" then
     local parent = debug.getinfo(2,"n")
-    local traceback = debug.traceback()
     if parent then
       return newlog
     else
