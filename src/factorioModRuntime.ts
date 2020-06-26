@@ -34,12 +34,13 @@ interface ModInfo{
 
 
 interface ModPaths{
-	fspath: string
-	modpath: string
+	uri: vscode.Uri
+	name: string
+	version: string
+	info: ModInfo
 }
 
 type HookMode = "debug"|"profile";
-
 
 export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 	factorioPath: string // path of factorio binary to launch
@@ -95,7 +96,7 @@ export class FactorioModRuntime extends EventEmitter {
 	private _factorio : ChildProcess;
 
 	private _stack?: resolver<StackFrame[]>;
-	private _modules?: resolver<Module[]>;
+	private _modules = new Map<string,DebugProtocol.Module>();
 	private _scopes = new Map<number, resolver<Scope[]>>();
 	private _vars = new Map<number, resolver<Variable[]>>();
 	private _setvars = new Map<number, resolver<Variable>>();
@@ -123,7 +124,6 @@ export class FactorioModRuntime extends EventEmitter {
 
 	private workspaceModInfoReady:Promise<void>;
 	private workspaceModInfo = new Array<ModPaths>();
-	private workspaceModZips = new Array<ModPaths>();
 
 	private workspaceModLists:Thenable<vscode.Uri[]>;
 
@@ -140,9 +140,9 @@ export class FactorioModRuntime extends EventEmitter {
 			resolve();
 		});
 		vscode.window.onDidChangeActiveTextEditor(editor =>{
-			if (editor && this.profile)
+			if (editor && this.profile && (editor.document.uri.scheme==="file"||editor.document.uri.scheme==="zip"))
 			{
-				const profname = this.convertClientPathToDebugger(editor.document.uri.fsPath);
+				const profname = this.convertClientPathToDebugger(editor.document.uri.toString());
 				this.profile.render(editor,profname);
 			}
 		});
@@ -169,9 +169,9 @@ export class FactorioModRuntime extends EventEmitter {
 		}
 		else if (workspaceModLists.length === 1)
 		{
-			const workspaceModList = workspaceModLists[0].path;
-			FactorioModRuntime.output.appendLine(`found mod-list.json in workspace: ${workspaceModList}`);
-			args.modsPath = path.dirname(workspaceModList);
+			const workspaceModList = workspaceModLists[0];
+			FactorioModRuntime.output.appendLine(`found mod-list.json in workspace: ${workspaceModList.toString()}`);
+			args.modsPath = path.dirname(workspaceModList.path);
 			args.modsPathDetected = false;
 			if (os.platform() === "win32" && args.modsPath.startsWith("/")) {args.modsPath = args.modsPath.substr(1);}
 		}
@@ -330,23 +330,6 @@ export class FactorioModRuntime extends EventEmitter {
 					}
 				}
 
-				if (!args.noDebug)
-				{
-					const zipext = vscode.extensions.getExtension("slevesque.vscode-zipexplorer");
-					if (zipext)
-					{
-						fs.readdirSync(this.modsPath,"utf8").filter(s => s.endsWith(".zip")).map(modzip => {
-							const modzipinfo = {
-								fspath: "zip:/" + path.resolve(this.modsPath!,modzip).replace(/\\/g,"/").replace(":","%3A") + "/" + modzip.replace(/\.zip$/,""),
-								modpath: "MOD/" + modzip.replace(/\.zip$/,"")
-							};
-							let zipuri = vscode.Uri.parse("file:/"+ path.resolve(this.modsPath!,modzip).replace(/\\/g,"/"));
-							vscode.commands.executeCommand("zipexplorer.exploreZipFile", zipuri);
-							FactorioModRuntime.output.appendLine(`found mod zip "${modzip}" ${JSON.stringify(modzipinfo)}`);
-							this.workspaceModZips.push(modzipinfo);
-						});
-					}
-				}
 			} else {
 				FactorioModRuntime.output.appendLine(`modsPath "${this.modsPath}" does not contain mod-list.json`);
 				this.modsPath = undefined;
@@ -360,14 +343,6 @@ export class FactorioModRuntime extends EventEmitter {
 
 		await this.workspaceModInfoReady;
 
-		let renamedbps = new Map<string, DebugProtocol.SourceBreakpoint[]>();
-		this._breakPointsChanged.clear();
-		this._breakPoints.forEach((bps:DebugProtocol.SourceBreakpoint[], path:string, map) => {
-			const newpath = this.convertClientPathToDebugger(path);
-			renamedbps.set(newpath, bps);
-			this._breakPointsChanged.add(newpath);
-		});
-		this._breakPoints = renamedbps;
 		args.factorioArgs = args.factorioArgs||[];
 		if(!args.noDebug && (args.useInstrumentMode ?? true))
 		{
@@ -407,7 +382,11 @@ export class FactorioModRuntime extends EventEmitter {
 		const stdout = new BufferSplitter(this._factorio.stdout!, [Buffer.from("\n"),{
 				start: Buffer.from("***DebugAdapterBlockPrint***"),
 				end: Buffer.from("***EndDebugAdapterBlockPrint***")}]);
-		stdout.on("segment", (chunk:Buffer) => {
+		let resolveModules:resolver<void>;
+		const modulesReady = new Promise<void>((resolve)=>{
+			resolveModules = resolve;
+		});
+		stdout.on("segment", async (chunk:Buffer) => {
 			let chunkstr:string = chunk.toString();
 			chunkstr = chunkstr.replace(/^[\r\n]*/,"").replace(/[\r\n]*$/,"");
 			if (!chunkstr) { return; }
@@ -459,6 +438,7 @@ export class FactorioModRuntime extends EventEmitter {
 						this.continue();
 					}
 				} else if (event === "on_instrument_settings") {
+					await modulesReady;
 					if (this.hookMode === "profile")
 					{
 						this.continueRequire(false);
@@ -508,12 +488,13 @@ export class FactorioModRuntime extends EventEmitter {
 			} else if (chunkstr.startsWith("DBGstack: ")) {
 				this._stack!(JSON.parse(chunkstr.substring(10).trim()));
 				this._stack = undefined;
-			} else if (chunkstr.startsWith("DBGmodules: ")) {
-				this._modules!(JSON.parse(chunkstr.substring(12).trim()));
-				this._modules = undefined;
 			} else if (chunkstr.startsWith("EVTmodules: ")) {
-				const modules = JSON.parse(chunkstr.substring(12).trim());
-				this.sendEvent('modules',modules);
+				if (this.trace){this.sendEvent('output', `> EVTmodules`, "console");}
+				await this.updateModules(JSON.parse(chunkstr.substring(12).trim()));
+				resolveModules();
+
+				// and finally send the initialize event to get breakpoints and such...
+				this.sendEvent("initialize");
 			} else if (chunkstr.startsWith("DBGscopes: ")) {
 				const scopes = JSON.parse(chunkstr.substring(11).trim());
 				this._scopes.get(scopes.frameId)!(scopes.scopes);
@@ -555,9 +536,9 @@ export class FactorioModRuntime extends EventEmitter {
 				{
 					const editor = vscode.window.activeTextEditor;
 					this.profile.parse(chunkstr);
-					if (editor)
+					if (editor && (editor.document.uri.scheme==="file"||editor.document.uri.scheme==="zip"))
 					{
-						const profname = this.convertClientPathToDebugger(editor.document.uri.fsPath);
+						const profname = this.convertClientPathToDebugger(editor.document.uri.toString());
 						this.profile.render(editor,profname);
 					}
 				}
@@ -709,11 +690,110 @@ export class FactorioModRuntime extends EventEmitter {
 		});
 	}
 
-	public async modules(): Promise<Module[]> {
-		return new Promise<Module[]>((resolve)=>{
-			this._modules = resolve;
-			this.writeStdin(`__DebugAdapter.modules()`);
-		});
+	private async updateModules(modules: DebugProtocol.Module[]) {
+		const zipext = vscode.extensions.getExtension("slevesque.vscode-zipexplorer");
+		if (zipext)
+		{
+			vscode.commands.executeCommand("zipexplorer.clear");
+		}
+		for (const module of modules) {
+			this._modules.set(module.name,module);
+
+			if (module.name === "level")
+			{
+				// find `level` nowhere
+				module.symbolStatus = "No Symbols (Level)";
+
+				//FactorioModRuntime.output.appendLine(`no source loaded for ${module.name}`);
+				continue;
+			}
+
+			if (module.name === "core" || module.name === "base")
+			{
+				// find `core` and `base` in data
+				module.symbolFilePath = vscode.Uri.parse("file:/"+path.posix.join(this.dataPath,module.name)).toString();
+				module.symbolStatus = "Loaded Data Directory";
+				FactorioModRuntime.output.appendLine(`loaded ${module.name} from data ${module.symbolFilePath}`);
+				continue;
+			}
+
+			const wm = this.workspaceModInfo.find(m=>m.name===module.name && m.version===module.version);
+			if (wm)
+			{
+				// find it in workspace
+				module.symbolFilePath = wm.uri.toString();
+				module.symbolStatus = "Loaded Workspace Directory";
+				FactorioModRuntime.output.appendLine(`loaded ${module.name} from workspace ${module.symbolFilePath}`);
+				continue;
+			}
+
+			if (this.modsPath)
+			{
+				async function trydir(dir:vscode.Uri): Promise<boolean>
+				{
+					try
+					{
+						const stat = await vscode.workspace.fs.stat(dir);
+						// eslint-disable-next-line no-bitwise
+						if (stat.type|vscode.FileType.Directory)
+						{
+
+							const modinfo:ModInfo = JSON.parse(Buffer.from(
+								await vscode.workspace.fs.readFile(
+									dir.with({path: path.posix.join(dir.path,"info.json")})
+									)).toString("utf8"));
+							if (modinfo.name===module.name && modinfo.version===module.version)
+							{
+								module.symbolFilePath = dir.toString();
+								module.symbolStatus = "Loaded Mod Directory";
+								FactorioModRuntime.output.appendLine(`loaded ${module.name} from modspath ${module.symbolFilePath}`);
+								return true;
+							}
+						}
+					}
+					catch
+					{
+						return false;
+					}
+					return false;
+				}
+
+				// find it in mods dir:
+				// 1) unversioned folder
+				let dir = vscode.Uri.parse("file:/"+ path.resolve(this.modsPath,module.name).replace(/\\/g,"/"));
+				if(await trydir(dir)){continue;};
+
+				// 2) versioned folder
+				dir = vscode.Uri.parse("file:/"+ path.resolve(this.modsPath,module.name+"_"+module.version).replace(/\\/g,"/"));
+				if(await trydir(dir)){continue;};
+
+				// 3) versioned zip
+				if (zipext)
+				{
+					const zipuri = vscode.Uri.parse("file:/"+ path.resolve(this.modsPath,module.name+"_"+module.version+".zip").replace(/\\/g,"/"));
+
+					// if zip exists, try to mount it
+					//TODO: can i check if it's already mounted somehow?
+					//TODO: mount it fast enough to actually read dirname inside
+					vscode.commands.executeCommand("zipexplorer.exploreZipFile", zipuri);
+
+					let zipinside = zipuri.with({scheme: "zip", path: path.posix.join(zipuri.path,module.name+"_"+module.version)});
+					module.symbolFilePath = zipinside.toString();
+					module.symbolStatus = "Loaded Zip";
+					FactorioModRuntime.output.appendLine(`loaded ${module.name} from mod zip ${zipuri.toString()}`);
+					continue;
+				}
+			}
+
+			module.symbolStatus = "Unknown";
+			FactorioModRuntime.output.appendLine(`no source found for ${module.name}`);
+		}
+		//TODO: another event to update it with levelpath for __level__ eventually?
+		this.sendEvent('modules',Array.from(this._modules.values()));
+	}
+
+	public modules(): Module[] {
+		return Array.from(this._modules.values());
 	}
 
 	public async scopes(frameId: number): Promise<Scope[]> {
@@ -998,36 +1078,31 @@ export class FactorioModRuntime extends EventEmitter {
 		if (os.platform() === "win32" && jsonpath.startsWith("/")) {jsonpath = jsonpath.substr(1);}
 		const moddata = JSON.parse(fs.readFileSync(jsonpath, "utf8"));
 		const mp = {
-			fspath: path.dirname(jsonpath),
-			modpath: `MOD/${moddata.name}_${moddata.version}`
+			uri: uri.with({path:path.posix.dirname(uri.path)}),
+			name: moddata.name,
+			version: moddata.version,
+			info: moddata
 		};
 		this.workspaceModInfo.push(mp);
-		FactorioModRuntime.output.appendLine(`using mod in workspace ${JSON.stringify(mp)}`);
 	}
 
 	public convertClientPathToDebugger(clientPath: string): string
 	{
+		if(clientPath.startsWith("output:")){return clientPath;}
+
 		clientPath = clientPath.replace(/\\/g,"/");
+		let thismodule:DebugProtocol.Module|undefined;
+		this._modules.forEach(m=>{
+			if (m.symbolFilePath && clientPath.startsWith(m.symbolFilePath) &&
+				m.symbolFilePath.length > (thismodule?.symbolFilePath||"").length)
+			{
+				thismodule = m;
+			}
+		});
 
-		let modinfo = this.workspaceModInfo.find((m)=>{return clientPath.startsWith(m.fspath);});
-		if(modinfo)
+		if (thismodule)
 		{
-			return clientPath.replace(modinfo.fspath,modinfo.modpath);
-		}
-
-		let modzip = this.workspaceModZips.find((m)=>{return clientPath.startsWith(m.fspath);});
-		if(modzip)
-		{
-			return clientPath.replace(modzip.fspath,modzip.modpath);
-		}
-
-		if (this.dataPath && clientPath.startsWith(this.dataPath))
-		{
-			return clientPath.replace(this.dataPath,"DATA");
-		}
-		if (this.modsPath && clientPath.startsWith(this.modsPath))
-		{
-			return clientPath.replace(this.modsPath,"MOD");
+			return clientPath.replace(thismodule.symbolFilePath!,"@__"+thismodule.name+"__");
 		}
 
 		FactorioModRuntime.output.appendLine(`unable to translate path ${clientPath}`);
@@ -1035,27 +1110,14 @@ export class FactorioModRuntime extends EventEmitter {
 	}
 	public convertDebuggerPathToClient(debuggerPath: string): string
 	{
-		let modinfo = this.workspaceModInfo.find((m)=>{return debuggerPath.startsWith(m.modpath);});
-		if(modinfo)
+		let matches = debuggerPath.match(/^@__(.*?)__\/(.*)$/);
+		if (matches)
 		{
-			return debuggerPath.replace(modinfo.modpath,modinfo.fspath);
-		}
-
-		let modzip = this.workspaceModZips.find((m)=>{return debuggerPath.startsWith(m.modpath);});
-		if(modzip)
-		{
-			const filepath = debuggerPath.replace(modzip.modpath,modzip.fspath);
-			return filepath;
-		}
-
-		if (this.modsPath && debuggerPath.startsWith("MOD"))
-		{
-			return this.modsPath + debuggerPath.substring(3);
-		}
-
-		if (this.dataPath && debuggerPath.startsWith("DATA"))
-		{
-			return this.dataPath + debuggerPath.substring(4);
+			let thismodule = this._modules.get(matches[1]);
+			if (thismodule?.symbolFilePath)
+			{
+				return path.posix.join(thismodule.symbolFilePath,matches[2]);
+			}
 		}
 
 		return debuggerPath;

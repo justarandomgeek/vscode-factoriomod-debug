@@ -2,11 +2,12 @@ import {
 	Logger, logger,
 	LoggingDebugSession,
 	TerminatedEvent, StoppedEvent, OutputEvent,
-	Thread, Source, Handles, Module, ModuleEvent
+	Thread, Source, Handles, Module, ModuleEvent, InitializedEvent
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { basename } from 'path';
+import * as path from 'path';
 import { FactorioModRuntime, LaunchRequestArguments } from './factorioModRuntime';
+import { Uri } from 'vscode';
 
 export class FactorioModDebugSession extends LoggingDebugSession {
 
@@ -50,6 +51,9 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			modules.forEach((module:Module) =>{
 				this.sendEvent(new ModuleEvent('new', module));
 			});
+		});
+		this._runtime.on('initialize', () => {
+			this.sendEvent(new InitializedEvent());
 		});
 		this._runtime.on('output', (text, category, filePath, line, column, variablesReference) => {
 			const e: DebugProtocol.OutputEvent = new OutputEvent(`${text}\n`);
@@ -131,10 +135,18 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 
 	protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
-
-		let path = <string>args.source.path;
-		path = this.convertClientPathToDebugger(path);
-		const actualBreakpoints = this._runtime.setBreakPoints(path,
+		let bpuri:Uri;
+		let inpath = <string>args.source.path;
+		if (inpath.match(/^[a-zA-Z]:/)) // matches c:\... or c:/... style windows paths, single drive letter
+		{
+			bpuri = Uri.parse("file:/"+inpath.replace(/\\/g,"/"));
+		}
+		else // everything else is already a URI
+		{
+			bpuri = Uri.parse(inpath);
+		}
+		const actualBreakpoints = this._runtime.setBreakPoints(
+			this.convertClientPathToDebugger(bpuri.toString()),
 			(args.breakpoints || []).map((bp)=>{
 				bp.line = this.convertClientLineToDebugger(bp.line);
 				return bp;
@@ -278,6 +290,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	//---- helpers
 
 	private createSource(filePath: string): Source {
-		return new Source(basename(filePath), this.convertDebuggerPathToClient(filePath));
+		return new Source(path.basename(filePath), this.convertDebuggerPathToClient(filePath));
 	}
 }

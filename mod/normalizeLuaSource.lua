@@ -30,47 +30,32 @@ local function normalizeLuaSource(source)
   local known = knownSources[source]
   if known then return known end
   local smatch = smatch
-  local modname,filename = smatch(source,"__(.+)__/(.+)")
-  if not modname then
-    --startup tracing sometimes gives absolute path of the scenario script, turn it back into the usual form...
+  local filename = smatch(source,"__level__/(.+)")
+  if not filename then
+    --main scenario script gets absolute path, check for that too...
     filename = smatch(source,"currently%-playing/(.+)")
-    if filename then
-    modname = "level"
-    end
   end
+  if not filename then
+    -- still not a scenario file, just return it as-is
+    knownSources[source] = source
+    return source
+  end
+
   -- scenario scripts may provide hints to where they came from...
   -- cross-mod require doesn't allow __level__ so these can only ever be
   -- seen within the `level` modstate, where the hint will be visible
-  if modname == "level" then
-    if levelpath then
-    modname = levelpath.modname
-    filename = levelpath.basepath .. filename
-    end
+  if levelpath then
+    filename = "@__"..levelpath.modname.."__/"..levelpath.basepath..filename
+    knownSources[source] = filename
+    return filename
   end
 
-  if modname == "level" then
-    -- we *still* can't identify level properly, so just give up...
-    local result = sformat("LEVEL/%s",filename)
-    -- don't save this so that a level hint later can update it!
-    --knownSources[source] = result
-    return result
-  elseif modname == "core" or modname == "base" then
-    -- these are under data path with no version in dir name
-    local result = sformat("DATA/%s/%s",modname,filename)
-    knownSources[source] = result
-    return result
-  elseif modname == nil then
-    --something totally unrecognized?
-    knownSources[source] = source
-    return source
-  else
-    -- we found it! This will be a path relative to the `mods` directory.
-    local modver = mods[modname]
-    local result = sformat("MOD/%s_%s/%s",modname,modver,filename)
-    knownSources[source] = result
-    return result
-  end
+  -- unhinted scenario script
+  -- don't save this so that a level hint later can update it!
+  --knownSources[source] = source
+  return source
 end
+
 if __DebugAdapter then
   __DebugAdapter.stepIgnore(normalizeLuaSource)
 end

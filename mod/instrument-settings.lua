@@ -1,3 +1,15 @@
+local json = require('__debugadapter__/json.lua')
+local modules = {}
+for name,version in pairs(mods) do
+  modules[#modules+1] = {
+    id = name, name = name,
+    version = version,
+  }
+end
+modules[#modules+1] = { id = "level", name = "level", }
+print("EVTmodules: " .. json.encode(modules))
+debug.getregistry().__DASentModules = true
+
 print("DBG: on_instrument_settings")
 debug.debug()
 if __DebugAdapter then

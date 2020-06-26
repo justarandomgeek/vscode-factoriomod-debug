@@ -4,6 +4,14 @@
 
 * Nicer log() hook on Factorio >= 0.18.34
 * Ignore Unicode BOM in Changelog files
+* Cleaned up path mapping between factorio/vscode
+  * Now supports non-versioned unzipped mods
+  * Correctly loads unzipped mods from mods from modsPath~=workspace before zipped mods
+  * Correctly parse mod paths with __ in paths
+  * Load only used zips when launching debug
+  * Clear previously loaded zips before reloading
+  * If using manual require in settings stage, it may now be needed to list debugadapter as an optional dependency to ensure Modules event is completed first. Instrument mode handles this automatically.
+
 
 ## 0.18.23
 

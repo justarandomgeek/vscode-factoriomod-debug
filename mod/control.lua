@@ -35,18 +35,6 @@ local function updateBreakpoints(change)
 end
 __DebugAdapter.updateBreakpoints = updateBreakpoints
 
-local function modules()
-  local mods = {}
-  for name,version in pairs(script.active_mods) do
-    mods[#mods+1] = {
-      id = name, name = name,
-      version = version,
-    }
-  end
-  mods[#mods+1] = { id = "level", name = "level", }
-  print("EVTmodules: " .. json.encode(mods))
-end
-
 local whoiscache = {}
 local function whois(remotename)
   local interfaces = remote.interfaces
@@ -75,13 +63,11 @@ local function whois(remotename)
 end
 
 script.on_init(function()
-  modules()
   print("DBG: on_init")
   debug.debug()
 end)
 
 script.on_load(function()
-  modules()
   print("DBG: on_load")
   debug.debug()
 end)
