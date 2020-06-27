@@ -2,6 +2,8 @@
 
 ## 0.18.26
 
+* Updated Mod Portal login procedure to work with the new Portal
+
 ## 0.18.25
 
 * Report errors and more detail when searching for mods for path mapping

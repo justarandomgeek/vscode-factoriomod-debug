@@ -321,7 +321,7 @@ export class ModPackage extends vscode.TreeItem {
 		// TS says this type doesn't work, but it really does...
 		let cookiejar = <WebRequest.CookieJar><unknown>jar();
 		try {
-			const loginform = await WebRequest.get("https://mods.factorio.com/login",{jar:cookiejar});
+			const loginform = await WebRequest.get("https://factorio.com/login?mods=1&next=%2Ftrending",{jar:cookiejar});
 			const logintoken = ((loginform.content.match(/<input [^>]+"csrf_token"[^>]+>/)||[])[0]?.match(/value="([^"]*)"/)||[])[1];
 			const config = vscode.workspace.getConfiguration(undefined,this.resourceUri);
 
@@ -337,11 +337,16 @@ export class ModPackage extends vscode.TreeItem {
 				|| await vscode.window.showInputBox({prompt: "Mod Portal Password:", password: true, ignoreFocusOut: true });
 			if (!password) {return;}
 
-			const loginresult = await WebRequest.post("https://mods.factorio.com/login",{jar:cookiejar, throwResponseError: true,
+			const loginresult = await WebRequest.post("https://factorio.com/login",{jar:cookiejar, throwResponseError: true,
+				headers:{
+					referer: "https://factorio.com/login?mods=1&next=%2Ftrending"
+				},
 				form:{
-					csrf_token:logintoken,
-					username: username,
-					password: password
+					csrf_token: logintoken,
+					username_or_email: username,
+					password: password,
+					next_url: "/trending",
+					next_mods: false
 				}
 			});
 
