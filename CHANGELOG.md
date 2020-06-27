@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.25
+
+
+
 ## 0.18.24
 
 * Nicer log() hook on Factorio >= 0.18.34
