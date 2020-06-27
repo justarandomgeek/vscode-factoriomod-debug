@@ -721,7 +721,7 @@ export class FactorioModRuntime extends EventEmitter {
 				// find it in workspace
 				module.symbolFilePath = wm.uri.toString();
 				module.symbolStatus = "Loaded Workspace Directory";
-				FactorioModRuntime.output.appendLine(`loaded ${module.name} from workspace ${module.symbolFilePath}`);
+				FactorioModRuntime.output.appendLine(`loaded ${module.name} ${module.version} from workspace ${module.symbolFilePath}`);
 				continue;
 			}
 
@@ -744,13 +744,17 @@ export class FactorioModRuntime extends EventEmitter {
 							{
 								module.symbolFilePath = dir.toString();
 								module.symbolStatus = "Loaded Mod Directory";
-								FactorioModRuntime.output.appendLine(`loaded ${module.name} from modspath ${module.symbolFilePath}`);
+								FactorioModRuntime.output.appendLine(`loaded ${module.name} ${module.version} from modspath ${module.symbolFilePath}`);
 								return true;
 							}
 						}
 					}
-					catch
+					catch (ex)
 					{
+						if ((<vscode.FileSystemError>ex).code !== "FileNotFound")
+						{
+							FactorioModRuntime.output.appendLine(`${ex}`);
+						}
 						return false;
 					}
 					return false;
@@ -769,22 +773,44 @@ export class FactorioModRuntime extends EventEmitter {
 				if (zipext)
 				{
 					const zipuri = vscode.Uri.parse("file:/"+ path.resolve(this.modsPath,module.name+"_"+module.version+".zip").replace(/\\/g,"/"));
+					let stat:vscode.FileStat|undefined;
+					try
+					{
+						stat = await vscode.workspace.fs.stat(zipuri);
+					}
+					catch (ex)
+					{
+						if ((<vscode.FileSystemError>ex).code !== "FileNotFound")
+						{
+							FactorioModRuntime.output.appendLine(`${ex}`);
+						}
+					}
+					// eslint-disable-next-line no-bitwise
+					if (stat && stat.type|vscode.FileType.File)
+					{
+						try
+						{
+							// if zip exists, try to mount it
+							//TODO: can i check if it's already mounted somehow?
+							//TODO: mount it fast enough to actually read dirname inside
+							vscode.commands.executeCommand("zipexplorer.exploreZipFile", zipuri);
 
-					// if zip exists, try to mount it
-					//TODO: can i check if it's already mounted somehow?
-					//TODO: mount it fast enough to actually read dirname inside
-					vscode.commands.executeCommand("zipexplorer.exploreZipFile", zipuri);
-
-					let zipinside = zipuri.with({scheme: "zip", path: path.posix.join(zipuri.path,module.name+"_"+module.version)});
-					module.symbolFilePath = zipinside.toString();
-					module.symbolStatus = "Loaded Zip";
-					FactorioModRuntime.output.appendLine(`loaded ${module.name} from mod zip ${zipuri.toString()}`);
-					continue;
+							let zipinside = zipuri.with({scheme: "zip", path: path.posix.join(zipuri.path,module.name+"_"+module.version)});
+							module.symbolFilePath = zipinside.toString();
+							module.symbolStatus = "Loaded Zip";
+							FactorioModRuntime.output.appendLine(`loaded ${module.name} ${module.version} from mod zip ${zipuri.toString()}`);
+							continue;
+						}
+						catch (ex)
+						{
+							FactorioModRuntime.output.appendLine(`${ex}`);
+						}
+					}
 				}
 			}
 
 			module.symbolStatus = "Unknown";
-			FactorioModRuntime.output.appendLine(`no source found for ${module.name}`);
+			FactorioModRuntime.output.appendLine(`no source found for ${module.name} ${module.version}`);
 		}
 		//TODO: another event to update it with levelpath for __level__ eventually?
 		this.sendEvent('modules',Array.from(this._modules.values()));

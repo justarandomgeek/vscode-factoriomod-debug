@@ -2,7 +2,7 @@
 
 ## 0.18.25
 
-
+* Report errors and more detail when searching for mods for path mapping
 
 ## 0.18.24
 
