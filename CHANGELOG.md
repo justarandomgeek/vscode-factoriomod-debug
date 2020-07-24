@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.27
+
+* More correct heuristic for attempting to translate tables as LocalisedString, gracefully handle translation failure.
+
 ## 0.18.26
 
 * Updated Mod Portal login procedure to work with the new Portal

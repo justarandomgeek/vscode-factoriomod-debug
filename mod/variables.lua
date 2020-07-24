@@ -119,15 +119,19 @@ do
   local i = 1
   if localised_print then
     function variables.translate(mesg)
-      localised_print({"",
+      local success,result = pcall(localised_print, {"",
       "***DebugAdapterBlockPrint***\n"..
       "DBGtranslate: ", i, "\n",
       mesg,"\n"..
       "***EndDebugAdapterBlockPrint***"
       })
-      local j = i
-      i = i + 1
-      return j
+      if success then
+        local j = i
+        i = i + 1
+        return j
+      else
+        return success,result
+      end
     end
   end
 
@@ -355,6 +359,10 @@ function variables.create(name,value,evalName)
       for k,v in next,value,namesStartAfter do
         namedVariables = namedVariables + 1
       end
+      if not mt and namedVariables == 0 and type(value[1]) == "string" then
+        -- no meta, array-like, and starts with a string, maybe a localisedstring? at least try...
+        namedVariables = 1
+      end
     elseif mt.__debugchildren then -- mt and ...
       variablesReference = variables.tableRef(value,nil,nil,nil,evalName)
       -- children counts for mt children?
@@ -512,10 +520,10 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
           -- tables with no meta, and [1] that is string
           if variables.translate and filter == "named" and not mt and type(varRef.table[1]) == "string" then
             -- print a translation for this with unique id
-            local i = variables.translate(varRef.table)
+            local i,mesg = variables.translate(varRef.table)
             vars[#vars + 1] = {
               name = "<translated>",
-              value = "{LocalisedString "..i.."}",
+              value = i and ("{LocalisedString "..i.."}") or ("<"..mesg..">"),
               type = "LocalisedString",
               variablesReference = 0,
               presentationHint = { kind = "property", attributes = { "readOnly" } },
@@ -600,7 +608,12 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
               local value = "<Translation Not Available>"
               if variables.translate then
                 -- print a translation for this with unique id
-                value = "{LocalisedString "..variables.translate(object).."}"
+                local id,mesg = variables.translate(object)
+                if id then
+                  value = "{LocalisedString "..id.."}"
+                else
+                  value = "<"..mesg..">"
+                end
               end
               vars[#vars + 1] = {
                 name = "<translated>",
