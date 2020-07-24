@@ -10,11 +10,11 @@ I open the Factorio `mods` directory as the root of my workspace in VSCode, and 
     * `.vscode/`
       * `launch.json`
       * `settings.json`
-    * `modname_0.0.0/`
+    * `modname/`
       * `.git/...`
       * `info.json`
       * ...
-    * `anothermod_0.0.0/`
+    * `anothermod/`
       * ...
 
 
