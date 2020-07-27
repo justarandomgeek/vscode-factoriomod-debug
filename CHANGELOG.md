@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.28
+
+* Include factorioPath="" in initialConfigurations
+
 ## 0.18.27
 
 * More correct heuristic for attempting to translate tables as LocalisedString, gracefully handle translation failure.

@@ -616,7 +616,8 @@
           {
             "type": "factoriomod",
             "request": "launch",
-            "name": "Factorio Mod Debug"
+            "name": "Factorio Mod Debug",
+            "factorioPath": ""
           }
         ],
         "configurationSnippets": [
