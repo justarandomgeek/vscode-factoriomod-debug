@@ -3,6 +3,7 @@
 ## 0.18.28
 
 * Include factorioPath="" in initialConfigurations
+* Better error when calling remote interfaces or methods that don't exist
 
 ## 0.18.27
 

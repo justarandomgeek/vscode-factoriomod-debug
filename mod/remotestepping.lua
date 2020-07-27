@@ -68,6 +68,11 @@ if __DebugAdapter.instrument then
   --- Replacement for LuaRemote::call() which passes stepping state along with the call.
   --- Signature and returns are the same as original LuaRemote::call()
   function newremote.call(remotename,method,...)
+    if not oldremote.interfaces[remotename] then
+      error("Unknown interface: "..remotename)
+    elseif not oldremote.interfaces[remotename][method] then
+      error("No such function: "..remotename.."."..method)
+    end
     local call = oldremote.call
     -- find out who owns it, if they have debug registered...
     local debugname = call("debugadapter","whois",remotename)
@@ -92,7 +97,7 @@ if __DebugAdapter.instrument then
       return call(remotename,method,...)
     end
   end
-else
+else -- not __DebugAdapter.instrument
   --- Transfer stepping state and perform the call. Vararg arguments will be forwarded to the
   --- remote function, and any return value from the remote will be returned with the new stepping state in a table.
   ---@param parentstep string "remote"*("next" | "in" | "over" | "out")
@@ -129,6 +134,11 @@ else
   --- Replacement for LuaRemote::call() which passes stepping state along with the call.
   --- Signature and returns are the same as original LuaRemote::call()
   function newremote.call(remotename,method,...)
+    if not oldremote.interfaces[remotename] then
+      error("Unknown interface: "..remotename)
+    elseif not oldremote.interfaces[remotename][method] then
+      error("No such function: "..remotename.."."..method)
+    end
     local call = oldremote.call
     -- find out who owns it, if they have debug registered...
     local debugname = call("debugadapter","whois",remotename)
