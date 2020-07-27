@@ -6,6 +6,7 @@
 * Better error when calling remote interfaces or methods that don't exist
 * Merged Factorio Mod Packages views into one. Depending on configuration, you may need to reactivate the view after this update.
 * Factorio Mod Packages view has an icon when used as a standalone panel
+* Sorted Factorio Mod Packages view alphabetically
 
 ## 0.18.27
 

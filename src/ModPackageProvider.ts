@@ -4,6 +4,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as Git from './git';
 import * as WebRequest from 'web-request';
+import * as semver from 'semver';
 import { jar } from 'request';
 import { spawn } from 'child_process';
 import { BufferSplitter } from './BufferSplitter';
@@ -641,7 +642,18 @@ export class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.Tree
 					items.push(modscript);
 				});
 			}
-			return items;
+			return items.sort((a:ModPackage,b:ModPackage)=>{
+				const namecomp = a.label.toLowerCase().localeCompare(b.label.toLowerCase());
+				if (namecomp !== 0) {return namecomp * 100;}
+
+				const vercomp = semver.compare(a.description,b.description);
+				if (vercomp !== 0) {return vercomp * 10;}
+
+				if (a.resourceUri<b.resourceUri) {return -1;}
+				if (a.resourceUri>b.resourceUri) {return  1;}
+
+				return 0;
+			});
 		}
 		else if (element instanceof ModPackage) {
 			return [];
