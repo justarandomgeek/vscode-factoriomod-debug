@@ -37,22 +37,22 @@ if __DebugAdapter.instrument then
   ---@param parentstep string "remote"*("next" | "in" | "over" | "out")
   ---@param parentstack StackFrame[]
   ---@param pcallresult boolean
-  ---@param remotename string
-  ---@param fname string
+  ---@param interface string
+  ---@param func string
   ---@return table
-  function remotestepping.callInner(parentstep,parentstack,pcallresult,remotename,fname,...)
+  function remotestepping.callInner(parentstep,parentstack,pcallresult,interface,func,...)
     __DebugAdapter.pushEntryPointName("hookedremote")
     stacks[#stacks+1] = {
       stack = parentstack,
-      name = fname,
+      name = func,
     }
     if parentstep and (parentstep == "over" or parentstep == "out" or parentstep:match("^remote")) then
       parentstep = "remote" .. parentstep
     end
     __DebugAdapter.step(parentstep,true)
 
-    local func = myRemotes[remotename][fname]
-    local result = {func(...)}
+    local remotefunc = myRemotes[interface][func]
+    local result = {remotefunc(...)}
 
     parentstep = __DebugAdapter.currentStep()
     __DebugAdapter.step(nil,true)
@@ -67,20 +67,29 @@ if __DebugAdapter.instrument then
 
   --- Replacement for LuaRemote::call() which passes stepping state along with the call.
   --- Signature and returns are the same as original LuaRemote::call()
-  function newremote.call(remotename,method,...)
-    if not oldremote.interfaces[remotename] then
-      error("Unknown interface: "..remotename)
-    elseif not oldremote.interfaces[remotename][method] then
-      error("No such function: "..remotename.."."..method)
+  function newremote.call(interface,func,...)
+    do
+      local itype = type(interface)
+      local ftype = type(func)
+      if itype ~= "string" then
+        error("Bad argument `interface` expected string got "..itype,2)
+      elseif ftype ~= "string" then
+        error("Bad argument `func` expected string got "..ftype,2)
+      elseif not oldremote.interfaces[interface] then
+        error("Unknown interface: "..interface,2)
+      elseif not oldremote.interfaces[interface][func] then
+        error("No such function: "..interface.."."..func,2)
+      end
     end
+
     local call = oldremote.call
     -- find out who owns it, if they have debug registered...
-    local debugname = call("debugadapter","whois",remotename)
+    local debugname = call("debugadapter","whois",interface)
     if debugname then
       debugname = "__debugadapter_" .. debugname
       local result,multreturn = call(debugname,"remoteCallInner",
         __DebugAdapter.currentStep(), __DebugAdapter.stackTrace(-2, nil, true), false,
-        remotename, method, ...)
+        interface, func, ...)
 
       local childstep = result.step
       result = result.result
@@ -94,7 +103,7 @@ if __DebugAdapter.instrument then
 
     else
       -- if whois doesn't know who owns it, they must not have debug registered...
-      return call(remotename,method,...)
+      return call(interface,func,...)
     end
   end
 else -- not __DebugAdapter.instrument
@@ -103,22 +112,22 @@ else -- not __DebugAdapter.instrument
   ---@param parentstep string "remote"*("next" | "in" | "over" | "out")
   ---@param parentstack StackFrame[]
   ---@param pcallresult boolean
-  ---@param remotename string
-  ---@param fname string
+  ---@param interface string
+  ---@param func string
   ---@return table
-  function remotestepping.callInner(parentstep,parentstack,pcallresult,remotename,fname,...)
+  function remotestepping.callInner(parentstep,parentstack,pcallresult,interface,func,...)
     __DebugAdapter.pushEntryPointName("hookedremote")
     stacks[#stacks+1] = {
       stack = parentstack,
-      name = fname,
+      name = func,
     }
     if parentstep and (parentstep == "over" or parentstep == "out" or parentstep:match("^remote")) then
       parentstep = "remote" .. parentstep
     end
     __DebugAdapter.step(parentstep,true)
 
-    local func = myRemotes[remotename][fname]
-    local result = {xpcall(func,__DebugAdapter.on_exception,...)}
+    local remotefunc = myRemotes[interface][func]
+    local result = {xpcall(remotefunc,__DebugAdapter.on_exception,...)}
 
     parentstep = __DebugAdapter.currentStep()
     __DebugAdapter.step(nil,true)
@@ -133,27 +142,35 @@ else -- not __DebugAdapter.instrument
 
   --- Replacement for LuaRemote::call() which passes stepping state along with the call.
   --- Signature and returns are the same as original LuaRemote::call()
-  function newremote.call(remotename,method,...)
-    if not oldremote.interfaces[remotename] then
-      error("Unknown interface: "..remotename)
-    elseif not oldremote.interfaces[remotename][method] then
-      error("No such function: "..remotename.."."..method)
+  function newremote.call(interface,func,...)
+    do
+      local itype = type(interface)
+      local ftype = type(func)
+      if itype ~= "string" then
+        error("Bad argument `interface` expected string got "..itype,2)
+      elseif ftype ~= "string" then
+        error("Bad argument `func` expected string got "..ftype,2)
+      elseif not oldremote.interfaces[interface] then
+        error("Unknown interface: "..interface,2)
+      elseif not oldremote.interfaces[interface][func] then
+        error("No such function: "..interface.."."..func,2)
+      end
     end
     local call = oldremote.call
     -- find out who owns it, if they have debug registered...
-    local debugname = call("debugadapter","whois",remotename)
+    local debugname = call("debugadapter","whois",interface)
     if debugname then
       debugname = "__debugadapter_" .. debugname
       local result,multreturn = call(debugname,"remoteCallInner",
         __DebugAdapter.currentStep(), __DebugAdapter.stackTrace(-2, nil, true), true,
-        remotename, method, ...)
+        interface, func, ...)
 
       local childstep = result.step
       result = result.result
 
       if not result[1] then
         local err = result[2]
-        error({"REMSTEP","Error when running interface function ", remotename, ".", method, ":\n", err},-1)
+        error({"REMSTEP","Error when running interface function ", interface, ".", func, ":\n", err},-1)
       end
 
       __DebugAdapter.step(childstep,true)
@@ -165,7 +182,7 @@ else -- not __DebugAdapter.instrument
 
     else
       -- if whois doesn't know who owns it, they must not have debug registered...
-      return call(remotename,method,...)
+      return call(interface,func,...)
     end
   end
 end
