@@ -5,6 +5,7 @@ local oldxpcall = xpcall
 local localised_print = localised_print
 
 local function print_exception(type,mesg)
+  if mesg == nil then mesg = "<nil>" end
   localised_print({"",
   "***DebugAdapterBlockPrint***\n"..
   "DBG: exception ", type, "\n",
