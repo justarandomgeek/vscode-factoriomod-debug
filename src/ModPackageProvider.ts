@@ -270,7 +270,7 @@ export class ModPackage extends vscode.TreeItem {
 			return;
 		}
 
-		const newversion = this.description.replace(/\.([0-9]+)$/,(patch)=>{return `.${Number.parseInt(patch.substr(1))+1}`;});
+		const newversion = semver.inc(this.description,'patch')!;
 		let version = syms.find(sym=>sym.name === "version")!;
 
 		we.replace(this.resourceUri,

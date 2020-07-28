@@ -7,6 +7,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import * as semver from 'semver';
 import { Buffer } from 'buffer';
 import { Profile } from './Profile';
 
@@ -715,7 +716,7 @@ export class FactorioModRuntime extends EventEmitter {
 				continue;
 			}
 
-			const wm = this.workspaceModInfo.find(m=>m.name===module.name && m.version===module.version);
+			const wm = this.workspaceModInfo.find(m=>m.name===module.name && semver.eq(m.version,module.version!));
 			if (wm)
 			{
 				// find it in workspace
@@ -740,7 +741,7 @@ export class FactorioModRuntime extends EventEmitter {
 								await vscode.workspace.fs.readFile(
 									dir.with({path: path.posix.join(dir.path,"info.json")})
 									)).toString("utf8"));
-							if (modinfo.name===module.name && modinfo.version===module.version)
+							if (modinfo.name===module.name && semver.eq(modinfo.version,module.version!))
 							{
 								module.symbolFilePath = dir.toString();
 								module.symbolStatus = "Loaded Mod Directory";
