@@ -284,7 +284,14 @@ function newscript.on_nth_tick(tick,f)
   if not tick then
     return oldscript.on_nth_tick(nil)
   else
-    return oldscript.on_nth_tick(tick,try(f,("on_nth_tick %d handler"):format(tick)))
+    local ttype = type(tick)
+    if ttype == "number" then
+      return oldscript.on_nth_tick(tick,try(f,("on_nth_tick %d handler"):format(tick)))
+    elseif ttype == "table" then
+      return oldscript.on_nth_tick(tick,try(f,("on_nth_tick {%s} handler"):format(table.concat(tick,","))))
+    else
+      error("Bad argument `tick` expected number or table got "..ttype,2)
+    end
   end
 end
 

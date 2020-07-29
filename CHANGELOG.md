@@ -8,6 +8,7 @@
 * Factorio Mod Packages view has an icon when used as a standalone panel
 * Sorted Factorio Mod Packages view alphabetically
 * Correctly catch `error(nil)`
+* Correctly wrap `script.on_nth_tick` when given an array of ticks
 
 ## 0.18.27
 
