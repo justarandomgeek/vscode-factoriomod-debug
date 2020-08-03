@@ -307,9 +307,9 @@ function variables.describe(value,short)
       if info.what == "C" then
         lineitem = "<C function>"
       elseif info.what == "Lua" then
-        lineitem = ("<Lua function @%s:%d>"):format(info.source and normalizeLuaSource(info.source),info.linedefined)
+        lineitem = ("<Lua function %s:%d>"):format(info.source and normalizeLuaSource(info.source),info.linedefined)
       elseif info.what == "main" then
-        lineitem = ("<main chunk @%s>"):format(info.source and normalizeLuaSource(info.source))
+        lineitem = ("<main chunk %s>"):format(info.source and normalizeLuaSource(info.source))
       end
     end
   elseif vtype == "userdata" then

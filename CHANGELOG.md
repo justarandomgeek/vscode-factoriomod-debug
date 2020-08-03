@@ -3,6 +3,7 @@
 ## 0.18.29
 
 * Use `rawget` when identifying tables for inspection
+* Remove duplicate `@` in function descriptions
 
 ## 0.18.28
 
