@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.29
+
+* Use `rawget` when identifying tables for inspection
+
 ## 0.18.28
 
 * Include factorioPath="" in initialConfigurations

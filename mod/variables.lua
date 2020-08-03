@@ -19,6 +19,8 @@ local __DebugAdapter = __DebugAdapter
 local debug = debug
 local table = table
 local setmetatable = setmetatable
+local getmetatable = getmetatable
+local rawget = rawget
 local next = next
 local pairs = pairs
 local print = print
@@ -219,7 +221,7 @@ function variables.describe(value,short)
   local vtype = type(value)
   if vtype == "table" then
     -- only check __self and metatable, since top level objects (game, script, etc) don't have the magic string in .isluaobject
-    if type(value.__self) == "userdata" and getmetatable(value) == "private" then
+    if type(rawget(value,"__self")) == "userdata" and getmetatable(value) == "private" then
       vtype = value.object_name
       if vtype == "LuaCustomTable" then
           lineitem = ("%d item%s"):format(#value, #value~=1 and "s" or "" )
@@ -534,7 +536,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
           if debugpairs then
             local f,t,firstk = debugpairs(varRef.table)
             local mtlen = mt and mt.__len
-            local maxindex = ((mtlen and type(varRef.table.__self)=="userdata") and mtlen or rawlen)(varRef.table)
+            local maxindex = ((mtlen and type(rawget(varRef.table,"__self"))=="userdata") and mtlen or rawlen)(varRef.table)
             if filter == "indexed" then
               if not start or start == 0 then
                 start = 1
