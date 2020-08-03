@@ -361,7 +361,32 @@ export class FactorioModRuntime extends EventEmitter {
 			}
 			args.factorioArgs.push("--mod-directory",mods);
 		}
-		this._factorio = spawn(args.factorioPath,args.factorioArgs);
+
+		if (fs.existsSync(path.resolve(args.factorioPath,"../steam_api64.dll")) ||
+			fs.existsSync(path.resolve(args.factorioPath,"../steam_api.dylib")) ||
+			fs.existsSync(path.resolve(args.factorioPath,"../steam_api.so"))
+		)
+		{
+			const appidPath = path.resolve(args.factorioPath,"../steam_appid.txt");
+			try {
+				if (fs.existsSync(appidPath))
+				{
+					FactorioModRuntime.output.appendLine(`found ${appidPath}`);
+				}
+				else
+				{
+					fs.writeFileSync(appidPath,"427520");
+					FactorioModRuntime.output.appendLine(`wrote ${appidPath}`);
+				}
+			} catch (error) {
+				FactorioModRuntime.output.appendLine(`failed to write ${appidPath}: ${error}`);
+			}
+
+		}
+
+		this._factorio = spawn(args.factorioPath,args.factorioArgs,{
+			cwd: path.dirname(args.factorioPath)
+		});
 		this._factorio.on("exit", (code:number, signal:string) => {
 			if (this.profile)
 			{

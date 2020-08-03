@@ -4,6 +4,7 @@
 
 * Use `rawget` when identifying tables for inspection
 * Remove duplicate `@` in function descriptions
+* Steam support
 
 ## 0.18.28
 
