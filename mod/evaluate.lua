@@ -45,7 +45,6 @@ local function evalmeta(frameId,alsoLookIn)
       if k == "_ENV" then return t end
       -- but _G can force global only lookup, return the real global environment
       if k == "_G" then return env end
-      if k == "__self" then return nil end
 
       if alsoLookIn then
         if k == "self" then
@@ -106,7 +105,6 @@ local function evalmeta(frameId,alsoLookIn)
     __newindex = function(t,k,v)
       -- don't allow setting _ENV or _G in evals
       if k == "_ENV" or k == "_G" then return end
-      if k == "__self" then return end
 
       if alsoLookIn then
         if k == "self" then

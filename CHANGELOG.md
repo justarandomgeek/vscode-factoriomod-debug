@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.30
+
+* Remove special case for `__self` in eval env
+
 ## 0.18.29
 
 * Use `rawget` when identifying tables for inspection
