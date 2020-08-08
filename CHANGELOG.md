@@ -3,6 +3,7 @@
 ## 0.18.30
 
 * Remove special case for `__self` in eval env
+* Support(ish) launching Factorio with a native debugger
 
 ## 0.18.29
 

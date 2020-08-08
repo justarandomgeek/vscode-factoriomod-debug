@@ -10,6 +10,7 @@ import * as os from 'os';
 import * as semver from 'semver';
 import { Buffer } from 'buffer';
 import { Profile } from './Profile';
+import treekill = require('tree-kill');
 
 
 interface ModEntry{
@@ -45,6 +46,7 @@ type HookMode = "debug"|"profile";
 
 export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 	factorioPath: string // path of factorio binary to launch
+	nativeDebugger: string // path to native debugger if in use
 	modsPath: string // path of `mods` directory
 	modsPathDetected?: boolean
 	configPath: string // path to config.ini
@@ -92,6 +94,7 @@ export class FactorioModRuntime extends EventEmitter {
 	// unhandled only by default
 	private _exceptionFilters = new Set<string>(["unhandled"]);
 
+	private hasNativeDebug : boolean;
 	private _factorio : ChildProcess;
 
 	private _stack?: resolver<StackFrame[]>;
@@ -384,9 +387,19 @@ export class FactorioModRuntime extends EventEmitter {
 
 		}
 
-		this._factorio = spawn(args.factorioPath,args.factorioArgs,{
-			cwd: path.dirname(args.factorioPath)
-		});
+		if (args.nativeDebugger) {
+			this.hasNativeDebug = true;
+			this._factorio = spawn(args.nativeDebugger, [args.factorioPath, ...args.factorioArgs],{
+				cwd: path.dirname(args.factorioPath)
+			});
+		} else {
+			this._factorio = spawn(args.factorioPath,args.factorioArgs,{
+				cwd: path.dirname(args.factorioPath)
+			});
+		}
+
+
+
 		this._factorio.on("exit", (code:number, signal:string) => {
 			if (this.profile)
 			{
@@ -581,13 +594,20 @@ export class FactorioModRuntime extends EventEmitter {
 			this.profile = undefined;
 		}
 
-		this._factorio.kill();
-		try {
-			// this covers some weird hangs on closing on macs and
-			// seems to have no ill effects on windows, but try/catch
-			// just in case...
-			this._factorio.kill('SIGKILL');
-		} catch (error) {}
+		if (this.hasNativeDebug)
+		{
+			treekill(this._factorio.pid);
+		}
+		else
+		{
+			this._factorio.kill();
+			try {
+				// this covers some weird hangs on closing on macs and
+				// seems to have no ill effects on windows, but try/catch
+				// just in case...
+				this._factorio.kill('SIGKILL');
+			} catch (error) {}
+		}
 		const modsPath = this.modsPath;
 		if (modsPath) {
 			const modlistpath = path.resolve(modsPath,"./mod-list.json");
