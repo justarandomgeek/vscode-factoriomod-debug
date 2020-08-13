@@ -8,7 +8,7 @@ if __DebugAdapter then
   require("__debugadapter__/debugadapter.lua")
 elseif __Profiler then
   local a,b,c = script.active_mods.base:match("(%d+).(%d+).(%d+)")
-  if not (a=="0" and b=="18" and (tonumber(c) or 0)>=27) then
+  if not (a=="1" or (a=="0" and b=="18" and (tonumber(c) or 0)>=27)) then
     -- most recent feature required: LuaProfiler::add()
     error("Profiling requires Factorio >= 0.18.27")
   end

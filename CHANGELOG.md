@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.31
+
+* Allow 1.x in various compatibility version tests
+
 ## 0.18.30
 
 * Remove special case for `__self` in eval env
