@@ -23,7 +23,7 @@ local luaObjectLines = {
 __DebugAdapter.stepIgnoreAll(luaObjectLines)
 
 
--- class data last updated factorio 0.18.34
+-- class data last updated factorio 1.0.0
 return {
   alwaysValid = {
     LuaRemote = true,
@@ -260,6 +260,7 @@ return {
       consumption_modifier = {},
       friction_modifier = {},
       driver_is_gunner = {},
+      vehicle_automatic_targeting_parameters = {},
       speed = {},
       effective_speed = {readOnly = true},
       stack = {readOnly = true},
@@ -384,6 +385,11 @@ return {
       tags = {},
       command = {readOnly = true},
       distraction_command = {readOnly = true},
+      time_to_next_effect = {},
+      autopilot_destination = {},
+      is_entity_with_force = {readOnly = true},
+      is_entity_with_owner = {readOnly = true},
+      is_entity_with_health = {readOnly = true},
     },
     LuaEntityPrototype = {
       name = {readOnly = true},
@@ -532,6 +538,7 @@ return {
       spawning_spacing = {readOnly = true},
       radius = {readOnly = true},
       cliff_explosive_prototype = {readOnly = true},
+      rocket_entity_prototype = {readOnly = true},
       has_belt_immunity = {readOnly = true},
       vision_distance = {readOnly = true},
       pollution_to_join_attack = {readOnly = true},
@@ -1025,7 +1032,6 @@ return {
       selection_cursor_box_type = {readOnly = true},
       alt_selection_cursor_box_type = {readOnly = true},
       always_include_tiles = {readOnly = true},
-      show_in_library = {readOnly = true},
       entity_filter_mode = {readOnly = true},
       alt_entity_filter_mode = {readOnly = true},
       tile_filter_mode = {readOnly = true},
@@ -1052,7 +1058,7 @@ return {
       health = {},
       durability = {},
       ammo = {},
-      blueprint_icons = {},
+      -- blueprint_icons = {}, -- crashes when read on wrong items in Factorio 1.0.0
       label = {},
       label_color = {},
       allow_manual_label_change = {},
@@ -1072,6 +1078,7 @@ return {
       tile_filter_count = {readOnly = true},
       active_index = {},
       item_number = {readOnly = true},
+      connected_entity = {},
       is_blueprint = {readOnly = true},
       is_blueprint_book = {readOnly = true},
       is_module = {readOnly = true},
@@ -1407,6 +1414,7 @@ return {
       remove_unfiltered_items = {},
       infinity_inventory_filters = {},
       auto_sort_main_inventory = {readOnly = true},
+      hand_location = {},
     },
     LuaProfiler = {
       ["<translated>"] = {thisTranslated = true},

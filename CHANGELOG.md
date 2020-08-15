@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.18.32
+
+* Updated class data to Factorio 1.0.0
+* Temporarily unlisted property LuaItemStack::blueprint_icons to avoid crash when reading it in Factorio 1.0.0
+
 ## 0.18.31
 
 * Allow 1.x in various compatibility version tests
