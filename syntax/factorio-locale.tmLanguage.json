@@ -14,7 +14,7 @@
 				},
 				{
 					"name": "variable.language.factorio-locale",
-					"match": "__((ALT_)?CONTROL(_MOVE)?|ENTITY|ITEM|TILE)__.+?__"
+					"match": "__((ALT_)?CONTROL(_MOVE|_STYLE_(BEGIN|END))?|ENTITY|ITEM|TILE)__.+?__"
 				},
 				{
 					"name": "keyword.control.plural.factorio-locale",

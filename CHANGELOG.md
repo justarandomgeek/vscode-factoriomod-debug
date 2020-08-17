@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.33
+
+* Add locale vars `__CONTROL_STYLE_BEGIN__` and `__CONTROL_STYLE_END__`
+
 ## 0.18.32
 
 * Updated class data to Factorio 1.0.0
