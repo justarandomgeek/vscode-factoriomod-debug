@@ -3,6 +3,7 @@
 ## 0.18.33
 
 * Add locale vars `__CONTROL_STYLE_BEGIN__` and `__CONTROL_STYLE_END__`
+* Add options to configure created mod zip location, and automatically remove after successful publish
 
 ## 0.18.32
 

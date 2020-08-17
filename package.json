@@ -128,6 +128,24 @@
             "type": "string",
             "description": "Message for version tags. Use `$VERSION` to insert the version number."
           },
+          "factorio.package.zipLocation": {
+            "type": "string",
+            "description": "Location to place mod zip packages.",
+            "enumDescriptions": [
+              "Inside Mod (sibling of info.json)",
+              "Outside Mod (one level up from info.json)"
+            ],
+            "enum": [
+              "inside",
+              "outside"
+            ],
+            "default": "inside"
+          },
+          "factorio.package.removeZipAfterPublish": {
+            "type": "boolean",
+            "description": "Remove mod zip after successful upload in Publish task",
+            "default": false
+          },
           "factorio.profile.timerHighlightColor": {
             "type": "string",
             "description": "Color to be used to highlight hot timers",

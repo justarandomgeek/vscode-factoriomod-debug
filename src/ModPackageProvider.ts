@@ -223,6 +223,8 @@ export class ModPackage extends vscode.TreeItem {
 
 	public async Package(term:ModTaskTerminal): Promise<string|undefined>
 	{
+		const config = vscode.workspace.getConfiguration(undefined,this.resourceUri);
+
 		term.write(`Packaging: ${this.resourceUri} ${this.description}\r\n`);
 		const moddir = path.dirname(this.resourceUri.fsPath);
 		if(this.scripts?.prepackage)
@@ -231,7 +233,17 @@ export class ModPackage extends vscode.TreeItem {
 				{ FACTORIO_MODNAME:this.label, FACTORIO_MODVERSION:this.description });
 			if (code !== 0) {return;}
 		}
-		const packagepath = path.join(moddir, `${this.label}_${this.description}.zip`);
+		let packagebase = moddir;
+		switch (config.get<string>("factorio.package.zipLocation","inside")) {
+			case "outside":
+				packagebase = path.dirname(moddir);
+				break;
+			case "inside":
+			default:
+				break;
+		}
+
+		const packagepath = path.join(packagebase, `${this.label}_${this.description}.zip`);
 		let zipoutput = fs.createWriteStream(packagepath);
 		let archive = archiver('zip', { zlib: { level: 9 }});
 		archive.pipe(zipoutput);
@@ -316,7 +328,7 @@ export class ModPackage extends vscode.TreeItem {
 		});
 	}
 
-	public async PostToPortal(packagepath: string, packageversion:string, term:ModTaskTerminal)
+	public async PostToPortal(packagepath: string, packageversion:string, term:ModTaskTerminal): Promise<boolean>
 	{
 		// upload to portal
 		// TS says this type doesn't work, but it really does...
@@ -329,14 +341,14 @@ export class ModPackage extends vscode.TreeItem {
 			const username = config.get("factorio.portal.username")
 				|| process.env["FACTORIO_PORTAL_USERNAME"]
 				|| await vscode.window.showInputBox({prompt: "Mod Portal Username:", ignoreFocusOut: true });
-			if(!username) {return;}
+			if(!username) {return false;}
 
 			term.write(`Logging in to Mod Portal as '${username}'\r\n`);
 
 			const password = config.get("factorio.portal.password")
 				|| process.env["FACTORIO_PORTAL_PASSWORD"]
 				|| await vscode.window.showInputBox({prompt: "Mod Portal Password:", password: true, ignoreFocusOut: true });
-			if (!password) {return;}
+			if (!password) {return false;}
 
 			const loginresult = await WebRequest.post("https://factorio.com/login",{jar:cookiejar, throwResponseError: true,
 				headers:{
@@ -356,7 +368,7 @@ export class ModPackage extends vscode.TreeItem {
 
 		} catch (error) {
 			term.write(`Failed to log in to Mod Portal: \r\n${error.toString()}\r\n`);
-			return;
+			return false;
 		}
 
 		let uploadtoken;
@@ -365,7 +377,7 @@ export class ModPackage extends vscode.TreeItem {
 			uploadtoken = uploadform.content.match(/\n\s*token:\s*'([^']*)'/)![1];
 		} catch (error) {
 			term.write("Failed to get upload token from Mod Portal: " + error.toString());
-			return;
+			return false;
 		}
 
 		let uploadresult;
@@ -382,7 +394,7 @@ export class ModPackage extends vscode.TreeItem {
 			}});
 		} catch (error) {
 			term.write("Failed to upload zip to Mod Portal: " + error.toString());
-			return;
+			return false;
 		}
 
 		let uploadresultjson = JSON.parse(uploadresult.content);
@@ -409,8 +421,10 @@ export class ModPackage extends vscode.TreeItem {
 			}
 		} catch (error) {
 			term.write("Failed to post update to Mod Portal: " + error.toString());
-			return;
+			return false;
 		}
+
+		return true;
 	}
 
 	public PostToPortalTask(): vscode.CustomExecution
@@ -536,7 +550,13 @@ export class ModPackage extends vscode.TreeItem {
 		}
 
 		if(!this.noPortalUpload)
-			{await this.PostToPortal(packagepath, packageversion, term);}
+			{
+				if(await this.PostToPortal(packagepath, packageversion, term) &&
+					config.get<boolean>("factorio.package.removeZipAfterPublish",false))
+				{
+					fs.unlinkSync(packagepath);
+				}
+			}
 	}
 
 	public PublishTask(): vscode.CustomExecution
