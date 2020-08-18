@@ -109,6 +109,16 @@ function translatePath(thispath:string,factorioPath:string):string {
 	return thispath;
 }
 
+interface FactorioConfigIni {
+	path?:{
+		"read-data"?:string
+		"write-data"?:string
+	}
+	other?:{
+		"cache-prototype-data"?:boolean
+	}
+};
+
 class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvider {
 
 	/**
@@ -185,8 +195,26 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 			}
 		}
 
-		const configdata:{path?:{"read-data"?:string; "write-data"?:string}} = ini.parse(fs.readFileSync(config.configPath,"utf8"));
+		let configdata:FactorioConfigIni = ini.parse(fs.readFileSync(config.configPath,"utf8"));
 
+		if (configdata?.other?.["cache-prototype-data"])
+		{
+			const pcache = await vscode.window.showWarningMessage(
+				"Prototype Caching is enabled, which usually conflicts with the final portion of debugger initialization (which occurs in settings stage).",
+				"Disable in config.ini","Continue anyway"
+			);
+			if (pcache === "Disable in config.ini")
+			{
+				let filedata = fs.readFileSync(config.configPath,"utf8");
+				filedata = filedata.replace("cache-prototype-data=","; cache-prototype-data=");
+				fs.writeFileSync(config.configPath,filedata,"utf8");
+				configdata = ini.parse(filedata);
+			}
+			else if (pcache === undefined)
+			{
+				return undefined;
+			}
+		}
 		const configDataPath = configdata?.path?.["read-data"];
 		if (!configDataPath)
 		{

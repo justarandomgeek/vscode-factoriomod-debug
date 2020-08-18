@@ -4,6 +4,7 @@
 
 * Add locale vars `__CONTROL_STYLE_BEGIN__` and `__CONTROL_STYLE_END__`
 * Add options to configure created mod zip location, and automatically remove after successful publish
+* Detect and offer to disable prototype caching, which conflicts with part of debugger init
 
 ## 0.18.32
 
