@@ -1,4 +1,3 @@
-task arg to package to move zip
 phobos, phobos-tidy, phobos-format
 string.dump serialise to source, or at least disasm, for non-file chunks
 locale color widget actually offer multiple formats for colors?
@@ -6,7 +5,6 @@ update mod description from readme on publish (or other configurable file?)
 generate a mod-list.json stub when not found?
 generate config.ini stub when not found?
 offer to combine duplicate locale sections
-read config.ini mods path
 try again to use git extension api for commit/push?
 compile task to run before debug or package
 watch task to begin on project open
