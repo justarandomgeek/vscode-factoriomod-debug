@@ -12,10 +12,11 @@ import { BufferSplitter } from './BufferSplitter';
 let archiver = require('archiver');
 
 interface ModPackageScripts {
-	prepublish?: string
+	compile?: string
 	datestamp?: string
 	prepackage?: string
 	version?: string
+	prepublish?: string
 	publish?: string
 };
 
@@ -42,6 +43,17 @@ export class ModTaskProvider implements vscode.TaskProvider{
 		let tasks:vscode.Task[] = [];
 
 		this.modPackages.forEach((mp,uri) => {
+			if (mp.scripts?.compile)
+			{
+				tasks.push(new vscode.Task(
+					{label:`${mp.label}.compile`,type:"factorio",modname:mp.label,command:"compile"},
+					vscode.workspace.getWorkspaceFolder(mp.resourceUri) || vscode.TaskScope.Workspace,
+					`${mp.label}.compile`,
+					"factorio",
+					mp.CompileTask(),
+					[]
+				));
+			}
 			tasks.push(new vscode.Task(
 				{label:`${mp.label}.datestamp`,type:"factorio",modname:mp.label,command:"datestamp"},
 				vscode.workspace.getWorkspaceFolder(mp.resourceUri) || vscode.TaskScope.Workspace,
@@ -100,6 +112,9 @@ export class ModTaskProvider implements vscode.TaskProvider{
 			if(mp)
 			{
 				switch (task.definition.command) {
+					case "compile":
+						task.execution = mp.CompileTask();
+						return task;
 					case "datestamp":
 						task.execution = mp.DateStampTask();
 						return task;
@@ -161,6 +176,30 @@ export class ModPackage extends vscode.TreeItem {
 		this.noGitPush = modscript.package?.no_git_push;
 		this.noPortalUpload = modscript.package?.no_portal_upload;
 		this.scripts = modscript.package?.scripts;
+	}
+
+	public async Compile(term:ModTaskTerminal): Promise<void>
+	{
+		const moddir = path.dirname(this.resourceUri.fsPath);
+		if(this.scripts?.compile)
+		{
+			term.write(`Compiling: ${this.resourceUri} ${this.description}\r\n`);
+
+			let code = await runScript(term, "compile", this.scripts.compile, moddir,
+				{ FACTORIO_MODNAME:this.label, FACTORIO_MODVERSION:this.description });
+			if (code !== 0) {return;}
+		}
+	}
+
+	public CompileTask(): vscode.CustomExecution
+	{
+		return new vscode.CustomExecution(async ()=>{
+			return new ModTaskPseudoterminal(async term =>{
+				await this.Update();
+				await this.Compile(term);
+				term.close();
+			});
+		});
 	}
 
 	public async DateStampChangelog(term:ModTaskTerminal): Promise<boolean>
@@ -226,6 +265,7 @@ export class ModPackage extends vscode.TreeItem {
 		const config = vscode.workspace.getConfiguration(undefined,this.resourceUri);
 
 		term.write(`Packaging: ${this.resourceUri} ${this.description}\r\n`);
+		await this.Compile(term);
 		const moddir = path.dirname(this.resourceUri.fsPath);
 		if(this.scripts?.prepackage)
 		{

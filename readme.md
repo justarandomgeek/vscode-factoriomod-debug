@@ -38,13 +38,19 @@ In Factorio >= 0.18.27, you can enable an alternate hook mode for profiling. Thi
 
 ## Automatic Mod Packaging and Publishing
 
-Mods can be automatically Packaged and Published from the "Factorio Mod Packages" panel (in SCM view by default, View->Open View...-> "Factorio Mod Packages" if you can't find it). These tasks can also be accessed in VSCode's Tasks system. The environment variables `FACTORIO_MODNAME` and `FACTORIO_MODVERSION` are provided to all mod scripts.
+Mods can be automatically Packaged and Published from the "Factorio Mod Packages" panel (in SCM view by default, View->Open View...-> "Factorio Mod Packages" if you can't find it). These tasks can also be accessed in VSCode's Tasks system. Custom scripts will run inside the mod directory and have the environment variables `FACTORIO_MODNAME` and `FACTORIO_MODVERSION` provided.
 
 ### Datestamp
   * if changelog.txt present and has a section for the current version, update its date to today
   * run `info.json#/package/scripts/datestamp` if set
 
+### Compile
+  Compile tasks will be automatically run when starting a debug session if defined.
+
+  * run `info.json#/package/scripts/compile` if set
+
 ### Package
+  * run `info.json#/package/scripts/compile` if set
   * run `info.json#/package/scripts/prepackage` if set
   * build a zip including all files in the mod directory except dotfiles, zip files, and files matching the list of globs in `info.json#/package/ignore`.
 

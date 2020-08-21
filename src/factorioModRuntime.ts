@@ -150,6 +150,20 @@ export class FactorioModRuntime extends EventEmitter {
 		});
 	}
 
+
+	public async runTask(task: vscode.Task) {
+		const execution = await vscode.tasks.executeTask(task);
+
+		return new Promise<void>(resolve => {
+			let disposable = vscode.tasks.onDidEndTask(e => {
+				if (e.execution === execution) {
+					disposable.dispose();
+					resolve();
+				}
+			});
+		});
+	}
+
 	/**
 	 * Start executing the given program.
 	 */
@@ -163,6 +177,18 @@ export class FactorioModRuntime extends EventEmitter {
 		this.profileUpdateRate = args.profileUpdateRate;
 		if (this.hookMode === "profile") {this.profile = new Profile();}
 		this.trace = args.trace ?? false;
+
+
+		const tasks = (await vscode.tasks.fetchTasks({type:"factorio"})).filter(
+			(task)=>task.definition.command === "compile"
+			);
+
+		if (tasks.length > 0)
+		{
+			FactorioModRuntime.output.appendLine(`Running ${tasks.length} compile tasks: ${tasks.map(task=>task.name).join(", ")}`);
+			await Promise.all(tasks.map(this.runTask));
+		}
+
 		FactorioModRuntime.output.appendLine(`using ${args.configPathDetected?"auto-detected":"manually-configured"} config.ini: ${args.configPath}`);
 		const workspaceModLists = await this.workspaceModLists;
 		if (workspaceModLists.length > 1)
