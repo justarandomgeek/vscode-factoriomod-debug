@@ -530,22 +530,25 @@ export class ModPackage extends vscode.TreeItem {
 
 		let haschangelog = await this.DateStampChangelog(term);
 
+		let tagname:string;
 		if (repo)
 		{
 			if(haschangelog) {await runScript(term, undefined, `git add changelog.txt`, moddir);}
 			await runScript(term, undefined,
 				`git commit --author "${ config.get<string>("factorio.package.autoCommitAuthor")! }" --allow-empty -F -`,
 				moddir, undefined,
-				config.get<string>("factorio.package.preparingCommitMessage")!.replace(/\$VERSION/g,packageversion));
-			let tagversion = packageversion;
+				config.get<string>("factorio.package.preparingCommitMessage")!.replace(/\$VERSION/g,packageversion).replace(/\$MODNAME/g,this.label));
+			tagname = config.get<string>("factorio.package.tagName","$VERSION");
+			tagname = tagname.replace(/\$VERSION/g,packageversion).replace(/\$MODNAME/g,this.label);
 			if (config.get<boolean>("factorio.package.tagVPrefix"))
 			{
-				tagversion = "v" + tagversion;
+				term.write(`Using deprecated option factorio.package.tagVPrefix. Use factorio.package.tagName instead. \r\n`);
+				tagname = "v" + tagname;
 			}
 			let tagmessage = config.get<string>("factorio.package.tagMessage");
-			tagmessage = tagmessage?.replace(/\$VERSION/g,packageversion);
+			tagmessage = tagmessage?.replace(/\$VERSION/g,packageversion).replace(/\$MODNAME/g,this.label);
 			const tagarg = tagmessage ? "-F -" : "-m \"\"";
-			await runScript(term, undefined, `git tag -a ${tagversion} ${tagarg}`, moddir,undefined,tagmessage);
+			await runScript(term, undefined, `git tag -a ${tagname} ${tagarg}`, moddir,undefined,tagmessage);
 		}
 
 		// build zip with <factorio.package>
@@ -568,27 +571,22 @@ export class ModPackage extends vscode.TreeItem {
 			await runScript(term, undefined,
 				`git commit --author "${ config.get<string>("factorio.package.autoCommitAuthor")! }" -F -`,
 				moddir,undefined,
-				config.get<string>("factorio.package.movedToCommitMessage")!.replace(/\$VERSION/g,newversion));
-		}
+				config.get<string>("factorio.package.movedToCommitMessage")!.replace(/\$VERSION/g,newversion).replace(/\$MODNAME/g,this.label));
 
-		if(!this.noGitPush)
-		{
-			const upstream = repo?.state.HEAD?.upstream;
-			if (upstream)
+
+			if(!this.noGitPush)
 			{
-				let tagversion = packageversion;
-				if (config.get<boolean>("factorio.package.tagVPrefix"))
+				const upstream = repo?.state.HEAD?.upstream;
+				if (upstream)
 				{
-					tagversion = "v" + tagversion;
+					await runScript(term, undefined, `git push ${upstream.remote} master ${tagname!}`, moddir);
 				}
-				await runScript(term, undefined, `git push ${upstream.remote} master ${tagversion}`, moddir);
-			}
-			else
-			{
-				term.write(`no remote set as upstream on master\r\n`);
+				else
+				{
+					term.write(`no remote set as upstream on master\r\n`);
+				}
 			}
 		}
-
 		if(!this.noPortalUpload)
 			{
 				if(await this.PostToPortal(packagepath, packageversion, term) &&

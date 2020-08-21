@@ -104,13 +104,13 @@
           },
           "factorio.package.preparingCommitMessage": {
             "type": "string",
-            "description": "Commit message for preparing release. Use `$VERSION` to insert the version number.",
+            "description": "Commit message for preparing release. Use `$VERSION` or `$MODNAME` to insert the version number or name.",
             "default": "preparing release of version $VERSION",
             "pattern": "\\$VERSION"
           },
           "factorio.package.movedToCommitMessage": {
             "type": "string",
-            "description": "Commit message for raising version after release. Use `$VERSION` to insert the version number.",
+            "description": "Commit message for raising version after release. Use `$VERSION` or `$MODNAME` to insert the version number or name.",
             "default": "moved to version $VERSION",
             "pattern": "\\$VERSION"
           },
@@ -119,14 +119,20 @@
             "description": "Author for automatically created commits",
             "default": "compilatron <compilatron@justarandomgeek.com>"
           },
+          "factorio.package.tagName": {
+            "type": "string",
+            "description": "Template for release tag names. Use `$VERSION` or `$MODNAME` to insert the version number or name.",
+            "default": "$VERSION"
+          },
           "factorio.package.tagVPrefix": {
             "type": "boolean",
             "description": "Prefix tag version number with 'v'",
+            "deprecationMessage": "Use tagName instead",
             "default": false
           },
           "factorio.package.tagMessage": {
             "type": "string",
-            "description": "Message for version tags. Use `$VERSION` to insert the version number."
+            "description": "Message for version tags. Use `$VERSION` or `$MODNAME` to insert the version number or name."
           },
           "factorio.package.zipLocation": {
             "type": "string",

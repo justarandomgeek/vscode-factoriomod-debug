@@ -6,6 +6,9 @@
 * Add options to configure created mod zip location, and automatically remove after successful publish
 * Detect and offer to disable prototype caching, which conflicts with part of debugger init
 * Added `compile` task which is run in `package` and before launching debug session
+* Added variable $MODNAME to git templates
+* Added setting "factorio.package.tagName"
+* Deprecated setting "factorio.package.tagVPrefix"
 
 ## 0.18.32
 
