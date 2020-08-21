@@ -6,5 +6,4 @@ generate a mod-list.json stub when not found?
 generate config.ini stub when not found?
 offer to combine duplicate locale sections
 try again to use git extension api for commit/push?
-compile task to run before debug or package
 watch task to begin on project open
