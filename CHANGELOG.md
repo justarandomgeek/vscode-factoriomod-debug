@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.34
+
+* Add locale vars `__CONTROL_STYLE_BEGIN__` and `__CONTROL_STYLE_END__` (for real this time)
+
 ## 0.18.33
 
 * Add locale vars `__CONTROL_STYLE_BEGIN__` and `__CONTROL_STYLE_END__`
