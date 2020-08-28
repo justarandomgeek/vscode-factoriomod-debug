@@ -3,6 +3,7 @@
 ## 0.18.34
 
 * Add locale vars `__CONTROL_STYLE_BEGIN__` and `__CONTROL_STYLE_END__` (for real this time)
+* Locale var `__ALT_CONTROL__` correctly matches two args
 
 ## 0.18.33
 
