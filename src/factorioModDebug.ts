@@ -94,9 +94,23 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		response.body.supportsSetVariable = true;
 		response.body.supportsModulesRequest = true;
 		response.body.supportsLogPoints = true;
+		response.body.supportsConfigurationDoneRequest = true;
 
 		this.sendResponse(response);
 	}
+
+		/**
+	 * Called at the end of the configuration sequence.
+	 * Indicates that all breakpoints etc. have been sent to the DA and that the 'launch' can start.
+	 */
+	protected configurationDoneRequest(response: DebugProtocol.ConfigurationDoneResponse, args: DebugProtocol.ConfigurationDoneArguments): void {
+		super.configurationDoneRequest(response, args);
+
+		// notify that configuration has finished
+		this._runtime.configurationDone();
+	}
+
+
 
 	protected terminateRequest(response: DebugProtocol.TerminateResponse, args: DebugProtocol.TerminateArguments): void {
 		this._runtime.terminate();

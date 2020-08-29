@@ -88,6 +88,9 @@ type resolver<T> = (value?: T | PromiseLike<T> | undefined)=>void;
 
 export class FactorioModRuntime extends EventEmitter {
 
+	private _configurationDone: resolver<void>;
+	private configDone: Promise<void>;
+
 	private _breakPoints = new Map<string, DebugProtocol.SourceBreakpoint[]>();
 	private _breakPointsChanged = new Set<string>();
 
@@ -162,6 +165,11 @@ export class FactorioModRuntime extends EventEmitter {
 				}
 			});
 		});
+	}
+
+	configurationDone(): void {
+		// eslint-disable-next-line no-unused-expressions
+		this._configurationDone?.();
 	}
 
 	/**
@@ -462,6 +470,7 @@ export class FactorioModRuntime extends EventEmitter {
 					this.continue();
 				} else if (event === "on_data") {
 					//control.lua main chunk - force all breakpoints each time this comes up because it can only set them locally
+					await this.configDone;
 					this.continue(true);
 				} else if (event === "on_parse") {
 					//control.lua main chunk - force all breakpoints each time this comes up because it can only set them locally
@@ -555,6 +564,10 @@ export class FactorioModRuntime extends EventEmitter {
 				if (this.trace){this.sendEvent('output', `> EVTmodules`, "console");}
 				await this.updateModules(JSON.parse(chunkstr.substring(12).trim()));
 				resolveModules();
+
+				this.configDone = new Promise<void>((resolve)=>{
+					this._configurationDone = resolve;
+				});
 
 				// and finally send the initialize event to get breakpoints and such...
 				this.sendEvent("initialize");

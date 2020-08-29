@@ -4,6 +4,7 @@
 
 * Add locale vars `__CONTROL_STYLE_BEGIN__` and `__CONTROL_STYLE_END__` (for real this time)
 * Locale var `__ALT_CONTROL__` correctly matches two args
+* Fix breakpoints not loading initially in settings stage
 
 ## 0.18.33
 
