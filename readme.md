@@ -14,7 +14,7 @@ This is a debug adapter for developing Factorio mods. It supports breakpoints, s
 
 In Factorio >=0.18.10, Instrument Mode is used by default to enable debugging automatically in control stage. Data and Settings stage hooks can be enabled in launch.json, as well as filtering which mods hooks are installed in for Control stage.
 
-In a level (scenario/campaign) script, you can also provide a hint to locate the files inside a mod:
+In a level script (scenario/campaign), you can also provide a hint to locate the files inside a mod:
 ```lua
 if __DebugAdapter then __DebugAdapter.levelPath("modname","scenarios/scenarioname/") end
 ```
@@ -34,7 +34,7 @@ If you use a Steam install, a file `steam_appid.txt` with content `427520` in th
 
 ## Profiling
 
-In Factorio >= 0.18.27, you can enable an alternate hook mode for profiling. This mode does not provide stepping or inspection, but instead provides inline timing/hitcount data for every line and function executed in control stage. Higlighting and rulers are also provided to assist in finding hotspots. In this mode `__DebugAdapter` is not provided, but `__Profiler` is, with `__Profiler.levelPath()` which works the same as `__DebugAdapter.levelPath()`.
+In Factorio >= 0.18.27, you can set `"hookMode": "profile"` to enable profiling. This mode does not provide stepping or inspection, but instead provides inline timing/hitcount data for every line and function executed in control stage. Flamegraph, higlighting and rulers are also provided to assist in finding hotspots. In this mode `__DebugAdapter` is not provided, but `__Profiler` is, with `__Profiler.levelPath()` which works the same as `__DebugAdapter.levelPath()`.
 
 ## Automatic Mod Packaging and Publishing
 

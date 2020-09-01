@@ -62,6 +62,55 @@ local dumpcount = 0
 local hooktimer -- time not yet accumulated to specific line/function timer(s)
 local activeline -- the timer for the current line, if any
 local callstack = {} -- the timers for lines higher up the callstack, if any
+local calltree = { -- timer tree for flamegraph
+  root = true,
+  children = {}
+}
+--[[
+  treenode = {
+    -- any names this fun is called by
+    funcnames = {string=>itself}
+    -- file and line are as close to unique id per function as we get
+    filename = string,
+    line = int,
+    -- time in this tree...
+    timer = timer,
+    -- nodes called from this node
+    children = treenode[filename..line],
+  }
+]]
+
+local function dumptree(tree)
+  if tree.root then
+    print("PROOT:")
+  else
+    localised_print{"","PTREE:",tree.funcname,":",tree.filename,":",tree.line,":",tree.timer}
+  end
+  for _,node in pairs(tree.children) do
+    dumptree(node)
+  end
+  print("PTEND:")
+end
+
+
+local function getstackbranch(treenode,source,linedefined,name)
+  local fname = (name or '(anon)')
+  local childindex = fname..":"..source..":"..linedefined
+  local child = treenode.children[childindex]
+  if child then
+    return child
+  else
+    child = {
+      name = childindex,
+      funcname = fname, filename = source, line = linedefined,
+      timer = game.create_profiler(true),
+      children = {}
+    }
+    treenode.children[childindex] = child
+    return child
+  end
+end
+
 local function accumulate_hook_time()
   if hooktimer then
     if not luatotal then
@@ -79,6 +128,11 @@ local function accumulate_hook_time()
       local functimer = stackframe.functimer
       if functimer then
         functimer.add(hooktimer)
+      end
+      --stack timers
+      local stacknode = stackframe.node
+      if stacknode then
+        stacknode.timer.add(hooktimer)
       end
     end
   end
@@ -101,6 +155,10 @@ local function dump()
       end
     end
   end
+
+  -- walk calltree
+  dumptree(calltree)
+
   t.stop()
   localised_print{"","POV:",t}
   print("***EndDebugAdapterBlockPrint***")
@@ -110,8 +168,10 @@ local function dump()
   for _,frame in pairs(callstack) do
     frame.linetimer = nil
     frame.functimer = nil
+    frame.node = nil
   end
   hooktimer = nil
+  calltree = { root = true, children = {} }
 end
 
 local function attach()
@@ -126,7 +186,7 @@ local function attach()
     end
     if event == "line" then
       accumulate_hook_time()
-      local info = getinfo(2,"S")
+      local info = getinfo(2,"S") -- currently executing function
       local s = info.source
       if sub(s,1,1) == "@" then
         s = normalizeLuaSource(s)
@@ -137,17 +197,25 @@ local function attach()
       end
     elseif event == "call" or event == "tail call" then
       accumulate_hook_time()
-      local info = getinfo(2,"S")
+      local info = getinfo(2,"nS") -- call target
       local s = info.source
       local functimer
       if sub(s,1,1) == "@" then
         s = normalizeLuaSource(s)
         functimer = getfunctimer(s,info.linedefined)
       end
+      local top = #callstack
+      local node
+      if top == 0 then
+        node = calltree
+      else
+        node = callstack[top].node
+      end
       -- push activeline to callstack
-      callstack[#callstack+1] = {
+      callstack[top+1] = {
         linetimer = activeline,
         functimer = functimer,
+        node = node and getstackbranch(node,s,info.linedefined,info.name),
         tail= event=="tail call",
       }
       activeline = nil
@@ -164,8 +232,8 @@ local function attach()
       end
 
       -- make sure to stop counting when we exit lua
-      local info = getinfo(2,"S")
-      local parent = getinfo(3,"f")
+      local info = getinfo(2,"S") -- returning from
+      local parent = getinfo(3,"f") -- returning to
       if not parent then
         -- top of stack
         if info.what == "main" or info.what == "Lua" then

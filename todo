@@ -7,3 +7,9 @@ generate config.ini stub when not found?
 offer to combine duplicate locale sections
 try again to use git extension api for commit/push?
 watch task to begin on project open
+profile "reset" button
+profile "slow for save" button
+profile tooltip for other timer
+config modsPath should prevent found mod-list overriding
+replace data:extend with one that warns on non-arraylike?
+ignore list for global warning

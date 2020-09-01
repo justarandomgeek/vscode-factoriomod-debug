@@ -183,7 +183,21 @@ export class FactorioModRuntime extends EventEmitter {
 		this.hookMode = args.hookMode ?? "debug";
 		this.profileSlowStart = args.profileSlowStart;
 		this.profileUpdateRate = args.profileUpdateRate;
-		if (this.hookMode === "profile") {this.profile = new Profile();}
+		if (this.hookMode === "profile") {
+			this.profile = new Profile();
+			this.profile.on("flameclick", async (mesg)=>{
+				if (mesg.filename && mesg.line)
+				{
+					vscode.window.showTextDocument(
+						vscode.Uri.parse(this.convertDebuggerPathToClient(mesg.filename)),
+						{
+							selection: new vscode.Range(mesg.line,0,mesg.line,0),
+							viewColumn: vscode.ViewColumn.One
+						}
+					);
+				}
+			});
+		}
 		this.trace = args.trace ?? false;
 
 

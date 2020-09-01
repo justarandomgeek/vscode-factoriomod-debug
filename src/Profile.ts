@@ -1,10 +1,6 @@
-import { TextEditor, window, TextEditorDecorationType, DecorationOptions, Range, OverviewRulerLane, Disposable, StatusBarItem, workspace, ThemeColor } from "vscode";
-
-type FileProfileData = Map<number,number>;
-type FileCountData = Map<number,number>;
-type ModFileProfileData = {profile:FileProfileData;count:FileCountData;fnprofile:FileProfileData;fncount:FileCountData};
-type ModProfileData = Map<string,ModFileProfileData>;
-
+import * as vscode from "vscode";
+import * as path from "path";
+import { EventEmitter } from "events";
 
 function NaN_safe_max(a:number,b:number):number {
 	if (isNaN(a)) { return b; }
@@ -31,17 +27,127 @@ profile data
 class TimerAndCount {
 	timer = 0;
 	count = 0;
+
+	public add(other:TimerAndCount|undefined):TimerAndCount
+	{
+		if(!other)
+		{
+			return this;
+		}
+
+		let tc = new TimerAndCount();
+		tc.timer = this.timer+other.timer;
+		tc.count = this.count+other.count;
+		return tc;
+	}
 }
 
 class ProfileFileData {
 	functions = new Map<number,TimerAndCount>();
 	lines = new Map<number,TimerAndCount>();
+
+	add(file:ProfileFileData):void
+	{
+		file.functions.forEach((fn,line)=>{
+			this.functions.set(line,fn.add(this.functions.get(line)));
+		});
+		file.lines.forEach((ln,line)=>{
+			this.lines.set(line,ln.add(this.lines.get(line)));
+		});
+
+	}
+
+	max()
+	{
+		let max = {
+			func: {timer:0.0,count:0,average:0.0},
+			line: {timer:0.0,count:0,average:0.0},
+		};
+
+		this.functions.forEach(fn=>{
+			max.func.timer = NaN_safe_max(max.func.timer,fn.timer);
+			max.func.count = NaN_safe_max(max.func.count,fn.count);
+			max.func.average = NaN_safe_max(max.func.average,fn.timer/fn.count);
+		});
+		this.lines.forEach(ln=>{
+			max.line.timer = NaN_safe_max(max.line.timer,ln.timer);
+			max.line.count = NaN_safe_max(max.line.count,ln.count);
+			max.line.average = NaN_safe_max(max.line.average,ln.timer/ln.count);
+		});
+
+		return max;
+	}
 }
 
 class ProfileModData {
 	totalTime:number = 0;
 	file = new Map<string,ProfileFileData>();
 }
+
+
+interface FlameTreeNode {
+	name:string
+	value:number
+	children:FlameTreeNode[]
+	filename?:string
+	line?:number
+}
+
+class ProfileTreeNode {
+	readonly name:string;	// modname or file:line
+	value:number;	// time
+	private children:ProfileTreeNode[] = [];
+	readonly parent?:ProfileTreeNode;
+	readonly filename?:string;
+	readonly line?:number;
+
+	constructor(name:string,value:number,parent?:ProfileTreeNode,filename?:string,line?:number)
+	{
+		this.name = name;
+		this.value = value;
+		this.parent = parent;
+		this.filename = filename;
+		this.line = line;
+	}
+
+	ToFlameTreeNode():FlameTreeNode
+	{
+		return {
+			name:this.name,
+			value:this.value,
+			filename:this.filename,
+			line:this.line,
+			children:this.children.map(ptn=>ptn.ToFlameTreeNode()),
+		};
+	}
+
+
+	private ToStringInner(pad:string):string
+	{
+		return `${pad}${this.name} : ${this.value}\n${this.children.map(ptn=>ptn.ToStringInner(pad+" ")).join("\n")}`;
+	}
+
+	ToString():string
+	{
+		return this.ToStringInner("");
+	}
+
+	AddToChild(name:string,value:number,filename?:string,line?:number):ProfileTreeNode
+	{
+		let childnode = this.children.find(n=>n.name === name);
+		if (childnode)
+		{
+			childnode.value += value;
+		}
+		else
+		{
+			childnode = new ProfileTreeNode(name,value,this,filename,line);
+			this.children.push(childnode);
+		}
+		return childnode;
+	}
+}
+
 class ProfileData {
 	private totalTime:number = 0;
 	private mod = new Map<string,ProfileModData>();
@@ -99,16 +205,32 @@ class ProfileData {
 		}
 		funcdata.count+=count;
 		funcdata.timer+=time;
-
 	}
 
 
 
 	Report(filename:string)
 	{
+
+		let filedata = new ProfileFileData();
+
+		this.mod.forEach(mod=>{
+			let file = mod.file.get(filename);
+			if (file)
+			{
+				filedata.add(file);
+			}
+		});
+
+
 		return {
 			totalTime: this.totalTime,
-
+			fileData: filedata,
+			// line[int] -> count,time
+			// function[int] -> count,time
+			// max ->
+			//   line -> count,time
+			//   func -> count,time
 		};
 	}
 }
@@ -116,70 +238,137 @@ class ProfileData {
 
 
 
-export class Profile implements Disposable {
-	private profileData = new Map<string,ModProfileData>();
-	private profileTotals = new Map<string,number>();
-	private profileTotal = 0;
+export class Profile extends EventEmitter implements vscode.Disposable  {
+	private profileData = new ProfileData();
+	private profileTreeRoot = new ProfileTreeNode("root",0);
+
 	private profileOverheadTime:number = 0;
 	private profileOverheadCount:number = 0;
-	private timeDecorationType: TextEditorDecorationType;
-	private funcDecorationType: TextEditorDecorationType;
-	private rulerDecorationTypes: {type:TextEditorDecorationType;threshold:number}[];
-	private statusBar: StatusBarItem;
+	private timeDecorationType: vscode.TextEditorDecorationType;
+	private funcDecorationType: vscode.TextEditorDecorationType;
+	private rulerDecorationTypes: {type:vscode.TextEditorDecorationType;threshold:number}[];
+	private statusBar: vscode.StatusBarItem;
+	private flamePanel: vscode.WebviewPanel;
 
 	constructor()
 	{
-		this.timeDecorationType = window.createTextEditorDecorationType({
+		super();
+		this.timeDecorationType = vscode.window.createTextEditorDecorationType({
 			before: {
 				contentText:"",
-				color: new ThemeColor("factorio.ProfileTimerForeground"),
+				color: new vscode.ThemeColor("factorio.ProfileTimerForeground"),
 			}
 		});
-		this.funcDecorationType = window.createTextEditorDecorationType({
+		this.funcDecorationType = vscode.window.createTextEditorDecorationType({
 			after: {
 				contentText: "",
-				color: new ThemeColor("factorio.ProfileFunctionTimerForeground"),
-				borderColor: new ThemeColor("factorio.ProfileFunctionTimerForeground"),
+				color: new vscode.ThemeColor("factorio.ProfileFunctionTimerForeground"),
+				borderColor: new vscode.ThemeColor("factorio.ProfileFunctionTimerForeground"),
 				border: "1px solid",
 				margin: "0 0 0 3ch",
 			},
 		});
 
-		let rulers = workspace.getConfiguration().get<{color?:string;themeColor?:string;threshold:number;lane?:string}[]>("factorio.profile.rulers",[]);
+		let rulers = vscode.workspace.getConfiguration().get<{color?:string;themeColor?:string;threshold:number;lane?:string}[]>("factorio.profile.rulers",[]);
 		this.rulerDecorationTypes = rulers.filter(ruler=>{return ruler.color || ruler.themeColor;}).map(ruler=>{
-			let lane = OverviewRulerLane.Right;
+			let lane = vscode.OverviewRulerLane.Right;
 			switch (ruler.lane) {
 				case "Right":
-					lane = OverviewRulerLane.Right;
+					lane = vscode.OverviewRulerLane.Right;
 					break;
 				case "Center":
-					lane = OverviewRulerLane.Center;
+					lane = vscode.OverviewRulerLane.Center;
 					break;
 				case "Left":
-					lane = OverviewRulerLane.Left;
+					lane = vscode.OverviewRulerLane.Left;
 					break;
 				case "Full":
-					lane = OverviewRulerLane.Full;
+					lane = vscode.OverviewRulerLane.Full;
 					break;
 				default:
 					break;
 			}
 			return {
-				type: window.createTextEditorDecorationType({
-					overviewRulerColor: ruler.color ?? new ThemeColor(ruler.themeColor!),
+				type: vscode.window.createTextEditorDecorationType({
+					overviewRulerColor: ruler.color ?? new vscode.ThemeColor(ruler.themeColor!),
 					overviewRulerLane: lane,
 				}),
 				threshold: ruler.threshold
 			};
 		});
-		this.statusBar = window.createStatusBarItem();
+		this.statusBar = vscode.window.createStatusBarItem();
 
+		const ext = vscode.extensions.getExtension("justarandomgeek.factoriomod-debug")!;
+		if (!this.flamePanel)
+		{
+			this.flamePanel = vscode.window.createWebviewPanel(
+				'factorioProfile',
+				'Factorio Profile',
+				vscode.ViewColumn.Two,
+				{
+					enableScripts: true,
+				}
+			);
+		}
+		this.flamePanel.webview.html =
+`<!DOCTYPE html>
+<html lang="en">
+<head>
+	<link rel="stylesheet" type="text/css" href="${this.flamePanel.webview.asWebviewUri(vscode.Uri.file(path.join(ext.extensionPath,"node_modules/d3-flame-graph/dist/d3-flamegraph.css")))}">
+</head>
+<body>
+	<div id="chart"></div>
+	<script type="text/javascript" src="${this.flamePanel.webview.asWebviewUri(vscode.Uri.file(path.join(ext.extensionPath,"node_modules/d3/dist/d3.js")))}"></script>
+	<script type="text/javascript" src="${this.flamePanel.webview.asWebviewUri(vscode.Uri.file(path.join(ext.extensionPath,"node_modules/d3-flame-graph/dist/d3-flamegraph.js")))}"></script>
+	<script type="text/javascript">
+	const vscode = acquireVsCodeApi();
+	var chart = flamegraph().height(window.innerHeight).width(window.innerWidth-100);
+
+	d3.select("#chart")
+		.datum({
+			"name":"root",
+			"value":0,
+			"children":[]
+		})
+		.call(chart);
+
+	chart.onClick(function (d) {
+		vscode.postMessage({
+			command: 'click',
+			name: d.data.name,
+			filename: d.data.filename,
+			line: d.data.line,
+		});
+	});
+
+	window.addEventListener('message', event => {
+		const message = event.data; // The JSON data our extension sent
+		switch (message.command) {
+			case 'update':
+				chart.update(message.data);
+				break;
+		}
+	});
+	</script>
+</body>
+</html>
+`;
+		this.flamePanel.webview.onDidReceiveMessage((mesg:{command:string;name:string;filename?:string;line?:number})=>{
+			if(mesg.line && mesg.line > 0)
+			{
+				this.emit("flameclick", mesg);
+			}
+		});
 	}
+
 	dispose() {
 		this.timeDecorationType.dispose();
 		this.funcDecorationType.dispose();
 		this.rulerDecorationTypes.forEach(ruler=>{ruler.type.dispose();});
 		this.statusBar.dispose();
+		if (this.flamePanel){
+			this.flamePanel.dispose();
+		}
 	}
 
 	public parse(profile:string)
@@ -187,6 +376,7 @@ export class Profile implements Disposable {
 		const lines = profile.split("\n");
 		let currmod:string;
 		let currfile:string;
+		let currnode:ProfileTreeNode|undefined;
 		lines.forEach(line => {
 			const parts = line.split(":");
 			switch(parts[0])
@@ -196,51 +386,30 @@ export class Profile implements Disposable {
 				case "PMN": // PMN:modname:label: time
 					currmod = parts[1].replace(/[\r\n]*/g,"");
 					const time = parseFloat(parts[3]);
-					if(!this.profileData.has(currmod))
-					{
-						this.profileData.set(currmod,new Map<string,ModFileProfileData>());
-					}
-					this.profileTotals.set(currmod, time + (this.profileTotals.get(currmod)??0));
-					this.profileTotal += time;
+					this.profileData.AddModTime(currmod,time);
 					break;
 				case "PFN": // PFN:filename
 					if (currmod)
 					{
-						const mod = this.profileData.get(currmod)!;
 						currfile = parts[1].replace(/[\r\n]*/g,"");
-						if (!mod.has(currfile))
-						{
-							mod.set(currfile,{
-								profile:new Map<number,number>(),
-								count:new Map<number,number>(),
-								fnprofile:new Map<number,number>(),
-								fncount:new Map<number,number>(),
-							});
-						}
 					}
 					break;
 				case "PLN": // PLN:line:label: time:count
 					if (currmod && currfile)
 					{
-						const mod = this.profileData.get(currmod)!;
-						const file = mod.get(currfile)!;
 						const line = parseInt(parts[1]);
 						const time = parseFloat(parts[3]);
 						const count = parseInt(parts[4]);
-						file.profile.set(line,time + (file.profile.get(line)??0));
-						file.count.set(line,count + (file.count.get(line)??0));
+						this.profileData.AddLineTime(currmod,currfile,line,time,count);
 					}
 					break;
 				case "PFT": // PFT:line:label: time:count
 					if (currmod && currfile)
 					{
-						const mod = this.profileData.get(currmod)!;
-						const file = mod.get(currfile)!;
 						const line = parseInt(parts[1]);
 						const time = parseFloat(parts[3]);
 						const count = parseInt(parts[4]);
-						file.fnprofile.set(line,time + (file.fnprofile.get(line)??0));
-						file.fncount.set(line,count + (file.fncount.get(line)??0));
+						this.profileData.AddFuncTime(currmod,currfile,line,time,count);
 					}
 					break;
 				case "POV": //POV:label: time
@@ -249,73 +418,70 @@ export class Profile implements Disposable {
 						this.profileOverheadTime += time;
 						this.profileOverheadCount += 1;
 					}
+					break;
+				case "PROOT":
+					if (currmod)
+					{
+						currnode = this.profileTreeRoot.AddToChild(currmod,0);
+					}
+					break;
+				case "PTREE": // PTREE:funcname:filename:line:label: time
+					if (currnode)
+					{
+						const funcname = parts[1];
+						const filename = parts[2];
+						const line = parts[3];
+						const nodename = funcname + ":" + filename + ":" + line;
+						const time =  parseFloat(parts[5]);
+						currnode = currnode.AddToChild(nodename,time,filename,parseInt(line));
+					}
+					break;
+				case "PTEND":
+					if (currnode)
+					{
+						currnode = currnode.parent;
+					}
+					break;
 			}
 		});
+
+		if (this.flamePanel)
+		{
+			//this.profileTreeRoot.value = this.profileTreeRoot.children.map(ptn=>ptn.value).reduce((a,b)=>a+b);
+			this.flamePanel.webview.postMessage({command:"update",data:this.profileTreeRoot.ToFlameTreeNode()});
+		}
 	}
 
-	public render(editor:TextEditor,filename:string)
+	public render(editor:vscode.TextEditor,filename:string)
 	{
-		const filetimes = new Map<number,number>();
-		const filecounts = new Map<number,number>();
-		const filefntimes = new Map<number,number>();
-		const filefncounts = new Map<number,number>();
-		let maxtime = 0.0;
-		let maxavg = 0.0;
-		let maxcount = 0;
-		let maxfntime = 0.0;
-		let maxfnavg = 0.0;
-		let maxfncount = 0;
-		this.profileData.forEach(modprofile => {
-			const file = modprofile.get(filename);
-			if (file)
-			{
-				file.profile.forEach((time,line) => {
-					const newtime = time + (filetimes.get(line)??0);
-					maxtime = NaN_safe_max(maxtime,newtime);
-					const newavg = newtime / file.count.get(line)!;
-					maxavg = NaN_safe_max(maxavg,newavg);
-					filetimes.set(line,newtime);
-				});
-				file.count.forEach((count,line) => {
-					const newcount = count + (filecounts.get(line)??0);
-					maxcount = NaN_safe_max(maxcount,newcount);
-					filecounts.set(line,newcount);
-				});
-				file.fnprofile.forEach((time,line) => {
-					const newtime = time + (filefntimes.get(line)??0);
-					maxfntime = NaN_safe_max(maxfntime,newtime);
-					const newavg = newtime / file.fncount.get(line)!;
-					maxfnavg = NaN_safe_max(maxfnavg,newavg);
-					filefntimes.set(line,newtime);
-				});
 
-				file.fncount.forEach((count,line) => {
-					const newcount = count + (filefncounts.get(line)??0);
-					maxfncount = NaN_safe_max(maxfncount,newcount);
-					filefncounts.set(line,newcount);
-				});
-			}
-		});
-		let linedecs = new Array<DecorationOptions>();
-		let funcdecs = new Array<DecorationOptions>();
+		const report = this.profileData.Report(filename);
+		const reportmax = report.fileData.max();
+
+		const maxtime = reportmax.line.timer;
+		const maxavg = reportmax.line.average;
+		const maxcount = reportmax.line.count;
+
+		let linedecs = new Array<vscode.DecorationOptions>();
+		let funcdecs = new Array<vscode.DecorationOptions>();
 		let rulerthresholds = this.rulerDecorationTypes.map((ruler,i)=>{
 			return {
 				type: ruler.type,
 				threshold: ruler.threshold,
-				decs: new Array<DecorationOptions>()
+				decs: new Array<vscode.DecorationOptions>()
 			};
 		});
-		const displayAverageTime = workspace.getConfiguration().get("factorio.profile.displayAverageTime");
-		const colorBy = workspace.getConfiguration().get<"count"|"totaltime"|"averagetime">("factorio.profile.colorBy","totaltime");
+		const displayAverageTime = vscode.workspace.getConfiguration().get("factorio.profile.displayAverageTime");
+		const colorBy = vscode.workspace.getConfiguration().get<"count"|"totaltime"|"averagetime">("factorio.profile.colorBy","totaltime");
 
-		const highlightColor = workspace.getConfiguration().get("factorio.profile.timerHighlightColor");
+		const highlightColor = vscode.workspace.getConfiguration().get("factorio.profile.timerHighlightColor");
 		const scalemax = {"count": maxcount, "totaltime":maxtime, "averagetime":maxavg }[colorBy];
-		const colorScaleFactor = Math.max(Number.MIN_VALUE, workspace.getConfiguration().get<number>("factorio.profile.colorScaleFactor",1));
+		const colorScaleFactor = Math.max(Number.MIN_VALUE, vscode.workspace.getConfiguration().get<number>("factorio.profile.colorScaleFactor",1));
 		const scale = {
 			"boost": (x:number)=>{return Math.log1p(x*colorScaleFactor)/Math.log1p(scalemax*colorScaleFactor);},
 			"linear": (x:number)=>{return x/scalemax;},
 			"mute": (x:number)=>{return (Math.pow(1+scalemax,(x*colorScaleFactor)/scalemax)-1)/(scalemax*colorScaleFactor);},
-		}[workspace.getConfiguration().get<"boost"|"linear"|"mute">("factorio.profile.colorScaleMode","boost")];
+		}[vscode.workspace.getConfiguration().get<"boost"|"linear"|"mute">("factorio.profile.colorScaleMode","boost")];
 
 		const countwidth = maxcount.toFixed(0).length+1;
 		const timeprecision = displayAverageTime ? 6 : 3;
@@ -323,15 +489,17 @@ export class Profile implements Disposable {
 		const width = countwidth+timewidth+3;
 
 		for (let line = 1; line <= editor.document.lineCount; line++) {
-			const time = filetimes.get(line);
-			if (time)
+			const linetc = report.fileData.lines.get(line);
+			if (linetc)
 			{
-				const count = filecounts.get(line)!;
+				const time = linetc.timer;
+				const count = linetc.count;
 				const displayTime = displayAverageTime ? time/count : time;
 				const t = scale({"count": count, "totaltime":time, "averagetime":time/count }[colorBy]);
-				const range = editor.document.validateRange(new Range(line-1,0,line-1,1/0));
+				const range = editor.document.validateRange(new vscode.Range(line-1,0,line-1,1/0));
 				linedecs.push({
 					range: range,
+					hoverMessage: displayAverageTime ? `total: ${time}` : `avg: ${time/count}`,
 					renderOptions: {
 						before: {
 							backgroundColor: `${highlightColor}${Math.floor(255*t).toString(16)}`,
@@ -339,6 +507,7 @@ export class Profile implements Disposable {
 							width: `${width+1}ch`,
 						}
 					}
+
 				});
 				let ruler = rulerthresholds.find(ruler=>{return t >= ruler.threshold;});
 				if (ruler)
@@ -351,7 +520,7 @@ export class Profile implements Disposable {
 			else
 			{
 				linedecs.push({
-					range: editor.document.validateRange(new Range(line-1,0,line-1,1/0)),
+					range: editor.document.validateRange(new vscode.Range(line-1,0,line-1,1/0)),
 					renderOptions: {
 						before: {
 							width: `${width+1}ch`,
@@ -360,12 +529,13 @@ export class Profile implements Disposable {
 				});
 			}
 
-			const functime = filefntimes.get(line);
-			if (functime)
+			const functc = report.fileData.functions.get(line);
+			if (functc)
 			{
-				const count = filefncounts.get(line)!;
-				const displayTime = displayAverageTime ? functime/count : functime;
-				const range = editor.document.validateRange(new Range(line-1,0,line-1,1/0));
+				const time = functc.timer;
+				const count = functc.count;
+				const displayTime = displayAverageTime ? time/count : time;
+				const range = editor.document.validateRange(new vscode.Range(line-1,0,line-1,1/0));
 				funcdecs.push({
 					range: range,
 					renderOptions: {
@@ -373,8 +543,8 @@ export class Profile implements Disposable {
 							contentText: `\u00A0${count.toFixed(0)}\u00A0|\u00A0${displayTime.toFixed(timeprecision)}\u00A0ms\u00A0`,
 
 							// have to repeat some properties here or gitlens will win when we both try to render on the same line
-							color: new ThemeColor("factorio.ProfileFunctionTimerForeground"),
-							borderColor: new ThemeColor("factorio.ProfileFunctionTimerForeground"),
+							color: new vscode.ThemeColor("factorio.ProfileFunctionTimerForeground"),
+							borderColor: new vscode.ThemeColor("factorio.ProfileFunctionTimerForeground"),
 							margin: "0 0 0 3ch",
 						}
 					}
@@ -394,7 +564,7 @@ export class Profile implements Disposable {
 
 	public clear()
 	{
-		window.visibleTextEditors.forEach(editor => {
+		vscode.window.visibleTextEditors.forEach(editor => {
 			editor.setDecorations(this.timeDecorationType,[]);
 			editor.setDecorations(this.funcDecorationType,[]);
 			this.rulerDecorationTypes.forEach(ruler=>{
