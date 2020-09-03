@@ -63,6 +63,8 @@ export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArgum
 	hookControl?:string[]|boolean
 	hookMode?:HookMode
 
+	hookLog?:boolean
+	keepOldLog?:boolean
 
 	profileLines?:boolean
 	profileFuncs?:boolean
@@ -120,9 +122,6 @@ export class FactorioModRuntime extends EventEmitter {
 
 	private inPrompt:boolean = false;
 	private trace:boolean;
-
-	private hookLog?:boolean;
-	private keepOldLog?:boolean;
 
 	private workspaceModInfoReady:Promise<void>;
 	private workspaceModInfo = new Array<ModPaths>();
@@ -723,13 +722,13 @@ export class FactorioModRuntime extends EventEmitter {
 		}
 		if (shouldRequire) {
 			let hookopts = "";
-			if (this.hookLog !== undefined)
+			if (this.launchArgs.hookLog !== undefined)
 			{
-				hookopts += `hooklog=${this.hookLog},`;
+				hookopts += `hooklog=${this.launchArgs.hookLog},`;
 			}
-			if (this.keepOldLog !== undefined)
+			if (this.launchArgs.keepOldLog !== undefined)
 			{
-				hookopts += `keepoldlog=${this.keepOldLog},`;
+				hookopts += `keepoldlog=${this.launchArgs.keepOldLog},`;
 			}
 
 			this.writeStdin(`__DebugAdapter={${hookopts}}`);
