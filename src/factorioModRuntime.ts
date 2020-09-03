@@ -63,6 +63,10 @@ export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArgum
 	hookControl?:string[]|boolean
 	hookMode?:HookMode
 
+
+	profileLines?:boolean
+	profileFuncs?:boolean
+	profileTree?:boolean
 	profileSlowStart?: number
 	profileUpdateRate?: number
 
@@ -110,16 +114,9 @@ export class FactorioModRuntime extends EventEmitter {
 
 	private modsPath?: string; // absolute path of `mods` directory
 	private dataPath: string; // absolute path of `data` directory
-	private manageMod?: boolean;
+	private launchArgs: LaunchRequestArguments;
 
-	private hookSettings:boolean;
-	private hookData:boolean;
-	private hookControl:string[]|boolean;
-
-	private hookMode:HookMode;
 	private profile?: Profile;
-	private profileSlowStart?: number;
-	private profileUpdateRate?: number;
 
 	private inPrompt:boolean = false;
 	private trace:boolean;
@@ -176,14 +173,14 @@ export class FactorioModRuntime extends EventEmitter {
 	 * Start executing the given program.
 	 */
 	public async start(args: LaunchRequestArguments) {
-		this.manageMod = args.manageMod;
-		this.hookSettings = args.hookSettings ?? false;
-		this.hookData = args.hookData ?? false;
-		this.hookControl = args.hookControl ?? true;
-		this.hookMode = args.hookMode ?? "debug";
-		this.profileSlowStart = args.profileSlowStart;
-		this.profileUpdateRate = args.profileUpdateRate;
-		if (this.hookMode === "profile") {
+		this.launchArgs = args;
+
+		args.hookSettings = args.hookSettings ?? false;
+		args.hookData = args.hookData ?? false;
+		args.hookControl = args.hookControl ?? true;
+		args.hookMode = args.hookMode ?? "debug";
+
+		if (args.hookMode === "profile" && !args.noDebug) {
 			this.profile = new Profile();
 			this.profile.on("flameclick", async (mesg)=>{
 				if (mesg.filename && mesg.line)
@@ -525,34 +522,34 @@ export class FactorioModRuntime extends EventEmitter {
 					}
 				} else if (event === "on_instrument_settings") {
 					await modulesReady;
-					if (this.hookMode === "profile")
+					if (this.launchArgs.hookMode === "profile")
 					{
 						this.continueRequire(false);
 					}
 					else
 					{
-						this.continueRequire(this.hookSettings,this.hookLog,this.keepOldLog);
+						this.continueRequire(this.launchArgs.hookSettings ?? false);
 					}
 				} else if (event === "on_instrument_data") {
-					if (this.hookMode === "profile")
+					if (this.launchArgs.hookMode === "profile")
 					{
 						this.continueRequire(false);
 					}
 					else
 					{
-						this.continueRequire(this.hookData,this.hookLog,this.keepOldLog);
+						this.continueRequire(this.launchArgs.hookData ?? false);
 					}
 				} else if (event.startsWith("on_instrument_control ")) {
 					const modname = event.substring(22).trim();
-					const hookmods = this.hookControl;
+					const hookmods = this.launchArgs.hookControl ?? true;
 					const shouldhook = hookmods !== false && (hookmods === true || hookmods.includes(modname));
-					if (this.hookMode === "profile")
+					if (this.launchArgs.hookMode === "profile")
 					{
-						this.continueProfile(shouldhook,this.profileSlowStart,this.profileUpdateRate);
+						this.continueProfile(shouldhook);
 					}
 					else
 					{
-						this.continueRequire(shouldhook,this.hookLog,this.keepOldLog);
+						this.continueRequire(shouldhook);
 					}
 				} else {
 					// unexpected event?
@@ -666,7 +663,7 @@ export class FactorioModRuntime extends EventEmitter {
 			const modlistpath = path.resolve(modsPath,"./mod-list.json");
 			if (fs.existsSync(modlistpath))
 			{
-				if(this.manageMod === false)
+				if(this.launchArgs.manageMod === false)
 				{
 					FactorioModRuntime.output.appendLine(`automatic management of mods disabled`);
 				}
@@ -718,7 +715,7 @@ export class FactorioModRuntime extends EventEmitter {
 		this.inPrompt = false;
 	}
 
-	public continueRequire(shouldRequire:boolean,hookLog?:boolean,keepOldLog?:boolean) {
+	public continueRequire(shouldRequire:boolean) {
 		if (!this.inPrompt)
 		{
 			if (this.trace) { this.sendEvent('output', `!! Attempted to continueRequire while not in a prompt`, "console"); }
@@ -726,13 +723,13 @@ export class FactorioModRuntime extends EventEmitter {
 		}
 		if (shouldRequire) {
 			let hookopts = "";
-			if (hookLog !== undefined)
+			if (this.hookLog !== undefined)
 			{
-				hookopts += `hooklog=${hookLog},`;
+				hookopts += `hooklog=${this.hookLog},`;
 			}
-			if (keepOldLog !== undefined)
+			if (this.keepOldLog !== undefined)
 			{
-				hookopts += `keepoldlog=${keepOldLog},`;
+				hookopts += `keepoldlog=${this.keepOldLog},`;
 			}
 
 			this.writeStdin(`__DebugAdapter={${hookopts}}`);
@@ -742,7 +739,7 @@ export class FactorioModRuntime extends EventEmitter {
 		this.inPrompt = false;
 	}
 
-	public continueProfile(shouldRequire:boolean,slowStart?:number,updateRate?:number) {
+	public continueProfile(shouldRequire:boolean) {
 		if (!this.inPrompt)
 		{
 			if (this.trace) { this.sendEvent('output', `!! Attempted to continueProfile while not in a prompt`, "console"); }
@@ -750,14 +747,27 @@ export class FactorioModRuntime extends EventEmitter {
 		}
 		if (shouldRequire) {
 			let hookopts = "";
-			if (slowStart !== undefined)
+			if (this.launchArgs.profileSlowStart !== undefined)
 			{
-				hookopts += `slowStart=${slowStart},`;
+				hookopts += `slowStart=${this.launchArgs.profileSlowStart},`;
 			}
-			if (updateRate !== undefined)
+			if (this.launchArgs.profileUpdateRate !== undefined)
 			{
-				hookopts += `updateRate=${updateRate},`;
+				hookopts += `updateRate=${this.launchArgs.profileUpdateRate},`;
 			}
+			if (this.launchArgs.profileLines !== undefined)
+			{
+				hookopts += `trackLines=${this.launchArgs.profileLines},`;
+			}
+			if (this.launchArgs.profileFuncs !== undefined)
+			{
+				hookopts += `trackFuncs=${this.launchArgs.profileFuncs},`;
+			}
+			if (this.launchArgs.profileTree !== undefined)
+			{
+				hookopts += `trackTree=${this.launchArgs.profileTree},`;
+			}
+
 			this.writeStdin(`__Profiler={${hookopts}}`);
 		}
 

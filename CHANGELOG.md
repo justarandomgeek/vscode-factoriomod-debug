@@ -6,6 +6,7 @@
 * Locale var `__ALT_CONTROL__` correctly matches two args
 * Fix breakpoints not loading initially in settings stage
 * Added profiler flamegraph of call trees
+* Profiler options to select line/function/calltree timers
 
 ## 0.18.33
 

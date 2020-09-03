@@ -40,6 +40,11 @@ class TimerAndCount {
 		tc.count = this.count+other.count;
 		return tc;
 	}
+
+	public avg()
+	{
+		return this.timer/this.count;
+	}
 }
 
 class ProfileFileData {
@@ -242,13 +247,12 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 	private profileData = new ProfileData();
 	private profileTreeRoot = new ProfileTreeNode("root",0);
 
-	private profileOverheadTime:number = 0;
-	private profileOverheadCount:number = 0;
+	private profileOverhead = new TimerAndCount();
 	private timeDecorationType: vscode.TextEditorDecorationType;
 	private funcDecorationType: vscode.TextEditorDecorationType;
 	private rulerDecorationTypes: {type:vscode.TextEditorDecorationType;threshold:number}[];
 	private statusBar: vscode.StatusBarItem;
-	private flamePanel: vscode.WebviewPanel;
+	private flamePanel?: vscode.WebviewPanel;
 
 	constructor()
 	{
@@ -297,19 +301,37 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 			};
 		});
 		this.statusBar = vscode.window.createStatusBarItem();
+		this.createFlamePanel();
+	}
+
+	dispose() {
+		this.timeDecorationType.dispose();
+		this.funcDecorationType.dispose();
+		this.rulerDecorationTypes.forEach(ruler=>{ruler.type.dispose();});
+		this.statusBar.dispose();
+		if (this.flamePanel){
+			this.flamePanel.dispose();
+		}
+	}
+
+	private createFlamePanel()
+	{
+		if (this.flamePanel)
+		{
+			return;
+		}
 
 		const ext = vscode.extensions.getExtension("justarandomgeek.factoriomod-debug")!;
-		if (!this.flamePanel)
-		{
-			this.flamePanel = vscode.window.createWebviewPanel(
-				'factorioProfile',
-				'Factorio Profile',
-				vscode.ViewColumn.Two,
-				{
-					enableScripts: true,
-				}
-			);
-		}
+
+		this.flamePanel = vscode.window.createWebviewPanel(
+			'factorioProfile',
+			'Factorio Profile',
+			vscode.ViewColumn.Two,
+			{
+				enableScripts: true,
+				retainContextWhenHidden: true,
+			}
+		);
 		this.flamePanel.webview.html =
 `<!DOCTYPE html>
 <html lang="en">
@@ -323,14 +345,15 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 	<script type="text/javascript">
 	const vscode = acquireVsCodeApi();
 	var chart = flamegraph().height(window.innerHeight).width(window.innerWidth-100);
-
-	d3.select("#chart")
-		.datum({
-			"name":"root",
-			"value":0,
-			"children":[]
-		})
-		.call(chart);
+	chart.label(function(d){
+		return d.data.name + ' (' + (100 * (d.x1 - d.x0)).toFixed(3) + '%, ' + d.value.toFixed(3) + ' ms)'
+	});
+	var treeData = {
+		"name":"root",
+		"value":0,
+		"children":[]
+	};
+	d3.select("#chart").datum(treeData).call(chart);
 
 	chart.onClick(function (d) {
 		vscode.postMessage({
@@ -359,16 +382,13 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 				this.emit("flameclick", mesg);
 			}
 		});
-	}
-
-	dispose() {
-		this.timeDecorationType.dispose();
-		this.funcDecorationType.dispose();
-		this.rulerDecorationTypes.forEach(ruler=>{ruler.type.dispose();});
-		this.statusBar.dispose();
-		if (this.flamePanel){
-			this.flamePanel.dispose();
-		}
+		this.flamePanel.onDidDispose(()=>this.flamePanel=undefined);
+		//this.flamePanel.onDidChangeViewState(e=>{
+		//	if (e.webviewPanel.visible)
+		//	{
+		//		e.webviewPanel.webview.postMessage({command:"update",data:this.profileTreeRoot.ToFlameTreeNode()});
+		//	}
+		//});
 	}
 
 	public parse(profile:string)
@@ -384,9 +404,11 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 				case "PROFILE": // nothing
 					break;
 				case "PMN": // PMN:modname:label: time
-					currmod = parts[1].replace(/[\r\n]*/g,"");
-					const time = parseFloat(parts[3]);
-					this.profileData.AddModTime(currmod,time);
+					{
+						currmod = parts[1].replace(/[\r\n]*/g,"");
+						const time = parseFloat(parts[3]);
+						this.profileData.AddModTime(currmod,time);
+					}
 					break;
 				case "PFN": // PFN:filename
 					if (currmod)
@@ -415,8 +437,8 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 				case "POV": //POV:label: time
 					{
 						const time =  parseFloat(parts[2]);
-						this.profileOverheadTime += time;
-						this.profileOverheadCount += 1;
+						this.profileOverhead.timer += time;
+						this.profileOverhead.count += 1;
 					}
 					break;
 				case "PROOT":
@@ -445,9 +467,8 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 			}
 		});
 
-		if (this.flamePanel)
+		if (this.flamePanel && this.flamePanel.visible)
 		{
-			//this.profileTreeRoot.value = this.profileTreeRoot.children.map(ptn=>ptn.value).reduce((a,b)=>a+b);
 			this.flamePanel.webview.postMessage({command:"update",data:this.profileTreeRoot.ToFlameTreeNode()});
 		}
 	}
@@ -488,67 +509,76 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 		const timewidth = maxtime.toFixed(timeprecision).length+1;
 		const width = countwidth+timewidth+3;
 
-		for (let line = 1; line <= editor.document.lineCount; line++) {
-			const linetc = report.fileData.lines.get(line);
-			if (linetc)
-			{
-				const time = linetc.timer;
-				const count = linetc.count;
-				const displayTime = displayAverageTime ? time/count : time;
-				const t = scale({"count": count, "totaltime":time, "averagetime":time/count }[colorBy]);
-				const range = editor.document.validateRange(new vscode.Range(line-1,0,line-1,1/0));
-				linedecs.push({
-					range: range,
-					hoverMessage: displayAverageTime ? `total: ${time}` : `avg: ${time/count}`,
-					renderOptions: {
-						before: {
-							backgroundColor: `${highlightColor}${Math.floor(255*t).toString(16)}`,
-							contentText: `${count.toFixed(0).padStart(countwidth,"\u00A0")}${displayTime.toFixed(timeprecision).padStart(timewidth,"\u00A0")}\u00A0ms`,
-							width: `${width+1}ch`,
-						}
-					}
+		const haslines = report.fileData.lines.size > 0;
+		const hasfuncs = report.fileData.functions.size > 0;
 
-				});
-				let ruler = rulerthresholds.find(ruler=>{return t >= ruler.threshold;});
-				if (ruler)
+		for (let line = 1; line <= editor.document.lineCount; line++) {
+			if (haslines)
+			{
+				const linetc = report.fileData.lines.get(line);
+				if (linetc)
 				{
-					ruler.decs.push({
+					const time = linetc.timer;
+					const count = linetc.count;
+					const displayTime = displayAverageTime ? linetc.avg() : time;
+					const t = scale({"count": count, "totaltime":time, "averagetime":linetc.avg() }[colorBy]);
+					const range = editor.document.validateRange(new vscode.Range(line-1,0,line-1,1/0));
+					linedecs.push({
 						range: range,
+						hoverMessage: displayAverageTime ? `total: ${time}` : `avg: ${linetc.avg()}`,
+						renderOptions: {
+							before: {
+								backgroundColor: `${highlightColor}${Math.floor(255*t).toString(16)}`,
+								contentText: `${count.toFixed(0).padStart(countwidth,"\u00A0")}${displayTime.toFixed(timeprecision).padStart(timewidth,"\u00A0")}\u00A0ms`,
+								width: `${width+1}ch`,
+							}
+						}
+
+					});
+					let ruler = rulerthresholds.find(ruler=>{return t >= ruler.threshold;});
+					if (ruler)
+					{
+						ruler.decs.push({
+							range: range,
+						});
+					}
+				}
+				else
+				{
+					linedecs.push({
+						range: editor.document.validateRange(new vscode.Range(line-1,0,line-1,1/0)),
+						renderOptions: {
+							before: {
+								width: `${width+1}ch`,
+							}
+						}
 					});
 				}
 			}
-			else
-			{
-				linedecs.push({
-					range: editor.document.validateRange(new vscode.Range(line-1,0,line-1,1/0)),
-					renderOptions: {
-						before: {
-							width: `${width+1}ch`,
-						}
-					}
-				});
-			}
 
-			const functc = report.fileData.functions.get(line);
-			if (functc)
+			if (hasfuncs)
 			{
-				const time = functc.timer;
-				const count = functc.count;
-				const displayTime = displayAverageTime ? time/count : time;
-				const range = editor.document.validateRange(new vscode.Range(line-1,0,line-1,1/0));
-				funcdecs.push({
-					range: range,
-					renderOptions: {
-						after: {
-							contentText: `\u00A0${count.toFixed(0)}\u00A0|\u00A0${displayTime.toFixed(timeprecision)}\u00A0ms\u00A0`,
+				const functc = report.fileData.functions.get(line);
+				if (functc)
+				{
+					const time = functc.timer;
+					const count = functc.count;
+					const displayTime = displayAverageTime ? functc.avg() : time;
+					const range = editor.document.validateRange(new vscode.Range(line-1,0,line-1,1/0));
+					funcdecs.push({
+						range: range,
+						renderOptions: {
+							after: {
+								contentText: `\u00A0${count.toFixed(0)}\u00A0|\u00A0${displayTime.toFixed(timeprecision)}\u00A0ms\u00A0`,
 
-							// have to repeat some properties here or gitlens will win when we both try to render on the same line
-							color: new vscode.ThemeColor("factorio.ProfileFunctionTimerForeground"),
-							borderColor: new vscode.ThemeColor("factorio.ProfileFunctionTimerForeground"),
-							margin: "0 0 0 3ch",
+								// have to repeat some properties here or gitlens will win when we both try to render on the same line
+								color: new vscode.ThemeColor("factorio.ProfileFunctionTimerForeground"),
+								borderColor: new vscode.ThemeColor("factorio.ProfileFunctionTimerForeground"),
+								margin: "0 0 0 3ch",
+							}
 						}
-					}
-				});
+					});
+				}
 			}
 		}
 
@@ -558,7 +588,7 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 		rulerthresholds.forEach((ruler)=>{
 			editor.setDecorations(ruler.type,ruler.decs);
 		});
-		this.statusBar.text = `Profile Dump Avg ${(this.profileOverheadTime/this.profileOverheadCount).toFixed(3)} ms`;
+		this.statusBar.text = `Profile Dump Avg ${this.profileOverhead.avg().toFixed(3)} ms`;
 		this.statusBar.show();
 	}
 

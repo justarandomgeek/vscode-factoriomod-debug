@@ -623,9 +623,24 @@
               },
               "profileUpdateRate": {
                 "type": "integer",
-                "description": "Number of Lua stacks to accumulate (per mod) after slow-start before dumping",
+                "description": "Number of Lua stacks to accumulate (per mod) after slow-start before dumping. Lower value will update faster but run slower.",
                 "default": 500,
                 "minimum": 0
+              },
+              "profileLines": {
+                "type": "boolean",
+                "description": "Track and display execution time per-line. This greatly increases the noise/overhead in the measurments.",
+                "default": true
+              },
+              "profileFuncs": {
+                "type": "boolean",
+                "description": "Track and display execution time per-function.",
+                "default": true
+              },
+              "profileTree": {
+                "type": "boolean",
+                "description": "Track and display execution time on a call tree.",
+                "default": true
               }
             }
           }
@@ -636,17 +651,35 @@
             "request": "launch",
             "name": "Factorio Mod Debug",
             "factorioPath": ""
+          },
+          {
+            "type": "factoriomod",
+            "request": "launch",
+            "name": "Factorio Mod Debug (Profile)",
+            "factorioPath": "",
+            "hookMode": "profile"
           }
         ],
         "configurationSnippets": [
           {
-            "label": "Factorio Mod Debug: Launch",
+            "label": "Factorio Mod Debug: Debug",
             "description": "A new configuration for debugging Factorio mods.",
             "body": {
               "type": "factoriomod",
               "request": "launch",
               "name": "Factorio Mod Debug",
               "factorioPath": ""
+            }
+          },
+          {
+            "label": "Factorio Mod Debug: Profile",
+            "description": "A new configuration for debugging Factorio mods.",
+            "body": {
+              "type": "factoriomod",
+              "request": "launch",
+              "name": "Factorio Mod Debug (Profile)",
+              "factorioPath": "",
+              "hookMode": "profile"
             }
           }
         ]

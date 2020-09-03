@@ -1,4 +1,5 @@
 __Profiler = __Profiler or {}
+local __Profiler = __Profiler
 
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local print = print
@@ -39,6 +40,9 @@ local function getlinetimer(file,line)
 end
 
 local function getfunctimer(file,line)
+  -- line data needs file for dumps to work
+  if not linedata[file] then linedata[file] = {} end
+
   local f = funcdata[file]
   if not f then
     f = {}
@@ -178,11 +182,12 @@ local function attach()
   local getinfo = debug.getinfo
   local sub = string.sub
   debug.sethook(function(event,line)
-    if not game then return end
     if hooktimer then
       hooktimer.stop()
-    else
+    elseif game then
       hooktimer = game.create_profiler(true)
+    else
+      return
     end
     if event == "line" then
       accumulate_hook_time()
@@ -200,22 +205,29 @@ local function attach()
       local info = getinfo(2,"nS") -- call target
       local s = info.source
       local functimer
-      if sub(s,1,1) == "@" then
-        s = normalizeLuaSource(s)
-        functimer = getfunctimer(s,info.linedefined)
+      if (__Profiler.trackFuncs ~= false) then
+        if sub(s,1,1) == "@" then
+          s = normalizeLuaSource(s)
+          functimer = getfunctimer(s,info.linedefined)
+        end
       end
       local top = #callstack
       local node
-      if top == 0 then
-        node = calltree
-      else
-        node = callstack[top].node
+      if (__Profiler.trackTree ~= false) then
+        if top == 0 then
+          node = calltree
+        else
+          node = callstack[top].node
+        end
+        if node then
+          node = getstackbranch(node,s,info.linedefined,info.name)
+        end
       end
       -- push activeline to callstack
       callstack[top+1] = {
         linetimer = activeline,
         functimer = functimer,
-        node = node and getstackbranch(node,s,info.linedefined,info.name),
+        node = node,
         tail= event=="tail call",
       }
       activeline = nil
@@ -232,9 +244,9 @@ local function attach()
       end
 
       -- make sure to stop counting when we exit lua
-      local info = getinfo(2,"S") -- returning from
       local parent = getinfo(3,"f") -- returning to
       if not parent then
+        local info = getinfo(2,"S") -- returning from
         -- top of stack
         if info.what == "main" or info.what == "Lua" then
           dumpcount = dumpcount + 1
@@ -245,9 +257,9 @@ local function attach()
       end
     end
     if hooktimer then
-      hooktimer.reset()
+      return hooktimer.reset()
     end
-  end,"clr")
+  end, (__Profiler.trackLines ~= false) and "clr" or "cr")
 
   --on_error(function(mesg)
   --  -- dump all profiles
@@ -256,8 +268,13 @@ local function attach()
 end
 
 if script.mod_name ~= "debugadapter" then -- don't hook myself!
-  -- in addition to the global, set up a remote so we can configure from DA's on_tick
-  -- and pass stepping state around remote calls
+  remote.add_interface("__profiler_" .. script.mod_name ,{
+    dump = dump,
+    slow = function()
+      dumpcount = 0
+      dump()
+    end
+  })
   log("profiler registered for " .. script.mod_name)
   attach()
 end
