@@ -346,7 +346,7 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 	const vscode = acquireVsCodeApi();
 	var chart = flamegraph().height(window.innerHeight).width(window.innerWidth-100);
 	chart.label(function(d){
-		return d.data.name + ' (' + (100 * (d.x1 - d.x0)).toFixed(3) + '%, ' + d.value.toFixed(3) + ' ms)'
+		return d.data.name + ' (' + ((100 * (d.x1 - d.x0))??0).toFixed(3) + '%, ' + (d.value??0).toFixed(3) + ' ms)'
 	});
 	var treeData = {
 		"name":"root",
@@ -369,6 +369,9 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 		switch (message.command) {
 			case 'update':
 				chart.update(message.data);
+				break;
+			case 'merge':
+				chart.merge(message.data);
 				break;
 		}
 	});

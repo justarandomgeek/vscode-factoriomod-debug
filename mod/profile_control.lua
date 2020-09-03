@@ -27,7 +27,7 @@ remote.add_interface("profiler",{
   save = function(name)
     callAll("slow")
     game.autosave_enabled = true
-    game.auto_save(name)
+    game.auto_save(name or "profiler")
     disable_autosave()
   end,
 })

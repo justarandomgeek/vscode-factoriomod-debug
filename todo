@@ -11,4 +11,3 @@ profile "reset" button
 profile save for offline viewing
 config modsPath should prevent found mod-list overriding
 replace data:extend with one that warns on non-arraylike?
-ignore list for global warning

@@ -7,6 +7,8 @@
 * Fix breakpoints not loading initially in settings stage
 * Added profiler flamegraph of call trees
 * Profiler options to select line/function/calltree timers
+* `__DebugAdapter.defineGlobal(name)` to disable warning on global access
+* Profiler remote interface
 
 ## 0.18.33
 

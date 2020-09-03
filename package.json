@@ -617,7 +617,7 @@
               },
               "profileSlowStart": {
                 "type": "integer",
-                "description": "Number of ticks to dump profilers after every Lua stack at startup (to allow for saving for migration). Increase this if you're getting errors at startup while profiling.",
+                "description": "Number of events to dump profilers after every Lua stack at startup (to allow for saving for migration). Increase this if you're getting errors at startup while profiling.",
                 "default": 20,
                 "minimum": 0
               },
@@ -625,7 +625,7 @@
                 "type": "integer",
                 "description": "Number of Lua stacks to accumulate (per mod) after slow-start before dumping. Lower value will update faster but run slower.",
                 "default": 500,
-                "minimum": 0
+                "minimum": 1
               },
               "profileLines": {
                 "type": "boolean",

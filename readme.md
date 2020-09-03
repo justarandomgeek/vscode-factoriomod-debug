@@ -32,9 +32,22 @@ If [Zip File Explorer](https://marketplace.visualstudio.com/items?itemName=sleve
 
 If you use a Steam install, a file `steam_appid.txt` with content `427520` in the same dir as the factorio binary is required. If VSCode has write access to the dir, it will create this automatically.
 
+## Additional Lua Diagnostics
+
+The debugger also injects diagnostics into all hooked mods:
+
+  * Event Check: After on_init/on_load completes, the debugger checks the set of registered events and issues warnings if you seem to be registered for incomplete sets for entity creation/destruction. It will list the events needed to make a complete set.
+  * Global Assignment: A warning will be issued on the first assignment to an undefined global variable. `__DebugAdapter.defineGlobal(name)` can be used to disable this warning for the given name.
+
 ## Profiling
 
 In Factorio >= 0.18.27, you can set `"hookMode": "profile"` to enable profiling. This mode does not provide stepping or inspection, but instead provides inline timing/hitcount data for every line and function executed in control stage. Flamegraph, higlighting and rulers are also provided to assist in finding hotspots. In this mode `__DebugAdapter` is not provided, but `__Profiler` is, with `__Profiler.levelPath()` which works the same as `__DebugAdapter.levelPath()`.
+
+The profiler also provides a remote inteface `profiler` with the following functions:
+
+  * `dump()` - dump all timers immediately
+  * `slow()` - return to slow-start mode (dumping on return from every event temporarily)
+  * `save(name)` - return to slow-start mode and trigger an autosave with the given name. Defaults to "profiler" if unspecified.
 
 ## Automatic Mod Packaging and Publishing
 

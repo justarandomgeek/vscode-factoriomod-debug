@@ -63,6 +63,7 @@ local function getfunctimer(file,line)
 end
 
 local dumpcount = 0
+local dumpnow
 local hooktimer -- time not yet accumulated to specific line/function timer(s)
 local activeline -- the timer for the current line, if any
 local callstack = {} -- the timers for lines higher up the callstack, if any
@@ -250,8 +251,12 @@ local function attach()
         -- top of stack
         if info.what == "main" or info.what == "Lua" then
           dumpcount = dumpcount + 1
-          if dumpcount < __Profiler.slowStart or dumpcount % __Profiler.updateRate == 0 then
+          if dumpcount < __Profiler.slowStart or
+            dumpcount % __Profiler.updateRate == 0 or
+            dumpnow
+            then
             dump()
+            dumpnow = nil
           end
         end
       end
@@ -260,20 +265,17 @@ local function attach()
       return hooktimer.reset()
     end
   end, (__Profiler.trackLines ~= false) and "clr" or "cr")
-
-  --on_error(function(mesg)
-  --  -- dump all profiles
-  --  __Profiler.dump()
-  --end)
 end
 
 if script.mod_name ~= "debugadapter" then -- don't hook myself!
   remote.add_interface("__profiler_" .. script.mod_name ,{
-    dump = dump,
+    dump = function()
+      dumpnow = true
+    end,
     slow = function()
       dumpcount = 0
-      dump()
-    end
+      dumpnow = true
+    end,
   })
   log("profiler registered for " .. script.mod_name)
   attach()

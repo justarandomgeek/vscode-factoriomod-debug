@@ -87,8 +87,13 @@ gmeta.__debugchildren = function(t,extra)
 end
 __DebugAdapter.stepIgnore(gmeta.__debugchildren)
 
+local definedGlobals = {_=true}
+function __DebugAdapter.defineGlobal(name)
+  definedGlobals[name] = true
+end
+
 local function ignore_global(k,info)
-  if k == "_" then return true end
+  if definedGlobals[k] then return true end
   if info.source:match("^@__core__") then return true end
   if info.source:match("^@__base__") then return true end
   return false
