@@ -124,7 +124,8 @@
           "factorio.package.tagName": {
             "type": "string",
             "description": "Template for release tag names. Use `$VERSION` or `$MODNAME` to insert the version number or name.",
-            "default": "$VERSION"
+            "default": "$VERSION",
+            "pattern": "\\$VERSION"
           },
           "factorio.package.tagVPrefix": {
             "type": "boolean",
