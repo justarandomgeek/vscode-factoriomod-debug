@@ -72,12 +72,12 @@ class ProfileFileData {
 		this.functions.forEach(fn=>{
 			max.func.timer = NaN_safe_max(max.func.timer,fn.timer);
 			max.func.count = NaN_safe_max(max.func.count,fn.count);
-			max.func.average = NaN_safe_max(max.func.average,fn.timer/fn.count);
+			max.func.average = NaN_safe_max(max.func.average,fn.avg());
 		});
 		this.lines.forEach(ln=>{
 			max.line.timer = NaN_safe_max(max.line.timer,ln.timer);
 			max.line.count = NaN_safe_max(max.line.count,ln.count);
-			max.line.average = NaN_safe_max(max.line.average,ln.timer/ln.count);
+			max.line.average = NaN_safe_max(max.line.average,ln.avg());
 		});
 
 		return max;
