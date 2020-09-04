@@ -102,7 +102,7 @@ class ProfileTreeNode {
 	readonly name:string;	// modname or file:line
 	value:number;	// time
 	private children:ProfileTreeNode[] = [];
-	readonly parent?:ProfileTreeNode;
+	private parent?:ProfileTreeNode;
 	readonly filename?:string;
 	readonly line?:number;
 
@@ -150,6 +150,28 @@ class ProfileTreeNode {
 			this.children.push(childnode);
 		}
 		return childnode;
+	}
+
+	Merge(other:ProfileTreeNode)
+	{
+		this.value += other.value;
+		other.children.forEach(otherchild=>{
+			const thischild = this.children.find(ptn=>ptn.name === otherchild.name);
+			if (thischild)
+			{
+				thischild.Merge(otherchild);
+			}
+			else
+			{
+				otherchild.parent = this;
+				this.children.push(otherchild);
+			}
+		});
+	}
+
+	GetParent()
+	{
+		return this.parent;
 	}
 }
 
@@ -329,22 +351,23 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 			vscode.ViewColumn.Two,
 			{
 				enableScripts: true,
-				retainContextWhenHidden: true,
+				localResourceRoots: [ ext.extensionUri ],
 			}
 		);
-		this.flamePanel.webview.html =
+		const flameview = this.flamePanel.webview;
+		flameview.html =
 `<!DOCTYPE html>
 <html lang="en">
 <head>
-	<link rel="stylesheet" type="text/css" href="${this.flamePanel.webview.asWebviewUri(vscode.Uri.file(path.join(ext.extensionPath,"node_modules/d3-flame-graph/dist/d3-flamegraph.css")))}">
+	<link rel="stylesheet" type="text/css" href="${flameview.asWebviewUri(vscode.Uri.joinPath(ext.extensionUri,"node_modules/d3-flame-graph/dist/d3-flamegraph.css"))}">
 </head>
 <body>
 	<div id="chart"></div>
-	<script type="text/javascript" src="${this.flamePanel.webview.asWebviewUri(vscode.Uri.file(path.join(ext.extensionPath,"node_modules/d3/dist/d3.js")))}"></script>
-	<script type="text/javascript" src="${this.flamePanel.webview.asWebviewUri(vscode.Uri.file(path.join(ext.extensionPath,"node_modules/d3-flame-graph/dist/d3-flamegraph.js")))}"></script>
+	<script type="text/javascript" src="${flameview.asWebviewUri(vscode.Uri.joinPath(ext.extensionUri,"node_modules/d3/dist/d3.js"))}"></script>
+	<script type="text/javascript" src="${flameview.asWebviewUri(vscode.Uri.joinPath(ext.extensionUri,"node_modules/d3-flame-graph/dist/d3-flamegraph.js"))}"></script>
 	<script type="text/javascript">
 	const vscode = acquireVsCodeApi();
-	var chart = flamegraph().height(window.innerHeight).width(window.innerWidth-100);
+	var chart = flamegraph().height(window.innerHeight-20).width(window.innerWidth-60);
 	chart.label(function(d){
 		return d.data.name + ' (' + ((100 * (d.x1 - d.x0))??0).toFixed(3) + '%, ' + (d.value??0).toFixed(3) + ' ms)'
 	});
@@ -365,7 +388,7 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 	});
 
 	window.addEventListener('message', event => {
-		const message = event.data; // The JSON data our extension sent
+		const message = event.data;
 		switch (message.command) {
 			case 'update':
 				chart.update(message.data);
@@ -375,23 +398,28 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 				break;
 		}
 	});
+	vscode.postMessage({command: 'init'});
 	</script>
 </body>
 </html>
 `;
-		this.flamePanel.webview.onDidReceiveMessage((mesg:{command:string;name:string;filename?:string;line?:number})=>{
-			if(mesg.line && mesg.line > 0)
-			{
-				this.emit("flameclick", mesg);
+		flameview.onDidReceiveMessage(
+			(mesg:{command:"init"}|{command:"click";name:string;filename?:string;line?:number})=>{
+			switch (mesg.command) {
+				case "init":
+					flameview.postMessage({command:"update",data:this.profileTreeRoot.ToFlameTreeNode()});
+					break;
+				case "click":
+					if(mesg.line && mesg.line > 0)
+					{
+						this.emit("flameclick", mesg);
+					}
+					break;
+				default:
+					break;
 			}
 		});
 		this.flamePanel.onDidDispose(()=>this.flamePanel=undefined);
-		//this.flamePanel.onDidChangeViewState(e=>{
-		//	if (e.webviewPanel.visible)
-		//	{
-		//		e.webviewPanel.webview.postMessage({command:"update",data:this.profileTreeRoot.ToFlameTreeNode()});
-		//	}
-		//});
 	}
 
 	public parse(profile:string)
@@ -399,6 +427,7 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 		const lines = profile.split("\n");
 		let currmod:string;
 		let currfile:string;
+		let profileTreeRoot = new ProfileTreeNode("root",0);
 		let currnode:ProfileTreeNode|undefined;
 		lines.forEach(line => {
 			const parts = line.split(":");
@@ -447,7 +476,7 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 				case "PROOT":
 					if (currmod)
 					{
-						currnode = this.profileTreeRoot.AddToChild(currmod,0);
+						currnode = profileTreeRoot.AddToChild(currmod,0);
 					}
 					break;
 				case "PTREE": // PTREE:funcname:filename:line:label: time
@@ -464,7 +493,7 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 				case "PTEND":
 					if (currnode)
 					{
-						currnode = currnode.parent;
+						currnode = currnode.GetParent();
 					}
 					break;
 			}
@@ -472,8 +501,9 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 
 		if (this.flamePanel && this.flamePanel.visible)
 		{
-			this.flamePanel.webview.postMessage({command:"update",data:this.profileTreeRoot.ToFlameTreeNode()});
+			this.flamePanel.webview.postMessage({command:"merge",data:profileTreeRoot.ToFlameTreeNode()});
 		}
+		this.profileTreeRoot.Merge(profileTreeRoot);
 	}
 
 	public render(editor:vscode.TextEditor,filename:string)
