@@ -367,8 +367,12 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 	<script type="text/javascript">
 	const vscode = acquireVsCodeApi();
 	var chart = flamegraph().height(window.innerHeight-20).width(window.innerWidth-60);
+	var formatNum = function(num,digits){
+		if (num){ return num.toFixed(digits); }
+		return 0;
+	};
 	chart.label(function(d){
-		return d.data.name + ' (' + ((100 * (d.x1 - d.x0))??0).toFixed(3) + '%, ' + (d.value??0).toFixed(3) + ' ms)'
+		return d.data.name + ' (' + formatNum(100 * (d.x1 - d.x0),3) + '%, ' + formatNum(d.value,3) + ' ms)'
 	});
 	var treeData = {
 		"name":"root",
