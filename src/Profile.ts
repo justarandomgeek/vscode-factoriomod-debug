@@ -275,7 +275,7 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 	private statusBar: vscode.StatusBarItem;
 	private flamePanel?: vscode.WebviewPanel;
 
-	constructor()
+	constructor(withTree:boolean)
 	{
 		super();
 		this.timeDecorationType = vscode.window.createTextEditorDecorationType({
@@ -322,7 +322,10 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 			};
 		});
 		this.statusBar = vscode.window.createStatusBarItem();
-		this.createFlamePanel();
+		if (withTree)
+		{
+			this.createFlamePanel();
+		}
 	}
 
 	dispose() {

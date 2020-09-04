@@ -180,7 +180,7 @@ export class FactorioModRuntime extends EventEmitter {
 		args.hookMode = args.hookMode ?? "debug";
 
 		if (args.hookMode === "profile" && !args.noDebug) {
-			this.profile = new Profile();
+			this.profile = new Profile(args.profileTree ?? true);
 			this.profile.on("flameclick", async (mesg)=>{
 				if (mesg.filename && mesg.line)
 				{

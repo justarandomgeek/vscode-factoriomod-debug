@@ -3,6 +3,7 @@
 ## 0.18.36
 
 * Profiler flamegraph label more reliable
+* Don't show flamegraph panel when tracking call trees not enabled
 
 ## 0.18.35
 
