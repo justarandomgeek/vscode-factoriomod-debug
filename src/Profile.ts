@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import * as path from "path";
 import { EventEmitter } from "events";
 
 function NaN_safe_max(a:number,b:number):number {
