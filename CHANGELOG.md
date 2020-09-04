@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.36
+
+* Profiler flamegraph label more reliable
+
 ## 0.18.35
 
 * Profiler flamegraph works correctly on VSCode 1.48
