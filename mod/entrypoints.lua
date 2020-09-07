@@ -306,10 +306,10 @@ function newscript.on_event(event,f,filters)
         break
       end
     end
-    registered_handlers[event] = f and true
+    registered_handlers[event] = f
     return oldscript.on_event(event,try(f, ("%s handler"):format(evtname)),filters)
   elseif etype == "string" then
-    registered_handlers[event] = f and true
+    registered_handlers[event] = f
     return oldscript.on_event(event,try(f, ("%s handler"):format(event)))
   elseif etype == "table" then
     for _,e in pairs(event) do
@@ -318,6 +318,13 @@ function newscript.on_event(event,f,filters)
   else
     error({"","Invalid Event type ",etype},2)
   end
+end
+
+-- if a mod tries to get/wrap/set a handler, the raw get would get my wrapped
+-- function, only to wrap it again. This unwraps it, which also preserves identity
+-- if a mod wants to test which function is registered for some reason.
+function newscript.get_event_handler(event)
+  return registered_handlers[event] or oldscript.get_event_handler(event)
 end
 
 function newscript.raise_event(event,eventdata)

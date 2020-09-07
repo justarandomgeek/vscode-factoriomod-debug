@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.37
+
+* Return original unwrapped handler from `script.get_event_handler`
+
 ## 0.18.36
 
 * Profiler flamegraph label more reliable
