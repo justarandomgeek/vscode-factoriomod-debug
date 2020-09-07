@@ -1,5 +1,3 @@
-local remote = remote and rawget(remote,"__raw") or remote
-
 local oldpcall = pcall
 local oldxpcall = xpcall
 local localised_print = localised_print
