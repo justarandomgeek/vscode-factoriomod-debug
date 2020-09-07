@@ -198,7 +198,7 @@ local function check_events(f)
       [de.script_raised_destroy] = true,
     }
   }
-  return function()
+  local function handler()
     if f then f() end
     __DebugAdapter.pushEntryPointName("check_events")
     if next(registered_handlers) then
@@ -263,6 +263,8 @@ local function check_events(f)
     end
     __DebugAdapter.popEntryPointName()
   end
+  __DebugAdapter.stepIgnore(handler)
+  return handler
 end
 __DebugAdapter.stepIgnore(check_events)
 
