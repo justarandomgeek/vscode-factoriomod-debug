@@ -3,7 +3,8 @@
 ## 0.18.37
 
 * Return original unwrapped handler from `script.get_event_handler`
-* Fixed missing stepIgnore on event check
+* Fixed various missing stepIgnores
+* stepIgnore and stepIgnoreAll now return the function/table passed in, for convenience
 
 ## 0.18.36
 

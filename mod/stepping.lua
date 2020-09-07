@@ -6,6 +6,7 @@ setmetatable(stepIgnoreFuncs,{__mode="k"})
 local __DebugAdapter = __DebugAdapter
 local function stepIgnore(f)
   stepIgnoreFuncs[f] = true
+  return f
 end
 stepIgnore(stepIgnore)
 __DebugAdapter.stepIgnore = stepIgnore
@@ -19,6 +20,7 @@ local function stepIgnoreAll(t)
       stepIgnore(v)
     end
   end
+  return t
 end
 stepIgnore(stepIgnoreAll)
 __DebugAdapter.stepIgnoreAll = stepIgnoreAll

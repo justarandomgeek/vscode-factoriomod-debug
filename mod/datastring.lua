@@ -24,7 +24,7 @@ local bor = bit32.bor
 local lshift = bit32.lshift
 local rshift = bit32.rshift
 
-local stepIgnore = __DebugAdapter and __DebugAdapter.stepIgnore or function() end
+local stepIgnore = __DebugAdapter and __DebugAdapter.stepIgnore or function(f) return f end
 
 
 --- reads an int from str starting at index.

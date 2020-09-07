@@ -11,7 +11,7 @@ local ipairs = ipairs
 local tostring = tostring
 local type = type
 
-local stepIgnore = __DebugAdapter and __DebugAdapter.stepIgnore or function() end
+local stepIgnore = __DebugAdapter and __DebugAdapter.stepIgnore or function(f) return f end
 
 local function encode_nil()
   return "null"

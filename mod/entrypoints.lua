@@ -21,6 +21,7 @@ if not localised_print then
     "***EndDebugAdapterBlockPrint***")
   end
 end
+__DebugAdapter.stepIgnore(print_exception)
 
 function __DebugAdapter.breakpoint(mesg)
   if mesg then
@@ -108,18 +109,16 @@ local try
 if __DebugAdapter.instrument then
   function try(func,entryname)
     if func == nil then return nil end
-    local try_func = function(...)
+    return __DebugAdapter.stepIgnore(function(...)
       __DebugAdapter.pushEntryPointName(entryname)
       func(...)
       __DebugAdapter.popEntryPointName()
-    end
-    __DebugAdapter.stepIgnore(try_func)
-    return try_func
+    end)
   end
 else
   function try(func,entryname)
     if func == nil then return nil end
-    local try_func = function(...)
+    return __DebugAdapter.stepIgnore(function(...)
       __DebugAdapter.pushEntryPointName(entryname)
       local success,message = oldxpcall(func,on_exception,...)
       if not success then
@@ -129,15 +128,13 @@ else
         rethrow(message,-1)
       end
       __DebugAdapter.popEntryPointName()
-    end
-    __DebugAdapter.stepIgnore(try_func)
-    return try_func
+    end)
   end
 end
 __DebugAdapter.stepIgnore(try)
 
 local function caught(filter, user_handler)
-  return function(mesg)
+  return __DebugAdapter.stepIgnore(function(mesg)
     print_exception(filter,mesg)
     debug.debug()
     if user_handler then
@@ -145,15 +142,18 @@ local function caught(filter, user_handler)
     else
       return mesg
     end
-  end
+  end)
 end
+__DebugAdapter.stepIgnore(caught)
 
 function pcall(func,...)
   return oldxpcall(func, caught("pcall"), ...)
 end
+__DebugAdapter.stepIgnore(pcall)
 function xpcall(func, user_handler, ...)
   return oldxpcall(func, caught("xpcall",user_handler), ...)
 end
+__DebugAdapter.stepIgnore(xpcall)
 
 local oldscript = script
 local newscript = {
@@ -198,7 +198,7 @@ local function check_events(f)
       [de.script_raised_destroy] = true,
     }
   }
-  local function handler()
+  return __DebugAdapter.stepIgnore(function()
     if f then f() end
     __DebugAdapter.pushEntryPointName("check_events")
     if next(registered_handlers) then
@@ -262,9 +262,7 @@ local function check_events(f)
       end
     end
     __DebugAdapter.popEntryPointName()
-  end
-  __DebugAdapter.stepIgnore(handler)
-  return handler
+  end)
 end
 __DebugAdapter.stepIgnore(check_events)
 
