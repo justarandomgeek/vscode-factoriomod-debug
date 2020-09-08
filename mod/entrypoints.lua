@@ -390,7 +390,5 @@ __DebugAdapter.stepIgnoreAll(newcommands)
 __DebugAdapter.stepIgnoreAll(newcommandsmeta)
 setmetatable(newcommands,newcommandsmeta)
 
-if script.mod_name ~= "debugadapter" then -- don't hook myself!
-  script = newscript
-  commands = newcommands
-end
+script = newscript
+commands = newcommands

@@ -310,7 +310,7 @@ do
     -- data stage clears package.loaded between files, so we stash a copy in Lua registry too
     local reg = debug.getregistry()
     reg.__DebugAdapter = __DebugAdapter
-  elseif script.mod_name ~= "debugadapter" then -- don't hook myself!
+  else
     -- in addition to the global, set up a remote so we can configure from DA's on_tick
     -- and pass stepping state around remote calls
     log("debugadapter registered for " .. script.mod_name .. ininstrument)

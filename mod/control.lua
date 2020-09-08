@@ -3,13 +3,17 @@ if __Profiler then
   return
 end
 
-__DebugAdapter = __DebugAdapter or {}
+__DebugAdapter = __DebugAdapter or {
+  stepIgnore = function(f) return f end,
+  stepIgnoreAll = function(t) return t end,
+}
 
 local datastring = require("__debugadapter__/datastring.lua")
 local ReadBreakpoints = datastring.ReadBreakpoints
 local json = require('__debugadapter__/json.lua')
 local script = script
 local remote = remote
+remote = rawget(remote,"__raw") or remote
 local debug = debug
 local print = print
 local pairs = pairs
@@ -28,6 +32,7 @@ local function callAll(funcname,...)
   end
   return results
 end
+__DebugAdapter.stepIgnore(callAll)
 
 local function updateBreakpoints(change)
   local source,changedbreaks = ReadBreakpoints(change)
@@ -62,22 +67,22 @@ local function whois(remotename)
   return nil
 end
 
-script.on_init(function()
+script.on_init(__DebugAdapter.stepIgnore(function()
   print("DBG: on_init")
   debug.debug()
-end)
+end))
 
-script.on_load(function()
+script.on_load(__DebugAdapter.stepIgnore(function()
   print("DBG: on_load")
   debug.debug()
-end)
+end))
 
-script.on_event(defines.events.on_tick,function()
+script.on_event(defines.events.on_tick,__DebugAdapter.stepIgnore(function()
   print("DBG: on_tick")
   debug.debug()
-end)
+end))
 
-remote.add_interface("debugadapter",{
+remote.add_interface("debugadapter",__DebugAdapter.stepIgnoreAll{
   updateBreakpoints = updateBreakpoints,
   whois = whois,
   error = error,

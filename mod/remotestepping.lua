@@ -239,11 +239,7 @@ local remotemeta = {
 __DebugAdapter.stepIgnoreAll(newremote)
 __DebugAdapter.stepIgnoreAll(remotemeta)
 setmetatable(newremote,remotemeta)
-
-
-if script.mod_name ~= "debugadapter" then
-  remote = newremote
-end
+remote = newremote
 
 __DebugAdapter.stepIgnoreAll(remotestepping)
 return remotestepping
