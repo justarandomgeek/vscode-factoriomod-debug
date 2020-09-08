@@ -66,19 +66,19 @@ local sharedevents = {}
 script.on_init(__DebugAdapter.stepIgnore(function()
   print("DBG: on_init")
   debug.debug()
-  if sharedevents.on_init then sharedevents.on_init() end
+  if sharedevents.on_init then return sharedevents.on_init() end
 end))
 
 script.on_load(__DebugAdapter.stepIgnore(function()
   print("DBG: on_load")
   debug.debug()
-  if sharedevents.on_load then sharedevents.on_load() end
+  if sharedevents.on_load then return sharedevents.on_load() end
 end))
 
 script.on_event(defines.events.on_tick,__DebugAdapter.stepIgnore(function(e)
   print("DBG: on_tick")
   debug.debug()
-  if sharedevents.on_tick then sharedevents.on_tick(e) end
+  if sharedevents.on_tick then return sharedevents.on_tick(e) end
 end))
 
 remote.add_interface("debugadapter",__DebugAdapter.stepIgnoreAll{
