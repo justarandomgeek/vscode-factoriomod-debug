@@ -105,6 +105,7 @@ export class FactorioModRuntime extends EventEmitter {
 
 	private hasNativeDebug : boolean;
 	private _factorio : ChildProcess;
+	private stdinQueue:{buffer:Buffer;resolve:resolver<boolean>}[] = [];
 
 	private _stack?: resolver<StackFrame[]>;
 	private _modules = new Map<string,DebugProtocol.Module>();
@@ -113,6 +114,7 @@ export class FactorioModRuntime extends EventEmitter {
 	private _setvars = new Map<number, resolver<Variable>>();
 	private _evals = new Map<number, resolver<EvaluateResponseBody>>();
 	private translations = new Map<number, string>();
+	private nextRef = 1;
 
 	private modsPath?: string; // absolute path of `mods` directory
 	private dataPath: string; // absolute path of `data` directory
@@ -473,26 +475,43 @@ export class FactorioModRuntime extends EventEmitter {
 			if (!chunkstr) { return; }
 			if (this.trace && chunkstr.startsWith("DBG")){this.sendEvent('output', `> ${chunkstr}`, "console");}
 			if (chunkstr.startsWith("DBG: ")) {
+				const wasInPrompt = this.inPrompt;
 				this.inPrompt = true;
 				let event = chunkstr.substring(5).trim();
 				if (event === "on_tick") {
 					//if on_tick, then update breakpoints if needed and continue
+					this.runQueuedStdin();
 					this.continue();
 				} else if (event === "on_data") {
-					//control.lua main chunk - force all breakpoints each time this comes up because it can only set them locally
+					//data/settings main chunk - force all breakpoints each time this comes up because it can only set them locally
 					await this.configDone;
+					this.clearQueuedStdin();
 					this.continue(true);
 				} else if (event === "on_parse") {
 					//control.lua main chunk - force all breakpoints each time this comes up because it can only set them locally
+					this.clearQueuedStdin();
 					this.continue(true);
 				} else if (event === "on_init") {
 					//if on_init, set initial breakpoints and continue
+					this.runQueuedStdin();
 					this.continue(true);
 				} else if (event === "on_load") {
 					//on_load set initial breakpoints and continue
+					this.runQueuedStdin();
 					this.continue(true);
+				} else if (event === "getref") {
+					//pass in nextref
+					this.writeStdin(`__DebugAdapter.transferRef(${this.nextRef})`);
+					this.continue();
+					this.inPrompt = wasInPrompt;
+				} else if (event === "leaving" || event === "running") {
+					//run queued commands
+					this.runQueuedStdin();
+					this.continue();
+					this.inPrompt = wasInPrompt;
 				} else if (event.startsWith("step")) {
 					// notify stoponstep
+					this.runQueuedStdin();
 					if(this._breakPointsChanged.size !== 0)
 					{
 						this.updateBreakpoints();
@@ -500,6 +519,7 @@ export class FactorioModRuntime extends EventEmitter {
 					this.sendEvent('stopOnStep');
 				} else if (event === "breakpoint") {
 					// notify stop on breakpoint
+					this.runQueuedStdin();
 					if(this._breakPointsChanged.size !== 0)
 					{
 						this.updateBreakpoints();
@@ -507,6 +527,7 @@ export class FactorioModRuntime extends EventEmitter {
 					this.sendEvent('stopOnBreakpoint');
 				} else if (event.startsWith("exception")) {
 					// notify stop on exception
+					this.runQueuedStdin();
 					const sub = event.substr(10);
 					const split = sub.indexOf("\n");
 					const filter = sub.substr(0,split).trim();
@@ -521,6 +542,7 @@ export class FactorioModRuntime extends EventEmitter {
 					}
 				} else if (event === "on_instrument_settings") {
 					await modulesReady;
+					this.clearQueuedStdin();
 					if (this.launchArgs.hookMode === "profile")
 					{
 						this.continueRequire(false);
@@ -530,6 +552,7 @@ export class FactorioModRuntime extends EventEmitter {
 						this.continueRequire(this.launchArgs.hookSettings ?? false);
 					}
 				} else if (event === "on_instrument_data") {
+					this.clearQueuedStdin();
 					if (this.launchArgs.hookMode === "profile")
 					{
 						this.continueRequire(false);
@@ -539,6 +562,7 @@ export class FactorioModRuntime extends EventEmitter {
 						this.continueRequire(this.launchArgs.hookData ?? false);
 					}
 				} else if (event.startsWith("on_instrument_control ")) {
+					this.clearQueuedStdin();
 					const modname = event.substring(22).trim();
 					const hookmods = this.launchArgs.hookControl ?? true;
 					const shouldhook = hookmods !== false && (hookmods === true || hookmods.includes(modname));
@@ -555,6 +579,8 @@ export class FactorioModRuntime extends EventEmitter {
 					FactorioModRuntime.output.appendLine("unexpected event: " + event);
 					this.continue();
 				}
+			} else if (chunkstr.startsWith("DBGnextref: ")) {
+				this.nextRef = parseInt(chunkstr.substring(12).trim());
 			} else if (chunkstr.startsWith("DBGlogpoint: ")) {
 				const logpoint = JSON.parse(chunkstr.substring(13).trim());
 				this.sendEvent('output', logpoint.output, "console", logpoint.filePath, logpoint.line, logpoint.variablesReference);
@@ -566,7 +592,7 @@ export class FactorioModRuntime extends EventEmitter {
 					const id = Number.parseInt(lsid[1]);
 					body.output = this.translations.get(id) ?? `{Missing Translation ID ${id}}`;
 				}
-				this.sendEvent('output', body.output, body.category ?? "console", body.source, body.line);
+				this.sendEvent('output', body.output, body.category ?? "console", body.source, body.line, undefined, body.variablesReference);
 			} else if (chunkstr.startsWith("DBGstack: ")) {
 				this._stack!(JSON.parse(chunkstr.substring(10).trim()));
 				this._stack = undefined;
@@ -682,7 +708,7 @@ export class FactorioModRuntime extends EventEmitter {
 		}
 	}
 
-	private writeStdin(s:string|Buffer):void
+	private writeStdin(s:string|Buffer,fromQueue?:boolean):void
 	{
 		if (!this.inPrompt)
 		{
@@ -690,10 +716,55 @@ export class FactorioModRuntime extends EventEmitter {
 			return;
 		}
 
-		if (this.trace) { this.sendEvent('output', `< ${s instanceof Buffer ? `Buffer[${s.length}]` : s.replace(/^[\r\n]*/,"").replace(/[\r\n]*$/,"")}`, "console"); }
+		if (this.trace) { this.sendEvent('output', `${fromQueue?"<q":"<"} ${s instanceof Buffer ? `Buffer[${s.length}] ${fromQueue?s.toString("utf-8"):""}` : s.replace(/^[\r\n]*/,"").replace(/[\r\n]*$/,"")}`, "console"); }
 		// eslint-disable-next-line no-unused-expressions
 		this._factorio.stdin?.write(Buffer.concat([s instanceof Buffer ? s : Buffer.from(s),Buffer.from("\n")]));
 	}
+
+	private async writeOrQueueStdin(s:string|Buffer):Promise<boolean>
+	{
+		if (this.trace) { this.sendEvent('output', `${this.inPrompt?"<":"q<"} ${s instanceof Buffer ? `Buffer[${s.length}]` : s.replace(/^[\r\n]*/,"").replace(/[\r\n]*$/,"")}`, "console"); }
+		let b = Buffer.concat([s instanceof Buffer ? s : Buffer.from(s),Buffer.from("\n")]);
+		if (this.inPrompt)
+		{
+			// eslint-disable-next-line no-unused-expressions
+			this._factorio.stdin?.write(b);
+			return true;
+		}
+		else
+		{
+			let p = new Promise<boolean>((resolve)=>
+			this.stdinQueue.push({buffer:b,resolve:resolve}));
+			return p;
+		}
+	}
+
+	private runQueuedStdin():void
+	{
+		if (this.stdinQueue.length > 0)
+		{
+			this.stdinQueue.forEach(b=>{
+				this.writeStdin(b.buffer,true);
+				b.resolve(true);
+			});
+			this.stdinQueue = [];
+		}
+	}
+
+	private clearQueuedStdin():void
+	{
+		if (this.stdinQueue.length > 0)
+		{
+			this.stdinQueue.forEach(b=>{
+				if (this.trace) {
+					this.sendEvent('output', `x< ${b.buffer.toString("utf-8")} `, "console");
+				}
+				b.resolve(false);
+			});
+			this.stdinQueue = [];
+		}
+	}
+
 
 	/**
 	 * Continue execution to the end/beginning.
@@ -936,21 +1007,36 @@ export class FactorioModRuntime extends EventEmitter {
 	}
 
 	public async vars(variablesReference: number, seq: number, filter?: string, start?: number, count?: number): Promise<Variable[]> {
-		let vars:Variable[] = await new Promise<Variable[]>((resolve)=>{
-			this._vars.set(seq, resolve);
-			this.writeStdin(`__DebugAdapter.variables(${variablesReference},${seq},${filter? `"${filter}"`:"nil"},${start || "nil"},${count || "nil"})\n`);
-		});
+		try {
+			let vars:Variable[] = await new Promise<Variable[]>(async (resolve,reject)=>{
+				this._vars.set(seq, resolve);
+				if (!await this.writeOrQueueStdin(`__DebugAdapter.variables(${variablesReference},${seq},${filter? `"${filter}"`:"nil"},${start || "nil"},${count || "nil"})\n`))
+				{
+					this._vars.delete(seq);
+					reject("Cancelled");
+				}
+			});
 
-		vars.forEach((a)=>{
-			const lsid = a.value.match(/\{LocalisedString ([0-9]+)\}/);
-			if (lsid)
-			{
-				const id = Number.parseInt(lsid[1]);
-				a.value = this.translations.get(id) ?? `{Missing Translation ID ${id}}`;
-			}
-		});
+			vars.forEach((a)=>{
+				const lsid = a.value.match(/\{LocalisedString ([0-9]+)\}/);
+				if (lsid)
+				{
+					const id = Number.parseInt(lsid[1]);
+					a.value = this.translations.get(id) ?? `{Missing Translation ID ${id}}`;
+				}
+			});
 
-		return vars;
+			return vars;
+		} catch (error) {
+			return [
+				{
+					name: "Expired variablesReference",
+					value: `ref=${variablesReference} seq=${seq}`,
+					variablesReference: 0,
+				}
+			];
+		}
+
 	}
 
 	private luaBlockQuote(inbuff:Buffer){

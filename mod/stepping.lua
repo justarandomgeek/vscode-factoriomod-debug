@@ -56,6 +56,20 @@ local breakpoints = {}
 local stepmode = nil
 local stepdepth = 0
 
+local runningBreak
+do
+  local i = 0
+  function runningBreak()
+    if i < 5000 then
+      i = i + 1
+      return false
+    else
+      i = 0
+      return true
+    end
+  end
+end
+
 function __DebugAdapter.attach()
   local getinfo = debug.getinfo
   local sub = string.sub
@@ -80,6 +94,9 @@ function __DebugAdapter.attach()
           debugprompt()
           -- cleanup variablesReferences
           variables.clear()
+        elseif runningBreak() then
+          print("DBG: running")
+          debugprompt()
         else
           local filebreaks = breakpoints[s]
           if filebreaks then
@@ -207,6 +224,9 @@ function __DebugAdapter.attach()
         -- top of stack
         if info.what == "main" or info.what == "Lua" then
           __DebugAdapter.popEntryPointName()
+          print("DBG: leaving")
+          debugprompt()
+          __DebugAdapter.transferRef()
         end
       end
     end
@@ -248,12 +268,16 @@ local function isMainChunk()
 end
 stepIgnore(isMainChunk)
 
+function __DebugAdapter.canRemoteCall()
+  return game or script and not isMainChunk()
+end
+
 ---@param change string
 function __DebugAdapter.updateBreakpoints(change)
   -- pass it around to everyone if possible, else just set it here...
   -- remote.call is only legal from within events, game catches all but on_load
   -- during on_load, script exists and the root of the stack is no longer the main chunk
-  if game or script and not isMainChunk() then
+  if __DebugAdapter.canRemoteCall() then
     remote.call("debugadapter", "updateBreakpoints", change)
   else
     local source,changedbreaks = ReadBreakpoints(change)

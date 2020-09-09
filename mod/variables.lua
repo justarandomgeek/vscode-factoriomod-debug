@@ -27,6 +27,8 @@ local print = print
 local pcall = pcall -- capture pcall early before entrypoints wraps it
 local type = type
 
+local remote = remote and rawget(remote,"__raw") or remote
+
 -- Trying to expand the refs table causes some problems, so just hide it...
 local refsmeta = {
   __debugline = "<Debug Adapter Variable ID Cache [{#self}]>",
@@ -121,21 +123,48 @@ function gmeta.__newindex(t,k,v)
 end
 __DebugAdapter.stepIgnore(gmeta.__debugchildren)
 
+-- variable id refs
+local nextID
+do
+  local nextRefID
+  function __DebugAdapter.transferRef(ref)
+    if ref then
+      nextRefID = ref
+    else
+      if nextRefID then
+        print("DBGnextref: "..nextRefID)
+        nextRefID = nil
+      end
+    end
+  end
+  function nextID()
+    if not nextRefID then
+      -- request from extension
+      print("DBG: getref")
+      debug.debug(); -- call __DebugAdapter.transferRef(ref) and continue
+    end
+
+    -- assign locally from transferred ref
+    -- will be passed back out on raise, remote, or return from top of stack
+    local i = nextRefID
+    nextRefID = i + 1
+    return i
+  end
+end
+
 do
   local localised_print = localised_print
-  local i = 1
   if localised_print then
     function variables.translate(mesg)
+      local translationID = nextID()
       local success,result = pcall(localised_print, {"",
       "***DebugAdapterBlockPrint***\n"..
-      "DBGtranslate: ", i, "\n",
+      "DBGtranslate: ", translationID, "\n",
       mesg,"\n"..
       "***EndDebugAdapterBlockPrint***"
       })
       if success then
-        local j = i
-        i = i + 1
-        return j
+        return translationID
       else
         return success,result
       end
@@ -145,7 +174,6 @@ do
   --- Clear all existing variable references, when stepping invalidates them
   function variables.clear()
     variables.refs = setmetatable({},refsmeta)
-    i = 1
     print("DBGuntranslate")
   end
 end
@@ -161,7 +189,7 @@ function variables.scopeRef(frameId,name,mode)
       return id
     end
   end
-  local id = #variables.refs+1
+  local id = nextID()
   variables.refs[id] = {
     type = name,
     frameId = frameId,
@@ -178,12 +206,13 @@ end
 ---@param evalName string | nil
 ---@return number variablesReference
 function variables.tableRef(table, mode, showMeta, extra, evalName)
+  mode = mode or "pairs"
   for id,varRef in pairs(variables.refs) do
-    if varRef.type == "Table" and varRef.table == table and (varRef.mode or "pairs") == mode and varRef.showMeta == showMeta then
+    if varRef.type == "Table" and varRef.table == table and varRef.mode == mode and varRef.showMeta == showMeta then
       return id
     end
   end
-  local id = #variables.refs+1
+  local id = nextID()
   variables.refs[id] = {
     type = "Table",
     table = table,
@@ -205,7 +234,7 @@ function variables.luaObjectRef(luaObject,classname,evalName)
   for id,varRef in pairs(variables.refs) do
     if varRef.type == "LuaObject" and varRef.object == luaObject then return id end
   end
-  local id = #variables.refs+1
+  local id = nextID()
   variables.refs[id] = {
     type = "LuaObject",
     object = luaObject,
@@ -537,7 +566,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
             }
           end
 
-          local debugpairs = itermode[varRef.mode or "pairs"]
+          local debugpairs = itermode[varRef.mode]
           if debugpairs then
             local f,t,firstk = debugpairs(varRef.table)
             local mtlen = mt and mt.__len
@@ -662,6 +691,12 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
         }
       end
     end
+  else
+    vars[1] = {
+      name= "Expired variablesReference",
+      value= "ref="..variablesReference.." seq="..seq,
+      variablesReference= 0,
+    }
   end
   if #vars == 0 then
     vars[1] = {

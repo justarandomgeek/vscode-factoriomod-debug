@@ -270,18 +270,24 @@ end
 ---@param alsoLookIn table
 function __DebugAdapter.print(expr,alsoLookIn)
   local texpr = type(expr)
-  local result
+  local result,ref
   if texpr == "string" then
     result = __DebugAdapter.stringInterp(expr,3,alsoLookIn,"print")
   elseif variables.translate and texpr == "table" and (expr.object_name == "LuaProfiler" or (not getmetatable(expr) and type(expr[1])=="string")) then
     result = "{LocalisedString "..variables.translate(expr).."}"
   else
-    result = __DebugAdapter.describe(expr)
+    if texpr == "table" then
+      expr = {expr}
+    end
+    local v = variables.create("",expr)
+    result = v.value -- __DebugAdapter.describe(expr)
+    ref = v.variablesReference
   end
 
   local body = {
     category = "console",
     output = result,
+    variablesReference = ref,
   }
   local istail = debug.getinfo(1,"t")
   if istail.istailcall then

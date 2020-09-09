@@ -5,6 +5,7 @@
 * Return original unwrapped handler from `script.get_event_handler`
 * Fixed various missing stepIgnores
 * stepIgnore and stepIgnoreAll now return the function/table passed in, for convenience
+* Objects printed with `__DebugAdapter.print(obj)` will be expandable in debug console until the next break-and-continue or until the current lua stack ends
 
 ## 0.18.36
 
