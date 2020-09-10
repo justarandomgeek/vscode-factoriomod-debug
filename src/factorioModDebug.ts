@@ -39,6 +39,9 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this._runtime.on('stopOnBreakpoint', () => {
 			this.sendEvent(new StoppedEvent('breakpoint', FactorioModDebugSession.THREAD_ID));
 		});
+		this._runtime.on('stopOnPause', () => {
+			this.sendEvent(new StoppedEvent('pause', FactorioModDebugSession.THREAD_ID));
+		});
 		this._runtime.on('stopOnException', (exceptionText:string) => {
 			this.sendEvent(new StoppedEvent('exception', FactorioModDebugSession.THREAD_ID,exceptionText));
 		});
@@ -231,6 +234,11 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
 		this._runtime.continue();
+		this.sendResponse(response);
+	}
+
+	protected pauseRequest(response: DebugProtocol.PauseResponse, args: DebugProtocol.PauseArguments, request?: DebugProtocol.Request): void {
+		this._runtime.pause();
 		this.sendResponse(response);
 	}
 

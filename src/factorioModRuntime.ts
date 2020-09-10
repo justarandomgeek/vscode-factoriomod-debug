@@ -123,6 +123,7 @@ export class FactorioModRuntime extends EventEmitter {
 	private profile?: Profile;
 
 	private inPrompt:boolean = false;
+	private pauseRequested:boolean = false;
 	private trace:boolean;
 
 	private workspaceModInfoReady:Promise<void>;
@@ -507,8 +508,20 @@ export class FactorioModRuntime extends EventEmitter {
 				} else if (event === "leaving" || event === "running") {
 					//run queued commands
 					this.runQueuedStdin();
-					this.continue();
-					this.inPrompt = wasInPrompt;
+					if (event === "running" && this.pauseRequested)
+					{
+						this.pauseRequested = false;
+						if(this._breakPointsChanged.size !== 0)
+						{
+							this.updateBreakpoints();
+						}
+						this.sendEvent('stopOnPause');
+					}
+					else
+					{
+						this.continue();
+						this.inPrompt = wasInPrompt;
+					}
 				} else if (event.startsWith("step")) {
 					// notify stoponstep
 					this.runQueuedStdin();
@@ -765,6 +778,9 @@ export class FactorioModRuntime extends EventEmitter {
 		}
 	}
 
+	public pause() {
+		this.pauseRequested = true;
+	}
 
 	/**
 	 * Continue execution to the end/beginning.
