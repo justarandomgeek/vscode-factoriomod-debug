@@ -1,8 +1,6 @@
 import { EventEmitter } from 'events';
-import { spawn, ChildProcess } from 'child_process';
 import { Breakpoint, Scope, Variable, StackFrame, Module,} from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { BufferSplitter } from './BufferSplitter';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -10,7 +8,7 @@ import * as os from 'os';
 import * as semver from 'semver';
 import { Buffer } from 'buffer';
 import { Profile } from './Profile';
-import treekill = require('tree-kill');
+import { FactorioProcess } from './FactorioProcess';
 
 
 interface ModEntry{
@@ -97,14 +95,13 @@ export class FactorioModRuntime extends EventEmitter {
 	private _configurationDone: resolver<void>;
 	private configDone: Promise<void>;
 
-	private _breakPoints = new Map<string, DebugProtocol.SourceBreakpoint[]>();
-	private _breakPointsChanged = new Set<string>();
+	private breakPoints = new Map<string, DebugProtocol.SourceBreakpoint[]>();
+	private breakPointsChanged = new Set<string>();
 
 	// unhandled only by default
-	private _exceptionFilters = new Set<string>(["unhandled"]);
+	private exceptionFilters = new Set<string>(["unhandled"]);
 
-	private hasNativeDebug : boolean;
-	private _factorio : ChildProcess;
+	private factorio : FactorioProcess;
 	private stdinQueue:{buffer:Buffer;resolve:resolver<boolean>}[] = [];
 
 	private _stack?: resolver<StackFrame[]>;
@@ -434,20 +431,15 @@ export class FactorioModRuntime extends EventEmitter {
 
 		}
 
-		if (args.nativeDebugger) {
-			this.hasNativeDebug = true;
-			this._factorio = spawn(args.nativeDebugger, [args.factorioPath, ...args.factorioArgs],{
-				cwd: path.dirname(args.factorioPath)
-			});
-		} else {
-			this._factorio = spawn(args.factorioPath,args.factorioArgs,{
-				cwd: path.dirname(args.factorioPath)
-			});
-		}
+		const stderrmatchers = [Buffer.from("\n"),Buffer.from("lua_debug> ")];
+		const stdoutmatchers = [Buffer.from("\n"),{
+			start: Buffer.from("***DebugAdapterBlockPrint***"),
+			end: Buffer.from("***EndDebugAdapterBlockPrint***")}];
+		this.factorio = new FactorioProcess(args.factorioPath,args.factorioArgs,stderrmatchers,stdoutmatchers,args.nativeDebugger);
 
 
 
-		this._factorio.on("exit", (code:number, signal:string) => {
+		this.factorio.on("exit", (code:number, signal:string) => {
 			if (this.profile)
 			{
 				this.profile.dispose();
@@ -456,29 +448,18 @@ export class FactorioModRuntime extends EventEmitter {
 			this.sendEvent('end');
 		});
 
-		const stderr = new BufferSplitter(this._factorio.stderr!,[Buffer.from("\n"),Buffer.from("lua_debug> ")]);
-		stderr.on("segment", (chunk:Buffer) => {
-			let chunkstr : string = chunk.toString();
-			chunkstr = chunkstr.replace(/^[\r\n]*/,"").replace(/[\r\n]*$/,"");
-			//raise this as a stderr "Output" event
-			this.sendEvent('output', chunkstr, "stderr");
-		});
-		const stdout = new BufferSplitter(this._factorio.stdout!, [Buffer.from("\n"),{
-				start: Buffer.from("***DebugAdapterBlockPrint***"),
-				end: Buffer.from("***EndDebugAdapterBlockPrint***")}]);
 		let resolveModules:resolver<void>;
 		const modulesReady = new Promise<void>((resolve)=>{
 			resolveModules = resolve;
 		});
-		stdout.on("segment", async (chunk:Buffer) => {
-			let chunkstr:string = chunk.toString();
-			chunkstr = chunkstr.replace(/^[\r\n]*/,"").replace(/[\r\n]*$/,"");
-			if (!chunkstr) { return; }
-			if (this.trace && chunkstr.startsWith("DBG")){this.sendEvent('output', `> ${chunkstr}`, "console");}
-			if (chunkstr.startsWith("DBG: ")) {
+
+		this.factorio.on("stderr",(mesg:string)=>this.sendEvent('output',mesg,"stderr"));
+		this.factorio.on("stdout",async (mesg:string)=>{
+			if (this.trace && mesg.startsWith("DBG")){this.sendEvent('output', `> ${mesg}`, "console");}
+			if (mesg.startsWith("DBG: ")) {
 				const wasInPrompt = this.inPrompt;
 				this.inPrompt = true;
-				let event = chunkstr.substring(5).trim();
+				let event = mesg.substring(5).trim();
 				if (event === "on_tick") {
 					//if on_tick, then update breakpoints if needed and continue
 					this.runQueuedStdin();
@@ -511,7 +492,7 @@ export class FactorioModRuntime extends EventEmitter {
 					if (event === "running" && this.pauseRequested)
 					{
 						this.pauseRequested = false;
-						if(this._breakPointsChanged.size !== 0)
+						if(this.breakPointsChanged.size !== 0)
 						{
 							this.updateBreakpoints();
 						}
@@ -525,7 +506,7 @@ export class FactorioModRuntime extends EventEmitter {
 				} else if (event.startsWith("step")) {
 					// notify stoponstep
 					this.runQueuedStdin();
-					if(this._breakPointsChanged.size !== 0)
+					if(this.breakPointsChanged.size !== 0)
 					{
 						this.updateBreakpoints();
 					}
@@ -533,7 +514,7 @@ export class FactorioModRuntime extends EventEmitter {
 				} else if (event === "breakpoint") {
 					// notify stop on breakpoint
 					this.runQueuedStdin();
-					if(this._breakPointsChanged.size !== 0)
+					if(this.breakPointsChanged.size !== 0)
 					{
 						this.updateBreakpoints();
 					}
@@ -545,7 +526,7 @@ export class FactorioModRuntime extends EventEmitter {
 					const split = sub.indexOf("\n");
 					const filter = sub.substr(0,split).trim();
 					const err = sub.substr(split+1);
-					if (filter === "manual" || this._exceptionFilters.has(filter))
+					if (filter === "manual" || this.exceptionFilters.has(filter))
 					{
 						this.sendEvent('stopOnException', err);
 					}
@@ -592,13 +573,13 @@ export class FactorioModRuntime extends EventEmitter {
 					FactorioModRuntime.output.appendLine("unexpected event: " + event);
 					this.continue();
 				}
-			} else if (chunkstr.startsWith("DBGnextref: ")) {
-				this.nextRef = parseInt(chunkstr.substring(12).trim());
-			} else if (chunkstr.startsWith("DBGlogpoint: ")) {
-				const logpoint = JSON.parse(chunkstr.substring(13).trim());
+			} else if (mesg.startsWith("DBGnextref: ")) {
+				this.nextRef = parseInt(mesg.substring(12).trim());
+			} else if (mesg.startsWith("DBGlogpoint: ")) {
+				const logpoint = JSON.parse(mesg.substring(13).trim());
 				this.sendEvent('output', logpoint.output, "console", logpoint.filePath, logpoint.line, logpoint.variablesReference);
-			} else if (chunkstr.startsWith("DBGprint: ")) {
-				const body = JSON.parse(chunkstr.substring(10).trim());
+			} else if (mesg.startsWith("DBGprint: ")) {
+				const body = JSON.parse(mesg.substring(10).trim());
 				const lsid = body.output.match(/\{LocalisedString ([0-9]+)\}/);
 				if (lsid)
 				{
@@ -606,12 +587,12 @@ export class FactorioModRuntime extends EventEmitter {
 					body.output = this.translations.get(id) ?? `{Missing Translation ID ${id}}`;
 				}
 				this.sendEvent('output', body.output, body.category ?? "console", body.source, body.line, undefined, body.variablesReference);
-			} else if (chunkstr.startsWith("DBGstack: ")) {
-				this._stack!(JSON.parse(chunkstr.substring(10).trim()));
+			} else if (mesg.startsWith("DBGstack: ")) {
+				this._stack!(JSON.parse(mesg.substring(10).trim()));
 				this._stack = undefined;
-			} else if (chunkstr.startsWith("EVTmodules: ")) {
+			} else if (mesg.startsWith("EVTmodules: ")) {
 				if (this.trace){this.sendEvent('output', `> EVTmodules`, "console");}
-				await this.updateModules(JSON.parse(chunkstr.substring(12).trim()));
+				await this.updateModules(JSON.parse(mesg.substring(12).trim()));
 				resolveModules();
 
 				this.configDone = new Promise<void>((resolve)=>{
@@ -620,20 +601,20 @@ export class FactorioModRuntime extends EventEmitter {
 
 				// and finally send the initialize event to get breakpoints and such...
 				this.sendEvent("initialize");
-			} else if (chunkstr.startsWith("DBGscopes: ")) {
-				const scopes = JSON.parse(chunkstr.substring(11).trim());
+			} else if (mesg.startsWith("DBGscopes: ")) {
+				const scopes = JSON.parse(mesg.substring(11).trim());
 				this._scopes.get(scopes.frameId)!(scopes.scopes);
 				this._scopes.delete(scopes.frameId);
-			} else if (chunkstr.startsWith("DBGvars: ")) {
-				const vars = JSON.parse(chunkstr.substring(9).trim());
+			} else if (mesg.startsWith("DBGvars: ")) {
+				const vars = JSON.parse(mesg.substring(9).trim());
 				this._vars.get(vars.seq)!(vars.vars);
 				this._vars.delete(vars.seq);
-			} else if (chunkstr.startsWith("DBGsetvar: ")) {
-				const result = JSON.parse(chunkstr.substring(11).trim());
+			} else if (mesg.startsWith("DBGsetvar: ")) {
+				const result = JSON.parse(mesg.substring(11).trim());
 				this._setvars.get(result.seq)!(result.body);
 				this._setvars.delete(result.seq);
-			} else if (chunkstr.startsWith("DBGeval: ")) {
-				const evalresult:EvaluateResponseBody = JSON.parse(chunkstr.substring(9).trim());
+			} else if (mesg.startsWith("DBGeval: ")) {
+				const evalresult:EvaluateResponseBody = JSON.parse(mesg.substring(9).trim());
 				const lsid = evalresult.result.match(/\{LocalisedString ([0-9]+)\}/);
 				if (lsid)
 				{
@@ -648,19 +629,19 @@ export class FactorioModRuntime extends EventEmitter {
 
 				this._evals.get(evalresult.seq)!(evalresult);
 				this._evals.delete(evalresult.seq);
-			} else if (chunkstr.startsWith("DBGtranslate: ")) {
-				const sub = chunkstr.substr(14);
+			} else if (mesg.startsWith("DBGtranslate: ")) {
+				const sub = mesg.substr(14);
 				const split = sub.indexOf("\n");
 				const id = Number.parseInt(sub.substr(0,split).trim());
 				const translation = sub.substr(split+1);
 				this.translations.set(id,translation);
-			} else if (chunkstr === "DBGuntranslate") {
+			} else if (mesg === "DBGuntranslate") {
 				this.translations.clear();
-			} else if (chunkstr.startsWith("PROFILE:")) {
+			} else if (mesg.startsWith("PROFILE:")) {
 				if (this.profile)
 				{
 					const editor = vscode.window.activeTextEditor;
-					this.profile.parse(chunkstr);
+					this.profile.parse(mesg);
 					if (editor && (editor.document.uri.scheme==="file"||editor.document.uri.scheme==="zip"))
 					{
 						const profname = this.convertClientPathToDebugger(editor.document.uri.toString());
@@ -669,7 +650,7 @@ export class FactorioModRuntime extends EventEmitter {
 				}
 			} else {
 				//raise this as a stdout "Output" event
-				this.sendEvent('output', chunkstr, "stdout");
+				this.sendEvent('output', mesg, "stdout");
 			}
 		});
 	}
@@ -682,20 +663,7 @@ export class FactorioModRuntime extends EventEmitter {
 			this.profile = undefined;
 		}
 
-		if (this.hasNativeDebug)
-		{
-			treekill(this._factorio.pid);
-		}
-		else
-		{
-			this._factorio.kill();
-			try {
-				// this covers some weird hangs on closing on macs and
-				// seems to have no ill effects on windows, but try/catch
-				// just in case...
-				this._factorio.kill('SIGKILL');
-			} catch (error) {}
-		}
+		this.factorio.kill();
 		const modsPath = this.modsPath;
 		if (modsPath) {
 			const modlistpath = path.resolve(modsPath,"./mod-list.json");
@@ -730,8 +698,7 @@ export class FactorioModRuntime extends EventEmitter {
 		}
 
 		if (this.trace) { this.sendEvent('output', `${fromQueue?"<q":"<"} ${s instanceof Buffer ? `Buffer[${s.length}] ${fromQueue?s.toString("utf-8"):""}` : s.replace(/^[\r\n]*/,"").replace(/[\r\n]*$/,"")}`, "console"); }
-		// eslint-disable-next-line no-unused-expressions
-		this._factorio.stdin?.write(Buffer.concat([s instanceof Buffer ? s : Buffer.from(s),Buffer.from("\n")]));
+		this.factorio.writeStdin(Buffer.concat([s instanceof Buffer ? s : Buffer.from(s),Buffer.from("\n")]));
 	}
 
 	private async writeOrQueueStdin(s:string|Buffer):Promise<boolean>
@@ -740,8 +707,7 @@ export class FactorioModRuntime extends EventEmitter {
 		let b = Buffer.concat([s instanceof Buffer ? s : Buffer.from(s),Buffer.from("\n")]);
 		if (this.inPrompt)
 		{
-			// eslint-disable-next-line no-unused-expressions
-			this._factorio.stdin?.write(b);
+			this.factorio.writeStdin(b);
 			return true;
 		}
 		else
@@ -792,7 +758,7 @@ export class FactorioModRuntime extends EventEmitter {
 			return;
 		}
 
-		if(updateAllBreakpoints || this._breakPointsChanged.size !== 0)
+		if(updateAllBreakpoints || this.breakPointsChanged.size !== 0)
 		{
 			this.updateBreakpoints(updateAllBreakpoints);
 		}
@@ -865,7 +831,7 @@ export class FactorioModRuntime extends EventEmitter {
 	 * Step to the next/previous non empty line.
 	 */
 	public step(event = 'in') {
-		if(this._breakPointsChanged.size !== 0)
+		if(this.breakPointsChanged.size !== 0)
 		{
 			this.updateBreakpoints();
 		}
@@ -1257,8 +1223,8 @@ export class FactorioModRuntime extends EventEmitter {
 	private updateBreakpoints(updateAll:boolean = false) {
 		let changes = Array<Buffer>();
 
-		this._breakPoints.forEach((breakpoints:DebugProtocol.SourceBreakpoint[], filename:string) => {
-			if (updateAll || this._breakPointsChanged.has(filename))
+		this.breakPoints.forEach((breakpoints:DebugProtocol.SourceBreakpoint[], filename:string) => {
+			if (updateAll || this.breakPointsChanged.has(filename))
 			{
 				changes.push(Buffer.concat([
 					Buffer.from("__DebugAdapter.updateBreakpoints("),
@@ -1267,7 +1233,7 @@ export class FactorioModRuntime extends EventEmitter {
 				]));
 			}
 		});
-		this._breakPointsChanged.clear();
+		this.breakPointsChanged.clear();
 		this.writeStdin(Buffer.concat(changes));
 	}
 
@@ -1276,16 +1242,16 @@ export class FactorioModRuntime extends EventEmitter {
 	 */
 	public setBreakPoints(path: string, bps: DebugProtocol.SourceBreakpoint[] | undefined) : Breakpoint[] {
 
-		this._breakPoints.set(path, bps || []);
-		this._breakPointsChanged.add(path);
+		this.breakPoints.set(path, bps || []);
+		this.breakPointsChanged.add(path);
 
 		return (bps || []).map((bp) => { return {line:bp.line, verified:true }; });
 	}
 
 	public setExceptionBreakpoints(filters: string[])
 	{
-		this._exceptionFilters.clear();
-		filters.forEach(f=>this._exceptionFilters.add(f));
+		this.exceptionFilters.clear();
+		filters.forEach(f=>this.exceptionFilters.add(f));
 	}
 
 	private updateInfoJson(uri:vscode.Uri)

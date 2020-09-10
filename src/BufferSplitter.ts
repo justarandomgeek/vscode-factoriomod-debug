@@ -1,12 +1,15 @@
 import { Readable } from "stream";
 import { EventEmitter } from "events";
 
+
+export type SplitMatcher = Buffer|{start:Buffer;end:Buffer};
+
 export class BufferSplitter extends EventEmitter
 {
 	//private instream:Readable;
 	private buf:Buffer;
-	private matchers:(Buffer|{start:Buffer;end:Buffer})[];
-	constructor(instream:Readable,matchers:Buffer|(Buffer|{start:Buffer;end:Buffer})[])
+	private matchers:SplitMatcher[];
+	constructor(instream:Readable,matchers:Buffer|(SplitMatcher)[])
 	{
 		super();
 		this.buf = Buffer.alloc(0);
