@@ -178,7 +178,7 @@ export class ModPackage extends vscode.TreeItem {
 		this.scripts = modscript.package?.scripts;
 	}
 
-	public async Compile(term:ModTaskTerminal): Promise<void>
+	private async Compile(term:ModTaskTerminal): Promise<void>
 	{
 		const moddir = path.dirname(this.resourceUri.fsPath);
 		if(this.scripts?.compile)
@@ -202,7 +202,7 @@ export class ModPackage extends vscode.TreeItem {
 		});
 	}
 
-	public async DateStampChangelog(term:ModTaskTerminal): Promise<boolean>
+	private async DateStampChangelog(term:ModTaskTerminal): Promise<boolean>
 	{
 		const moddir = path.dirname(this.resourceUri.fsPath);
 		const changelogpath = path.join(moddir, "changelog.txt");
@@ -260,7 +260,7 @@ export class ModPackage extends vscode.TreeItem {
 		});
 	}
 
-	public async Package(term:ModTaskTerminal): Promise<string|undefined>
+	private async Package(term:ModTaskTerminal): Promise<string|undefined>
 	{
 		const config = vscode.workspace.getConfiguration(undefined,this.resourceUri);
 
@@ -308,7 +308,7 @@ export class ModPackage extends vscode.TreeItem {
 	}
 
 
-	public async IncrementVersion(term:ModTaskTerminal): Promise<string|undefined>
+	private async IncrementVersion(term:ModTaskTerminal): Promise<string|undefined>
 	{
 		let we = new vscode.WorkspaceEdit();
 		// increment info.json version
@@ -368,7 +368,7 @@ export class ModPackage extends vscode.TreeItem {
 		});
 	}
 
-	public async PostToPortal(packagepath: string, packageversion:string, term:ModTaskTerminal): Promise<boolean>
+	private async PostToPortal(packagepath: string, packageversion:string, term:ModTaskTerminal): Promise<boolean>
 	{
 		// upload to portal
 		// TS says this type doesn't work, but it really does...
@@ -491,7 +491,7 @@ export class ModPackage extends vscode.TreeItem {
 		});
 	}
 
-	public async Publish(term:ModTaskTerminal)
+	private async Publish(term:ModTaskTerminal)
 	{
 		term.write(`Publishing: ${this.resourceUri} ${this.description}\r\n`);
 		const moddir = path.dirname(this.resourceUri.fsPath);

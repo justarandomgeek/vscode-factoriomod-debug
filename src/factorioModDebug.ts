@@ -2,19 +2,77 @@ import {
 	Logger, logger,
 	LoggingDebugSession,
 	TerminatedEvent, StoppedEvent, OutputEvent,
-	Thread, Source, Module, ModuleEvent, InitializedEvent
+	Thread, Source, Module, ModuleEvent, InitializedEvent, StackFrame, Scope, Variable
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import * as path from 'path';
-import { FactorioModRuntime, LaunchRequestArguments } from './factorioModRuntime';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as semver from 'semver';
+import { LaunchRequestArguments, ModInfo, ModList, ModPaths } from './factorioModRuntime';
+import * as vscode from 'vscode';
 import { Uri } from 'vscode';
+import { encodeBreakpoints, luaBlockQuote } from './EncodingUtil';
+import { Profile } from './Profile';
+import { FactorioProcess } from './FactorioProcess';
+
+export interface EvaluateResponseBody {
+	result: string
+	type?: string
+	presentationHint?: DebugProtocol.VariablePresentationHint
+	variablesReference: number
+	namedVariables?: number
+	indexedVariables?: number
+
+	// sequence number of this eval
+	seq: number
+	// translation ID for time this eval ran
+	timer?: number
+}
+
+export type resolver<T> = (value?: T | PromiseLike<T> | undefined)=>void;
 
 export class FactorioModDebugSession extends LoggingDebugSession {
 
 	// we don't support multiple threads, so we can use a hardcoded ID for the default thread
 	private static THREAD_ID = 1;
 
-	private _runtime: FactorioModRuntime;
+	private static output:vscode.OutputChannel;
+
+	private _configurationDone: resolver<void>;
+	private configDone: Promise<void>;
+
+	private breakPoints = new Map<string, DebugProtocol.SourceBreakpoint[]>();
+	private breakPointsChanged = new Set<string>();
+
+	// unhandled only by default
+	private exceptionFilters = new Set<string>(["unhandled"]);
+
+	private _stack?: resolver<StackFrame[]>;
+	private readonly _modules = new Map<string,DebugProtocol.Module>();
+	private readonly _scopes = new Map<number, resolver<Scope[]>>();
+	private readonly _vars = new Map<number, resolver<Variable[]>>();
+	private readonly _setvars = new Map<number, resolver<Variable>>();
+	private readonly _evals = new Map<number, resolver<EvaluateResponseBody>>();
+	private readonly translations = new Map<number, string>();
+	private nextRef = 1;
+
+
+	private factorio : FactorioProcess;
+	private stdinQueue:{buffer:Buffer;resolve:resolver<boolean>}[] = [];
+
+	private launchArgs: LaunchRequestArguments;
+
+	private inPrompt:boolean = false;
+	private pauseRequested:boolean = false;
+
+
+	private profile?: Profile;
+
+	private workspaceModInfoReady:Promise<void>;
+	private workspaceModInfo = new Array<ModPaths>();
+
+	private workspaceModLists:Thenable<vscode.Uri[]>;
 
 	/**
 	 * Creates a new debug adapter that is used for one debug session.
@@ -27,53 +85,22 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.setDebuggerLinesStartAt1(true);
 		this.setDebuggerColumnsStartAt1(true);
 
-		this._runtime = new FactorioModRuntime();
+		FactorioModDebugSession.output = FactorioModDebugSession.output || vscode.window.createOutputChannel("Factorio Mod Debug");
+		FactorioModDebugSession.output.appendLine("---------------------------------------------------------------------------------------------------");
 
-		// setup event handlers
-		this._runtime.on('stopOnEntry', () => {
-			this.sendEvent(new StoppedEvent('entry', FactorioModDebugSession.THREAD_ID));
+
+		this.workspaceModLists = vscode.workspace.findFiles("**/mod-list.json");
+		this.workspaceModInfoReady = new Promise(async (resolve)=>{
+			const infos = await vscode.workspace.findFiles('**/info.json');
+			infos.forEach(this.updateInfoJson,this);
+			resolve();
 		});
-		this._runtime.on('stopOnStep', () => {
-			this.sendEvent(new StoppedEvent('step', FactorioModDebugSession.THREAD_ID));
-		});
-		this._runtime.on('stopOnBreakpoint', () => {
-			this.sendEvent(new StoppedEvent('breakpoint', FactorioModDebugSession.THREAD_ID));
-		});
-		this._runtime.on('stopOnPause', () => {
-			this.sendEvent(new StoppedEvent('pause', FactorioModDebugSession.THREAD_ID));
-		});
-		this._runtime.on('stopOnException', (exceptionText:string) => {
-			this.sendEvent(new StoppedEvent('exception', FactorioModDebugSession.THREAD_ID,exceptionText));
-		});
-		this._runtime.on('modules', (modules:Module[]) => {
-			modules.forEach((module:Module) =>{
-				this.sendEvent(new ModuleEvent('new', module));
-			});
-		});
-		this._runtime.on('initialize', () => {
-			this.sendEvent(new InitializedEvent());
-		});
-		this._runtime.on('output', (text, category, filePath, line, column, variablesReference) => {
-			const e: DebugProtocol.OutputEvent = new OutputEvent(`${text}\n`);
-			if (category) {
-				e.body.category = category;
+		vscode.window.onDidChangeActiveTextEditor(editor =>{
+			if (editor && this.profile && (editor.document.uri.scheme==="file"||editor.document.uri.scheme==="zip"))
+			{
+				const profname = this.convertClientPathToDebugger(editor.document.uri.toString());
+				this.profile.render(editor,profname);
 			}
-			if(variablesReference) {
-				e.body.variablesReference = variablesReference;
-			}
-			if(filePath) {
-				e.body.source = this.createSource(filePath);
-			}
-			if (line) {
-				e.body.line = this.convertDebuggerLineToClient(line);
-			}
-			if (column) {
-				e.body.column = this.convertDebuggerColumnToClient(column);
-			}
-			this.sendEvent(e);
-		});
-		this._runtime.on('end', () => {
-			this.sendEvent(new TerminatedEvent());
 		});
 	}
 
@@ -110,18 +137,19 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		super.configurationDoneRequest(response, args);
 
 		// notify that configuration has finished
-		this._runtime.configurationDone();
+		// eslint-disable-next-line no-unused-expressions
+		this._configurationDone?.();
 	}
 
 
 
 	protected terminateRequest(response: DebugProtocol.TerminateResponse, args: DebugProtocol.TerminateArguments): void {
-		this._runtime.terminate();
+		this.terminate();
 		this.sendResponse(response);
 	}
 
 	protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments): void {
-		this._runtime.terminate();
+		this.terminate();
 		this.sendResponse(response);
 	}
 
@@ -130,20 +158,526 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		// make sure to 'Stop' the buffered logging if 'trace' is not set
 		logger.setup(args.trace ? Logger.LogLevel.Verbose : Logger.LogLevel.Stop, false);
 
-		// start the program in the runtime
-		this._runtime.start(args);
+		this.launchArgs = args;
+
+		args.hookSettings = args.hookSettings ?? false;
+		args.hookData = args.hookData ?? false;
+		args.hookControl = args.hookControl ?? true;
+		args.hookMode = args.hookMode ?? "debug";
+
+		if (args.hookMode === "profile" && !args.noDebug) {
+			this.profile = new Profile(args.profileTree ?? true);
+			this.profile.on("flameclick", async (mesg)=>{
+				if (mesg.filename && mesg.line)
+				{
+					vscode.window.showTextDocument(
+						vscode.Uri.parse(this.convertDebuggerPathToClient(mesg.filename)),
+						{
+							selection: new vscode.Range(mesg.line,0,mesg.line,0),
+							viewColumn: vscode.ViewColumn.One
+						}
+					);
+				}
+			});
+		}
+		this.launchArgs.trace = args.trace ?? false;
+
+
+		const tasks = (await vscode.tasks.fetchTasks({type:"factorio"})).filter(
+			(task)=>task.definition.command === "compile"
+			);
+
+		if (tasks.length > 0)
+		{
+			FactorioModDebugSession.output.appendLine(`Running ${tasks.length} compile tasks: ${tasks.map(task=>task.name).join(", ")}`);
+			await Promise.all(tasks.map(FactorioModDebugSession.runTask));
+		}
+
+		FactorioModDebugSession.output.appendLine(`using ${args.configPathDetected?"auto-detected":"manually-configured"} config.ini: ${args.configPath}`);
+		const workspaceModLists = await this.workspaceModLists;
+		if (workspaceModLists.length > 1)
+		{
+			FactorioModDebugSession.output.appendLine(`multiple mod-list.json in workspace`);
+		}
+		else if (workspaceModLists.length === 1)
+		{
+			const workspaceModList = workspaceModLists[0];
+			FactorioModDebugSession.output.appendLine(`found mod-list.json in workspace: ${workspaceModList.toString()}`);
+			args.modsPath = path.dirname(workspaceModList.path);
+			args.modsPathDetected = false;
+			if (os.platform() === "win32" && args.modsPath.startsWith("/")) {args.modsPath = args.modsPath.substr(1);}
+		}
+		if (args.modsPath)
+		{
+			args.modsPath = args.modsPath.replace(/\\/g,"/");
+			// check for folder or symlink and leave it alone, if zip update if mine is newer
+			const modlistpath = path.resolve(args.modsPath,"./mod-list.json");
+			if (fs.existsSync(modlistpath))
+			{
+				FactorioModDebugSession.output.appendLine(`using modsPath ${args.modsPath}`);
+				if(args.manageMod === false)
+				{
+					FactorioModDebugSession.output.appendLine(`automatic management of mods disabled`);
+				}
+				else
+				{
+					if (!args.adjustMods) {args.adjustMods = {};}
+					if (!args.allowDisableBaseMod) {args.adjustMods["base"] = true;}
+					const ext = vscode.extensions.getExtension("justarandomgeek.factoriomod-debug");
+					if (ext)
+					{
+						const extpath = ext.extensionPath;
+
+						const infopath = path.resolve(extpath, "./modpackage/info.json");
+						const zippath = path.resolve(extpath, "./modpackage/debugadapter.zip");
+						if(!(fs.existsSync(zippath) && fs.existsSync(infopath)))
+						{
+							FactorioModDebugSession.output.appendLine(`debugadapter mod package missing in extension`);
+						}
+						else
+						{
+							const dainfo:ModInfo = JSON.parse(fs.readFileSync(infopath, "utf8"));
+
+							let mods = fs.readdirSync(args.modsPath,"utf8");
+							mods = mods.filter((mod)=>{
+								return mod.startsWith(dainfo.name);
+							});
+							if (!args.noDebug)
+							{
+								args.adjustMods[dainfo.name] = dainfo.version;
+								args.adjustMods["coverage"] = false;
+								args.adjustMods["profiler"] = false;
+
+								if (mods.length === 0)
+								{
+									// install zip from package
+									fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`));
+									FactorioModDebugSession.output.appendLine(`installed ${dainfo.name}_${dainfo.version}.zip`);
+								}
+								else if (mods.length === 1)
+								{
+									if (mods[0].endsWith(".zip"))
+									{
+										if(mods[0] === `${dainfo.name}_${dainfo.version}.zip`)
+										{
+											FactorioModDebugSession.output.appendLine(`using existing ${mods[0]}`);
+										} else {
+											fs.unlinkSync(path.resolve(args.modsPath,mods[0]));
+											fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`));
+											FactorioModDebugSession.output.appendLine(`updated ${mods[0]} to ${dainfo.name}_${dainfo.version}.zip`);
+										}
+									}
+									else
+									{
+										FactorioModDebugSession.output.appendLine("existing debugadapter in modsPath is not a zip");
+										const modinfopath = path.resolve(args.modsPath, mods[0], "./info.json");
+
+										if(!(mods[0] === `${dainfo.name}_${dainfo.version}`||mods[0] === dainfo.name)
+											|| !fs.existsSync(modinfopath))
+										{
+											FactorioModDebugSession.output.appendLine(`existing debugadapter is wrong version or does not contain info.json`);
+											fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`));
+											FactorioModDebugSession.output.appendLine(`installed ${dainfo.name}_${dainfo.version}.zip`);
+										}
+										else
+										{
+											const info:ModInfo = JSON.parse(fs.readFileSync(modinfopath, "utf8"));
+											if (info.version !== dainfo.version)
+											{
+												FactorioModDebugSession.output.appendLine(`existing ${mods[0]} is wrong version`);
+												fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`));
+												FactorioModDebugSession.output.appendLine(`installed ${dainfo.name}_${dainfo.version}.zip`);
+											}
+										}
+									}
+								}
+								else
+								{
+									FactorioModDebugSession.output.appendLine("multiple debugadapters in modsPath");
+									if(mods.find(s=> s === `${dainfo.name}` ))
+									{
+										FactorioModDebugSession.output.appendLine(`using existing ${dainfo.name}`);
+									}
+									else if(mods.find(s=> s === `${dainfo.name}_${dainfo.version}` ))
+									{
+										FactorioModDebugSession.output.appendLine(`using existing ${dainfo.name}_${dainfo.version}`);
+									}
+									else if (mods.find(s=> s === `${dainfo.name}_${dainfo.version}.zip` ))
+									{
+										FactorioModDebugSession.output.appendLine(`using existing ${dainfo.name}_${dainfo.version}.zip`);
+									}
+									else
+									{
+										fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`));
+										FactorioModDebugSession.output.appendLine(`installed ${dainfo.name}_${dainfo.version}.zip`);
+									}
+
+								}
+							}
+							else
+							{
+								args.adjustMods[dainfo.name] = false;
+							}
+
+							// enable in json
+							let modlist:ModList = JSON.parse(fs.readFileSync(modlistpath, "utf8"));
+
+							let foundmods:{[key:string]:true} = {};
+							modlist.mods = modlist.mods.map((modentry)=>{
+								const adjust = args.adjustMods![modentry.name];
+
+								if (adjust === true || adjust === false) {
+									foundmods[modentry.name] = true;
+									return {name:modentry.name,enabled:adjust};
+								}
+								else if (adjust) {
+									foundmods[modentry.name] = true;
+									return {name:modentry.name,enabled:true,version:adjust};
+								}
+								else if (args.disableExtraMods) {
+									return {name:modentry.name,enabled:false};
+								}
+
+								return modentry;
+							});
+
+							for (const mod in args.adjustMods) {
+								if (args.adjustMods.hasOwnProperty(mod) && !foundmods[mod])
+								{
+									const adjust = args.adjustMods[mod];
+									if (adjust === true || adjust === false) {
+
+										modlist.mods.push({name:mod,enabled:adjust});
+									}
+									else {
+
+										modlist.mods.push({name:mod,enabled:true,version:adjust});
+									}
+								}
+							}
+
+							fs.writeFileSync(modlistpath, JSON.stringify(modlist), "utf8");
+							FactorioModDebugSession.output.appendLine(`debugadapter ${args.noDebug?"disabled":"enabled"} in mod-list.json`);
+						}
+					}
+				}
+
+			} else {
+				FactorioModDebugSession.output.appendLine(`modsPath "${args.modsPath}" does not contain mod-list.json`);
+				args.modsPath = ""; //TODO: this seems wrong, move to config validation? generate a stub list if appropriate or fail
+			}
+		} else {
+			// warn that i can't check/add debugadapter
+			FactorioModDebugSession.output.appendLine("Cannot install/verify mod without modsPath");
+		}
+		args.dataPath = args.dataPath.replace(/\\/g,"/");
+		FactorioModDebugSession.output.appendLine(`using dataPath ${args.dataPath}`);
+
+		await this.workspaceModInfoReady;
+
+		args.factorioArgs = args.factorioArgs||[];
+		if(!args.noDebug && (args.useInstrumentMode ?? true))
+		{
+			args.factorioArgs.push("--instrument-mod","debugadapter");
+		}
+
+		if (!args.configPathDetected)
+		{
+			args.factorioArgs.push("--config",args.configPath);
+		}
+		if (!args.modsPathDetected)
+		{
+			let mods = args.modsPath;
+			if (!mods.endsWith("/"))
+			{
+				mods += "/";
+			}
+			args.factorioArgs.push("--mod-directory",mods);
+		}
+
+		this.createSteamAppID(args.factorioPath);
+
+		const stderrmatchers = [Buffer.from("\n"),Buffer.from("lua_debug> ")];
+		const stdoutmatchers = [Buffer.from("\n"),{
+			start: Buffer.from("***DebugAdapterBlockPrint***"),
+			end: Buffer.from("***EndDebugAdapterBlockPrint***")}];
+		this.factorio = new FactorioProcess(args.factorioPath,args.factorioArgs,stderrmatchers,stdoutmatchers,args.nativeDebugger);
+
+
+
+		this.factorio.on("exit", (code:number, signal:string) => {
+			if (this.profile)
+			{
+				this.profile.dispose();
+				this.profile = undefined;
+			}
+			this.sendEvent(new TerminatedEvent());
+		});
+
+		let resolveModules:resolver<void>;
+		const modulesReady = new Promise<void>((resolve)=>{
+			resolveModules = resolve;
+		});
+
+		this.factorio.on("stderr",(mesg:string)=>this.sendEvent(new OutputEvent(mesg+"\n","stderr")));
+		this.factorio.on("stdout",async (mesg:string)=>{
+			if (this.launchArgs.trace && mesg.startsWith("DBG")){this.sendEvent(new OutputEvent(`> ${mesg}\n`, "console"));}
+			if (mesg.startsWith("DBG: ")) {
+				const wasInPrompt = this.inPrompt;
+				this.inPrompt = true;
+				let event = mesg.substring(5).trim();
+				if (event === "on_tick") {
+					//if on_tick, then update breakpoints if needed and continue
+					this.runQueuedStdin();
+					this.continue();
+				} else if (event === "on_data") {
+					//data/settings main chunk - force all breakpoints each time this comes up because it can only set them locally
+					await this.configDone;
+					this.clearQueuedStdin();
+					this.continue(true);
+				} else if (event === "on_parse") {
+					//control.lua main chunk - force all breakpoints each time this comes up because it can only set them locally
+					this.clearQueuedStdin();
+					this.continue(true);
+				} else if (event === "on_init") {
+					//if on_init, set initial breakpoints and continue
+					this.runQueuedStdin();
+					this.continue(true);
+				} else if (event === "on_load") {
+					//on_load set initial breakpoints and continue
+					this.runQueuedStdin();
+					this.continue(true);
+				} else if (event === "getref") {
+					//pass in nextref
+					this.writeStdin(`__DebugAdapter.transferRef(${this.nextRef})`);
+					this.continue();
+					this.inPrompt = wasInPrompt;
+				} else if (event === "leaving" || event === "running") {
+					//run queued commands
+					this.runQueuedStdin();
+					if (event === "running" && this.pauseRequested)
+					{
+						this.pauseRequested = false;
+						if(this.breakPointsChanged.size !== 0)
+						{
+							this.updateBreakpoints();
+						}
+						this.sendEvent(new StoppedEvent('pause', FactorioModDebugSession.THREAD_ID));
+					}
+					else
+					{
+						this.continue();
+						this.inPrompt = wasInPrompt;
+					}
+				} else if (event.startsWith("step")) {
+					// notify stoponstep
+					this.runQueuedStdin();
+					if(this.breakPointsChanged.size !== 0)
+					{
+						this.updateBreakpoints();
+					}
+					this.sendEvent(new StoppedEvent('step', FactorioModDebugSession.THREAD_ID));
+				} else if (event === "breakpoint") {
+					// notify stop on breakpoint
+					this.runQueuedStdin();
+					if(this.breakPointsChanged.size !== 0)
+					{
+						this.updateBreakpoints();
+					}
+					this.sendEvent(new StoppedEvent('breakpoint', FactorioModDebugSession.THREAD_ID));
+				} else if (event.startsWith("exception")) {
+					// notify stop on exception
+					this.runQueuedStdin();
+					const sub = event.substr(10);
+					const split = sub.indexOf("\n");
+					const filter = sub.substr(0,split).trim();
+					const err = sub.substr(split+1);
+					if (filter === "manual" || this.exceptionFilters.has(filter))
+					{
+						this.sendEvent(new StoppedEvent('exception', FactorioModDebugSession.THREAD_ID,err));
+					}
+					else
+					{
+						this.continue();
+					}
+				} else if (event === "on_instrument_settings") {
+					await modulesReady;
+					this.clearQueuedStdin();
+					if (this.launchArgs.hookMode === "profile")
+					{
+						this.continueRequire(false);
+					}
+					else
+					{
+						this.continueRequire(this.launchArgs.hookSettings ?? false);
+					}
+				} else if (event === "on_instrument_data") {
+					this.clearQueuedStdin();
+					if (this.launchArgs.hookMode === "profile")
+					{
+						this.continueRequire(false);
+					}
+					else
+					{
+						this.continueRequire(this.launchArgs.hookData ?? false);
+					}
+				} else if (event.startsWith("on_instrument_control ")) {
+					this.clearQueuedStdin();
+					const modname = event.substring(22).trim();
+					const hookmods = this.launchArgs.hookControl ?? true;
+					const shouldhook = hookmods !== false && (hookmods === true || hookmods.includes(modname));
+					if (this.launchArgs.hookMode === "profile")
+					{
+						this.continueProfile(shouldhook);
+					}
+					else
+					{
+						this.continueRequire(shouldhook);
+					}
+				} else {
+					// unexpected event?
+					FactorioModDebugSession.output.appendLine("unexpected event: " + event);
+					this.continue();
+				}
+			} else if (mesg.startsWith("DBGnextref: ")) {
+				this.nextRef = parseInt(mesg.substring(12).trim());
+			} else if (mesg.startsWith("DBGlogpoint: ")) {
+				const body = JSON.parse(mesg.substring(13).trim());
+				const e:DebugProtocol.OutputEvent = new OutputEvent(body.output+"\n", "console");
+				if(body.variablesReference) {
+					e.body.variablesReference = body.variablesReference;
+				}
+				if(body.source) {
+					e.body.source = this.createSource(body.source);
+				}
+				if (body.line) {
+					e.body.line = this.convertDebuggerLineToClient(body.line);
+				}
+				this.sendEvent(e);
+			} else if (mesg.startsWith("DBGprint: ")) {
+				const body = JSON.parse(mesg.substring(10).trim());
+				const lsid = body.output.match(/\{LocalisedString ([0-9]+)\}/);
+				if (lsid)
+				{
+					const id = Number.parseInt(lsid[1]);
+					body.output = this.translations.get(id) ?? `{Missing Translation ID ${id}}`;
+				}
+				const e:DebugProtocol.OutputEvent = new OutputEvent(body.output+"\n", body.category ?? "console");
+				if(body.variablesReference) {
+					e.body.variablesReference = body.variablesReference;
+				}
+				if(body.source) {
+					e.body.source = this.createSource(body.source);
+				}
+				if (body.line) {
+					e.body.line = this.convertDebuggerLineToClient(body.line);
+				}
+				this.sendEvent(e);
+			} else if (mesg.startsWith("DBGstack: ")) {
+				this._stack!(JSON.parse(mesg.substring(10).trim()));
+				this._stack = undefined;
+			} else if (mesg.startsWith("EVTmodules: ")) {
+				if (this.launchArgs.trace){this.sendEvent(new OutputEvent(`> EVTmodules\n`, "console"));}
+				await this.updateModules(JSON.parse(mesg.substring(12).trim()));
+				resolveModules();
+
+				this.configDone = new Promise<void>((resolve)=>{
+					this._configurationDone = resolve;
+				});
+
+				// and finally send the initialize event to get breakpoints and such...
+				this.sendEvent(new InitializedEvent());
+			} else if (mesg.startsWith("DBGscopes: ")) {
+				const scopes = JSON.parse(mesg.substring(11).trim());
+				this._scopes.get(scopes.frameId)!(scopes.scopes);
+				this._scopes.delete(scopes.frameId);
+			} else if (mesg.startsWith("DBGvars: ")) {
+				const vars = JSON.parse(mesg.substring(9).trim());
+				this._vars.get(vars.seq)!(vars.vars);
+				this._vars.delete(vars.seq);
+			} else if (mesg.startsWith("DBGsetvar: ")) {
+				const result = JSON.parse(mesg.substring(11).trim());
+				this._setvars.get(result.seq)!(result.body);
+				this._setvars.delete(result.seq);
+			} else if (mesg.startsWith("DBGeval: ")) {
+				const evalresult:EvaluateResponseBody = JSON.parse(mesg.substring(9).trim());
+				const lsid = evalresult.result.match(/\{LocalisedString ([0-9]+)\}/);
+				if (lsid)
+				{
+					const id = Number.parseInt(lsid[1]);
+					evalresult.result = this.translations.get(id) ?? `{Missing Translation ID ${id}}`;
+				}
+				if (evalresult.timer)
+				{
+					const time = this.translations.get(evalresult.timer) ?? `{Missing Translation ID ${evalresult.timer}}`;
+					evalresult.result += "\n⏱️ " + time.replace(/^.*: /,"");
+				}
+
+				this._evals.get(evalresult.seq)!(evalresult);
+				this._evals.delete(evalresult.seq);
+			} else if (mesg.startsWith("DBGtranslate: ")) {
+				const sub = mesg.substr(14);
+				const split = sub.indexOf("\n");
+				const id = Number.parseInt(sub.substr(0,split).trim());
+				const translation = sub.substr(split+1);
+				this.translations.set(id,translation);
+			} else if (mesg === "DBGuntranslate") {
+				this.translations.clear();
+			} else if (mesg.startsWith("PROFILE:")) {
+				if (this.profile)
+				{
+					const editor = vscode.window.activeTextEditor;
+					this.profile.parse(mesg);
+					if (editor && (editor.document.uri.scheme==="file"||editor.document.uri.scheme==="zip"))
+					{
+						const profname = this.convertClientPathToDebugger(editor.document.uri.toString());
+						this.profile.render(editor,profname);
+					}
+				}
+			} else {
+				//raise this as a stdout "Output" event
+				this.sendEvent(new OutputEvent(mesg+"\n", "stdout"));
+			}
+		});
 
 		this.sendResponse(response);
 	}
 
-
 	protected convertClientPathToDebugger(clientPath: string): string
 	{
-		return this._runtime.convertClientPathToDebugger(clientPath);
+		if(clientPath.startsWith("output:")){return clientPath;}
+
+		clientPath = clientPath.replace(/\\/g,"/");
+		let thismodule:DebugProtocol.Module|undefined;
+		this._modules.forEach(m=>{
+			if (m.symbolFilePath && clientPath.startsWith(m.symbolFilePath) &&
+				m.symbolFilePath.length > (thismodule?.symbolFilePath||"").length)
+			{
+				thismodule = m;
+			}
+		});
+
+		if (thismodule)
+		{
+			return clientPath.replace(thismodule.symbolFilePath!,"@__"+thismodule.name+"__");
+		}
+
+		FactorioModDebugSession.output.appendLine(`unable to translate path ${clientPath}`);
+		return clientPath;
 	}
 	protected convertDebuggerPathToClient(debuggerPath: string): string
 	{
-		return this._runtime.convertDebuggerPathToClient(debuggerPath);
+		let matches = debuggerPath.match(/^@__(.*?)__\/(.*)$/);
+		if (matches)
+		{
+			let thismodule = this._modules.get(matches[1]);
+			if (thismodule?.symbolFilePath)
+			{
+				return path.posix.join(thismodule.symbolFilePath,matches[2]);
+			}
+		}
+
+		return debuggerPath;
 	}
 
 	protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
@@ -157,13 +691,16 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		{
 			bpuri = Uri.parse(inpath);
 		}
-		const actualBreakpoints = this._runtime.setBreakPoints(
-			this.convertClientPathToDebugger(bpuri.toString()),
-			(args.breakpoints || []).map((bp)=>{
-				bp.line = this.convertClientLineToDebugger(bp.line);
-				return bp;
-			})
-			);
+
+		const path = this.convertClientPathToDebugger(bpuri.toString());
+		const bps = (args.breakpoints || []).map((bp)=>{
+			bp.line = this.convertClientLineToDebugger(bp.line);
+			return bp;
+		});
+		this.breakPoints.set(path, bps || []);
+		this.breakPointsChanged.add(path);
+
+		const actualBreakpoints = (bps || []).map((bp) => { return {line:bp.line, verified:true }; });
 
 		// send back the actual breakpoint positions
 		response.body = {
@@ -189,7 +726,10 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		const maxLevels = typeof args.levels === 'number' ? args.levels : 1000;
 		const endFrame = startFrame + maxLevels;
 
-		const stk = await this._runtime.stack(startFrame, endFrame);
+		const stk = await new Promise<DebugProtocol.StackFrame[]>((resolve)=>{
+			this._stack = resolve;
+			this.writeStdin(`__DebugAdapter.stackTrace(${startFrame},${endFrame-startFrame})`);
+		});
 
 		response.body = { stackFrames: (stk||[]).map(
 			(frame) =>{
@@ -205,64 +745,482 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 
 	protected async modulesRequest(response: DebugProtocol.ModulesResponse, args: DebugProtocol.ModulesArguments) {
-		const modules = await this._runtime.modules();
+		const modules = Array.from(this._modules.values());
 		response.body = { modules: modules };
 		this.sendResponse(response);
 	}
 
 	protected async scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments) {
-		const scopes = await this._runtime.scopes(args.frameId);
-		response.body = { scopes: scopes };
+		const scopes = new Promise<DebugProtocol.Scope[]>((resolve)=>{
+			this._scopes.set(args.frameId, resolve);
+			this.writeStdin(`__DebugAdapter.scopes(${args.frameId})\n`);
+		});
+		response.body = { scopes: await scopes };
 		this.sendResponse(response);
 	}
 
 	protected async variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments, request?: DebugProtocol.Request) {
-		const vars = await this._runtime.vars(args.variablesReference,response.request_seq,args.filter,args.start,args.count);
-		response.body = { variables: vars };
-		this.sendResponse(response);
+		try {
+			let vars = await new Promise<DebugProtocol.Variable[]>(async (resolve,reject)=>{
+				this._vars.set(response.request_seq, resolve);
+				if (!await this.writeOrQueueStdin(`__DebugAdapter.variables(${args.variablesReference},${response.request_seq},${args.filter? `"${args.filter}"`:"nil"},${args.start || "nil"},${args.count || "nil"})\n`))
+				{
+					this._vars.delete(response.request_seq);
+					reject("Cancelled");
+				}
+			});
+
+			vars.forEach((a)=>{
+				const lsid = a.value.match(/\{LocalisedString ([0-9]+)\}/);
+				if (lsid)
+				{
+					const id = Number.parseInt(lsid[1]);
+					a.value = this.translations.get(id) ?? `{Missing Translation ID ${id}}`;
+				}
+			});
+			response.body = { variables: vars };
+			this.sendResponse(response);
+		} catch (error) {
+			response.body = { variables: [
+				{
+					name: "Expired variablesReference",
+					value: `ref=${args.variablesReference} seq=${response.request_seq}`,
+					variablesReference: 0,
+				}
+			]};
+			this.sendResponse(response);
+		}
 	}
 
 	protected async setVariableRequest(response: DebugProtocol.SetVariableResponse, args: DebugProtocol.SetVariableArguments, request?: DebugProtocol.Request) {
-		response.body = await this._runtime.setVar(args, response.request_seq);
+		response.body = await new Promise<DebugProtocol.Variable>((resolve)=>{
+			this._setvars.set(response.request_seq, resolve);
+			this.writeStdin(`__DebugAdapter.setVariable(${args.variablesReference},${luaBlockQuote(Buffer.from(args.name))},${luaBlockQuote(Buffer.from(args.value))},${response.request_seq})\n`);
+		});
 		this.sendResponse(response);
 	}
 
 	protected async evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments, request?: DebugProtocol.Request) {
-		response.body = await this._runtime.evaluate(args, response.request_seq);
+		response.body = await new Promise<EvaluateResponseBody>((resolve)=>{
+			if(args.context === "repl" && !args.frameId)
+			{
+				let evalresult = {result:"cannot evaluate while running",type:"error",variablesReference:0,seq:response.request_seq};
+				resolve(evalresult);
+			}
+
+			this._evals.set(response.request_seq, resolve);
+			this.writeStdin(`__DebugAdapter.evaluate(${args.frameId},"${args.context}",${luaBlockQuote(Buffer.from(args.expression.replace(/\n/g," ")))},${response.request_seq})\n`);
+		});
 		this.sendResponse(response);
 	}
 
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
-		this._runtime.continue();
+		this.continue();
 		this.sendResponse(response);
 	}
 
 	protected pauseRequest(response: DebugProtocol.PauseResponse, args: DebugProtocol.PauseArguments, request?: DebugProtocol.Request): void {
-		this._runtime.pause();
+		this.pauseRequested = true;
 		this.sendResponse(response);
 	}
 
+	private step(event = 'in') {
+		if(this.breakPointsChanged.size !== 0)
+		{
+			this.updateBreakpoints();
+		}
+		this.writeStdin(`__DebugAdapter.step("${event}")`);
+		this.writeStdin("cont");
+	}
+
 	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
-		this._runtime.step("over");
+		this.step("over");
 		this.sendResponse(response);
 	}
 
 	protected stepInRequest(response: DebugProtocol.StepInResponse, args: DebugProtocol.StepInArguments): void {
-		this._runtime.step("in");
+		this.step("in");
 		this.sendResponse(response);
 	}
 
 	protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments): void {
-		this._runtime.step("out");
+		this.step("out");
 		this.sendResponse(response);
 	}
 
 	protected setExceptionBreakPointsRequest(response: DebugProtocol.SetExceptionBreakpointsResponse, args: DebugProtocol.SetExceptionBreakpointsArguments, request?: DebugProtocol.Request): void {
-		this._runtime.setExceptionBreakpoints(args.filters);
+		this.exceptionFilters.clear();
+		args.filters.forEach(f=>this.exceptionFilters.add(f));
 		this.sendResponse(response);
 	}
 
 	private createSource(filePath: string): Source {
 		return new Source(path.basename(filePath), this.convertDebuggerPathToClient(filePath));
+	}
+
+	public static async runTask(task: vscode.Task) {
+		const execution = await vscode.tasks.executeTask(task);
+
+		return new Promise<void>(resolve => {
+			let disposable = vscode.tasks.onDidEndTask(e => {
+				if (e.execution === execution) {
+					disposable.dispose();
+					resolve();
+				}
+			});
+		});
+	}
+
+	private updateInfoJson(uri:vscode.Uri)
+	{
+		let jsonpath = uri.path;
+		if (os.platform() === "win32" && jsonpath.startsWith("/")) {jsonpath = jsonpath.substr(1);}
+		const moddata = JSON.parse(fs.readFileSync(jsonpath, "utf8"));
+		const mp = {
+			uri: uri.with({path:path.posix.dirname(uri.path)}),
+			name: moddata.name,
+			version: moddata.version,
+			info: moddata
+		};
+		this.workspaceModInfo.push(mp);
+	}
+
+	private createSteamAppID(factorioPath:string)
+	{
+		if (fs.existsSync(path.resolve(factorioPath,"../steam_api64.dll")) || // windows
+			fs.existsSync(path.resolve(factorioPath,"../steam_api.dylib")) || // mac
+			fs.existsSync(path.resolve(factorioPath,"../steam_api.so")))      // linux
+		{
+			const appidPath = path.resolve(factorioPath,"../steam_appid.txt");
+			try {
+				if (fs.existsSync(appidPath))
+				{
+					FactorioModDebugSession.output.appendLine(`found ${appidPath}`);
+				}
+				else
+				{
+					fs.writeFileSync(appidPath,"427520");
+					FactorioModDebugSession.output.appendLine(`wrote ${appidPath}`);
+				}
+			} catch (error) {
+				FactorioModDebugSession.output.appendLine(`failed to write ${appidPath}: ${error}`);
+			}
+		}
+	}
+
+	private writeStdin(s:string|Buffer,fromQueue?:boolean):void
+	{
+		if (!this.inPrompt)
+		{
+			if (this.launchArgs.trace) { this.sendEvent(new OutputEvent(`!! Attempted to writeStdin "${s instanceof Buffer ? `Buffer[${s.length}]` : s}" while not in a prompt\n`, "console")); }
+			return;
+		}
+
+		if (this.launchArgs.trace) { this.sendEvent(new OutputEvent(`${fromQueue?"<q":"<"} ${s instanceof Buffer ? `Buffer[${s.length}] ${fromQueue?s.toString("utf-8"):""}` : s.replace(/^[\r\n]*/,"").replace(/[\r\n]*$/,"")}\n`, "console")); }
+		this.factorio.writeStdin(Buffer.concat([s instanceof Buffer ? s : Buffer.from(s),Buffer.from("\n")]));
+	}
+
+	private async writeOrQueueStdin(s:string|Buffer):Promise<boolean>
+	{
+		if (this.launchArgs.trace) {
+			this.sendEvent(new OutputEvent(`${this.inPrompt?"<":"q<"} ${s instanceof Buffer ? `Buffer[${s.length}]` : s.replace(/^[\r\n]*/,"").replace(/[\r\n]*$/,"")}\n`,"console"));
+		}
+		let b = Buffer.concat([s instanceof Buffer ? s : Buffer.from(s),Buffer.from("\n")]);
+		if (this.inPrompt)
+		{
+			this.factorio.writeStdin(b);
+			return true;
+		}
+		else
+		{
+			let p = new Promise<boolean>((resolve)=>
+			this.stdinQueue.push({buffer:b,resolve:resolve}));
+			return p;
+		}
+	}
+
+	private runQueuedStdin():void
+	{
+		if (this.stdinQueue.length > 0)
+		{
+			this.stdinQueue.forEach(b=>{
+				this.writeStdin(b.buffer,true);
+				b.resolve(true);
+			});
+			this.stdinQueue = [];
+		}
+	}
+
+	private clearQueuedStdin():void
+	{
+		if (this.stdinQueue.length > 0)
+		{
+			this.stdinQueue.forEach(b=>{
+				if (this.launchArgs.trace) {
+					this.sendEvent(new OutputEvent(`x< ${b.buffer.toString("utf-8")}\n`, "console"));
+				}
+				b.resolve(false);
+			});
+			this.stdinQueue = [];
+		}
+	}
+
+
+	public continue(updateAllBreakpoints?:boolean) {
+		if (!this.inPrompt)
+		{
+			if (this.launchArgs.trace) { this.sendEvent(new OutputEvent(`!! Attempted to continue while not in a prompt\n`, "console")); }
+			return;
+		}
+
+		if(updateAllBreakpoints || this.breakPointsChanged.size !== 0)
+		{
+			this.updateBreakpoints(updateAllBreakpoints);
+		}
+
+		this.writeStdin("cont");
+		this.inPrompt = false;
+	}
+
+	public continueRequire(shouldRequire:boolean) {
+		if (!this.inPrompt)
+		{
+			if (this.launchArgs.trace) { this.sendEvent(new OutputEvent(`!! Attempted to continueRequire while not in a prompt\n`, "console")); }
+			return;
+		}
+		if (shouldRequire) {
+			let hookopts = "";
+			if (this.launchArgs.hookLog !== undefined)
+			{
+				hookopts += `hooklog=${this.launchArgs.hookLog},`;
+			}
+			if (this.launchArgs.keepOldLog !== undefined)
+			{
+				hookopts += `keepoldlog=${this.launchArgs.keepOldLog},`;
+			}
+
+			this.writeStdin(`__DebugAdapter={${hookopts}}`);
+		}
+
+		this.writeStdin("cont");
+		this.inPrompt = false;
+	}
+
+	public continueProfile(shouldRequire:boolean) {
+		if (!this.inPrompt)
+		{
+			if (this.launchArgs.trace) { this.sendEvent(new OutputEvent(`!! Attempted to continueProfile while not in a prompt\n`, "console")); }
+			return;
+		}
+		if (shouldRequire) {
+			let hookopts = "";
+			if (this.launchArgs.profileSlowStart !== undefined)
+			{
+				hookopts += `slowStart=${this.launchArgs.profileSlowStart},`;
+			}
+			if (this.launchArgs.profileUpdateRate !== undefined)
+			{
+				hookopts += `updateRate=${this.launchArgs.profileUpdateRate},`;
+			}
+			if (this.launchArgs.profileLines !== undefined)
+			{
+				hookopts += `trackLines=${this.launchArgs.profileLines},`;
+			}
+			if (this.launchArgs.profileFuncs !== undefined)
+			{
+				hookopts += `trackFuncs=${this.launchArgs.profileFuncs},`;
+			}
+			if (this.launchArgs.profileTree !== undefined)
+			{
+				hookopts += `trackTree=${this.launchArgs.profileTree},`;
+			}
+
+			this.writeStdin(`__Profiler={${hookopts}}`);
+		}
+
+		this.writeStdin("cont");
+		this.inPrompt = false;
+	}
+
+
+	private async updateModules(modules: DebugProtocol.Module[]) {
+		const zipext = vscode.extensions.getExtension("slevesque.vscode-zipexplorer");
+		if (zipext)
+		{
+			vscode.commands.executeCommand("zipexplorer.clear");
+		}
+		for (const module of modules) {
+			this._modules.set(module.name,module);
+
+			if (module.name === "level")
+			{
+				// find `level` nowhere
+				module.symbolStatus = "No Symbols (Level)";
+
+				//FactorioModDebugSession.output.appendLine(`no source loaded for ${module.name}`);
+				continue;
+			}
+
+			if (module.name === "core" || module.name === "base")
+			{
+				// find `core` and `base` in data
+				module.symbolFilePath = vscode.Uri.parse("file:/"+path.posix.join(this.launchArgs.dataPath,module.name)).toString();
+				module.symbolStatus = "Loaded Data Directory";
+				FactorioModDebugSession.output.appendLine(`loaded ${module.name} from data ${module.symbolFilePath}`);
+				continue;
+			}
+
+			const wm = this.workspaceModInfo.find(m=>m.name===module.name && semver.eq(m.version,module.version!));
+			if (wm)
+			{
+				// find it in workspace
+				module.symbolFilePath = wm.uri.toString();
+				module.symbolStatus = "Loaded Workspace Directory";
+				FactorioModDebugSession.output.appendLine(`loaded ${module.name} ${module.version} from workspace ${module.symbolFilePath}`);
+				continue;
+			}
+
+			if (this.launchArgs.modsPath)
+			{
+				async function trydir(dir:vscode.Uri): Promise<boolean>
+				{
+					try
+					{
+						const stat = await vscode.workspace.fs.stat(dir);
+						// eslint-disable-next-line no-bitwise
+						if (stat.type|vscode.FileType.Directory)
+						{
+
+							const modinfo:ModInfo = JSON.parse(Buffer.from(
+								await vscode.workspace.fs.readFile(
+									dir.with({path: path.posix.join(dir.path,"info.json")})
+									)).toString("utf8"));
+							if (modinfo.name===module.name && semver.eq(modinfo.version,module.version!))
+							{
+								module.symbolFilePath = dir.toString();
+								module.symbolStatus = "Loaded Mod Directory";
+								FactorioModDebugSession.output.appendLine(`loaded ${module.name} ${module.version} from modspath ${module.symbolFilePath}`);
+								return true;
+							}
+						}
+					}
+					catch (ex)
+					{
+						if ((<vscode.FileSystemError>ex).code !== "FileNotFound")
+						{
+							FactorioModDebugSession.output.appendLine(`${ex}`);
+						}
+						return false;
+					}
+					return false;
+				}
+
+				// find it in mods dir:
+				// 1) unversioned folder
+				let dir = vscode.Uri.parse("file:/"+ path.resolve(this.launchArgs.modsPath,module.name).replace(/\\/g,"/"));
+				if(await trydir(dir)){continue;};
+
+				// 2) versioned folder
+				dir = vscode.Uri.parse("file:/"+ path.resolve(this.launchArgs.modsPath,module.name+"_"+module.version).replace(/\\/g,"/"));
+				if(await trydir(dir)){continue;};
+
+				// 3) versioned zip
+				if (zipext)
+				{
+					const zipuri = vscode.Uri.parse("file:/"+ path.resolve(this.launchArgs.modsPath,module.name+"_"+module.version+".zip").replace(/\\/g,"/"));
+					let stat:vscode.FileStat|undefined;
+					try
+					{
+						stat = await vscode.workspace.fs.stat(zipuri);
+					}
+					catch (ex)
+					{
+						if ((<vscode.FileSystemError>ex).code !== "FileNotFound")
+						{
+							FactorioModDebugSession.output.appendLine(`${ex}`);
+						}
+					}
+					// eslint-disable-next-line no-bitwise
+					if (stat && stat.type|vscode.FileType.File)
+					{
+						try
+						{
+							// if zip exists, try to mount it
+							//TODO: can i check if it's already mounted somehow?
+							//TODO: mount it fast enough to actually read dirname inside
+							vscode.commands.executeCommand("zipexplorer.exploreZipFile", zipuri);
+
+							let zipinside = zipuri.with({scheme: "zip", path: path.posix.join(zipuri.path,module.name+"_"+module.version)});
+							module.symbolFilePath = zipinside.toString();
+							module.symbolStatus = "Loaded Zip";
+							FactorioModDebugSession.output.appendLine(`loaded ${module.name} ${module.version} from mod zip ${zipuri.toString()}`);
+							continue;
+						}
+						catch (ex)
+						{
+							FactorioModDebugSession.output.appendLine(`${ex}`);
+						}
+					}
+				}
+			}
+
+			module.symbolStatus = "Unknown";
+			FactorioModDebugSession.output.appendLine(`no source found for ${module.name} ${module.version}`);
+		}
+		//TODO: another event to update it with levelpath for __level__ eventually?
+		this._modules.forEach((module:Module) =>{
+			this.sendEvent(new ModuleEvent('new', module));
+		});
+	}
+
+	updateBreakpoints(updateAll:boolean = false) {
+		let changes = Array<Buffer>();
+
+		this.breakPoints.forEach((breakpoints:DebugProtocol.SourceBreakpoint[], filename:string) => {
+			if (updateAll || this.breakPointsChanged.has(filename))
+			{
+				changes.push(Buffer.concat([
+					Buffer.from("__DebugAdapter.updateBreakpoints("),
+					luaBlockQuote(encodeBreakpoints(filename,breakpoints)),
+					Buffer.from(")\n")
+				]));
+			}
+		});
+		this.breakPointsChanged.clear();
+		this.writeStdin(Buffer.concat(changes));
+	}
+
+	private terminate()
+	{
+		if (this.profile)
+		{
+			this.profile.dispose();
+			this.profile = undefined;
+		}
+
+		this.factorio.kill();
+		const modsPath = this.launchArgs.modsPath;
+		if (modsPath) {
+			const modlistpath = path.resolve(modsPath,"./mod-list.json");
+			if (fs.existsSync(modlistpath))
+			{
+				if(this.launchArgs.manageMod === false)
+				{
+					FactorioModDebugSession.output.appendLine(`automatic management of mods disabled`);
+				}
+				else
+				{
+					let modlist:ModList = JSON.parse(fs.readFileSync(modlistpath, "utf8"));
+					modlist.mods.map((modentry)=>{
+						if (modentry.name === "debugadapter") {
+							modentry.enabled = false;
+						};
+						return modentry;
+					});
+					fs.writeFileSync(modlistpath, JSON.stringify(modlist), "utf8");
+					FactorioModDebugSession.output.appendLine(`debugadapter disabled in mod-list.json`);
+				}
+			}
+		}
 	}
 }
