@@ -12,10 +12,8 @@ modver=`jq -r .version info.json`
 git archive --prefix "${modname}_$modver/" -o "${modname}_$modver.zip" HEAD
 
 cp "${modname}_$modver.zip" "../modpackage/${modname}.zip"
-if [ ! -f ../modpackage/mods.json ]; then
-  echo "{}" > ../modpackage/mods.json
-fi
 
+echo "{}" > ../modpackage/mods.json
 # jq can't read from and write to the same file - write to temp and overwrite...
 jq ".debugadapter={\"version\":\"${modver}\",\"debugOnly\":true,\"deleteOld\":true}" ../modpackage/mods.json >../modpackage/mods.tmp
 mv ../modpackage/mods.tmp ../modpackage/mods.json
