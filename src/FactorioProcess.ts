@@ -1,15 +1,20 @@
 
 import { spawn, ChildProcess } from 'child_process';
 import { EventEmitter } from "events";
-import { BufferSplitter, SplitMatcher } from './BufferSplitter';
+import { BufferSplitter } from './BufferSplitter';
 import * as path from 'path';
 import treekill = require('tree-kill');
+
+const stderrsplit = [Buffer.from("\n"),Buffer.from("lua_debug> ")];
+const stdoutsplit = [Buffer.from("\n"),{
+	start: Buffer.from("***DebugAdapterBlockPrint***"),
+	end: Buffer.from("***EndDebugAdapterBlockPrint***")}];
 
 export class FactorioProcess extends EventEmitter {
 	private readonly factorio: ChildProcess;
 	private readonly hasNativeDebug: boolean;
 
-	constructor(factorioPath:string,factorioArgs:string[],stderrsplit:Buffer|SplitMatcher[],stdoutsplit:Buffer|SplitMatcher[],nativeDebugger?:string)
+	constructor(factorioPath:string,factorioArgs:string[],nativeDebugger?:string)
 	{
 		super();
 		if (nativeDebugger) {

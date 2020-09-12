@@ -9,14 +9,21 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as semver from 'semver';
-import { LaunchRequestArguments, ModInfo, ModList, ModPaths } from './factorioModRuntime';
 import * as vscode from 'vscode';
-import { Uri } from 'vscode';
 import { encodeBreakpoints, luaBlockQuote } from './EncodingUtil';
 import { Profile } from './Profile';
 import { FactorioProcess } from './FactorioProcess';
+import { ModInfo } from './ModPackageProvider';
+import { assert } from 'console';
+import { ModManager } from './ModManager';
 
-export interface EvaluateResponseBody {
+interface ModPaths{
+	uri: vscode.Uri
+	name: string
+	version: string
+	info: ModInfo
+}
+interface EvaluateResponseBody {
 	result: string
 	type?: string
 	presentationHint?: DebugProtocol.VariablePresentationHint
@@ -30,9 +37,43 @@ export interface EvaluateResponseBody {
 	timer?: number
 }
 
-export type resolver<T> = (value?: T | PromiseLike<T> | undefined)=>void;
+type resolver<T> = (value?: T | PromiseLike<T> | undefined)=>void;
+
+interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
+	factorioPath: string // path of factorio binary to launch
+	nativeDebugger: string // path to native debugger if in use
+	modsPath: string // path of `mods` directory
+	modsPathSource: string
+	configPath: string // path to config.ini
+	configPathDetected?: boolean
+	dataPath: string // path of `data` directory, always comes from config.ini
+	manageMod?: boolean
+	useInstrumentMode?: boolean
+	factorioArgs?: Array<string>
+	adjustMods?:{[key:string]:boolean|string}
+	disableExtraMods?:boolean
+	allowDisableBaseMod?:boolean
+	hookSettings?:boolean
+	hookData?:boolean
+	hookControl?:string[]|boolean
+	hookMode?:"debug"|"profile"
+
+	hookLog?:boolean
+	keepOldLog?:boolean
+
+	profileLines?:boolean
+	profileFuncs?:boolean
+	profileTree?:boolean
+	profileSlowStart?: number
+	profileUpdateRate?: number
+
+	/** enable logging the Debug Adapter Protocol */
+	trace?: boolean
+}
 
 export class FactorioModDebugSession extends LoggingDebugSession {
+
+	private context: vscode.ExtensionContext;
 
 	// we don't support multiple threads, so we can use a hardcoded ID for the default thread
 	private static THREAD_ID = 1;
@@ -72,8 +113,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	private workspaceModInfoReady:Promise<void>;
 	private workspaceModInfo = new Array<ModPaths>();
 
-	private workspaceModLists:Thenable<vscode.Uri[]>;
-
 	/**
 	 * Creates a new debug adapter that is used for one debug session.
 	 * We configure the default implementation of a debug adapter here.
@@ -88,8 +127,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		FactorioModDebugSession.output = FactorioModDebugSession.output || vscode.window.createOutputChannel("Factorio Mod Debug");
 		FactorioModDebugSession.output.appendLine("---------------------------------------------------------------------------------------------------");
 
-
-		this.workspaceModLists = vscode.workspace.findFiles("**/mod-list.json");
 		this.workspaceModInfoReady = new Promise(async (resolve)=>{
 			const infos = await vscode.workspace.findFiles('**/info.json');
 			infos.forEach(this.updateInfoJson,this);
@@ -102,6 +139,12 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				this.profile.render(editor,profname);
 			}
 		});
+	}
+
+	public setContext(context: vscode.ExtensionContext)
+	{
+		assert(!this.context);
+		this.context = context;
 	}
 
 	/**
@@ -164,6 +207,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		args.hookData = args.hookData ?? false;
 		args.hookControl = args.hookControl ?? true;
 		args.hookMode = args.hookMode ?? "debug";
+		args.trace = args.trace ?? false;
 
 		if (args.hookMode === "profile" && !args.noDebug) {
 			this.profile = new Profile(args.profileTree ?? true);
@@ -180,8 +224,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				}
 			});
 		}
-		this.launchArgs.trace = args.trace ?? false;
-
 
 		const tasks = (await vscode.tasks.fetchTasks({type:"factorio"})).filter(
 			(task)=>task.definition.command === "compile"
@@ -194,182 +236,71 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		}
 
 		FactorioModDebugSession.output.appendLine(`using ${args.configPathDetected?"auto-detected":"manually-configured"} config.ini: ${args.configPath}`);
-		const workspaceModLists = await this.workspaceModLists;
-		if (workspaceModLists.length > 1)
+
+		args.modsPath = args.modsPath.replace(/\\/g,"/");
+		// check for folder or symlink and leave it alone, if zip update if mine is newer
+		FactorioModDebugSession.output.appendLine(`using modsPath ${args.modsPath} (${args.modsPathSource})`);
+		if(args.manageMod === false)
 		{
-			FactorioModDebugSession.output.appendLine(`multiple mod-list.json in workspace`);
+			FactorioModDebugSession.output.appendLine(`automatic management of mods disabled`);
 		}
-		else if (workspaceModLists.length === 1)
+		else
 		{
-			const workspaceModList = workspaceModLists[0];
-			FactorioModDebugSession.output.appendLine(`found mod-list.json in workspace: ${workspaceModList.toString()}`);
-			args.modsPath = path.dirname(workspaceModList.path);
-			args.modsPathDetected = false;
-			if (os.platform() === "win32" && args.modsPath.startsWith("/")) {args.modsPath = args.modsPath.substr(1);}
-		}
-		if (args.modsPath)
-		{
-			args.modsPath = args.modsPath.replace(/\\/g,"/");
-			// check for folder or symlink and leave it alone, if zip update if mine is newer
-			const modlistpath = path.resolve(args.modsPath,"./mod-list.json");
-			if (fs.existsSync(modlistpath))
+			if (!args.adjustMods) {args.adjustMods = {};}
+			if (!args.allowDisableBaseMod) {args.adjustMods["base"] = true;}
+
+			const packagedModsList = this.context.asAbsolutePath("./modpackage/mods.json");
+
+			if(!fs.existsSync(packagedModsList))
 			{
-				FactorioModDebugSession.output.appendLine(`using modsPath ${args.modsPath}`);
-				if(args.manageMod === false)
-				{
-					FactorioModDebugSession.output.appendLine(`automatic management of mods disabled`);
+				FactorioModDebugSession.output.appendLine(`package list missing in extension`);
+			}
+			else
+			{
+				const manager = new ModManager(args.modsPath);
+				if (args.disableExtraMods) {
+					manager.disableAll();
 				}
-				else
-				{
-					if (!args.adjustMods) {args.adjustMods = {};}
-					if (!args.allowDisableBaseMod) {args.adjustMods["base"] = true;}
-					const ext = vscode.extensions.getExtension("justarandomgeek.factoriomod-debug");
-					if (ext)
+				for (const mod in args.adjustMods) {
+					if (args.adjustMods.hasOwnProperty(mod))
 					{
-						const extpath = ext.extensionPath;
-
-						const infopath = path.resolve(extpath, "./modpackage/info.json");
-						const zippath = path.resolve(extpath, "./modpackage/debugadapter.zip");
-						if(!(fs.existsSync(zippath) && fs.existsSync(infopath)))
+						const adjust = args.adjustMods[mod];
+						manager.set(mod,adjust);
+					}
+				}
+				const packages:{[key:string]:{version:string;debugOnly?:boolean;deleteOld?:boolean}} = JSON.parse(fs.readFileSync(packagedModsList, "utf8"));
+				if (!args.noDebug)
+				{
+					manager.set("coverage",false);
+					manager.set("profiler",false);
+					for (const mod in packages) {
+						if (packages.hasOwnProperty(mod))
 						{
-							FactorioModDebugSession.output.appendLine(`debugadapter mod package missing in extension`);
-						}
-						else
-						{
-							const dainfo:ModInfo = JSON.parse(fs.readFileSync(infopath, "utf8"));
-
-							let mods = fs.readdirSync(args.modsPath,"utf8");
-							mods = mods.filter((mod)=>{
-								return mod.startsWith(dainfo.name);
-							});
-							if (!args.noDebug)
-							{
-								args.adjustMods[dainfo.name] = dainfo.version;
-								args.adjustMods["coverage"] = false;
-								args.adjustMods["profiler"] = false;
-
-								if (mods.length === 0)
-								{
-									// install zip from package
-									fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`));
-									FactorioModDebugSession.output.appendLine(`installed ${dainfo.name}_${dainfo.version}.zip`);
-								}
-								else if (mods.length === 1)
-								{
-									if (mods[0].endsWith(".zip"))
-									{
-										if(mods[0] === `${dainfo.name}_${dainfo.version}.zip`)
-										{
-											FactorioModDebugSession.output.appendLine(`using existing ${mods[0]}`);
-										} else {
-											fs.unlinkSync(path.resolve(args.modsPath,mods[0]));
-											fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`));
-											FactorioModDebugSession.output.appendLine(`updated ${mods[0]} to ${dainfo.name}_${dainfo.version}.zip`);
-										}
-									}
-									else
-									{
-										FactorioModDebugSession.output.appendLine("existing debugadapter in modsPath is not a zip");
-										const modinfopath = path.resolve(args.modsPath, mods[0], "./info.json");
-
-										if(!(mods[0] === `${dainfo.name}_${dainfo.version}`||mods[0] === dainfo.name)
-											|| !fs.existsSync(modinfopath))
-										{
-											FactorioModDebugSession.output.appendLine(`existing debugadapter is wrong version or does not contain info.json`);
-											fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`));
-											FactorioModDebugSession.output.appendLine(`installed ${dainfo.name}_${dainfo.version}.zip`);
-										}
-										else
-										{
-											const info:ModInfo = JSON.parse(fs.readFileSync(modinfopath, "utf8"));
-											if (info.version !== dainfo.version)
-											{
-												FactorioModDebugSession.output.appendLine(`existing ${mods[0]} is wrong version`);
-												fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`));
-												FactorioModDebugSession.output.appendLine(`installed ${dainfo.name}_${dainfo.version}.zip`);
-											}
-										}
-									}
-								}
-								else
-								{
-									FactorioModDebugSession.output.appendLine("multiple debugadapters in modsPath");
-									if(mods.find(s=> s === `${dainfo.name}` ))
-									{
-										FactorioModDebugSession.output.appendLine(`using existing ${dainfo.name}`);
-									}
-									else if(mods.find(s=> s === `${dainfo.name}_${dainfo.version}` ))
-									{
-										FactorioModDebugSession.output.appendLine(`using existing ${dainfo.name}_${dainfo.version}`);
-									}
-									else if (mods.find(s=> s === `${dainfo.name}_${dainfo.version}.zip` ))
-									{
-										FactorioModDebugSession.output.appendLine(`using existing ${dainfo.name}_${dainfo.version}.zip`);
-									}
-									else
-									{
-										fs.copyFileSync(zippath,path.resolve(args.modsPath,`./${dainfo.name}_${dainfo.version}.zip`));
-										FactorioModDebugSession.output.appendLine(`installed ${dainfo.name}_${dainfo.version}.zip`);
-									}
-
-								}
-							}
-							else
-							{
-								args.adjustMods[dainfo.name] = false;
-							}
-
-							// enable in json
-							let modlist:ModList = JSON.parse(fs.readFileSync(modlistpath, "utf8"));
-
-							let foundmods:{[key:string]:true} = {};
-							modlist.mods = modlist.mods.map((modentry)=>{
-								const adjust = args.adjustMods![modentry.name];
-
-								if (adjust === true || adjust === false) {
-									foundmods[modentry.name] = true;
-									return {name:modentry.name,enabled:adjust};
-								}
-								else if (adjust) {
-									foundmods[modentry.name] = true;
-									return {name:modentry.name,enabled:true,version:adjust};
-								}
-								else if (args.disableExtraMods) {
-									return {name:modentry.name,enabled:false};
-								}
-
-								return modentry;
-							});
-
-							for (const mod in args.adjustMods) {
-								if (args.adjustMods.hasOwnProperty(mod) && !foundmods[mod])
-								{
-									const adjust = args.adjustMods[mod];
-									if (adjust === true || adjust === false) {
-
-										modlist.mods.push({name:mod,enabled:adjust});
-									}
-									else {
-
-										modlist.mods.push({name:mod,enabled:true,version:adjust});
-									}
-								}
-							}
-
-							fs.writeFileSync(modlistpath, JSON.stringify(modlist), "utf8");
-							FactorioModDebugSession.output.appendLine(`debugadapter ${args.noDebug?"disabled":"enabled"} in mod-list.json`);
+							const modpackage = packages[mod];
+							const zippath = this.context.asAbsolutePath(`./modpackage/${mod}.zip`);
+							const result = manager.installMod(mod,modpackage.version,zippath,modpackage.deleteOld);
+							FactorioModDebugSession.output.appendLine(`package install ${mod} ${JSON.stringify(result)}`);
 						}
 					}
 				}
-
-			} else {
-				FactorioModDebugSession.output.appendLine(`modsPath "${args.modsPath}" does not contain mod-list.json`);
-				args.modsPath = ""; //TODO: this seems wrong, move to config validation? generate a stub list if appropriate or fail
+				else
+				{
+					for (const mod in packages) {
+						if (packages.hasOwnProperty(mod))
+						{
+							const modpackage = packages[mod];
+							if (modpackage.debugOnly)
+							{
+								manager.set(mod,false);
+							}
+						}
+					}
+				}
+				manager.write();
+				FactorioModDebugSession.output.appendLine(`debugadapter ${args.noDebug?"disabled":"enabled"} in mod-list.json`);
 			}
-		} else {
-			// warn that i can't check/add debugadapter
-			FactorioModDebugSession.output.appendLine("Cannot install/verify mod without modsPath");
 		}
+
 		args.dataPath = args.dataPath.replace(/\\/g,"/");
 		FactorioModDebugSession.output.appendLine(`using dataPath ${args.dataPath}`);
 
@@ -385,7 +316,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		{
 			args.factorioArgs.push("--config",args.configPath);
 		}
-		if (!args.modsPathDetected)
+		if (args.modsPathSource !== "config")
 		{
 			let mods = args.modsPath;
 			if (!mods.endsWith("/"))
@@ -397,13 +328,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 		this.createSteamAppID(args.factorioPath);
 
-		const stderrmatchers = [Buffer.from("\n"),Buffer.from("lua_debug> ")];
-		const stdoutmatchers = [Buffer.from("\n"),{
-			start: Buffer.from("***DebugAdapterBlockPrint***"),
-			end: Buffer.from("***EndDebugAdapterBlockPrint***")}];
-		this.factorio = new FactorioProcess(args.factorioPath,args.factorioArgs,stderrmatchers,stdoutmatchers,args.nativeDebugger);
-
-
+		this.factorio = new FactorioProcess(args.factorioPath,args.factorioArgs,args.nativeDebugger);
 
 		this.factorio.on("exit", (code:number, signal:string) => {
 			if (this.profile)
@@ -681,15 +606,15 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 
 	protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
-		let bpuri:Uri;
+		let bpuri:vscode.Uri;
 		let inpath = <string>args.source.path;
 		if (inpath.match(/^[a-zA-Z]:/)) // matches c:\... or c:/... style windows paths, single drive letter
 		{
-			bpuri = Uri.parse("file:/"+inpath.replace(/\\/g,"/"));
+			bpuri = vscode.Uri.parse("file:/"+inpath.replace(/\\/g,"/"));
 		}
 		else // everything else is already a URI
 		{
-			bpuri = Uri.parse(inpath);
+			bpuri = vscode.Uri.parse(inpath);
 		}
 
 		const path = this.convertClientPathToDebugger(bpuri.toString());
@@ -824,7 +749,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.sendResponse(response);
 	}
 
-	private step(event = 'in') {
+	private step(event:'in'|'out'|'over' = 'in') {
 		if(this.breakPointsChanged.size !== 0)
 		{
 			this.updateBreakpoints();
@@ -1210,14 +1135,9 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				}
 				else
 				{
-					let modlist:ModList = JSON.parse(fs.readFileSync(modlistpath, "utf8"));
-					modlist.mods.map((modentry)=>{
-						if (modentry.name === "debugadapter") {
-							modentry.enabled = false;
-						};
-						return modentry;
-					});
-					fs.writeFileSync(modlistpath, JSON.stringify(modlist), "utf8");
+					const manager = new ModManager(modsPath);
+					manager.set("debugadapter",false);
+					manager.write();
 					FactorioModDebugSession.output.appendLine(`debugadapter disabled in mod-list.json`);
 				}
 			}

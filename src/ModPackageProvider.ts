@@ -20,11 +20,16 @@ interface ModPackageScripts {
 	publish?: string
 };
 
-interface ModPackageInfo {
+export interface ModInfo {
 	name: string
 	version: string
 	factorio_version: string
 	title: string
+	author: string
+	homepage: string
+	contact: string
+	description: string
+	dependencies: string[]
 	package?: {
 		ignore?: string[]
 		no_git_push?: boolean
@@ -146,7 +151,7 @@ export class ModPackage extends vscode.TreeItem {
 	public noPortalUpload?: boolean;
 	public scripts?: ModPackageScripts;
 
-	constructor(uri: vscode.Uri, modscript: ModPackageInfo) {
+	constructor(uri: vscode.Uri, modscript: ModInfo) {
 		super(uri);
 		this.label = modscript.name;
 		this.description = modscript.version;
@@ -167,7 +172,7 @@ export class ModPackage extends vscode.TreeItem {
 	public async Update()
 	{
 		const infodoc = await vscode.workspace.openTextDocument(this.resourceUri);
-		const modscript: ModPackageInfo = JSON.parse(infodoc.getText());
+		const modscript: ModInfo = JSON.parse(infodoc.getText());
 
 		this.label = modscript.name;
 		this.description = modscript.version;
@@ -666,7 +671,7 @@ export class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.Tree
 		if(uri.scheme === "file")
 		{
 			const infodoc = await vscode.workspace.openTextDocument(uri);
-			const modscript: ModPackageInfo = JSON.parse(infodoc.getText());
+			const modscript: ModInfo = JSON.parse(infodoc.getText());
 			if (modscript.name) {
 				if (this.modPackages.has(uri.toString())) {
 					await this.modPackages.get(uri.toString())?.Update();

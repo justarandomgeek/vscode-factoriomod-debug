@@ -16,7 +16,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('factoriomod', provider));
 
 	// debug adapters can be run in different ways by using a vscode.DebugAdapterDescriptorFactory:
-	let factory = new InlineDebugAdapterFactory();
+	let factory = new InlineDebugAdapterFactory(context);
 
 	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('factoriomod', factory));
 	context.subscriptions.push(factory);
@@ -226,6 +226,7 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 
 		if (config.modsPath)
 		{
+			config.modsPathSource = "launch";
 			let modspath = path.posix.normalize(config.modsPath);
 			if (modspath.endsWith("/") || modspath.endsWith("\\"))
 			{
@@ -234,21 +235,76 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 			if (fs.existsSync(modspath))
 			{
 				config.modsPath = modspath;
+				if (!fs.existsSync(path.resolve(config.modsPath,"./mod-list.json")))
+				{
+					const create = await vscode.window.showWarningMessage(
+						"modsPath specified in launch configuration does not contain mod-list.json",
+						"Create it","Cancel"
+					);
+					if (create !== "Create it")
+					{
+						return undefined;	// abort launch
+					}
+				}
+			}
+			else
+			{
+				return vscode.window.showInformationMessage("modsPath specified in launch configuration does not exist").then(_ => {
+					return undefined;	// abort launch
+				});
 			}
 		}
 		else
 		{
-			const configModsPath = configdata?.path?.["write-data"];
-			if (!configModsPath)
-			{
-				vscode.window.showInformationMessage("path.write-data missing in config.ini");
-				return undefined;	// abort launch
-			}
+			// modsPath not configured: detect from config.ini or mods-list.json in workspace
+			const workspaceModLists = await vscode.workspace.findFiles("**/mod-list.json");
 
-			config.modsPathDetected = true;
-			config.modsPath = path.posix.normalize(path.resolve(
-				translatePath(configModsPath,config.factorioPath),"mods"));
+			if (workspaceModLists.length === 1)
+			{
+				// found one, just use it
+				config.modsPath = path.dirname(workspaceModLists[0].fsPath);
+				config.modsPathSource = "workspace";
+			}
+			else if (workspaceModLists.length > 1)
+			{
+				// found more than one. quickpick them.
+				config.modsPath = await vscode.window.showQuickPick(
+					workspaceModLists.map(ml=>path.dirname(ml.fsPath)),
+					{
+						placeHolder: "Select mod-list.json to use",
+					}
+				);
+				config.modsPathSource = "workspace";
+			}
+			else
+			{
+				// found none. detect from config.ini
+				const configModsPath = configdata?.path?.["write-data"];
+				if (!configModsPath)
+				{
+					vscode.window.showInformationMessage("path.write-data missing in config.ini");
+					return undefined;	// abort launch
+				}
+
+				config.modsPathSource = "config";
+				config.modsPath = path.posix.normalize(path.resolve(
+					translatePath(configModsPath,config.factorioPath),"mods"));
+
+				if (!fs.existsSync(path.resolve(config.modsPath,"./mod-list.json")))
+				{
+					const create = await vscode.window.showWarningMessage(
+						"modsPath detected from config.ini does not contain mod-list.json",
+						"Create it","Cancel"
+					);
+					if (create !== "Create it")
+					{
+						return undefined;	// abort launch
+					}
+				}
+			}
 		}
+
+		if (os.platform() === "win32" && config.modsPath.startsWith("/")) {config.modsPath = config.modsPath.substr(1);}
 
 		return config;
 	}
@@ -256,8 +312,17 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 
 class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
 
+	private context: vscode.ExtensionContext;
+
+	constructor(context: vscode.ExtensionContext)
+	{
+		this.context = context;
+	}
+
 	createDebugAdapterDescriptor(_session: vscode.DebugSession): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
-		return new vscode.DebugAdapterInlineImplementation(new FactorioModDebugSession());
+		const fmds = new FactorioModDebugSession();
+		fmds.setContext(this.context);
+		return new vscode.DebugAdapterInlineImplementation(fmds);
 	}
 
 	dispose()
