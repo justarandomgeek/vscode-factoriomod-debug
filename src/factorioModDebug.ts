@@ -210,7 +210,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		args.trace = args.trace ?? false;
 
 		if (args.hookMode === "profile" && !args.noDebug) {
-			this.profile = new Profile(args.profileTree ?? true);
+			this.profile = new Profile(args.profileTree ?? true, this.context);
 			this.profile.on("flameclick", async (mesg)=>{
 				if (mesg.filename && mesg.line)
 				{

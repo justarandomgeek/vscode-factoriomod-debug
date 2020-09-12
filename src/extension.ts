@@ -312,7 +312,7 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 
 class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
 
-	private context: vscode.ExtensionContext;
+	private readonly context: vscode.ExtensionContext;
 
 	constructor(context: vscode.ExtensionContext)
 	{

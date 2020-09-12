@@ -265,6 +265,8 @@ class ProfileData {
 
 
 export class Profile extends EventEmitter implements vscode.Disposable  {
+	private readonly context: vscode.ExtensionContext;
+
 	private profileData = new ProfileData();
 	private profileTreeRoot = new ProfileTreeNode("root",0);
 
@@ -275,9 +277,10 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 	private statusBar: vscode.StatusBarItem;
 	private flamePanel?: vscode.WebviewPanel;
 
-	constructor(withTree:boolean)
+	constructor(withTree:boolean, context: vscode.ExtensionContext)
 	{
 		super();
+		this.context = context;
 		this.timeDecorationType = vscode.window.createTextEditorDecorationType({
 			before: {
 				contentText:"",
@@ -345,26 +348,22 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 			return;
 		}
 
-		const ext = vscode.extensions.getExtension("justarandomgeek.factoriomod-debug")!;
-
 		this.flamePanel = vscode.window.createWebviewPanel(
 			'factorioProfile',
 			'Factorio Profile',
 			vscode.ViewColumn.Two,
 			{
 				enableScripts: true,
-				localResourceRoots: [ ext.extensionUri ],
+				localResourceRoots: [ this.context.extensionUri ],
 			}
 		);
 		const flameview = this.flamePanel.webview;
 		flameview.html = (await vscode.workspace.fs.readFile(
-			vscode.Uri.joinPath(ext.extensionUri,"profile_flamegraph.html"))).toString().replace(
+			vscode.Uri.joinPath(this.context.extensionUri,"profile_flamegraph.html"))).toString().replace(
 				/(src|href)="([^"]+)"/g,(_,attr,value)=>{
-					return `${attr}="${flameview.asWebviewUri(vscode.Uri.joinPath(ext.extensionUri,value))}"`;
+					return `${attr}="${flameview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri,value))}"`;
 				}
 			);
-
-
 
 		flameview.onDidReceiveMessage(
 			(mesg:{command:"init"}|{command:"click";name:string;filename?:string;line?:number})=>{
