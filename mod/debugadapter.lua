@@ -268,7 +268,9 @@ end
 
 ---@param expr any
 ---@param alsoLookIn table
-function __DebugAdapter.print(expr,alsoLookIn)
+---@param upStack number
+---@param category string "console"|"stdout"|"stderr"
+function __DebugAdapter.print(expr,alsoLookIn,upStack,category)
   local texpr = type(expr)
   local result,ref
   if texpr == "string" then
@@ -280,23 +282,34 @@ function __DebugAdapter.print(expr,alsoLookIn)
       expr = {expr}
     end
     local v = variables.create("",expr)
-    result = v.value -- __DebugAdapter.describe(expr)
+    result = v.value
     ref = v.variablesReference
   end
 
   local body = {
-    category = "console",
+    category = category or "console",
     output = result,
     variablesReference = ref,
   }
-  local istail = debug.getinfo(1,"t")
-  if istail.istailcall then
-    body.line = 1
-    body.source = "=(...tailcall...)"
+  if upStack then
+    if upStack ~= -1 then
+      upStack = upStack + 1
+      local info = debug.getinfo(upStack,"lS")
+      if info then
+        body.line = info.currentline
+        body.source = normalizeLuaSource(info.source)
+      end
+    end
   else
-    local info = debug.getinfo(2,"lS")
-    body.line = info.currentline
-    body.source = normalizeLuaSource(info.source)
+    local printinfo = debug.getinfo(1,"t")
+    if printinfo.istailcall then
+      body.line = 1
+      body.source = "=(...tailcall...)"
+    else
+      local info = debug.getinfo(2,"lS")
+      body.line = info.currentline
+      body.source = normalizeLuaSource(info.source)
+    end
   end
   print("DBGprint: " .. json.encode(body))
 end
