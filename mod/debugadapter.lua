@@ -281,7 +281,7 @@ function __DebugAdapter.print(expr,alsoLookIn,upStack,category)
     if texpr == "table" then
       expr = {expr}
     end
-    local v = variables.create("",expr)
+    local v = variables.create("",expr, nil, true)
     result = v.value
     ref = v.variablesReference
   end
@@ -336,7 +336,8 @@ do
     remote.add_interface("__debugadapter_" .. script.mod_name ,{
       setBreakpoints = __DebugAdapter.setBreakpoints,
       remoteCallInner = remotestepping.callInner,
-      remoteHasInterface = remotestepping.hasInterface
+      remoteHasInterface = remotestepping.hasInterface,
+      longVariables = __DebugAdapter.variables,
     })
 
     __DebugAdapter.attach()

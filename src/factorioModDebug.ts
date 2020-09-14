@@ -2,7 +2,7 @@ import {
 	Logger, logger,
 	LoggingDebugSession,
 	TerminatedEvent, StoppedEvent, OutputEvent,
-	Thread, Source, Module, ModuleEvent, InitializedEvent, StackFrame, Scope, Variable
+	Thread, Source, Module, ModuleEvent, InitializedEvent, StackFrame, Scope, Variable, Event
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import * as path from 'path';
@@ -336,7 +336,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				this.profile.dispose();
 				this.profile = undefined;
 			}
-			this.sendEvent(new TerminatedEvent());
+			this.sendEvent(new Event("exited",{exitCode:code}));
 		});
 
 		let resolveModules:resolver<void>;
@@ -526,18 +526,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				this._setvars.delete(result.seq);
 			} else if (mesg.startsWith("DBGeval: ")) {
 				const evalresult:EvaluateResponseBody = JSON.parse(mesg.substring(9).trim());
-				const lsid = evalresult.result.match(/\{LocalisedString ([0-9]+)\}/);
-				if (lsid)
-				{
-					const id = Number.parseInt(lsid[1]);
-					evalresult.result = this.translations.get(id) ?? `{Missing Translation ID ${id}}`;
-				}
-				if (evalresult.timer)
-				{
-					const time = this.translations.get(evalresult.timer) ?? `{Missing Translation ID ${evalresult.timer}}`;
-					evalresult.result += "\n⏱️ " + time.replace(/^.*: /,"");
-				}
-
 				this._evals.get(evalresult.seq)!(evalresult);
 				this._evals.delete(evalresult.seq);
 			} else if (mesg.startsWith("DBGtranslate: ")) {
@@ -686,14 +674,27 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	protected async variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments, request?: DebugProtocol.Request) {
 		try {
-			let vars = await new Promise<DebugProtocol.Variable[]>(async (resolve,reject)=>{
-				this._vars.set(response.request_seq, resolve);
-				if (!await this.writeOrQueueStdin(`__DebugAdapter.variables(${args.variablesReference},${response.request_seq},${args.filter? `"${args.filter}"`:"nil"},${args.start || "nil"},${args.count || "nil"})\n`))
-				{
-					this._vars.delete(response.request_seq);
-					reject("Cancelled");
-				}
-			});
+			let vars = await Promise.race([
+				new Promise<DebugProtocol.Variable[]>(async (resolve,reject)=>{
+					this._vars.set(response.request_seq, resolve);
+					if (!await this.writeOrQueueStdin(`__DebugAdapter.variables(${args.variablesReference},${response.request_seq},${args.filter? `"${args.filter}"`:"nil"},${args.start || "nil"},${args.count || "nil"})\n`))
+					{
+						this._vars.delete(response.request_seq);
+						reject("Cancelled");
+					}
+				}),
+				new Promise<DebugProtocol.Variable[]>((resolve, reject) => {
+					// just time out if we're in a menu with no lua running to empty the queue...
+					// in which case it's just expired anyway
+					setTimeout(resolve, 1000, <DebugProtocol.Variable[]>[
+						{
+							name: "No Lua State Available",
+							value: `ref=${args.variablesReference} seq=${response.request_seq}`,
+							variablesReference: 0,
+						}
+					]);
+				})
+			]);
 
 			vars.forEach((a)=>{
 				const lsid = a.value.match(/\{LocalisedString ([0-9]+)\}/);
@@ -726,9 +727,10 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 
 	protected async evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments, request?: DebugProtocol.Request) {
-		response.body = await new Promise<EvaluateResponseBody>((resolve)=>{
+		const body = await new Promise<EvaluateResponseBody>((resolve)=>{
 			if(args.context === "repl" && !args.frameId)
 			{
+
 				let evalresult = {result:"cannot evaluate while running",type:"error",variablesReference:0,seq:response.request_seq};
 				resolve(evalresult);
 			}
@@ -736,6 +738,19 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			this._evals.set(response.request_seq, resolve);
 			this.writeStdin(`__DebugAdapter.evaluate(${args.frameId},"${args.context}",${luaBlockQuote(Buffer.from(args.expression.replace(/\n/g," ")))},${response.request_seq})\n`);
 		});
+		response.body = body;
+		const lsid = body.result.match(/\{LocalisedString ([0-9]+)\}/);
+				if (lsid)
+				{
+					const id = Number.parseInt(lsid[1]);
+					body.result = this.translations.get(id) ?? `{Missing Translation ID ${id}}`;
+				}
+				if (body.timer)
+				{
+					const time = this.translations.get(body.timer)?.replace(/^.*: /,"") ??
+								`{Missing Translation ID ${body.timer}}`;
+					body.result += "\n⏱️ " + time;
+				}
 		this.sendResponse(response);
 	}
 

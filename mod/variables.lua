@@ -31,13 +31,21 @@ local remote = remote and rawget(remote,"__raw") or remote
 
 -- Trying to expand the refs table causes some problems, so just hide it...
 local refsmeta = {
-  __debugline = "<Debug Adapter Variable ID Cache [{#self}]>",
+  __debugline = "<Debug Adapter Variable ID Cache [{table_size(self)}]>",
+  __debugchildren = false,
+}
+
+local longrefsmeta = {
+  __debugline = "<Debug Adapter Long-lived Variable ID Cache [{table_size(self)}]>",
   __debugchildren = false,
 }
 
 --- Debug Adapter variables module
 local variables = {
+  -- normal refs are cleared after every continue
   refs = setmetatable({},refsmeta),
+  -- long refs live forever, except objects that must not be kept for saving
+  longrefs = setmetatable({},longrefsmeta),
 }
 
 
@@ -171,9 +179,33 @@ do
     end
   end
 
+  local function isUnsafeLong(t)
+    if type(t) ~= "table" then return false end
+    if t.__self then return luaObjectInfo.noLongRefs[t.object_name:match("^([^.]+).?")] end
+    for k,v in pairs(t) do
+      if isUnsafeLong(k) or isUnsafeLong(v) then
+        return true
+      end
+    end
+  end
+
   --- Clear all existing variable references, when stepping invalidates them
   function variables.clear()
     variables.refs = setmetatable({},refsmeta)
+    --clean any LuaObjects from long refs that must not be long
+    for id,varRef in pairs(variables.longrefs) do
+      if varRef.type == "Table" then
+        if isUnsafeLong(varRef.table) then
+          variables.longrefs[id]=nil
+        end
+      elseif varRef.type == "LuaObject" then
+        if luaObjectInfo.noLongRefs[varRef.classname:match("^([^.]+).?")] then
+          variables.longrefs[id]=nil
+        end
+      else
+        variables.longrefs[id]=nil
+      end
+    end
     print("DBGuntranslate")
   end
 end
@@ -204,22 +236,29 @@ end
 ---@param showMeta nil | boolean
 ---@param extra any
 ---@param evalName string | nil
+---@param long boolean | nil
 ---@return number variablesReference
-function variables.tableRef(table, mode, showMeta, extra, evalName)
+function variables.tableRef(table, mode, showMeta, extra, evalName,long)
   mode = mode or "pairs"
-  for id,varRef in pairs(variables.refs) do
+  local refs = variables.refs
+  if long then
+    refs = variables.longrefs
+    evalName = nil
+  end
+  for id,varRef in pairs(refs) do
     if varRef.type == "Table" and varRef.table == table and varRef.mode == mode and varRef.showMeta == showMeta then
       return id
     end
   end
   local id = nextID()
-  variables.refs[id] = {
+  refs[id] = {
     type = "Table",
     table = table,
     mode = mode,
     showMeta = showMeta,
     extra = extra,
     evalName = evalName,
+    long = long,
   }
   return id
 end
@@ -228,18 +267,25 @@ end
 ---@param luaObject LuaObject
 ---@param classname string
 ---@param evalName string | nil
+---@param long boolean | nil
 ---@return number variablesReference
-function variables.luaObjectRef(luaObject,classname,evalName)
+function variables.luaObjectRef(luaObject,classname,evalName,long)
   if not luaObjectInfo.expandKeys[classname] then return 0 end
-  for id,varRef in pairs(variables.refs) do
+  local refs = variables.refs
+  if long then
+    refs = variables.longrefs
+    evalName = nil
+  end
+  for id,varRef in pairs(refs) do
     if varRef.type == "LuaObject" and varRef.object == luaObject then return id end
   end
   local id = nextID()
-  variables.refs[id] = {
+  refs[id] = {
     type = "LuaObject",
     object = luaObject,
     classname = classname,
     evalName = evalName,
+    long = long,
   }
   return id
 end
@@ -361,8 +407,9 @@ __DebugAdapter.describe = variables.describe
 ---@param name string | nil
 ---@param value any
 ---@param evalName string | nil
+---@param long boolean | nil
 ---@return Variable
-function variables.create(name,value,evalName)
+function variables.create(name,value,evalName,long)
   local lineitem,vtype = variables.describe(value)
   local variablesReference = 0
   local namedVariables
@@ -379,11 +426,11 @@ function variables.create(name,value,evalName)
       namedVariables = #value
     end
   elseif vtype:sub(1,3) == "Lua" then
-    variablesReference = variables.luaObjectRef(value,vtype,evalName)
+    variablesReference = variables.luaObjectRef(value,vtype,evalName,long)
   elseif vtype == "table" then
     local mt = debug.getmetatable(value)
     if not mt or mt.__debugchildren == nil then
-      variablesReference = variables.tableRef(value,nil,nil,nil,evalName)
+      variablesReference = variables.tableRef(value,nil,nil,nil,evalName,long)
       namedVariables = 0
       indexedVariables = rawlen(value)
       local namesStartAfter = indexedVariables
@@ -400,7 +447,7 @@ function variables.create(name,value,evalName)
         namedVariables = 1
       end
     elseif mt.__debugchildren then -- mt and ...
-      variablesReference = variables.tableRef(value,nil,nil,nil,evalName)
+      variablesReference = variables.tableRef(value,nil,nil,nil,evalName,long)
       -- children counts for mt children?
     end
   end
@@ -426,11 +473,30 @@ local itermode = {
 ---@param filter nil | string ('indexed' | 'named')
 ---@param start nil | number
 ---@param count nil | number
+---@param longonly nil | boolean
 ---@return Variable[]
-function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
-  local varRef = variables.refs[variablesReference]
+function __DebugAdapter.variables(variablesReference,seq,filter,start,count,longonly)
+  local varRef
+  if longonly then
+    varRef = variables.longrefs[variablesReference]
+  else
+    varRef = variables.refs[variablesReference] or variables.longrefs[variablesReference]
+    -- or remote lookup to find a long ref in another lua...
+    if not varRef and __DebugAdapter.canRemoteCall() then
+      local call = remote.call
+      for remotename,_ in pairs(remote.interfaces) do
+        local modname = remotename:match("^__debugadapter_(.+)$")
+        if modname then
+          if call(remotename,"longVariables",variablesReference,seq,filter,start,count,true) then
+            return true
+          end
+        end
+      end
+    end
+  end
   local vars = {}
   if varRef then
+    local long = varRef.long
     if varRef.type == "Locals" then
       local mode = varRef.mode
       local hasTemps =  false
@@ -495,7 +561,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
             name = "<metatable>",
             value = "metatable",
             type = "metatable",
-            variablesReference = variables.tableRef(mt),
+            variablesReference = variables.tableRef(mt,nil,nil,nil,nil,long),
             evaluateName = evalName,
           }
         end
@@ -517,7 +583,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
           if varRef.evalName then
             evalName = varRef.evalName .. "[" .. tostring(i) .. "]"
           end
-          vars[#vars + 1] = variables.create(tostring(i),varRef.table[i], evalName)
+          vars[#vars + 1] = variables.create(tostring(i),varRef.table[i], evalName, long)
         end
       else
         if mt and type(mt.__debugchildren) == "function" then
@@ -547,7 +613,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
               name = "<metatable>",
               value = "metatable",
               type = "metatable",
-              variablesReference = variables.tableRef(mt),
+              variablesReference = variables.tableRef(mt,nil,nil,nil,nil,long),
               evaluateName = evalName,
             }
           end
@@ -593,7 +659,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
               if varRef.evalName then
                 evalName = varRef.evalName .. "[" .. variables.describe(k,true) .. "]"
               end
-              vars[#vars + 1] = variables.create(variables.describe(k,true),v, evalName)
+              vars[#vars + 1] = variables.create(variables.describe(k,true),v, evalName,long)
               if count then
                 count = count - 1
                 if count == 0 then break end
@@ -636,7 +702,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
                 name = "[]",
                 value = ("%d item%s"):format(#object, #object~=1 and "s" or ""),
                 type = varRef.classname .. "[]",
-                variablesReference = variables.tableRef(object, keyprops.iterMode, false,nil,varRef.evalName),
+                variablesReference = variables.tableRef(object, keyprops.iterMode, false,nil,varRef.evalName,long),
                 indexedVariables = #object + 1,
                 presentationHint = { kind = "property", attributes = { "readOnly" } },
               }
@@ -666,7 +732,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
                 if varRef.evalName then
                   evalName = varRef.evalName .. "[" .. variables.describe(key,true) .. "]"
                 end
-                local var = variables.create(variables.describe(key,true),value,evalName)
+                local var = variables.create(variables.describe(key,true),value,evalName,long)
                 if keyprops.countLine then
                   var.value = ("%d item%s"):format(#value, #value~=1 and "s" or "")
                 end
@@ -691,23 +757,27 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
         }
       end
     end
-  else
+    if #vars == 0 then
+      vars[1] = {
+        name = "<empty>",
+        value = "empty",
+        type = "empty",
+        variablesReference = 0,
+        presentationHint = { kind = "property", attributes = { "readOnly" } },
+      }
+    end
+  elseif not longonly then
     vars[1] = {
       name= "Expired variablesReference",
-      value= "ref="..variablesReference.." seq="..seq,
+      value= "Expired variablesReference ref="..variablesReference.." seq="..seq,
       variablesReference= 0,
     }
   end
-  if #vars == 0 then
-    vars[1] = {
-      name = "<empty>",
-      value = "empty",
-      type = "empty",
-      variablesReference = 0,
-      presentationHint = { kind = "property", attributes = { "readOnly" } },
-    }
+
+  if varRef or (not longonly) then
+    print("DBGvars: " .. json.encode({variablesReference = variablesReference, seq = seq, vars = vars}))
+    return true
   end
-  print("DBGvars: " .. json.encode({variablesReference = variablesReference, seq = seq, vars = vars}))
 end
 
 --- DebugAdapter SetVariablesRequest

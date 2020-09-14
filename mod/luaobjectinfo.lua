@@ -37,6 +37,14 @@ return {
     LuaDifficultySettings = true,
     LuaGameViewSettings = true,
   },
+  noLongRefs = {
+    LuaProfiler = true,
+    LuaCustomTable = true,
+    LuaLazyLoadedValue = true,
+    LuaMapSettings = true,
+    LuaGameViewSettings = true,
+    LuaDifficultySettings = true,
+  },
   lineItem = luaObjectLines,
   expandKeys = {
     LuaAISettings = {
