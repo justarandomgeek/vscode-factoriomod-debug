@@ -256,6 +256,7 @@
     "taskDefinitions": [
       {
         "type": "factorio",
+        "required": ["command","modname"],
         "properties": {
           "command": {
             "type": "string"
