@@ -226,6 +226,7 @@ function __DebugAdapter.attach()
           __DebugAdapter.popEntryPointName()
           print("DBG: leaving")
           debugprompt()
+          variables.clear(true)
           __DebugAdapter.transferRef()
         end
       end
@@ -269,14 +270,14 @@ end
 stepIgnore(isMainChunk)
 
 function __DebugAdapter.canRemoteCall()
+  -- remote.call is only legal from within events, game catches all but on_load
+  -- during on_load, script exists and the root of the stack is no longer the main chunk
   return game or script and not isMainChunk()
 end
 
 ---@param change string
 function __DebugAdapter.updateBreakpoints(change)
   -- pass it around to everyone if possible, else just set it here...
-  -- remote.call is only legal from within events, game catches all but on_load
-  -- during on_load, script exists and the root of the stack is no longer the main chunk
   if __DebugAdapter.canRemoteCall() then
     remote.call("debugadapter", "updateBreakpoints", change)
   else

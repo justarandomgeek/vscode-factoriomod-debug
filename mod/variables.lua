@@ -190,8 +190,7 @@ do
   end
 
   --- Clear all existing variable references, when stepping invalidates them
-  function variables.clear()
-    variables.refs = setmetatable({},refsmeta)
+  function variables.clear(longonly)
     --clean any LuaObjects from long refs that must not be long
     for id,varRef in pairs(variables.longrefs) do
       if varRef.type == "Table" then
@@ -206,7 +205,10 @@ do
         variables.longrefs[id]=nil
       end
     end
-    print("DBGuntranslate")
+    if not longonly then
+      variables.refs = setmetatable({},refsmeta)
+      print("DBGuntranslate")
+    end
   end
 end
 

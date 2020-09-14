@@ -9,6 +9,9 @@ local xpcall = xpcall -- ditto
 local setmetatable = setmetatable
 local load = load
 
+-- capture the raw object, before remotestepping hooks it or through the hook
+local remote = remote and rawget(remote,"__raw") or remote
+
 local function timedpcall(f)
   if game and variables.translate then
     local t = game.create_profiler()
@@ -250,17 +253,31 @@ end
 ---@param expression string
 ---@param seq number
 function __DebugAdapter.evaluate(frameId,context,expression,seq)
-  local info = debug.getinfo(frameId,"f")
+  if not frameId then
+    -- if you manage to do one of these fast enough for data, go for it...
+    if not data and __DebugAdapter.canRemoteCall() and script.mod_name~="level" then
+      -- remote to `level` if possible, else just error
+      if remote.interfaces["__debugadapter_level"] then
+        -- transfer ref out first, just in case...
+        __DebugAdapter.transferRef()
+        return remote.call("__debugadapter_level","evaluate",frameId,context,expression,seq)
+      else
+        print("DBGeval: " .. json.encode({result = "`level` not available for eval", type="error", variablesReference=0, seq=seq}))
+        return
+      end
+    end
+  end
+  local info = not frameId or debug.getinfo(frameId,"f")
   local evalresult
   if info then
     local timer,success,result
     if context == "repl" then
-      timer,success,result = __DebugAdapter.evaluateInternal(frameId+1,nil,context,expression,true)
+      timer,success,result = __DebugAdapter.evaluateInternal(frameId and frameId+1,nil,context,expression,true)
     else
-      success,result = __DebugAdapter.evaluateInternal(frameId+1,nil,context,expression)
+      success,result = __DebugAdapter.evaluateInternal(frameId and frameId+1,nil,context,expression)
     end
     if success then
-      evalresult = variables.create(nil,result)
+      evalresult = variables.create(nil,result,nil,true)
       evalresult.result = evalresult.value
       if context == "visualize" then
         local mtresult = getmetatable(result)
@@ -290,4 +307,5 @@ function __DebugAdapter.evaluate(frameId,context,expression,seq)
     evalresult = {result = "Cannot Evaluate in Remote Frame", type="error", variablesReference=0, seq=seq}
   end
   print("DBGeval: " .. json.encode(evalresult))
+  __DebugAdapter.transferRef()
 end

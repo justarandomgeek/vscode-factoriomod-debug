@@ -5,10 +5,11 @@
 * Return original unwrapped handler from `script.get_event_handler`
 * Fixed various missing stepIgnores
 * stepIgnore and stepIgnoreAll now return the function/table passed in, for convenience
-* Objects printed with `__DebugAdapter.print(obj)` will be expandable in debug console as long as the source Lua State is still active
+* Most objects printed with `__DebugAdapter.print(obj)` will be expandable in debug console as long as the source Lua State is still active
 * Pause button able to break into long running code
 * General code cleanup
 * Optional arguments `upStack` and `category` on `__DebugAdapter.print()`
+* Debug console can be used while running - it will run in the active Lua State for settings/data or in `level` if available for control.
 
 ## 0.18.36
 

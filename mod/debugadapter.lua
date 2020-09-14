@@ -338,6 +338,7 @@ do
       remoteCallInner = remotestepping.callInner,
       remoteHasInterface = remotestepping.hasInterface,
       longVariables = __DebugAdapter.variables,
+      evaluate = __DebugAdapter.evaluate,
     })
 
     __DebugAdapter.attach()

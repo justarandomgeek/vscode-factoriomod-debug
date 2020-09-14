@@ -1,7 +1,7 @@
 import {
 	Logger, logger,
 	LoggingDebugSession,
-	TerminatedEvent, StoppedEvent, OutputEvent,
+	StoppedEvent, OutputEvent,
 	Thread, Source, Module, ModuleEvent, InitializedEvent, StackFrame, Scope, Variable, Event
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
@@ -100,7 +100,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 
 	private factorio : FactorioProcess;
-	private stdinQueue:{buffer:Buffer;resolve:resolver<boolean>}[] = [];
+	private stdinQueue:{buffer:Buffer;resolve:resolver<boolean>;consumed?:Promise<void>}[] = [];
 
 	private launchArgs: LaunchRequestArguments;
 
@@ -353,7 +353,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				let event = mesg.substring(5).trim();
 				if (event === "on_tick") {
 					//if on_tick, then update breakpoints if needed and continue
-					this.runQueuedStdin();
+					await this.runQueuedStdin();
 					this.continue();
 				} else if (event === "on_data") {
 					//data/settings main chunk - force all breakpoints each time this comes up because it can only set them locally
@@ -366,11 +366,11 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					this.continue(true);
 				} else if (event === "on_init") {
 					//if on_init, set initial breakpoints and continue
-					this.runQueuedStdin();
+					await this.runQueuedStdin();
 					this.continue(true);
 				} else if (event === "on_load") {
 					//on_load set initial breakpoints and continue
-					this.runQueuedStdin();
+					await this.runQueuedStdin();
 					this.continue(true);
 				} else if (event === "getref") {
 					//pass in nextref
@@ -379,8 +379,8 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					this.inPrompt = wasInPrompt;
 				} else if (event === "leaving" || event === "running") {
 					//run queued commands
-					this.runQueuedStdin();
-					if (event === "running" && this.pauseRequested)
+					await this.runQueuedStdin();
+					if (this.pauseRequested)
 					{
 						this.pauseRequested = false;
 						if(this.breakPointsChanged.size !== 0)
@@ -396,7 +396,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					}
 				} else if (event.startsWith("step")) {
 					// notify stoponstep
-					this.runQueuedStdin();
+					await this.runQueuedStdin();
 					if(this.breakPointsChanged.size !== 0)
 					{
 						this.updateBreakpoints();
@@ -404,7 +404,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					this.sendEvent(new StoppedEvent('step', FactorioModDebugSession.THREAD_ID));
 				} else if (event === "breakpoint") {
 					// notify stop on breakpoint
-					this.runQueuedStdin();
+					await this.runQueuedStdin();
 					if(this.breakPointsChanged.size !== 0)
 					{
 						this.updateBreakpoints();
@@ -412,7 +412,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					this.sendEvent(new StoppedEvent('breakpoint', FactorioModDebugSession.THREAD_ID));
 				} else if (event.startsWith("exception")) {
 					// notify stop on exception
-					this.runQueuedStdin();
+					await this.runQueuedStdin();
 					const sub = event.substr(10);
 					const split = sub.indexOf("\n");
 					const filter = sub.substr(0,split).trim();
@@ -450,7 +450,11 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					this.clearQueuedStdin();
 					const modname = event.substring(22).trim();
 					const hookmods = this.launchArgs.hookControl ?? true;
-					const shouldhook = hookmods !== false && (hookmods === true || hookmods.includes(modname));
+					const shouldhook =
+						// DA has to be specifically requested for hooks
+						modname === "debugadapter" ? typeof hookmods === "object" && hookmods.includes(modname) :
+						// everything else...
+						hookmods !== false && (hookmods === true || hookmods.includes(modname));
 					if (this.launchArgs.hookMode === "profile")
 					{
 						this.continueProfile(shouldhook);
@@ -673,49 +677,47 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 
 	protected async variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments, request?: DebugProtocol.Request) {
-		try {
-			let vars = await Promise.race([
-				new Promise<DebugProtocol.Variable[]>(async (resolve,reject)=>{
-					this._vars.set(response.request_seq, resolve);
-					if (!await this.writeOrQueueStdin(`__DebugAdapter.variables(${args.variablesReference},${response.request_seq},${args.filter? `"${args.filter}"`:"nil"},${args.start || "nil"},${args.count || "nil"})\n`))
-					{
-						this._vars.delete(response.request_seq);
-						reject("Cancelled");
-					}
-				}),
-				new Promise<DebugProtocol.Variable[]>((resolve, reject) => {
-					// just time out if we're in a menu with no lua running to empty the queue...
-					// in which case it's just expired anyway
-					setTimeout(resolve, 1000, <DebugProtocol.Variable[]>[
+		let consume:resolver<void>;
+		const consumed = new Promise<void>((resolve)=>consume=resolve);
+		const vars = await Promise.race([
+			new Promise<DebugProtocol.Variable[]>(async (resolve)=>{
+				this._vars.set(response.request_seq, resolve);
+				if (!await this.writeOrQueueStdin(`__DebugAdapter.variables(${args.variablesReference},${response.request_seq},${args.filter? `"${args.filter}"`:"nil"},${args.start || "nil"},${args.count || "nil"})\n`,consumed))
+				{
+					this._vars.delete(response.request_seq);
+					consume!();
+					resolve([
 						{
-							name: "No Lua State Available",
-							value: `ref=${args.variablesReference} seq=${response.request_seq}`,
+							name: "",
+							value: `Expired variablesReference ref=${args.variablesReference} seq=${response.request_seq}`,
 							variablesReference: 0,
 						}
 					]);
-				})
-			]);
-
-			vars.forEach((a)=>{
-				const lsid = a.value.match(/\{LocalisedString ([0-9]+)\}/);
-				if (lsid)
-				{
-					const id = Number.parseInt(lsid[1]);
-					a.value = this.translations.get(id) ?? `{Missing Translation ID ${id}}`;
 				}
-			});
-			response.body = { variables: vars };
-			this.sendResponse(response);
-		} catch (error) {
-			response.body = { variables: [
-				{
-					name: "Expired variablesReference",
-					value: `ref=${args.variablesReference} seq=${response.request_seq}`,
-					variablesReference: 0,
-				}
-			]};
-			this.sendResponse(response);
-		}
+			}),
+			new Promise<DebugProtocol.Variable[]>((resolve) => {
+				// just time out if we're in a menu with no lua running to empty the queue...
+				// in which case it's just expired anyway
+				setTimeout(resolve, 1000, <DebugProtocol.Variable[]>[
+					{
+						name: "",
+						value: `No Lua State Available ref=${args.variablesReference} seq=${response.request_seq}`,
+						variablesReference: 0,
+					}
+				]);
+			})
+		]);
+		consume!();
+		vars.forEach((a)=>{
+			const lsid = a.value.match(/\{LocalisedString ([0-9]+)\}/);
+			if (lsid)
+			{
+				const id = Number.parseInt(lsid[1]);
+				a.value = this.translations.get(id) ?? `{Missing Translation ID ${id}}`;
+			}
+		});
+		response.body = { variables: vars };
+		this.sendResponse(response);
 	}
 
 	protected async setVariableRequest(response: DebugProtocol.SetVariableResponse, args: DebugProtocol.SetVariableArguments, request?: DebugProtocol.Request) {
@@ -727,17 +729,37 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 
 	protected async evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments, request?: DebugProtocol.Request) {
-		const body = await new Promise<EvaluateResponseBody>((resolve)=>{
-			if(args.context === "repl" && !args.frameId)
-			{
-
-				let evalresult = {result:"cannot evaluate while running",type:"error",variablesReference:0,seq:response.request_seq};
-				resolve(evalresult);
-			}
-
-			this._evals.set(response.request_seq, resolve);
-			this.writeStdin(`__DebugAdapter.evaluate(${args.frameId},"${args.context}",${luaBlockQuote(Buffer.from(args.expression.replace(/\n/g," ")))},${response.request_seq})\n`);
-		});
+		let consume:resolver<void>;
+		const consumed = new Promise<void>((resolve)=>consume=resolve);
+		const body = await Promise.race([
+			new Promise<EvaluateResponseBody>(async (resolve)=>{
+				this._evals.set(response.request_seq, resolve);
+				if (!await this.writeOrQueueStdin(`__DebugAdapter.evaluate(${args.frameId??"nil"},"${args.context}",${luaBlockQuote(Buffer.from(args.expression.replace(/\n/g," ")))},${response.request_seq})\n`,consumed))
+				{
+					this._evals.delete(response.request_seq);
+					consume!();
+					resolve({
+						result: `Expired evaluate seq=${response.request_seq}`,
+						type:"error",
+						variablesReference: 0,
+						seq: response.request_seq,
+						});
+				}
+			}),
+			new Promise<EvaluateResponseBody>((resolve) => {
+				// just time out if we're in a menu with no lua running to empty the queue...
+				// in which case it's just expired anyway
+				setTimeout(resolve, 1000, <EvaluateResponseBody>
+					{
+						result: `No Lua State Available seq=${response.request_seq}`,
+						type: "error",
+						variablesReference: 0,
+						seq: response.request_seq,
+					}
+				);
+			})
+		]);
+		consume!();
 		response.body = body;
 		const lsid = body.result.match(/\{LocalisedString ([0-9]+)\}/);
 				if (lsid)
@@ -860,7 +882,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.factorio.writeStdin(Buffer.concat([s instanceof Buffer ? s : Buffer.from(s),Buffer.from("\n")]));
 	}
 
-	private async writeOrQueueStdin(s:string|Buffer):Promise<boolean>
+	private async writeOrQueueStdin(s:string|Buffer,consumed?:Promise<void>):Promise<boolean>
 	{
 		if (this.launchArgs.trace) {
 			this.sendEvent(new OutputEvent(`${this.inPrompt?"<":"q<"} ${s instanceof Buffer ? `Buffer[${s.length}]` : s.replace(/^[\r\n]*/,"").replace(/[\r\n]*$/,"")}\n`,"console"));
@@ -869,24 +891,29 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		if (this.inPrompt)
 		{
 			this.factorio.writeStdin(b);
+			if (consumed) { await consumed; }
 			return true;
 		}
 		else
 		{
 			let p = new Promise<boolean>((resolve)=>
-			this.stdinQueue.push({buffer:b,resolve:resolve}));
+			this.stdinQueue.push({buffer:b,resolve:resolve,consumed:consumed}));
 			return p;
 		}
 	}
 
-	private runQueuedStdin():void
+	private async runQueuedStdin()
 	{
 		if (this.stdinQueue.length > 0)
 		{
-			this.stdinQueue.forEach(b=>{
+			for await (const b of this.stdinQueue) {
 				this.writeStdin(b.buffer,true);
 				b.resolve(true);
-			});
+				if (b.consumed)
+				{
+					await b.consumed;
+				}
+			}
 			this.stdinQueue = [];
 		}
 	}

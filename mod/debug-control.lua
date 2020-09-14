@@ -5,6 +5,7 @@ __DebugAdapter = __DebugAdapter or {
 
 local datastring = require("__debugadapter__/datastring.lua")
 local ReadBreakpoints = datastring.ReadBreakpoints
+local json = require("__debugadapter__/json.lua")
 local script = script
 local remote = remote
 remote = rawget(remote,"__raw") or remote
@@ -28,11 +29,53 @@ local function callAll(funcname,...)
 end
 __DebugAdapter.stepIgnore(callAll)
 
+-- alternate versions of various DA functions that get called from debug prompts in events here
+-- updateBreakpoints - calls from other entrypoints come here anyway, so just be skip right to it
+-- variables - if no hooks here, calls from prompt need to be passed around to find the ref
+-- evaluate - if no hooks here, calls while running need to be redirected to level
+
 local function updateBreakpoints(change)
   local source,changedbreaks = ReadBreakpoints(change)
   callAll("setBreakpoints",source,changedbreaks)
 end
 __DebugAdapter.updateBreakpoints = updateBreakpoints
+
+if not __DebugAdapter.variables then
+  function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
+    local call = remote.call
+    for remotename,_ in pairs(remote.interfaces) do
+      local modname = remotename:match("^__debugadapter_(.+)$")
+      if modname then
+        if call(remotename,"longVariables",variablesReference,seq,filter,start,count,true) then
+          return true
+        end
+      end
+    end
+    local vars = {
+      {
+        name= "Expired variablesReference",
+        value= "Expired variablesReference ref="..variablesReference.." seq="..seq,
+        variablesReference= 0,
+      },
+    }
+    print("DBGvars: " .. json.encode({variablesReference = variablesReference, seq = seq, vars = vars}))
+    return true
+  end
+end
+
+if not __DebugAdapter.evaluate then
+  function __DebugAdapter.evaluate(frameId,context,expression,seq)
+    if not frameId then
+      if remote.interfaces["__debugadapter_level"] then
+          return remote.call("__debugadapter_level","evaluate",frameId,context,expression,seq)
+      else
+        return print("DBGeval: " .. json.encode({result = "`level` not available for eval", type="error", variablesReference=0, seq=seq}))
+      end
+    end
+    local evalresult = {result = "Cannot Evaluate in Remote Frame", type="error", variablesReference=0, seq=seq}
+    print("DBGeval: " .. json.encode(evalresult))
+  end
+end
 
 local whoiscache = {}
 local function whois(remotename)
