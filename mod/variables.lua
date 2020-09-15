@@ -601,7 +601,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
               name = "<__debugchildren error>",
               -- describe in case it's a LocalisedString or other non-string error object
               value = variables.describe(children),
-              type = "error",
+              type = "childerror",
               variablesReference = 0,
             }
           end
@@ -673,7 +673,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
             vars[#vars + 1] = {
               name = "<table varRef error>",
               value = "missing iterator for table varRef mode ".. varRef.mode,
-              type = "error",
+              type = "childerror",
               variablesReference = 0,
             }
           end

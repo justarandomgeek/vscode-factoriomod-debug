@@ -100,7 +100,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 
 	private factorio : FactorioProcess;
-	private stdinQueue:{buffer:Buffer;resolve:resolver<boolean>;consumed?:Promise<void>}[] = [];
+	private stdinQueue:{buffer:Buffer;resolve:resolver<boolean>;consumed?:Promise<void>;cancel?:()=>boolean}[] = [];
 
 	private launchArgs: LaunchRequestArguments;
 
@@ -679,10 +679,14 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	protected async variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments, request?: DebugProtocol.Request) {
 		let consume:resolver<void>;
 		const consumed = new Promise<void>((resolve)=>consume=resolve);
+		let cancelled = false;
 		const vars = await Promise.race([
 			new Promise<DebugProtocol.Variable[]>(async (resolve)=>{
 				this._vars.set(response.request_seq, resolve);
-				if (!await this.writeOrQueueStdin(`__DebugAdapter.variables(${args.variablesReference},${response.request_seq},${args.filter? `"${args.filter}"`:"nil"},${args.start || "nil"},${args.count || "nil"})\n`,consumed))
+				if (!await this.writeOrQueueStdin(
+						`__DebugAdapter.variables(${args.variablesReference},${response.request_seq},${args.filter? `"${args.filter}"`:"nil"},${args.start || "nil"},${args.count || "nil"})\n`,
+						consumed,
+						()=>cancelled))
 				{
 					this._vars.delete(response.request_seq);
 					consume!();
@@ -690,6 +694,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 						{
 							name: "",
 							value: `Expired variablesReference ref=${args.variablesReference} seq=${response.request_seq}`,
+							type: "error",
 							variablesReference: 0,
 						}
 					]);
@@ -698,13 +703,17 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			new Promise<DebugProtocol.Variable[]>((resolve) => {
 				// just time out if we're in a menu with no lua running to empty the queue...
 				// in which case it's just expired anyway
-				setTimeout(resolve, 1000, <DebugProtocol.Variable[]>[
-					{
-						name: "",
-						value: `No Lua State Available ref=${args.variablesReference} seq=${response.request_seq}`,
-						variablesReference: 0,
-					}
-				]);
+				setTimeout(()=>{
+					cancelled = true;
+					resolve(<DebugProtocol.Variable[]>[
+						{
+							name: "",
+							value: `No Lua State Available ref=${args.variablesReference} seq=${response.request_seq}`,
+							type: "error",
+							variablesReference: 0,
+						}
+					]);
+				}, 1000);
 			})
 		]);
 		consume!();
@@ -717,6 +726,11 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			}
 		});
 		response.body = { variables: vars };
+		if (vars.length === 1 && vars[0].type === "error")
+		{
+			response.success = false;
+			response.message = vars[0].value;
+		}
 		this.sendResponse(response);
 	}
 
@@ -731,10 +745,14 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	protected async evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments, request?: DebugProtocol.Request) {
 		let consume:resolver<void>;
 		const consumed = new Promise<void>((resolve)=>consume=resolve);
+		let cancelled = false;
 		const body = await Promise.race([
 			new Promise<EvaluateResponseBody>(async (resolve)=>{
 				this._evals.set(response.request_seq, resolve);
-				if (!await this.writeOrQueueStdin(`__DebugAdapter.evaluate(${args.frameId??"nil"},"${args.context}",${luaBlockQuote(Buffer.from(args.expression.replace(/\n/g," ")))},${response.request_seq})\n`,consumed))
+				if (!await this.writeOrQueueStdin(
+						`__DebugAdapter.evaluate(${args.frameId??"nil"},"${args.context}",${luaBlockQuote(Buffer.from(args.expression.replace(/\n/g," ")))},${response.request_seq})\n`,
+						consumed,
+						()=>cancelled))
 				{
 					this._evals.delete(response.request_seq);
 					consume!();
@@ -749,17 +767,24 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			new Promise<EvaluateResponseBody>((resolve) => {
 				// just time out if we're in a menu with no lua running to empty the queue...
 				// in which case it's just expired anyway
-				setTimeout(resolve, 1000, <EvaluateResponseBody>
-					{
+
+				setTimeout(()=>{
+					cancelled = true;
+					resolve(<EvaluateResponseBody>{
 						result: `No Lua State Available seq=${response.request_seq}`,
 						type: "error",
 						variablesReference: 0,
 						seq: response.request_seq,
-					}
-				);
+					});
+				}, 1000);
 			})
 		]);
 		consume!();
+		if (body.type === "error")
+		{
+			response.success = false;
+			response.message = body.result;
+		}
 		response.body = body;
 		const lsid = body.result.match(/\{LocalisedString ([0-9]+)\}/);
 				if (lsid)
@@ -882,7 +907,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.factorio.writeStdin(Buffer.concat([s instanceof Buffer ? s : Buffer.from(s),Buffer.from("\n")]));
 	}
 
-	private async writeOrQueueStdin(s:string|Buffer,consumed?:Promise<void>):Promise<boolean>
+	private async writeOrQueueStdin(s:string|Buffer,consumed?:Promise<void>,cancel?:()=>boolean):Promise<boolean>
 	{
 		if (this.launchArgs.trace) {
 			this.sendEvent(new OutputEvent(`${this.inPrompt?"<":"q<"} ${s instanceof Buffer ? `Buffer[${s.length}]` : s.replace(/^[\r\n]*/,"").replace(/[\r\n]*$/,"")}\n`,"console"));
@@ -897,7 +922,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		else
 		{
 			let p = new Promise<boolean>((resolve)=>
-			this.stdinQueue.push({buffer:b,resolve:resolve,consumed:consumed}));
+			this.stdinQueue.push({buffer:b,resolve:resolve,consumed:consumed,cancel:cancel}));
 			return p;
 		}
 	}
@@ -907,11 +932,18 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		if (this.stdinQueue.length > 0)
 		{
 			for await (const b of this.stdinQueue) {
-				this.writeStdin(b.buffer,true);
-				b.resolve(true);
-				if (b.consumed)
+				if (b.cancel && b.cancel())
 				{
-					await b.consumed;
+					b.resolve(false);
+				}
+				else
+				{
+					this.writeStdin(b.buffer,true);
+					b.resolve(true);
+					if (b.consumed)
+					{
+						await b.consumed;
+					}
 				}
 			}
 			this.stdinQueue = [];
