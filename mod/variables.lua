@@ -181,13 +181,14 @@ do
 
   local function isUnsafeLong(t)
     if type(t) ~= "table" then return false end
-    if t.__self then return luaObjectInfo.noLongRefs[t.object_name:match("^([^.]+).?")] end
+    if rawget(t,"__self") then return luaObjectInfo.noLongRefs[t.object_name:match("^([^.]+).?")] end
     for k,v in pairs(t) do
       if isUnsafeLong(k) or isUnsafeLong(v) then
         return true
       end
     end
   end
+  __DebugAdapter.stepIgnore(isUnsafeLong)
 
   --- Clear all existing variable references, when stepping invalidates them
   function variables.clear(longonly)
@@ -359,16 +360,16 @@ function variables.describe(value,short)
             local innerpairs = { "{ " }
             for k,v in pairs(value) do
               if k == inext then
-                innerpairs[#innerpairs + 1] = ([[%s, ]]):format(variables.describe(v,true))
+                innerpairs[#innerpairs + 1] = ([[%s, ]]):format((variables.describe(v,true)))
                 inext = inext + 1
               else
                 inext = nil
                 if type(k) == "string" and k:match("^[a-zA-Z_][a-zA-Z0-9_]*$") then
                   innerpairs[#innerpairs + 1] = ([[%s=%s, ]]):format(
-                    k, variables.describe(v,true))
+                    k, (variables.describe(v,true)))
                 else
                   innerpairs[#innerpairs + 1] = ([[[%s]=%s, ]]):format(
-                    variables.describe(k,true), variables.describe(v,true))
+                    (variables.describe(k,true)), (variables.describe(v,true)))
                 end
 
               end
@@ -661,7 +662,8 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
               if varRef.evalName then
                 evalName = varRef.evalName .. "[" .. variables.describe(k,true) .. "]"
               end
-              vars[#vars + 1] = variables.create(variables.describe(k,true),v, evalName,long)
+              local kline,ktype = variables.describe(k,true)
+              vars[#vars + 1] = variables.create(kline,v, evalName,long)
               if count then
                 count = count - 1
                 if count == 0 then break end
