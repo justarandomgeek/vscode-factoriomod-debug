@@ -1,13 +1,10 @@
 phobos, phobos-tidy, phobos-format
 string.dump serialise to source, or at least disasm, for non-file chunks
-locale color widget actually offer multiple formats for colors?
 update mod description from readme on publish (or other configurable file?)
-generate a mod-list.json stub when not found?
 generate config.ini stub when not found?
 offer to combine duplicate locale sections
 try again to use git extension api for commit/push?
 watch task to begin on project open
 profile "reset" button
 profile save for offline viewing
-config modsPath should prevent found mod-list overriding
 replace data:extend with one that warns on non-arraylike?
