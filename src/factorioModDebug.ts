@@ -100,7 +100,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 
 	private factorio : FactorioProcess;
-	private stdinQueue:{buffer:Buffer;resolve:resolver<boolean>;consumed?:Promise<void>;cancel?:()=>boolean}[] = [];
+	private stdinQueue:{buffer:Buffer;resolve:resolver<boolean>;consumed?:Promise<void>;token?:vscode.CancellationToken}[] = [];
 
 	private launchArgs: LaunchRequestArguments;
 
@@ -679,14 +679,14 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	protected async variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments, request?: DebugProtocol.Request) {
 		let consume:resolver<void>;
 		const consumed = new Promise<void>((resolve)=>consume=resolve);
-		let cancelled = false;
+		const cts = new vscode.CancellationTokenSource();
 		const vars = await Promise.race([
 			new Promise<DebugProtocol.Variable[]>(async (resolve)=>{
 				this._vars.set(response.request_seq, resolve);
 				if (!await this.writeOrQueueStdin(
 						`__DebugAdapter.variables(${args.variablesReference},${response.request_seq},${args.filter? `"${args.filter}"`:"nil"},${args.start || "nil"},${args.count || "nil"})\n`,
 						consumed,
-						()=>cancelled))
+						cts.token))
 				{
 					this._vars.delete(response.request_seq);
 					consume!();
@@ -704,7 +704,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				// just time out if we're in a menu with no lua running to empty the queue...
 				// in which case it's just expired anyway
 				setTimeout(()=>{
-					cancelled = true;
+					cts.cancel();
 					resolve(<DebugProtocol.Variable[]>[
 						{
 							name: "",
@@ -745,14 +745,14 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	protected async evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments, request?: DebugProtocol.Request) {
 		let consume:resolver<void>;
 		const consumed = new Promise<void>((resolve)=>consume=resolve);
-		let cancelled = false;
+		const cts = new vscode.CancellationTokenSource();
 		const body = await Promise.race([
 			new Promise<EvaluateResponseBody>(async (resolve)=>{
 				this._evals.set(response.request_seq, resolve);
 				if (!await this.writeOrQueueStdin(
 						`__DebugAdapter.evaluate(${args.frameId??"nil"},"${args.context}",${luaBlockQuote(Buffer.from(args.expression.replace(/\n/g," ")))},${response.request_seq})\n`,
 						consumed,
-						()=>cancelled))
+						cts.token))
 				{
 					this._evals.delete(response.request_seq);
 					consume!();
@@ -769,7 +769,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				// in which case it's just expired anyway
 
 				setTimeout(()=>{
-					cancelled = true;
+					cts.cancel();
 					resolve(<EvaluateResponseBody>{
 						result: `No Lua State Available seq=${response.request_seq}`,
 						type: "error",
@@ -907,7 +907,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.factorio.writeStdin(Buffer.concat([s instanceof Buffer ? s : Buffer.from(s),Buffer.from("\n")]));
 	}
 
-	private async writeOrQueueStdin(s:string|Buffer,consumed?:Promise<void>,cancel?:()=>boolean):Promise<boolean>
+	private async writeOrQueueStdin(s:string|Buffer,consumed?:Promise<void>,token?:vscode.CancellationToken):Promise<boolean>
 	{
 		if (this.launchArgs.trace) {
 			this.sendEvent(new OutputEvent(`${this.inPrompt?"<":"q<"} ${s instanceof Buffer ? `Buffer[${s.length}]` : s.replace(/^[\r\n]*/,"").replace(/[\r\n]*$/,"")}\n`,"console"));
@@ -922,7 +922,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		else
 		{
 			let p = new Promise<boolean>((resolve)=>
-			this.stdinQueue.push({buffer:b,resolve:resolve,consumed:consumed,cancel:cancel}));
+			this.stdinQueue.push({buffer:b,resolve:resolve,consumed:consumed,token:token}));
 			return p;
 		}
 	}
@@ -932,7 +932,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		if (this.stdinQueue.length > 0)
 		{
 			for await (const b of this.stdinQueue) {
-				if (b.cancel && b.cancel())
+				if (b.token?.isCancellationRequested)
 				{
 					b.resolve(false);
 				}
