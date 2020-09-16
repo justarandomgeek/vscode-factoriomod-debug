@@ -126,7 +126,25 @@ export class LocaleColorProvider implements vscode.DocumentColorProvider {
 		// r,g,b as int 1-255 or float 0-1
 		let matches = str.match(/\s*(\d+(?:\.\d+)?)\s*,?\s*(\d+(?:\.\d+)?)\s*,?\s*(\d+(?:\.\d+)?)(?:\s*,?\s*(\d+(?:\.\d+)?))?\s*/);
 		if (matches) {
-			return new vscode.Color(parseInt(matches[1], 16), parseInt(matches[2], 16), parseInt(matches[3], 16), matches[4] ? parseInt(matches[4], 16) : 255);
+			let r = parseFloat(matches[1]);
+			let g = parseFloat(matches[2]);
+			let b = parseFloat(matches[3]);
+			let a = matches[4] ? parseFloat(matches[4]) : undefined;
+			if (r>1 || g>1 || b>1 || a && a>1)
+			{
+				r = r/255;
+				g = g/255;
+				b = b/255;
+				if (a)
+				{
+					a = a/255;
+				}
+			}
+			if (!a)
+			{
+				a = 1;
+			}
+			return new vscode.Color(r,g,b,a);
 		}
 
 		return undefined;
@@ -138,8 +156,37 @@ export class LocaleColorProvider implements vscode.DocumentColorProvider {
 		}
 		return hex;
 	}
-	colorToString(color: vscode.Color): string {
-		return `#${this.padHex(color.red * 255)}${this.padHex(color.green * 255)}${this.padHex(color.blue * 255)}${color.alpha < 1 ? this.padHex(color.alpha * 255) : ""}`;
+
+	roundTo(f:number,places:number):number {
+		return Math.round(f*Math.pow(10,places))/Math.pow(10,places);
+	}
+	colorToStrings(color: vscode.Color): string[] {
+		let names:string[] = [];
+		for (const [constname,constcolor] of this.constColors) {
+			if (Math.abs(constcolor.red-color.red) < 0.004 &&
+				Math.abs(constcolor.green-color.green) < 0.004 &&
+				Math.abs(constcolor.blue-color.blue) < 0.004 &&
+				Math.abs(constcolor.alpha-color.alpha) < 0.004)
+			{
+				names.push(constname);
+				break;
+			}
+		}
+
+		if (color.alpha > 0.996)
+		{
+			names.push(`#${this.padHex(color.red * 255)}${this.padHex(color.green * 255)}${this.padHex(color.blue * 255)}`);
+			names.push(`${Math.floor(color.red * 255)}, ${Math.floor(color.green * 255)}, ${Math.floor(color.blue * 255)}`);
+			names.push(`${this.roundTo(color.red,3)}, ${this.roundTo(color.green,3)}, ${this.roundTo(color.blue,3)}`);
+		}
+		else
+		{
+			names.push(`#${this.padHex(color.red * 255)}${this.padHex(color.green * 255)}${this.padHex(color.blue * 255)}${this.padHex(color.alpha * 255)}`);
+			names.push(`${Math.floor(color.red * 255)}, ${Math.floor(color.green * 255)}, ${Math.floor(color.blue * 255)}, ${Math.floor(color.alpha * 255)}`);
+			names.push(`${this.roundTo(color.red,3)}, ${this.roundTo(color.green,3)}, ${this.roundTo(color.blue,3)}, ${this.roundTo(color.alpha,3)}`);
+		}
+
+		return names;
 	}
 	public provideDocumentColors(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.ColorInformation[] {
 		let colors: vscode.ColorInformation[] = [];
@@ -164,9 +211,11 @@ export class LocaleColorProvider implements vscode.DocumentColorProvider {
 		document: vscode.TextDocument
 		range: vscode.Range
 	}, token: vscode.CancellationToken): vscode.ColorPresentation[] {
-		let p = new vscode.ColorPresentation(this.colorToString(color));
-		p.textEdit = new vscode.TextEdit(context.range, this.colorToString(color));
-		return [p];
+		return this.colorToStrings(color).map(colorstring=>{
+			let p = new vscode.ColorPresentation(colorstring);
+			p.textEdit = new vscode.TextEdit(context.range, colorstring);
+			return p;
+		});
 	}
 }
 export class LocaleDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
