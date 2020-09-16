@@ -8,6 +8,7 @@ import * as semver from 'semver';
 import { jar } from 'request';
 import { spawn } from 'child_process';
 import { BufferSplitter } from './BufferSplitter';
+import { ModManager } from './ModManager';
 
 let archiver = require('archiver');
 
@@ -38,8 +39,17 @@ export interface ModInfo {
 	}
 };
 
+interface AdjustModsDefinition extends vscode.TaskDefinition {
+	type: "factorio"
+	command: "adjustMods"
+	adjustMods: {[keys:string]:string|boolean}
+	modsPath: string
+	disableExtraMods?:boolean
+	allowDisableBaseMod?:boolean
+}
+
 export class ModTaskProvider implements vscode.TaskProvider{
-	private modPackages: Map<string, ModPackage>;
+	private readonly modPackages: Map<string, ModPackage>;
 
 	constructor(context: vscode.ExtensionContext, modPackages: Map<string, ModPackage>) {
 		this.modPackages = modPackages;
@@ -108,37 +118,89 @@ export class ModTaskProvider implements vscode.TaskProvider{
 	resolveTask(task: vscode.Task, token?: vscode.CancellationToken | undefined): vscode.ProviderResult<vscode.Task> {
 		if (task.definition.type === "factorio")
 		{
-			let mp:ModPackage | undefined;
-			this.modPackages.forEach((modpackage,uri)=>{
-				if (modpackage.label === task.definition.modname) {
-					mp = modpackage;
-				}
-			});
-			if(mp)
+			if (task.definition.command === "adjustMods")
 			{
-				switch (task.definition.command) {
-					case "compile":
-						task.execution = mp.CompileTask();
-						return task;
-					case "datestamp":
-						task.execution = mp.DateStampTask();
-						return task;
-					case "package":
-						task.execution = mp.PackageTask();
-						return task;
-					case "version":
-						task.execution = mp.IncrementTask();
-						return task;
-					case "upload":
-						task.execution = mp.PostToPortalTask();
-						return task;
-					case "publish":
-						task.execution = mp.PublishTask();
-						return task;
+				if (!task.definition.adjustMods) { return undefined; }
+				if (!task.definition.modsPath) { return undefined; }
+				return new vscode.Task(
+					task.definition,
+					task.scope || vscode.TaskScope.Workspace,
+					task.name,
+					task.source,
+					this.AdjustModsTask(<AdjustModsDefinition>task.definition),
+					[]
+				);
+			}
+			else
+			{
+				if (!task.definition.modname) { return undefined; }
+				for (const [_,modpackage] of this.modPackages) {
+					if (modpackage.label === task.definition.modname) {
+						const mp = modpackage;
+						let execution:vscode.CustomExecution;
+						switch (task.definition.command) {
+							case "compile":
+								execution = mp.CompileTask();
+								break;
+							case "datestamp":
+								execution = mp.DateStampTask();
+								break;
+							case "package":
+								execution = mp.PackageTask();
+								break;
+							case "version":
+								execution = mp.IncrementTask();
+								break;
+							case "upload":
+								execution = mp.PostToPortalTask();
+								break;
+							case "publish":
+								execution = mp.PublishTask();
+								break;
+							default:
+								return undefined;
+						}
+						return new vscode.Task(
+							task.definition,
+							task.scope || vscode.TaskScope.Workspace,
+							task.name,
+							task.source,
+							execution,
+							[]
+						);
+					}
 				}
 			}
 		}
 		return undefined;
+	}
+
+
+	private async AdjustMods(term:ModTaskTerminal,def:AdjustModsDefinition): Promise<void>
+	{
+		const manager = new ModManager(def.modsPath);
+		if (!def.allowDisableBaseMod) {def.adjustMods["base"] = true;}
+		if (def.disableExtraMods) {
+			manager.disableAll();
+		}
+		for (const mod in def.adjustMods) {
+			if (def.adjustMods.hasOwnProperty(mod))
+			{
+				const adjust = def.adjustMods[mod];
+				manager.set(mod,adjust);
+			}
+		}
+		manager.write();
+	}
+
+	private AdjustModsTask(def:AdjustModsDefinition): vscode.CustomExecution
+	{
+		return new vscode.CustomExecution(async ()=>{
+			return new ModTaskPseudoterminal(async term =>{
+				await this.AdjustMods(term,def);
+				term.close();
+			});
+		});
 	}
 }
 

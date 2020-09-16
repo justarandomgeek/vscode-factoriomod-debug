@@ -256,13 +256,40 @@
     "taskDefinitions": [
       {
         "type": "factorio",
-        "required": ["command","modname"],
+        "required": ["command"],
         "properties": {
           "command": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "datestamp","package","version","upload","publish","compile",
+              "adjustMods"
+            ]
           },
           "modname": {
             "type": "string"
+          },
+          "adjustMods": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string",
+                  "pattern": "(\\d+\\.){2}\\d+"
+                }
+              ]
+            }
+          },
+          "modsPath": {
+            "type": "string"
+          },
+          "disableExtraMods": {
+            "type": "boolean"
+          },
+          "allowDisableBaseMod": {
+            "type": "boolean"
           }
         }
       }
