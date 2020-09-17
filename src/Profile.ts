@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { EventEmitter } from "events";
+import { assert } from "console";
 
 function NaN_safe_max(a:number,b:number):number {
 	if (isNaN(a)) { return b; }
@@ -24,8 +25,14 @@ profile data
 */
 
 class TimerAndCount {
-	timer = 0;
-	count = 0;
+	readonly timer:number = 0;
+	readonly count:number = 0;
+
+	constructor(timer:number,count:number)
+	{
+		this.timer = timer;
+		this.count = count;
+	}
 
 	public add(other:TimerAndCount|undefined):TimerAndCount
 	{
@@ -34,10 +41,7 @@ class TimerAndCount {
 			return this;
 		}
 
-		let tc = new TimerAndCount();
-		tc.timer = this.timer+other.timer;
-		tc.count = this.count+other.count;
-		return tc;
+		return new TimerAndCount(this.timer+other.timer, this.count+other.count);
 	}
 
 	public avg()
@@ -88,20 +92,10 @@ class ProfileModData {
 	file = new Map<string,ProfileFileData>();
 }
 
-
-interface FlameTreeNode {
-	name:string
-	value:number
-	children:FlameTreeNode[]
-	filename?:string
-	line?:number
-}
-
 class ProfileTreeNode {
 	readonly name:string;	// modname or file:line
 	value:number;	// time
-	private children:ProfileTreeNode[] = [];
-	private parent?:ProfileTreeNode;
+	readonly children:ProfileTreeNode[] = [];
 	readonly filename?:string;
 	readonly line?:number;
 
@@ -109,22 +103,9 @@ class ProfileTreeNode {
 	{
 		this.name = name;
 		this.value = value;
-		this.parent = parent;
 		this.filename = filename;
 		this.line = line;
 	}
-
-	ToFlameTreeNode():FlameTreeNode
-	{
-		return {
-			name:this.name,
-			value:this.value,
-			filename:this.filename,
-			line:this.line,
-			children:this.children.map(ptn=>ptn.ToFlameTreeNode()),
-		};
-	}
-
 
 	private ToStringInner(pad:string):string
 	{
@@ -162,15 +143,9 @@ class ProfileTreeNode {
 			}
 			else
 			{
-				otherchild.parent = this;
 				this.children.push(otherchild);
 			}
 		});
-	}
-
-	GetParent()
-	{
-		return this.parent;
 	}
 }
 
@@ -210,27 +185,17 @@ class ProfileData {
 	AddLineTime(modname:string,filename:string,line:number,time:number,count:number)
 	{
 		const file = this.getFile(modname,filename);
+		const change = new TimerAndCount(time,count);
 		let linedata = file.lines.get(line);
-		if (!linedata)
-		{
-			linedata = new TimerAndCount();
-			file.lines.set(line,linedata);
-		}
-		linedata.count+=count;
-		linedata.timer+=time;
+		file.lines.set(line,change.add(linedata));
 	}
 
 	AddFuncTime(modname:string,filename:string,linedefined:number,time:number,count:number)
 	{
 		const file = this.getFile(modname,filename);
+		const change = new TimerAndCount(time,count);
 		let funcdata = file.functions.get(linedefined);
-		if (!funcdata)
-		{
-			funcdata = new TimerAndCount();
-			file.functions.set(linedefined,funcdata);
-		}
-		funcdata.count+=count;
-		funcdata.timer+=time;
+		file.functions.set(linedefined,change.add(funcdata));
 	}
 
 
@@ -270,7 +235,7 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 	private profileData = new ProfileData();
 	private profileTreeRoot = new ProfileTreeNode("root",0);
 
-	private profileOverhead = new TimerAndCount();
+	private profileOverhead = new TimerAndCount(0,0);
 	private timeDecorationType: vscode.TextEditorDecorationType;
 	private funcDecorationType: vscode.TextEditorDecorationType;
 	private rulerDecorationTypes: {type:vscode.TextEditorDecorationType;threshold:number}[];
@@ -369,7 +334,7 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 			(mesg:{command:"init"}|{command:"click";name:string;filename?:string;line?:number})=>{
 			switch (mesg.command) {
 				case "init":
-					flameview.postMessage({command:"update",data:this.profileTreeRoot.ToFlameTreeNode()});
+					flameview.postMessage({command:"update",data:this.profileTreeRoot});
 					break;
 				case "click":
 					if(mesg.line && mesg.line > 0)
@@ -389,7 +354,7 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 		const lines = profile.split("\n");
 		let currmod:string;
 		let currfile:string;
-		let profileTreeRoot = new ProfileTreeNode("root",0);
+		let profileTreeStack = [new ProfileTreeNode("root",0)];
 		let currnode:ProfileTreeNode|undefined;
 		lines.forEach(line => {
 			const parts = line.split(":");
@@ -431,14 +396,14 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 				case "POV": //POV:label: time
 					{
 						const time =  parseFloat(parts[2]);
-						this.profileOverhead.timer += time;
-						this.profileOverhead.count += 1;
+						this.profileOverhead = this.profileOverhead.add(new TimerAndCount(time,1));
 					}
 					break;
 				case "PROOT":
 					if (currmod)
 					{
-						currnode = profileTreeRoot.AddToChild(currmod,0);
+						assert(profileTreeStack.length === 1);
+						currnode = profileTreeStack[0].AddToChild(currmod,0);
 					}
 					break;
 				case "PTREE": // PTREE:funcname:filename:line:label: time
@@ -449,23 +414,25 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 						const line = parts[3];
 						const nodename = funcname + ":" + filename + ":" + line;
 						const time =  parseFloat(parts[5]);
+						profileTreeStack.push(currnode);
 						currnode = currnode.AddToChild(nodename,time,filename,parseInt(line));
 					}
 					break;
 				case "PTEND":
 					if (currnode)
 					{
-						currnode = currnode.GetParent();
+						currnode = profileTreeStack.pop();
 					}
 					break;
 			}
 		});
 
+		assert(profileTreeStack.length === 1);
 		if (this.flamePanel && this.flamePanel.visible)
 		{
-			this.flamePanel.webview.postMessage({command:"merge",data:profileTreeRoot.ToFlameTreeNode()});
+			this.flamePanel.webview.postMessage({command:"merge",data:profileTreeStack[0]});
 		}
-		this.profileTreeRoot.Merge(profileTreeRoot);
+		this.profileTreeRoot.Merge(profileTreeStack[0]);
 	}
 
 	public render(editor:vscode.TextEditor,filename:string)
