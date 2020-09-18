@@ -185,7 +185,7 @@ do
           variables.longrefs[id]=nil
         end
       elseif varRef.type == "LuaObject" then
-        if luaObjectInfo.noLongRefs[varRef.classname:match("^([^.]+).?")] then
+        if isUnsafeLong(varRef.object) then
           variables.longrefs[id]=nil
         end
       else
@@ -404,7 +404,7 @@ function variables.create(name,value,evalName,long)
   local namedVariables
   local indexedVariables
   if vtype == "LuaCustomTable" then
-    variablesReference = variables.tableRef(value,"pairs",false)
+    variablesReference = variables.tableRef(value,"pairs",false,nil,nil,long)
     -- get the "first" one to see which kind of index they are
     -- some LuaCustomTable use integer keys, some use string keys.
     -- some allow mixed for lookup, but the iterator gives ints for those.
