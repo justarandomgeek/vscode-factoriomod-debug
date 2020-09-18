@@ -81,7 +81,6 @@ if __DebugAdapter.instrument then
         error("No such function: "..interface.."."..func,2)
       end
     end
-
     local call = oldremote.call
     -- find out who owns it, if they have debug registered...
     local debugname = call("debugadapter","whois",interface)

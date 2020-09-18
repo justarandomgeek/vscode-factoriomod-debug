@@ -268,8 +268,6 @@ function __DebugAdapter.evaluate(frameId,context,expression,seq)
     if not data and __DebugAdapter.canRemoteCall() and script.mod_name~="level" then
       -- remote to `level` if possible, else just error
       if remote.interfaces["__debugadapter_level"] then
-        -- transfer ref out first, just in case...
-        __DebugAdapter.transferRef()
         return remote.call("__debugadapter_level","evaluate",frameId,context,expression,seq)
       else
         print("DBGeval: " .. json.encode({result = "`level` not available for eval", type="error", variablesReference=0, seq=seq}))
@@ -317,5 +315,4 @@ function __DebugAdapter.evaluate(frameId,context,expression,seq)
     evalresult = {result = "Cannot Evaluate in Remote Frame", type="error", variablesReference=0, seq=seq}
   end
   print("DBGeval: " .. json.encode(evalresult))
-  __DebugAdapter.transferRef()
 end

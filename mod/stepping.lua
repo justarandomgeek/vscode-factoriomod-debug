@@ -227,7 +227,6 @@ function __DebugAdapter.attach()
           print("DBG: leaving")
           debugprompt()
           variables.clear(true)
-          __DebugAdapter.transferRef()
         end
       end
     end

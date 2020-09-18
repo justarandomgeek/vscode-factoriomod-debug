@@ -136,27 +136,13 @@ local nextID
 do
   local nextRefID
   function __DebugAdapter.transferRef(ref)
-    if ref then
-      nextRefID = ref
-    else
-      if nextRefID then
-        print("DBGnextref: "..nextRefID)
-        nextRefID = nil
-      end
-    end
+    nextRefID = ref
   end
   function nextID()
-    if not nextRefID then
-      -- request from extension
-      print("DBG: getref")
-      debug.debug(); -- call __DebugAdapter.transferRef(ref) and continue
-    end
-
-    -- assign locally from transferred ref
-    -- will be passed back out on raise, remote, or return from top of stack
-    local i = nextRefID
-    nextRefID = i + 1
-    return i
+    -- request from extension
+    print("DBG: getref")
+    debug.debug(); -- call __DebugAdapter.transferRef(ref) and continue
+    return nextRefID
   end
 end
 

@@ -374,7 +374,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					this.continue(true);
 				} else if (event === "getref") {
 					//pass in nextref
-					this.writeStdin(`__DebugAdapter.transferRef(${this.nextRef})`);
+					this.writeStdin(`__DebugAdapter.transferRef(${this.nextRef++})`);
 					this.continue();
 					this.inPrompt = wasInPrompt;
 				} else if (event === "leaving" || event === "running") {
@@ -468,8 +468,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					FactorioModDebugSession.output.appendLine("unexpected event: " + event);
 					this.continue();
 				}
-			} else if (mesg.startsWith("DBGnextref: ")) {
-				this.nextRef = parseInt(mesg.substring(12).trim());
 			} else if (mesg.startsWith("DBGlogpoint: ")) {
 				const body = JSON.parse(mesg.substring(13).trim());
 				const e:DebugProtocol.OutputEvent = new OutputEvent(body.output+"\n", "console");
