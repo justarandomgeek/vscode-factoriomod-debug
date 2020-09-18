@@ -134,7 +134,7 @@ export class ModTaskProvider implements vscode.TaskProvider{
 			else
 			{
 				if (!task.definition.modname) { return undefined; }
-				for (const [_,modpackage] of this.modPackages) {
+				for (const modpackage of this.modPackages.values()) {
 					if (modpackage.label === task.definition.modname) {
 						const mp = modpackage;
 						let execution:vscode.CustomExecution;
