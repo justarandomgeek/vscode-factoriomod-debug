@@ -6,6 +6,8 @@ cd "$(dirname "$0")"
 modname=`jq -r .name info.json`
 modver=`jq -r .version info.json`
 
+mkdir -p "../modpackage/"
+
 git archive --prefix "${modname}_$modver/" -o "../modpackage/${modname}.zip" HEAD
 
 echo "{}" > ../modpackage/mods.json
