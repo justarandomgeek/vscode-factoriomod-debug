@@ -12,6 +12,7 @@
 * Debug console can be used while running - it will run in the active Lua State for settings/data or in `level` if available for control.
 * Correctly display and offer more color formats in locale
 * Task "adjustMods" can be used to reconfigure mods from vscode
+* Fix infinite loop in eval _ENV lookups when function outlives the eval that created it
 
 ## 0.18.36
 

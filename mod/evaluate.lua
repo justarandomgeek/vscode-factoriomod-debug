@@ -74,6 +74,11 @@ local function evalmeta(frameId,alsoLookIn)
               offset = i - 1
               break
             end
+          else
+            -- we got all the way up the stack without finding where the eval was happening
+            -- probably outlived it, so go ahead and and clear the frame to stop looking...
+            frameId = nil
+            break
           end
           i = i + 1
         end
@@ -135,6 +140,11 @@ local function evalmeta(frameId,alsoLookIn)
               offset = i - 1
               break
             end
+          else
+            -- we got all the way up the stack without finding where the eval was happening
+            -- probably outlived it, so go ahead and and clear the frame to stop looking...
+            frameId = nil
+            break
           end
           i = i + 1
         end
