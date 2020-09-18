@@ -1,6 +1,7 @@
 local oldpcall = pcall
 local oldxpcall = xpcall
 local localised_print = localised_print
+local __DebugAdapter = __DebugAdapter
 
 local function print_exception(type,mesg)
   if mesg == nil then mesg = "<nil>" end
