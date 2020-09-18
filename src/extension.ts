@@ -143,8 +143,12 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 			}
 		}
 
-		if(!config.factorioPath || !fs.existsSync(config.factorioPath) ){
+		if(!config.factorioPath){
 			vscode.window.showInformationMessage("factorioPath is required");
+			return undefined;	// abort launch
+		}
+		if(!fs.existsSync(config.factorioPath) ){
+			vscode.window.showInformationMessage(`factorioPath "${config.factorioPath}" does not exist`);
 			return undefined;	// abort launch
 		}
 		const args:string[] = config.factorioArgs;
