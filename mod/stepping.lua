@@ -60,7 +60,7 @@ local runningBreak
 do
   local i = 0
   function runningBreak()
-    if i < 5000 then
+    if i < (__DebugAdapter.runningBreak or 5000) then
       i = i + 1
       return false
     else

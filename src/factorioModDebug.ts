@@ -61,6 +61,8 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 	hookLog?:boolean
 	keepOldLog?:boolean
 
+	runningBreak?:number
+
 	profileLines?:boolean
 	profileFuncs?:boolean
 	profileTree?:boolean
@@ -994,6 +996,10 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			if (this.launchArgs.keepOldLog !== undefined)
 			{
 				hookopts += `keepoldlog=${this.launchArgs.keepOldLog},`;
+			}
+			if (this.launchArgs.runningBreak !== undefined)
+			{
+				hookopts += `runningBreak=${this.launchArgs.runningBreak}`;
 			}
 
 			this.writeStdin(`__DebugAdapter={${hookopts}}`);

@@ -644,6 +644,12 @@
                 "description": "When hooking `log()`, also call original `log()`",
                 "default": false
               },
+              "runningBreak": {
+                "type": "integer",
+                "description": "Frequency of `running` break event, in line hook hits. Lower value is higher performance overhead. Lower value is shorter latency on Pause command.",
+                "default": 5000,
+                "minimum": 1
+              },
               "profileSlowStart": {
                 "type": "integer",
                 "description": "Number of events to dump profilers after every Lua stack at startup (to allow for saving for migration). Increase this if you're getting errors at startup while profiling.",
