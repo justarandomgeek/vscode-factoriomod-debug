@@ -27,6 +27,11 @@
               "type":"boolean",
               "description": "Don't automatically `git push` in Publish"
             },
+            "git_publish_branch": {
+              "type":["string", "null"],
+              "default": "master",
+              "description": "Name of branch to Publish from. Defaults to \"master\" if not present. Set `null` to allow any branch."
+            },
             "no_portal_upload": {
               "type":"boolean",
               "description": "Don't automatically upload to the mod portal in Publish"

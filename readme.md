@@ -80,7 +80,7 @@ Mods can be automatically Packaged and Published from the "Factorio Mod Packages
 
 All-in-one command.
 
-  * verify no uncommitted changes, on `master`
+  * verify no uncommitted changes, on `master` (or branch set in `info.json#/package/git_publish_branch`)
   * run `info.json#/package/scripts/prepublish` if set
   * run **Datestamp**
   * git commit "preparing release of version x.y.z", tag x.y.z

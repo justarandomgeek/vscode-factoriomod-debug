@@ -34,6 +34,7 @@ export interface ModInfo {
 	package?: {
 		ignore?: string[]
 		no_git_push?: boolean
+		git_publish_branch?: string|null
 		no_portal_upload?: boolean
 		scripts?: ModPackageScripts
 	}
@@ -210,6 +211,7 @@ export class ModPackage extends vscode.TreeItem {
 	public resourceUri: vscode.Uri;
 	public packageIgnore?: string[];
 	public noGitPush?: boolean;
+	public gitPublishBranch?: string|null;
 	public noPortalUpload?: boolean;
 	public scripts?: ModPackageScripts;
 
@@ -227,6 +229,7 @@ export class ModPackage extends vscode.TreeItem {
 		//this.id = modscript.name;
 		this.packageIgnore = modscript.package?.ignore;
 		this.noGitPush = modscript.package?.no_git_push;
+		this.gitPublishBranch = modscript.package?.git_publish_branch;
 		this.noPortalUpload = modscript.package?.no_portal_upload;
 		this.scripts = modscript.package?.scripts;
 	}
@@ -241,6 +244,7 @@ export class ModPackage extends vscode.TreeItem {
 		this.tooltip = modscript.title;
 		this.packageIgnore = modscript.package?.ignore;
 		this.noGitPush = modscript.package?.no_git_push;
+		this.gitPublishBranch = modscript.package?.git_publish_branch;
 		this.noPortalUpload = modscript.package?.no_portal_upload;
 		this.scripts = modscript.package?.scripts;
 	}
@@ -577,11 +581,15 @@ export class ModPackage extends vscode.TreeItem {
 				term.write("Cannot Publish with uncommitted changes\r\n");
 				return;
 			}
-			// throw if not on master
-			if (repo.state.HEAD?.name !== "master")
+			if (this.gitPublishBranch !== null)
 			{
-				term.write("Cannot Publish on branch other than 'master'\r\n");
-				return;
+				const branchname = this.gitPublishBranch ?? "master";
+				// throw if not on master
+				if (repo.state.HEAD?.name !== branchname)
+				{
+					term.write(`Cannot Publish on branch other than '${branchname}'\r\n`);
+					return;
+				}
 			}
 		}
 		else

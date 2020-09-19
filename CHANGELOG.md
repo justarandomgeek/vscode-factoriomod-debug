@@ -15,6 +15,7 @@
 * Fix infinite loop in eval _ENV lookups when function outlives the eval that created it
 * Support vscode vars in launch.json config
 * Debug console supports `__modname__` prefix when named Lua State is available
+* Branch name for Publish is configurable
 
 ## 0.18.36
 
