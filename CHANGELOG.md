@@ -14,6 +14,7 @@
 * Task "adjustMods" can be used to reconfigure mods from vscode
 * Fix infinite loop in eval _ENV lookups when function outlives the eval that created it
 * Support vscode vars in launch.json config
+* Debug console supports `__modname__` prefix when named Lua State is available
 
 ## 0.18.36
 

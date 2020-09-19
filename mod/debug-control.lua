@@ -1,6 +1,9 @@
 __DebugAdapter = __DebugAdapter or {
+  nohook = true,
   stepIgnore = function(f) return f end,
   stepIgnoreAll = function(t) return t end,
+  -- evaluate needs this, but without hooks we can only end up in this lua state when remote.call is legal
+  canRemoteCall = function() return true end,
 }
 
 local datastring = require("__debugadapter__/datastring.lua")
@@ -29,52 +32,29 @@ local function callAll(funcname,...)
 end
 __DebugAdapter.stepIgnore(callAll)
 
--- alternate versions of various DA functions that get called from debug prompts in events here
--- updateBreakpoints - calls from other entrypoints come here anyway, so just be skip right to it
--- variables - if no hooks here, calls from prompt need to be passed around to find the ref
--- evaluate - if no hooks here, calls while running need to be redirected to level
-
+-- calls from other entrypoints come here anyway, so just skip right to it
 local function updateBreakpoints(change)
   local source,changedbreaks = ReadBreakpoints(change)
   callAll("setBreakpoints",source,changedbreaks)
 end
 __DebugAdapter.updateBreakpoints = updateBreakpoints
 
-if not __DebugAdapter.variables then
-  function __DebugAdapter.variables(variablesReference,seq,filter,start,count)
-    local call = remote.call
-    for remotename,_ in pairs(remote.interfaces) do
-      local modname = remotename:match("^__debugadapter_(.+)$")
-      if modname then
-        if call(remotename,"longVariables",variablesReference,seq,filter,start,count,true) then
-          return true
-        end
-      end
-    end
-    local vars = {
-      {
-        name= "Expired variablesReference",
-        value= "Expired variablesReference ref="..variablesReference.." seq="..seq,
-        variablesReference= 0,
-      },
-    }
-    print("DBGvars: " .. json.encode({variablesReference = variablesReference, seq = seq, vars = vars}))
-    return true
-  end
-end
+local variables = require("__debugadapter__/variables.lua")
+if __DebugAdapter.nohook then
+  -- if hooks are not installed, we need to set up enough of the libraries for
+  -- calls that come in here (mostly on_tick) to be able to run appropriately,
+  -- and enough to track long refs logged from DA's lua state correctly still
+  require("__debugadapter__/evaluate.lua")
+  require("__debugadapter__/print.lua")
 
-if not __DebugAdapter.evaluate then
-  function __DebugAdapter.evaluate(frameId,context,expression,seq)
-    if not frameId then
-      if remote.interfaces["__debugadapter_level"] then
-          return remote.call("__debugadapter_level","evaluate",frameId,context,expression,seq)
-      else
-        return print("DBGeval: " .. json.encode({result = "`level` not available for eval", type="error", variablesReference=0, seq=seq}))
-      end
-    end
-    local evalresult = {result = "Cannot Evaluate in Remote Frame", type="error", variablesReference=0, seq=seq}
-    print("DBGeval: " .. json.encode(evalresult))
-  end
+  -- and a minimal version of the __da_da remote so other lua can print vars
+  remote.add_interface("__debugadapter_" .. script.mod_name ,{
+    setBreakpoints = function() end,
+    remoteCallInner = function() error("`debugadapter` is not hooked") end,
+    remoteHasInterface = function() return false end, -- we're not hooked, don't call anything via remoteCallInner
+    longVariables = __DebugAdapter.variables,
+    evaluate = __DebugAdapter.evaluate,
+  })
 end
 
 local whoiscache = {}
@@ -120,6 +100,7 @@ end))
 script.on_event(defines.events.on_tick,__DebugAdapter.stepIgnore(function(e)
   print("DBG: on_tick")
   debug.debug()
+  variables.clear(true)
   if sharedevents.on_tick then return sharedevents.on_tick(e) end
 end))
 
