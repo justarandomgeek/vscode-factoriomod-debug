@@ -4,6 +4,7 @@
 
 * Fixed debug session not ending when factorio closes
 * More consistent use of URIs for path mapping
+* Debug console supports `__modname__` prefix when named Lua State is available (correctly this time...)
 
 ## 0.18.37
 

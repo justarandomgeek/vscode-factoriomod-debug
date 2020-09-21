@@ -262,9 +262,9 @@ end
 ---@param context string
 ---@param expression string
 ---@param seq number
-function __DebugAdapter.evaluate(frameId,context,expression,seq)
+function __DebugAdapter.evaluate(frameId,context,expression,seq,formod)
   -- if you manage to do one of these fast enough for data, go for it...
-  if not frameId and not data then
+  if not frameId and formod~=script.mod_name and not data then
     local modname,rest = expression:match("^__(.-)__ (.+)$")
     if modname then
       expression = rest
@@ -274,7 +274,7 @@ function __DebugAdapter.evaluate(frameId,context,expression,seq)
     if script.mod_name~=modname then
       -- remote to named state if possible, else just error
       if __DebugAdapter.canRemoteCall() and remote.interfaces["__debugadapter_"..modname] then
-        return remote.call("__debugadapter_"..modname,"evaluate",frameId,context,expression,seq)
+        return remote.call("__debugadapter_"..modname,"evaluate",frameId,context,expression,seq,modname)
       else
         print("DBGeval: " .. json.encode({result = "`"..modname.."` not available for eval", type="error", variablesReference=0, seq=seq}))
         return
