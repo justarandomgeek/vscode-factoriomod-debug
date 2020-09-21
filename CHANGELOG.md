@@ -3,6 +3,7 @@
 ## 0.18.38
 
 * Fixed debug session not ending when factorio closes
+* More consistent use of URIs for path mapping
 
 ## 0.18.37
 

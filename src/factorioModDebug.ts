@@ -125,6 +125,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		// this debugger uses zero-based lines and columns
 		this.setDebuggerLinesStartAt1(true);
 		this.setDebuggerColumnsStartAt1(true);
+		this.setDebuggerPathFormat("uri");
 
 		FactorioModDebugSession.output = FactorioModDebugSession.output || vscode.window.createOutputChannel("Factorio Mod Debug");
 		FactorioModDebugSession.output.appendLine("---------------------------------------------------------------------------------------------------");
@@ -596,7 +597,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			let thismodule = this._modules.get(matches[1]);
 			if (thismodule?.symbolFilePath)
 			{
-				return path.posix.join(thismodule.symbolFilePath,matches[2]);
+				return vscode.Uri.joinPath(vscode.Uri.parse(thismodule.symbolFilePath),matches[2]).toString();
 			}
 		}
 
@@ -608,7 +609,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		let inpath = <string>args.source.path;
 		if (inpath.match(/^[a-zA-Z]:/)) // matches c:\... or c:/... style windows paths, single drive letter
 		{
-			bpuri = vscode.Uri.parse("file:/"+inpath.replace(/\\/g,"/"));
+			bpuri = vscode.Uri.file(inpath.replace(/\\/g,"/"));
 		}
 		else // everything else is already a URI
 		{
@@ -1073,7 +1074,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			if (module.name === "core" || module.name === "base")
 			{
 				// find `core` and `base` in data
-				module.symbolFilePath = vscode.Uri.parse("file:/"+path.posix.join(this.launchArgs.dataPath,module.name)).toString();
+				module.symbolFilePath = vscode.Uri.joinPath(vscode.Uri.file(this.launchArgs.dataPath),module.name).toString();
 				module.symbolStatus = "Loaded Data Directory";
 				FactorioModDebugSession.output.appendLine(`loaded ${module.name} from data ${module.symbolFilePath}`);
 				continue;
@@ -1101,9 +1102,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 						{
 
 							const modinfo:ModInfo = JSON.parse(Buffer.from(
-								await vscode.workspace.fs.readFile(
-									dir.with({path: path.posix.join(dir.path,"info.json")})
-									)).toString("utf8"));
+								await vscode.workspace.fs.readFile(vscode.Uri.joinPath(dir,"info.json"))).toString("utf8"));
 							if (modinfo.name===module.name && semver.eq(modinfo.version,module.version!))
 							{
 								module.symbolFilePath = dir.toString();
@@ -1126,17 +1125,17 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 				// find it in mods dir:
 				// 1) unversioned folder
-				let dir = vscode.Uri.parse("file:/"+ path.resolve(this.launchArgs.modsPath,module.name).replace(/\\/g,"/"));
+				let dir = vscode.Uri.joinPath(vscode.Uri.file(this.launchArgs.modsPath),module.name);
 				if(await trydir(dir)){continue;};
 
 				// 2) versioned folder
-				dir = vscode.Uri.parse("file:/"+ path.resolve(this.launchArgs.modsPath,module.name+"_"+module.version).replace(/\\/g,"/"));
+				dir = vscode.Uri.joinPath(vscode.Uri.file(this.launchArgs.modsPath),module.name+"_"+module.version);
 				if(await trydir(dir)){continue;};
 
 				// 3) versioned zip
 				if (zipext)
 				{
-					const zipuri = vscode.Uri.parse("file:/"+ path.resolve(this.launchArgs.modsPath,module.name+"_"+module.version+".zip").replace(/\\/g,"/"));
+					const zipuri = vscode.Uri.joinPath(vscode.Uri.file(this.launchArgs.modsPath),module.name+"_"+module.version+".zip");
 					let stat:vscode.FileStat|undefined;
 					try
 					{
@@ -1159,7 +1158,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 							//TODO: mount it fast enough to actually read dirname inside
 							vscode.commands.executeCommand("zipexplorer.exploreZipFile", zipuri);
 
-							let zipinside = zipuri.with({scheme: "zip", path: path.posix.join(zipuri.path,module.name+"_"+module.version)});
+							let zipinside = vscode.Uri.joinPath(zipuri,module.name+"_"+module.version).with({scheme: "zip"});
 							module.symbolFilePath = zipinside.toString();
 							module.symbolStatus = "Loaded Zip";
 							FactorioModDebugSession.output.appendLine(`loaded ${module.name} ${module.version} from mod zip ${zipuri.toString()}`);
