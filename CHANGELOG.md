@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.38
+
+* Fixed debug session not ending when factorio closes
+
 ## 0.18.37
 
 * Return original unwrapped handler from `script.get_event_handler`

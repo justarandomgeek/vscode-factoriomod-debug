@@ -2,7 +2,7 @@ import {
 	Logger, logger,
 	LoggingDebugSession,
 	StoppedEvent, OutputEvent,
-	Thread, Source, Module, ModuleEvent, InitializedEvent, StackFrame, Scope, Variable, Event
+	Thread, Source, Module, ModuleEvent, InitializedEvent, StackFrame, Scope, Variable, Event, TerminatedEvent
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import * as path from 'path';
@@ -332,13 +332,19 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 		this.factorio = new FactorioProcess(args.factorioPath,args.factorioArgs,args.nativeDebugger);
 
-		this.factorio.on("exit", (code:number, signal:string) => {
+		this.factorio.on("exit", (code:number|null, signal:string) => {
 			if (this.profile)
 			{
 				this.profile.dispose();
 				this.profile = undefined;
 			}
-			this.sendEvent(new Event("exited",{exitCode:code}));
+			if (code)
+			{
+				// exit event in case somebody cares about the return code
+				this.sendEvent(new Event("exited",{exitCode:code}));
+			}
+			// and terminate event to actually stop the debug session
+			this.sendEvent(new TerminatedEvent());
 		});
 
 		let resolveModules:resolver<void>;
