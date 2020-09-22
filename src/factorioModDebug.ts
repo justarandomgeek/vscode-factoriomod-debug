@@ -370,10 +370,12 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					//data/settings main chunk - force all breakpoints each time this comes up because it can only set them locally
 					await this.configDone;
 					this.clearQueuedStdin();
+					this.allocateRefBlock();
 					this.continue(true);
 				} else if (event === "on_parse") {
 					//control.lua main chunk - force all breakpoints each time this comes up because it can only set them locally
 					this.clearQueuedStdin();
+					this.allocateRefBlock();
 					this.continue(true);
 				} else if (event === "on_init") {
 					//if on_init, set initial breakpoints and continue
@@ -385,9 +387,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					this.continue(true);
 				} else if (event === "getref") {
 					//pass in nextref
-					const nextRef = this.nextRef;
-					this.nextRef += 1024;
-					this.writeStdin(`__DebugAdapter.transferRef(${nextRef})`);
+					this.allocateRefBlock();
 					this.continue();
 					this.inPrompt = wasInPrompt;
 				} else if (event === "leaving" || event === "running") {
@@ -569,6 +569,13 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		});
 
 		this.sendResponse(response);
+	}
+
+	private allocateRefBlock()
+	{
+		const nextRef = this.nextRef;
+		this.nextRef += 65536;
+		this.writeStdin(`__DebugAdapter.transferRef(${nextRef})`);
 	}
 
 	protected convertClientPathToDebugger(clientPath: string): string

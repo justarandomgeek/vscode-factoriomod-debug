@@ -138,7 +138,7 @@ do
   local nextEnd
   function __DebugAdapter.transferRef(ref)
     nextRefID = ref
-    nextEnd = ref+1023
+    nextEnd = ref+65535
   end
   function nextID()
     -- request from extension
