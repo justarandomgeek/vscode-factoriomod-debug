@@ -207,9 +207,12 @@ export class ModTaskProvider implements vscode.TaskProvider{
 
 	private async AdjustMods(term:ModTaskTerminal,def:AdjustModsDefinition): Promise<void>
 	{
+		def.modsPath = def.modsPath.replace(/\\/g,"/");
+		term.write(`Using modsPath ${def.modsPath}\n`);
 		const manager = new ModManager(def.modsPath);
 		if (!def.allowDisableBaseMod) {def.adjustMods["base"] = true;}
 		if (def.disableExtraMods) {
+			term.write(`All Mods disabled\n`);
 			manager.disableAll();
 		}
 		for (const mod in def.adjustMods) {
@@ -217,9 +220,18 @@ export class ModTaskProvider implements vscode.TaskProvider{
 			{
 				const adjust = def.adjustMods[mod];
 				manager.set(mod,adjust);
+				term.write(`${mod} ${
+					adjust === true ? "enabled" :
+					adjust === false ? "disabled" :
+					"enabled version " + adjust
+				}\n`);
 			}
 		}
+		try {
 		manager.write();
+		} catch (error) {
+			term.write(`Failed to save mod list:\n${error}\n`);
+		}
 	}
 
 	private AdjustModsTask(def:AdjustModsDefinition): vscode.CustomExecution
@@ -924,7 +936,7 @@ class ModTaskPseudoterminal implements vscode.Pseudoterminal {
 		let writeEmitter = this.writeEmitter;
 		let closeEmitter = this.closeEmitter;
 		await this.runner({
-			write: (data) => writeEmitter.fire(data),
+			write: (data) => writeEmitter.fire(data.replace(/\r?\n/g,"\r\n")),
 			close: () => closeEmitter.fire()
 		}, this.tokensource.token);
 		closeEmitter.fire();
