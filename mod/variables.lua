@@ -135,15 +135,23 @@ __DebugAdapter.stepIgnore(gmeta.__debugchildren)
 local nextID
 do
   local nextRefID
+  local nextEnd
   function __DebugAdapter.transferRef(ref)
     nextRefID = ref
+    nextEnd = ref+1023
   end
   function nextID()
     -- request from extension
+    if nextRefID and nextRefID<nextEnd then
+      local ref = nextRefID
+      nextRefID = ref + 1
+      return ref
+    end
     print("DBG: getref")
     debug.debug(); -- call __DebugAdapter.transferRef(ref) and continue
     return nextRefID
   end
+  __DebugAdapter.stepIgnore(nextID)
 end
 
 do

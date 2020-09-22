@@ -383,7 +383,9 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					this.continue(true);
 				} else if (event === "getref") {
 					//pass in nextref
-					this.writeStdin(`__DebugAdapter.transferRef(${this.nextRef++})`);
+					const nextRef = this.nextRef;
+					this.nextRef += 1024;
+					this.writeStdin(`__DebugAdapter.transferRef(${nextRef})`);
 					this.continue();
 					this.inPrompt = wasInPrompt;
 				} else if (event === "leaving" || event === "running") {
