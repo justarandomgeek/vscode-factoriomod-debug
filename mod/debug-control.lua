@@ -88,12 +88,14 @@ local sharedevents = {}
 script.on_init(__DebugAdapter.stepIgnore(function()
   print("DBG: on_init")
   debug.debug()
+  variables.clear()
   if sharedevents.on_init then return sharedevents.on_init() end
 end))
 
 script.on_load(__DebugAdapter.stepIgnore(function()
   print("DBG: on_load")
   debug.debug()
+  variables.clear()
   if sharedevents.on_load then return sharedevents.on_load() end
 end))
 

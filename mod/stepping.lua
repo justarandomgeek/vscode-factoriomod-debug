@@ -97,6 +97,7 @@ function __DebugAdapter.attach()
         elseif runningBreak() then
           print("DBG: running")
           debugprompt()
+          variables.clear()
         else
           local filebreaks = breakpoints[s]
           if filebreaks then
@@ -226,7 +227,7 @@ function __DebugAdapter.attach()
           __DebugAdapter.popEntryPointName()
           print("DBG: leaving")
           debugprompt()
-          variables.clear(true)
+          variables.clear()
         end
       end
     end
