@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.41
+
+* Debug console supports `__modname__` prefix while in break
+
 ## 0.18.40
 
 * Fixed incorrect vars showing when first retreived after stopping on first stop in a lua state

@@ -264,14 +264,17 @@ end
 ---@param seq number
 function __DebugAdapter.evaluate(frameId,context,expression,seq,formod)
   -- if you manage to do one of these fast enough for data, go for it...
-  if not frameId and formod~=script.mod_name and not data then
+  if not data and formod~=script.mod_name then
     local modname,rest = expression:match("^__(.-)__ (.+)$")
     if modname then
       expression = rest
+      frameId = nil
     else
-      modname = "level"
+      if not frameId then
+        modname = "level"
+      end
     end
-    if script.mod_name~=modname then
+    if modname and modname~=script.mod_name then
       -- remote to named state if possible, else just error
       if __DebugAdapter.canRemoteCall() and remote.interfaces["__debugadapter_"..modname] then
         return remote.call("__debugadapter_"..modname,"evaluate",frameId,context,expression,seq,modname)
