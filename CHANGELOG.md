@@ -3,6 +3,7 @@
 ## 0.18.41
 
 * Debug console supports `__modname__` prefix while in break
+* Better error reporting for tasks.json tasks
 
 ## 0.18.40
 

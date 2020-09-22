@@ -119,26 +119,34 @@ export class ModTaskProvider implements vscode.TaskProvider{
 	resolveTask(task: vscode.Task, token?: vscode.CancellationToken | undefined): vscode.ProviderResult<vscode.Task> {
 		if (task.definition.type === "factorio")
 		{
+
+			let execution:vscode.CustomExecution|undefined;
 			if (task.definition.command === "adjustMods")
 			{
-				if (!task.definition.adjustMods) { return undefined; }
-				if (!task.definition.modsPath) { return undefined; }
-				return new vscode.Task(
-					task.definition,
-					task.scope || vscode.TaskScope.Workspace,
-					task.name,
-					task.source,
-					this.AdjustModsTask(<AdjustModsDefinition>task.definition),
-					[]
-				);
+				if (!task.definition.adjustMods)
+				{
+					execution = this.ConfigErrorTask(task.definition,"missing `adjustMods`");
+			}
+				else if (!task.definition.modsPath)
+				{
+					execution = this.ConfigErrorTask(task.definition,"missing `modsPath`");
+				}
+			else
+			{
+					execution = this.AdjustModsTask(<AdjustModsDefinition>task.definition);
+				}
 			}
 			else
 			{
-				if (!task.definition.modname) { return undefined; }
+				if (!task.definition.modname)
+				{
+					execution = this.ConfigErrorTask(task.definition,"missing `modname`");
+				}
+				else
+				{
 				for (const modpackage of this.modPackages.values()) {
 					if (modpackage.label === task.definition.modname) {
 						const mp = modpackage;
-						let execution:vscode.CustomExecution;
 						switch (task.definition.command) {
 							case "compile":
 								execution = mp.CompileTask();
@@ -159,23 +167,43 @@ export class ModTaskProvider implements vscode.TaskProvider{
 								execution = mp.PublishTask();
 								break;
 							default:
-								return undefined;
+									execution = this.ConfigErrorTask(task.definition,`unknown \`command\` "${task.definition.command}"`);
 						}
+							break;
+						}
+					}
+					if (!execution)
+					{
+						execution = this.ConfigErrorTask(task.definition,`mod "${task.definition.modname}" not found`);
+					}
+				}
+			}
 						return new vscode.Task(
 							task.definition,
 							task.scope || vscode.TaskScope.Workspace,
 							task.name,
 							task.source,
 							execution,
-							[]
-						);
-					}
-				}
-			}
+				[]);
 		}
 		return undefined;
 	}
 
+	private async ConfigError(term:ModTaskTerminal,def:vscode.TaskDefinition,error:string): Promise<void>
+	{
+		term.write(error+"\n");
+		term.write(JSON.stringify(def,undefined,2));
+	}
+
+	private ConfigErrorTask(def:vscode.TaskDefinition,error:string): vscode.CustomExecution
+	{
+		return new vscode.CustomExecution(async ()=>{
+			return new ModTaskPseudoterminal(async term =>{
+				await this.ConfigError(term,def,error);
+				term.close();
+			});
+		});
+	}
 
 	private async AdjustMods(term:ModTaskTerminal,def:AdjustModsDefinition): Promise<void>
 	{
