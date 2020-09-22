@@ -129,7 +129,7 @@ function gmeta.__newindex(t,k,v)
   end
   rawset(t,k,v)
 end
-__DebugAdapter.stepIgnore(gmeta.__debugchildren)
+__DebugAdapter.stepIgnore(gmeta.__newindex)
 
 -- variable id refs
 local nextID
