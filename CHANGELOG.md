@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.39
+
+* Fixed incorrect vars showing when first retreived after stopping
+
 ## 0.18.38
 
 * Fixed debug session not ending when factorio closes
