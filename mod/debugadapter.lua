@@ -46,7 +46,7 @@ local pairs = pairs
 ---@param levels integer | nil
 ---@param forRemote boolean | nil
 ---@return StackFrame[]
-function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
+function __DebugAdapter.stackTrace(startFrame, levels, forRemote,seq)
   local offset = 5 -- 0 getinfo, 1 stackTrace, 2 debug command, 3 debug.debug, 4 sethook callback, 5 at breakpoint
   -- in exceptions    0 getinfo, 1 stackTrace, 2 debug command, 3 debug.debug, 4 xpcall callback, 5 at exception
   -- in instrument ex 0 getinfo, 1 stackTrace, 2 debug command, 3 debug.debug, 4 on_error callback,
@@ -225,7 +225,7 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote)
     end
   end
   if not forRemote then
-    print("DBGstack: " .. json.encode(stackFrames))
+    print("DBGstack: " .. json.encode{frames=stackFrames,seq=seq})
   end
   return stackFrames
 end

@@ -2,7 +2,7 @@ import {
 	Logger, logger,
 	LoggingDebugSession,
 	StoppedEvent, OutputEvent,
-	Thread, Source, Module, ModuleEvent, InitializedEvent, StackFrame, Scope, Variable, Event, TerminatedEvent
+	Thread, Source, Module, ModuleEvent, InitializedEvent, Scope, Variable, Event, TerminatedEvent
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import * as path from 'path';
@@ -91,8 +91,10 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	// unhandled only by default
 	private exceptionFilters = new Set<string>(["unhandled"]);
 
-	private _stack?: resolver<StackFrame[]>;
 	private readonly _modules = new Map<string,DebugProtocol.Module>();
+
+	private readonly _responses = new Map<number,DebugProtocol.Response>();
+
 	private readonly _scopes = new Map<number, resolver<Scope[]>>();
 	private readonly _vars = new Map<number, resolver<Variable[]>>();
 	private readonly _setvars = new Map<number, resolver<Variable>>();
@@ -512,8 +514,8 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				}
 				this.sendEvent(e);
 			} else if (mesg.startsWith("DBGstack: ")) {
-				this._stack!(JSON.parse(mesg.substring(10).trim()));
-				this._stack = undefined;
+				const stackresult:{frames:DebugProtocol.StackFrame[];seq:number} = JSON.parse(mesg.substring(10).trim());
+				this.finishStackTrace(stackresult.frames,stackresult.seq);
 			} else if (mesg.startsWith("EVTmodules: ")) {
 				if (this.launchArgs.trace){this.sendEvent(new OutputEvent(`> EVTmodules\n`, "console"));}
 				await this.updateModules(JSON.parse(mesg.substring(12).trim()));
@@ -652,12 +654,15 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		const maxLevels = typeof args.levels === 'number' ? args.levels : 1000;
 		const endFrame = startFrame + maxLevels;
 
-		const stk = await new Promise<DebugProtocol.StackFrame[]>((resolve)=>{
-			this._stack = resolve;
-			this.writeStdin(`__DebugAdapter.stackTrace(${startFrame},${endFrame-startFrame})`);
-		});
+		this._responses.set(response.request_seq,response);
 
-		response.body = { stackFrames: (stk||[]).map(
+		this.writeStdin(`__DebugAdapter.stackTrace(${startFrame},${endFrame-startFrame},false,${response.request_seq})`);
+	}
+
+	private async finishStackTrace(stack:DebugProtocol.StackFrame[], seq:number) {
+		const response = <DebugProtocol.StackTraceResponse>this._responses.get(seq);
+		this._responses.delete(seq);
+		response.body = { stackFrames: (stack||[]).map(
 			(frame) =>{
 				if (frame && frame.source && frame.source.path)
 				{
