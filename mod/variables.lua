@@ -773,7 +773,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
   end
 
   if varRef or (not longonly) then
-    print("DBGvars: " .. json.encode({variablesReference = variablesReference, seq = seq, vars = vars}))
+    print("DBGvars: " .. json.encode({variablesReference = variablesReference, seq = seq, vars = vars, long = longonly and script.mod_name}))
     return true
   end
 end
