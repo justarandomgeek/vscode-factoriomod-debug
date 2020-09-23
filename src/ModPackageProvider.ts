@@ -126,13 +126,13 @@ export class ModTaskProvider implements vscode.TaskProvider{
 				if (!task.definition.adjustMods)
 				{
 					execution = this.ConfigErrorTask(task.definition,"missing `adjustMods`");
-			}
+				}
 				else if (!task.definition.modsPath)
 				{
 					execution = this.ConfigErrorTask(task.definition,"missing `modsPath`");
 				}
-			else
-			{
+				else
+				{
 					execution = this.AdjustModsTask(<AdjustModsDefinition>task.definition);
 				}
 			}
@@ -144,31 +144,31 @@ export class ModTaskProvider implements vscode.TaskProvider{
 				}
 				else
 				{
-				for (const modpackage of this.modPackages.values()) {
-					if (modpackage.label === task.definition.modname) {
-						const mp = modpackage;
-						switch (task.definition.command) {
-							case "compile":
-								execution = mp.CompileTask();
-								break;
-							case "datestamp":
-								execution = mp.DateStampTask();
-								break;
-							case "package":
-								execution = mp.PackageTask();
-								break;
-							case "version":
-								execution = mp.IncrementTask();
-								break;
-							case "upload":
-								execution = mp.PostToPortalTask();
-								break;
-							case "publish":
-								execution = mp.PublishTask();
-								break;
-							default:
+					for (const modpackage of this.modPackages.values()) {
+						if (modpackage.label === task.definition.modname) {
+							const mp = modpackage;
+							switch (task.definition.command) {
+								case "compile":
+									execution = mp.CompileTask();
+									break;
+								case "datestamp":
+									execution = mp.DateStampTask();
+									break;
+								case "package":
+									execution = mp.PackageTask();
+									break;
+								case "version":
+									execution = mp.IncrementTask();
+									break;
+								case "upload":
+									execution = mp.PostToPortalTask();
+									break;
+								case "publish":
+									execution = mp.PublishTask();
+									break;
+								default:
 									execution = this.ConfigErrorTask(task.definition,`unknown \`command\` "${task.definition.command}"`);
-						}
+							}
 							break;
 						}
 					}
@@ -178,12 +178,12 @@ export class ModTaskProvider implements vscode.TaskProvider{
 					}
 				}
 			}
-						return new vscode.Task(
-							task.definition,
-							task.scope || vscode.TaskScope.Workspace,
-							task.name,
-							task.source,
-							execution,
+			return new vscode.Task(
+				task.definition,
+				task.scope || vscode.TaskScope.Workspace,
+				task.name,
+				task.source,
+				execution,
 				[]);
 		}
 		return undefined;
@@ -228,7 +228,7 @@ export class ModTaskProvider implements vscode.TaskProvider{
 			}
 		}
 		try {
-		manager.write();
+			manager.write();
 		} catch (error) {
 			term.write(`Failed to save mod list:\n${error}\n`);
 		}
@@ -612,7 +612,7 @@ export class ModPackage extends vscode.TreeItem {
 		const config = vscode.workspace.getConfiguration(undefined,this.resourceUri);
 
 		const packageversion = this.description;
-
+		let branchname:string = "master";
 		if (repo)
 		{
 			// throw if uncommitted changes
@@ -621,9 +621,13 @@ export class ModPackage extends vscode.TreeItem {
 				term.write("Cannot Publish with uncommitted changes\r\n");
 				return;
 			}
-			if (this.gitPublishBranch !== null)
+			if (this.gitPublishBranch === null)
 			{
-				const branchname = this.gitPublishBranch ?? "master";
+				branchname = repo.state.HEAD?.name!;
+			}
+			else
+			{
+				branchname = this.gitPublishBranch ?? "master";
 				// throw if not on master
 				if (repo.state.HEAD?.name !== branchname)
 				{
@@ -694,11 +698,11 @@ export class ModPackage extends vscode.TreeItem {
 				const upstream = repo?.state.HEAD?.upstream;
 				if (upstream)
 				{
-					await runScript(term, undefined, `git push ${upstream.remote} master ${tagname!}`, moddir);
+					await runScript(term, undefined, `git push ${upstream.remote} ${branchname} ${tagname!}`, moddir);
 				}
 				else
 				{
-					term.write(`no remote set as upstream on master\r\n`);
+					term.write(`no remote set as upstream on ${branchname}\r\n`);
 				}
 			}
 		}
