@@ -854,17 +854,39 @@ export class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.Tree
 	getChildren(element?: vscode.TreeItem | undefined): vscode.ProviderResult<vscode.TreeItem[]> {
 		if (!element) {
 			const items: vscode.TreeItem[] = [];
-			const latest = ModPackage.latestPackages(this.modPackages.values());
 			if (this.modPackages) {
-				this.modPackages.forEach((modscript, uri) => {
-					items.push(modscript);
-					modscript.contextValue = latest.has(modscript) ? "latest" : "";
-				});
+				const latest = ModPackage.latestPackages(this.modPackages.values());
+				for (const modscript of this.modPackages.values()) {
+					if (latest.has(modscript)) {
+						items.push(modscript);
+						modscript.contextValue = "latest";
+						modscript.collapsibleState = (()=>{
+							for (const other of this.modPackages.values()) {
+								if (modscript.label === other.label && !latest.has(other)){
+									return vscode.TreeItemCollapsibleState.Collapsed;
+								}
+							}
+							return vscode.TreeItemCollapsibleState.None;
+						})();
+					}
+				}
 			}
 			return items.sort(ModPackage.sort);
 		}
 		else if (element instanceof ModPackage) {
-			return [];
+			const items: vscode.TreeItem[] = [];
+			if (this.modPackages) {
+				const latest = ModPackage.latestPackages(this.modPackages.values());
+				if (latest.has(element)) {
+					this.modPackages.forEach((modscript, uri) => {
+						if (modscript.label === element.label && !latest.has(modscript)) {
+							items.push(modscript);
+							modscript.contextValue = "older";
+						}
+					});
+				}
+			}
+			return items.sort(ModPackage.sort);
 		}
 		else {
 			return [];
