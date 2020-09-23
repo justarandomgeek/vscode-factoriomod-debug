@@ -10,3 +10,5 @@ profile save for offline viewing
 replace data:extend with one that warns on non-arraylike?
 warn on no changelog in publish?
 build changelog from formatted commit messages
+when multiple of same mod, make sure tasks operate on latest, hide buttons for others
+adjustable timeouts
