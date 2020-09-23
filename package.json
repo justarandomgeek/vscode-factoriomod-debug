@@ -650,6 +650,12 @@
                 "default": 5000,
                 "minimum": 1
               },
+              "runningTimeout": {
+                "type": "integer",
+                "description": "Timeout in ms for eval and variables requests while running",
+                "default": 2000,
+                "minimum": 1000
+              },
               "profileSlowStart": {
                 "type": "integer",
                 "description": "Number of events to dump profilers after every Lua stack at startup (to allow for saving for migration). Increase this if you're getting errors at startup while profiling.",

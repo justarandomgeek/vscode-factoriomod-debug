@@ -5,6 +5,7 @@
 * Debug console supports `__modname__` prefix while in break
 * Better error reporting for tasks.json tasks
 * Branch name configuration for Publish was not correctly applied
+* Timeout on queued stdin commands configurable, raised default to 2s
 
 ## 0.18.40
 

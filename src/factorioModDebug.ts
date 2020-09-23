@@ -62,6 +62,7 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 	keepOldLog?:boolean
 
 	runningBreak?:number
+	runningTimeout?:number
 
 	profileLines?:boolean
 	profileFuncs?:boolean
@@ -734,7 +735,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 							variablesReference: 0,
 						}
 					]);
-				}, 1000);
+				}, this.launchArgs.runningTimeout ?? 2000);
 			})
 		]);
 		consume!();
@@ -788,7 +789,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			new Promise<EvaluateResponseBody>((resolve) => {
 				// just time out if we're in a menu with no lua running to empty the queue...
 				// in which case it's just expired anyway
-
 				setTimeout(()=>{
 					cts.cancel();
 					resolve(<EvaluateResponseBody>{
@@ -797,7 +797,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 						variablesReference: 0,
 						seq: response.request_seq,
 					});
-				}, 1000);
+				}, this.launchArgs.runningTimeout ?? 2000);
 			})
 		]);
 		consume!();
