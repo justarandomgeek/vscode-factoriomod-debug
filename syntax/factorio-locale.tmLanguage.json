@@ -74,10 +74,6 @@
 					}
 				},
 				{
-					"name": "constant.character.escape.factorio-locale",
-					"match": "\\n"
-				},
-				{
 					"name": "entity.name.tag.font.factorio-locale",
 					"begin": "\\[font=([^\\]]*)\\]",
 					"beginCaptures": {
