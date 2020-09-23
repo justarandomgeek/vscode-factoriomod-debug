@@ -6,6 +6,7 @@
 * Better error reporting for tasks.json tasks
 * Branch name configuration for Publish was not correctly applied
 * Timeout on queued stdin commands configurable, raised default to 2s
+* Restrict tasks to operate only on the latest version of a mod
 
 ## 0.18.40
 

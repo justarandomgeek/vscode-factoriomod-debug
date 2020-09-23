@@ -362,52 +362,52 @@
       "view/item/context": [
         {
           "command": "factorio.datestamp",
-          "when": "viewItem == factoriomodpackage",
+          "when": "view == factoriomods && viewItem == latest",
           "group": "basic@1"
         },
         {
           "command": "factorio.package",
-          "when": "viewItem == factoriomodpackage",
+          "when": "view == factoriomods && viewItem == latest",
           "group": "basic@2"
         },
         {
           "command": "factorio.version",
-          "when": "viewItem == factoriomodpackage",
+          "when": "view == factoriomods && viewItem == latest",
           "group": "basic@3"
         },
         {
           "command": "factorio.upload",
-          "when": "viewItem == factoriomodpackage",
+          "when": "view == factoriomods && viewItem == latest",
           "group": "basic@4"
         },
         {
           "command": "factorio.publish",
-          "when": "viewItem == factoriomodpackage",
+          "when": "view == factoriomods && viewItem == latest",
           "group": "publish@1"
         },
         {
           "command": "factorio.datestamp",
-          "when": "viewItem == factoriomodpackage",
+          "when": "view == factoriomods && viewItem == latest",
           "group": "inline@1"
         },
         {
           "command": "factorio.package",
-          "when": "viewItem == factoriomodpackage",
+          "when": "view == factoriomods && viewItem == latest",
           "group": "inline@2"
         },
         {
           "command": "factorio.version",
-          "when": "viewItem == factoriomodpackage",
+          "when": "view == factoriomods && viewItem == latest",
           "group": "inline@3"
         },
         {
           "command": "factorio.upload",
-          "when": "viewItem == factoriomodpackage",
+          "when": "view == factoriomods && viewItem == latest",
           "group": "inline@4"
         },
         {
           "command": "factorio.publish",
-          "when": "viewItem == factoriomodpackage",
+          "when": "view == factoriomods && viewItem == latest",
           "group": "inline@5"
         }
       ]
