@@ -67,9 +67,15 @@
   "activationEvents": [
     "onDebug",
     "onCommand:workbench.action.tasks.runTask",
+    "onCommand:factorio.datestamp",
+    "onCommand:factorio.package",
+    "onCommand:factorio.version",
+    "onCommand:factorio.upload",
+    "onCommand:factorio.publish",
     "workspaceContains:**/changelog.txt",
     "workspaceContains:**/info.json",
     "onLanguage:factorio-locale",
+    "onLanguage:factorio-changelog",
     "onView:factoriomods"
   ],
   "contributes": {
