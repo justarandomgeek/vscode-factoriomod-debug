@@ -5,12 +5,11 @@ import * as path from 'path';
 import * as Git from './git';
 import * as WebRequest from 'web-request';
 import * as semver from 'semver';
+import * as archiver from 'archiver';
 import { jar } from 'request';
 import { spawn } from 'child_process';
 import { BufferSplitter } from './BufferSplitter';
 import { ModManager } from './ModManager';
-
-let archiver = require('archiver');
 
 interface ModPackageScripts {
 	compile?: string
@@ -53,11 +52,7 @@ interface AdjustModsDefinition extends vscode.TaskDefinition {
 }
 
 export class ModTaskProvider implements vscode.TaskProvider{
-	private readonly modPackages: Map<string, ModPackage>;
-
-	constructor(context: vscode.ExtensionContext, modPackages: Map<string, ModPackage>) {
-		this.modPackages = modPackages;
-	}
+	constructor(context: vscode.ExtensionContext, private readonly modPackages: Map<string, ModPackage>) {}
 
 
 	provideTasks(token?: vscode.CancellationToken | undefined): vscode.ProviderResult<vscode.Task[]> {
@@ -255,22 +250,21 @@ export class ModTaskProvider implements vscode.TaskProvider{
 export class ModPackage extends vscode.TreeItem {
 	public label: string; // used as modname
 	public description: string; // used as modversion
-	public readonly resourceUri: vscode.Uri;
 	public packageIgnore?: string[];
 	public noGitPush?: boolean;
 	public gitPublishBranch?: string|null;
 	public noPortalUpload?: boolean;
 	public scripts?: ModPackageScripts;
 
-	constructor(uri: vscode.Uri, modscript: ModInfo) {
-		super(uri);
+	constructor(public readonly resourceUri: vscode.Uri, modscript: ModInfo) {
+		super(resourceUri);
 		this.label = modscript.name;
 		this.description = modscript.version;
 		this.tooltip = modscript.title;
 		this.command = {
 			title: 'Open',
 			command: 'vscode.open',
-			arguments: [uri]
+			arguments: [resourceUri]
 		};
 		//this.id = modscript.name;
 		this.packageIgnore = modscript.package?.ignore;
@@ -979,19 +973,17 @@ async function runScript(term:ModTaskTerminal, name:string|undefined, command:st
 }
 
 class ModTaskPseudoterminal implements vscode.Pseudoterminal {
-	private writeEmitter = new vscode.EventEmitter<string>();
+	private readonly writeEmitter = new vscode.EventEmitter<string>();
 	onDidWrite: vscode.Event<string> = this.writeEmitter.event;
-	private closeEmitter = new vscode.EventEmitter<void>();
+	private readonly closeEmitter = new vscode.EventEmitter<void>();
 	onDidClose?: vscode.Event<void> = this.closeEmitter.event;
-	private tokensource = new vscode.CancellationTokenSource();
+	private readonly tokensource = new vscode.CancellationTokenSource();
 
-	constructor(
-		private runner:(term:ModTaskTerminal,token?:vscode.CancellationToken)=>void|Promise<void>) {
-	}
+	constructor(private readonly runner:(term:ModTaskTerminal,token?:vscode.CancellationToken)=>void|Promise<void>) {}
 
 	async open(initialDimensions: vscode.TerminalDimensions | undefined): Promise<void> {
-		let writeEmitter = this.writeEmitter;
-		let closeEmitter = this.closeEmitter;
+		const writeEmitter = this.writeEmitter;
+		const closeEmitter = this.closeEmitter;
 		await this.runner({
 			write: (data) => writeEmitter.fire(data.replace(/\r?\n/g,"\r\n")),
 			close: () => closeEmitter.fire()

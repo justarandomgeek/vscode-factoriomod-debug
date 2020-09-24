@@ -14,11 +14,9 @@ interface ModList{
 
 export class ModManager {
 	private modList:ModList;
-	private readonly modsPath:string;
 
-	constructor(modsPath:string)
+	constructor(private readonly modsPath:string)
 	{
-		this.modsPath = modsPath;
 		this.reload();
 	}
 
@@ -106,7 +104,7 @@ export class ModManager {
 	{
 		const enabled = !!state;
 		const version = typeof state === 'string' ? state : undefined;
-		let mod = this.modList.mods.find(m=>m.name===name);
+		const mod = this.modList.mods.find(m=>m.name===name);
 		if (mod)
 		{
 			mod.enabled = enabled;

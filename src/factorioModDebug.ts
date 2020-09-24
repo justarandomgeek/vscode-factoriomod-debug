@@ -86,11 +86,11 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	private _configurationDone: resolver<void>;
 	private configDone: Promise<void>;
 
-	private breakPoints = new Map<string, DebugProtocol.SourceBreakpoint[]>();
-	private breakPointsChanged = new Set<string>();
+	private readonly breakPoints = new Map<string, DebugProtocol.SourceBreakpoint[]>();
+	private readonly breakPointsChanged = new Set<string>();
 
 	// unhandled only by default
-	private exceptionFilters = new Set<string>(["unhandled"]);
+	private readonly exceptionFilters = new Set<string>(["unhandled"]);
 
 	private readonly _modules = new Map<string,DebugProtocol.Module>();
 
@@ -116,7 +116,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	private profile?: Profile;
 
 	private workspaceModInfoReady:Promise<void>;
-	private workspaceModInfo = new Array<ModPaths>();
+	private readonly workspaceModInfo = new Array<ModPaths>();
 
 	/**
 	 * Creates a new debug adapter that is used for one debug session.
@@ -603,10 +603,10 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 	protected convertDebuggerPathToClient(debuggerPath: string): string
 	{
-		let matches = debuggerPath.match(/^@__(.*?)__\/(.*)$/);
+		const matches = debuggerPath.match(/^@__(.*?)__\/(.*)$/);
 		if (matches)
 		{
-			let thismodule = this._modules.get(matches[1]);
+			const thismodule = this._modules.get(matches[1]);
 			if (thismodule?.symbolFilePath)
 			{
 				return vscode.Uri.joinPath(vscode.Uri.parse(thismodule.symbolFilePath),matches[2]).toString();
@@ -618,7 +618,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
 		let bpuri:vscode.Uri;
-		let inpath = <string>args.source.path;
+		const inpath = <string>args.source.path;
 		if (inpath.match(/^[a-zA-Z]:/)) // matches c:\... or c:/... style windows paths, single drive letter
 		{
 			bpuri = vscode.Uri.file(inpath.replace(/\\/g,"/"));
@@ -870,7 +870,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		const execution = await vscode.tasks.executeTask(task);
 
 		return new Promise<void>(resolve => {
-			let disposable = vscode.tasks.onDidEndTask(e => {
+			const disposable = vscode.tasks.onDidEndTask(e => {
 				if (e.execution === execution) {
 					disposable.dispose();
 					resolve();
@@ -933,7 +933,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		if (this.launchArgs.trace) {
 			this.sendEvent(new OutputEvent(`${this.inPrompt?"<":"q<"} ${s instanceof Buffer ? `Buffer[${s.length}]` : s.replace(/^[\r\n]*/,"").replace(/[\r\n]*$/,"")}\n`,"console"));
 		}
-		let b = Buffer.concat([s instanceof Buffer ? s : Buffer.from(s),Buffer.from("\n")]);
+		const b = Buffer.concat([s instanceof Buffer ? s : Buffer.from(s),Buffer.from("\n")]);
 		if (this.inPrompt)
 		{
 			this.factorio.writeStdin(b);
@@ -942,7 +942,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		}
 		else
 		{
-			let p = new Promise<boolean>((resolve)=>
+			const p = new Promise<boolean>((resolve)=>
 			this.stdinQueue.push({buffer:b,resolve:resolve,consumed:consumed,token:token}));
 			return p;
 		}
@@ -1172,7 +1172,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 							//TODO: mount it fast enough to actually read dirname inside
 							vscode.commands.executeCommand("zipexplorer.exploreZipFile", zipuri);
 
-							let zipinside = vscode.Uri.joinPath(zipuri,module.name+"_"+module.version).with({scheme: "zip"});
+							const zipinside = vscode.Uri.joinPath(zipuri,module.name+"_"+module.version).with({scheme: "zip"});
 							module.symbolFilePath = zipinside.toString();
 							module.symbolStatus = "Loaded Zip";
 							FactorioModDebugSession.output.appendLine(`loaded ${module.name} ${module.version} from mod zip ${zipuri.toString()}`);
@@ -1196,7 +1196,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 
 	updateBreakpoints(updateAll:boolean = false) {
-		let changes = Array<Buffer>();
+		const changes = Array<Buffer>();
 
 		this.breakPoints.forEach((breakpoints:DebugProtocol.SourceBreakpoint[], filename:string) => {
 			if (updateAll || this.breakPointsChanged.has(filename))

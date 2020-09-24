@@ -16,7 +16,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('factoriomod', provider));
 
 	// debug adapters can be run in different ways by using a vscode.DebugAdapterDescriptorFactory:
-	let factory = new InlineDebugAdapterFactory(context);
+	const factory = new InlineDebugAdapterFactory(context);
 
 	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('factoriomod', factory));
 	context.subscriptions.push(factory);
@@ -66,7 +66,7 @@ export function activate(context: vscode.ExtensionContext) {
 			{scheme:"file", language:"factorio-locale"}, new LocaleDocumentSymbolProvider()));
 
 	if (vscode.workspace.workspaceFolders) {
-		let treeDataProvider = new ModsTreeDataProvider(context);
+		const treeDataProvider = new ModsTreeDataProvider(context);
 		const view = vscode.window.createTreeView('factoriomods', { treeDataProvider: treeDataProvider });
 		context.subscriptions.push(view);
 	}
@@ -129,7 +129,7 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 		// factorio path exists and is a file (and is a binary?)
 
 		if (!config.factorioPath) {
-			let factorioPath = await vscode.window.showOpenDialog({
+			const factorioPath = await vscode.window.showOpenDialog({
 				canSelectFiles: true,
 				canSelectFolders: false,
 				openLabel: "Select Factorio binary",
@@ -328,13 +328,7 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 }
 
 class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
-
-	private readonly context: vscode.ExtensionContext;
-
-	constructor(context: vscode.ExtensionContext)
-	{
-		this.context = context;
-	}
+	constructor(private readonly context: vscode.ExtensionContext) {}
 
 	createDebugAdapterDescriptor(_session: vscode.DebugSession): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
 		const fmds = new FactorioModDebugSession();

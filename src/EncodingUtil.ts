@@ -73,7 +73,7 @@ function encodeVarInt(val:number) : Buffer {
 		startshift = 30;
 	}
 
-	let buff = Buffer.alloc(bsize);
+	const buff = Buffer.alloc(bsize);
 	// eslint-disable-next-line no-bitwise
 	buff[0] = (prefix|((val>>startshift)&firstmask));
 	for (let shift = startshift-6, i=1; shift >= 0; shift -= 6, i++) {
@@ -91,9 +91,9 @@ function encodeString(strval:string)
 }
 
 function encodeBreakpoint(bp: DebugProtocol.SourceBreakpoint) : Buffer {
-	let linebuff = encodeVarInt(bp.line);
+	const linebuff = encodeVarInt(bp.line);
 	let hasExtra = 0;
-	let extras = new Array<Buffer>();
+	const extras = new Array<Buffer>();
 
 	if (bp.condition)
 	{
@@ -130,22 +130,22 @@ export function encodeBreakpoints(filename:string,breaks:DebugProtocol.SourceBre
 	}
 	else if (plainbps.length === 10)
 	{
-		let countbuff = Buffer.from([0xfe]);
+		const countbuff = Buffer.from([0xfe]);
 		plainbuff = Buffer.concat([countbuff,Buffer.concat(plainbps.map(line => encodeVarInt(line)))]);
 	}
 	else if (plainbps.length === 26)
 	{
-		let countbuff = Buffer.from([0xfd]);
+		const countbuff = Buffer.from([0xfd]);
 		plainbuff = Buffer.concat([countbuff,Buffer.concat(plainbps.map(line => encodeVarInt(line)))]);
 	}
 	else if (plainbps.length === 13)
 	{
-		let countbuff = Buffer.from([0xfc]);
+		const countbuff = Buffer.from([0xfc]);
 		plainbuff = Buffer.concat([countbuff,Buffer.concat(plainbps.map(line => encodeVarInt(line)))]);
 	}
 	else
 	{
-		let countbuff = Buffer.from([plainbps.length]);
+		const countbuff = Buffer.from([plainbps.length]);
 		plainbuff = Buffer.concat([countbuff,Buffer.concat(plainbps.map(line => encodeVarInt(line)))]);
 	}
 
@@ -157,22 +157,22 @@ export function encodeBreakpoints(filename:string,breaks:DebugProtocol.SourceBre
 	}
 	else if (complexbps.length === 10)
 	{
-		let countbuff = Buffer.from([0xfe]);
+		const countbuff = Buffer.from([0xfe]);
 		complexbuff = Buffer.concat([countbuff,Buffer.concat(complexbps.map(bp => encodeBreakpoint(bp)))]);
 	}
 	else if (complexbps.length === 26)
 	{
-		let countbuff = Buffer.from([0xfd]);
+		const countbuff = Buffer.from([0xfd]);
 		complexbuff = Buffer.concat([countbuff,Buffer.concat(complexbps.map(bp => encodeBreakpoint(bp)))]);
 	}
 	else if (complexbps.length === 13)
 	{
-		let countbuff = Buffer.from([0xfc]);
+		const countbuff = Buffer.from([0xfc]);
 		complexbuff = Buffer.concat([countbuff,Buffer.concat(complexbps.map(bp => encodeBreakpoint(bp)))]);
 	}
 	else
 	{
-		let countbuff = Buffer.from([complexbps.length]);
+		const countbuff = Buffer.from([complexbps.length]);
 		complexbuff = Buffer.concat([countbuff,Buffer.concat(complexbps.map(bp => encodeBreakpoint(bp)))]);
 	}
 

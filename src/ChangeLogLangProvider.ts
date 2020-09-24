@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 export async function validateChangelogTxt(document: vscode.Uri|vscode.TextDocument): Promise<vscode.Diagnostic[]> {
 	const changelog = (document instanceof vscode.Uri ?
 		(await vscode.workspace.fs.readFile(document)).toString().replace(/^\uFEFF/, '') : document.getText()).split(/\r?\n/);
-	let diags: vscode.Diagnostic[] = [];
+	const diags: vscode.Diagnostic[] = [];
 	let seenStart = false;
 	let seenStartLast = false;
 	let seenDate = false;
@@ -157,7 +157,7 @@ export class ChangelogCodeActionProvider implements vscode.CodeActionProvider {
 				switch (diag.code) {
 					case "separator.fixlength":
 						{
-							let ca = new vscode.CodeAction("Fix separator Length", vscode.CodeActionKind.QuickFix.append("separator").append("fixlength"));
+							const ca = new vscode.CodeAction("Fix separator Length", vscode.CodeActionKind.QuickFix.append("separator").append("fixlength"));
 							ca.diagnostics = [diag];
 							ca.edit = new vscode.WorkspaceEdit();
 							ca.edit.set(document.uri, [
@@ -167,7 +167,7 @@ export class ChangelogCodeActionProvider implements vscode.CodeActionProvider {
 						}
 					case "separator.insert":
 						{
-							let ca = new vscode.CodeAction("Insert separator", vscode.CodeActionKind.QuickFix.append("separator").append("insert"));
+							const ca = new vscode.CodeAction("Insert separator", vscode.CodeActionKind.QuickFix.append("separator").append("insert"));
 							ca.diagnostics = [diag];
 							ca.edit = new vscode.WorkspaceEdit();
 							ca.edit.set(document.uri, [
@@ -177,7 +177,7 @@ export class ChangelogCodeActionProvider implements vscode.CodeActionProvider {
 						}
 					case "separator.remove":
 						{
-							let ca = new vscode.CodeAction("Remove separator", vscode.CodeActionKind.QuickFix.append("separator").append("remove"));
+							const ca = new vscode.CodeAction("Remove separator", vscode.CodeActionKind.QuickFix.append("separator").append("remove"));
 							ca.diagnostics = [diag];
 							ca.edit = new vscode.WorkspaceEdit();
 							ca.edit.set(document.uri, [
@@ -187,7 +187,7 @@ export class ChangelogCodeActionProvider implements vscode.CodeActionProvider {
 						}
 					case "version.insert":
 						{
-							let ca = new vscode.CodeAction("Insert version", vscode.CodeActionKind.QuickFix.append("version").append("insert"));
+							const ca = new vscode.CodeAction("Insert version", vscode.CodeActionKind.QuickFix.append("version").append("insert"));
 							ca.diagnostics = [diag];
 							ca.edit = new vscode.WorkspaceEdit();
 							ca.edit.set(document.uri, [
@@ -197,7 +197,7 @@ export class ChangelogCodeActionProvider implements vscode.CodeActionProvider {
 						}
 					case "version.numbers":
 						{
-							let ca = new vscode.CodeAction("Insert version", vscode.CodeActionKind.QuickFix.append("version").append("numbers"));
+							const ca = new vscode.CodeAction("Insert version", vscode.CodeActionKind.QuickFix.append("version").append("numbers"));
 							ca.diagnostics = [diag];
 							ca.edit = new vscode.WorkspaceEdit();
 							ca.edit.set(document.uri, [
@@ -207,7 +207,7 @@ export class ChangelogCodeActionProvider implements vscode.CodeActionProvider {
 						}
 					case "category.fixend":
 						{
-							let ca = new vscode.CodeAction("Insert :", vscode.CodeActionKind.QuickFix.append("category").append("fixend"));
+							const ca = new vscode.CodeAction("Insert :", vscode.CodeActionKind.QuickFix.append("category").append("fixend"));
 							ca.diagnostics = [diag];
 							ca.edit = new vscode.WorkspaceEdit();
 							ca.edit.set(document.uri, [
@@ -217,7 +217,7 @@ export class ChangelogCodeActionProvider implements vscode.CodeActionProvider {
 						}
 					case "category.insert":
 						{
-							let ca = new vscode.CodeAction("Insert category", vscode.CodeActionKind.QuickFix.append("category").append("insert"));
+							const ca = new vscode.CodeAction("Insert category", vscode.CodeActionKind.QuickFix.append("category").append("insert"));
 							ca.diagnostics = [diag];
 							ca.edit = new vscode.WorkspaceEdit();
 							ca.edit.set(document.uri, [
@@ -235,7 +235,7 @@ export class ChangelogCodeActionProvider implements vscode.CodeActionProvider {
 }
 export class ChangelogDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
 	public provideDocumentSymbols(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.DocumentSymbol[] {
-		let symbols: vscode.DocumentSymbol[] = [];
+		const symbols: vscode.DocumentSymbol[] = [];
 		let version: vscode.DocumentSymbol | undefined;
 		let category: vscode.DocumentSymbol | undefined;
 		let line: vscode.DocumentSymbol | undefined;

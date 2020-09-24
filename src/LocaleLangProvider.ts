@@ -96,7 +96,7 @@ export async function validateLocale(document: vscode.Uri|vscode.TextDocument): 
 }
 
 export class LocaleColorProvider implements vscode.DocumentColorProvider {
-	constColors = new Map([
+	private readonly constColors = new Map([
 		["default", new vscode.Color(1.000, 0.630, 0.259, 1)],
 		["red", new vscode.Color(1.000, 0.166, 0.141, 1)],
 		["green", new vscode.Color(0.173, 0.824, 0.250, 1)],
@@ -112,19 +112,19 @@ export class LocaleColorProvider implements vscode.DocumentColorProvider {
 		["cyan", new vscode.Color(0.335, 0.918, 0.866, 1)],
 		["acid", new vscode.Color(0.708, 0.996, 0.134, 1)]
 	]);
-	colorFromString(str: string): vscode.Color | undefined {
+	private colorFromString(str: string): vscode.Color | undefined {
 		// color name from utility constants
 		if (this.constColors.has(str))
 			{return this.constColors.get(str);}
 		// #rrggbb or #rrggbbaa
 		if (str.startsWith("#")) {
-			let matches = str.match(/#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})?/);
+			const matches = str.match(/#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})?/);
 			if (matches) {
 				return new vscode.Color(parseInt(matches[1], 16) / 255, parseInt(matches[2], 16) / 255, parseInt(matches[3], 16) / 255, matches[4] ? parseInt(matches[4], 16) / 255 : 1);
 			}
 		}
 		// r,g,b as int 1-255 or float 0-1
-		let matches = str.match(/\s*(\d+(?:\.\d+)?)\s*,?\s*(\d+(?:\.\d+)?)\s*,?\s*(\d+(?:\.\d+)?)(?:\s*,?\s*(\d+(?:\.\d+)?))?\s*/);
+		const matches = str.match(/\s*(\d+(?:\.\d+)?)\s*,?\s*(\d+(?:\.\d+)?)\s*,?\s*(\d+(?:\.\d+)?)(?:\s*,?\s*(\d+(?:\.\d+)?))?\s*/);
 		if (matches) {
 			let r = parseFloat(matches[1]);
 			let g = parseFloat(matches[2]);
@@ -149,7 +149,7 @@ export class LocaleColorProvider implements vscode.DocumentColorProvider {
 
 		return undefined;
 	}
-	padHex(i: number): string {
+	private padHex(i: number): string {
 		let hex = Math.floor(i).toString(16);
 		if (hex.length < 2) {
 			hex = "0" + hex;
@@ -157,11 +157,11 @@ export class LocaleColorProvider implements vscode.DocumentColorProvider {
 		return hex;
 	}
 
-	roundTo(f:number,places:number):number {
+	private roundTo(f:number,places:number):number {
 		return Math.round(f*Math.pow(10,places))/Math.pow(10,places);
 	}
-	colorToStrings(color: vscode.Color): string[] {
-		let names:string[] = [];
+	private colorToStrings(color: vscode.Color): string[] {
+		const names:string[] = [];
 		for (const [constname,constcolor] of this.constColors) {
 			if (Math.abs(constcolor.red-color.red) < 0.004 &&
 				Math.abs(constcolor.green-color.green) < 0.004 &&
@@ -189,10 +189,10 @@ export class LocaleColorProvider implements vscode.DocumentColorProvider {
 		return names;
 	}
 	public provideDocumentColors(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.ColorInformation[] {
-		let colors: vscode.ColorInformation[] = [];
+		const colors: vscode.ColorInformation[] = [];
 		for (let i = 0; i < document.lineCount; i++) {
 			const element = document.lineAt(i);
-			let re = /\[color=([^\]]+)\]/g;
+			const re = /\[color=([^\]]+)\]/g;
 			let matches = re.exec(element.text);
 			while (matches) {
 				//if (matches[1])
@@ -212,7 +212,7 @@ export class LocaleColorProvider implements vscode.DocumentColorProvider {
 		range: vscode.Range
 	}, token: vscode.CancellationToken): vscode.ColorPresentation[] {
 		return this.colorToStrings(color).map(colorstring=>{
-			let p = new vscode.ColorPresentation(colorstring);
+			const p = new vscode.ColorPresentation(colorstring);
 			p.textEdit = new vscode.TextEdit(context.range, colorstring);
 			return p;
 		});
@@ -220,7 +220,7 @@ export class LocaleColorProvider implements vscode.DocumentColorProvider {
 }
 export class LocaleDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
 	public provideDocumentSymbols(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.DocumentSymbol[] {
-		let symbols: vscode.DocumentSymbol[] = [];
+		const symbols: vscode.DocumentSymbol[] = [];
 		let category: vscode.DocumentSymbol | undefined;
 		for (let i = 0; i < document.lineCount; i++) {
 			const element = document.lineAt(i);
@@ -233,9 +233,9 @@ export class LocaleDocumentSymbolProvider implements vscode.DocumentSymbolProvid
 				// nothing to do for comments...
 			}
 			else {
-				let matches = element.text.match(/^([^=]+)=(.+)$/);
+				const matches = element.text.match(/^([^=]+)=(.+)$/);
 				if (matches) {
-					let s = new vscode.DocumentSymbol(matches[1], matches[2], vscode.SymbolKind.String, element.range, new vscode.Range(element.range.start, element.range.start.translate(0, matches[2].length)));
+					const s = new vscode.DocumentSymbol(matches[1], matches[2], vscode.SymbolKind.String, element.range, new vscode.Range(element.range.start, element.range.start.translate(0, matches[2].length)));
 					if (category) {
 						category.children.push(s);
 						category.range = category.range.union(element.range);

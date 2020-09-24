@@ -25,14 +25,7 @@ profile data
 */
 
 class TimerAndCount {
-	readonly timer:number = 0;
-	readonly count:number = 0;
-
-	constructor(timer:number,count:number)
-	{
-		this.timer = timer;
-		this.count = count;
-	}
+	constructor(public readonly timer:number = 0,public readonly count:number = 0) {}
 
 	public add(other:TimerAndCount|undefined):TimerAndCount
 	{
@@ -67,7 +60,7 @@ class ProfileFileData {
 
 	max()
 	{
-		let max = {
+		const max = {
 			func: {timer:0.0,count:0,average:0.0},
 			line: {timer:0.0,count:0,average:0.0},
 		};
@@ -93,19 +86,13 @@ class ProfileModData {
 }
 
 class ProfileTreeNode {
-	readonly name:string;	// modname or file:line
-	value:number;	// time
 	readonly children:ProfileTreeNode[] = [];
-	readonly filename?:string;
-	readonly line?:number;
 
-	constructor(name:string,value:number,parent?:ProfileTreeNode,filename?:string,line?:number)
-	{
-		this.name = name;
-		this.value = value;
-		this.filename = filename;
-		this.line = line;
-	}
+	constructor(
+		public readonly name:string,	// modname or file:line
+		public value:number,			// time
+		public readonly filename?:string,
+		public readonly line?:number) {}
 
 	private ToStringInner(pad:string):string
 	{
@@ -126,7 +113,7 @@ class ProfileTreeNode {
 		}
 		else
 		{
-			childnode = new ProfileTreeNode(name,value,this,filename,line);
+			childnode = new ProfileTreeNode(name,value,filename,line);
 			this.children.push(childnode);
 		}
 		return childnode;
@@ -151,7 +138,7 @@ class ProfileTreeNode {
 
 class ProfileData {
 	private totalTime:number = 0;
-	private mod = new Map<string,ProfileModData>();
+	private readonly mod = new Map<string,ProfileModData>();
 
 	private getMod(modname:string)
 	{
@@ -186,7 +173,7 @@ class ProfileData {
 	{
 		const file = this.getFile(modname,filename);
 		const change = new TimerAndCount(time,count);
-		let linedata = file.lines.get(line);
+		const linedata = file.lines.get(line);
 		file.lines.set(line,change.add(linedata));
 	}
 
@@ -194,7 +181,7 @@ class ProfileData {
 	{
 		const file = this.getFile(modname,filename);
 		const change = new TimerAndCount(time,count);
-		let funcdata = file.functions.get(linedefined);
+		const funcdata = file.functions.get(linedefined);
 		file.functions.set(linedefined,change.add(funcdata));
 	}
 
@@ -203,10 +190,10 @@ class ProfileData {
 	Report(filename:string)
 	{
 
-		let filedata = new ProfileFileData();
+		const filedata = new ProfileFileData();
 
 		this.mod.forEach(mod=>{
-			let file = mod.file.get(filename);
+			const file = mod.file.get(filename);
 			if (file)
 			{
 				filedata.add(file);
@@ -230,10 +217,8 @@ class ProfileData {
 
 
 export class Profile extends EventEmitter implements vscode.Disposable  {
-	private readonly context: vscode.ExtensionContext;
-
-	private profileData = new ProfileData();
-	private profileTreeRoot = new ProfileTreeNode("root",0);
+	private readonly profileData = new ProfileData();
+	private readonly profileTreeRoot = new ProfileTreeNode("root",0);
 
 	private profileOverhead = new TimerAndCount(0,0);
 	private timeDecorationType: vscode.TextEditorDecorationType;
@@ -242,10 +227,9 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 	private statusBar: vscode.StatusBarItem;
 	private flamePanel?: vscode.WebviewPanel;
 
-	constructor(withTree:boolean, context: vscode.ExtensionContext)
+	constructor(withTree:boolean, private readonly context: vscode.ExtensionContext)
 	{
 		super();
-		this.context = context;
 		this.timeDecorationType = vscode.window.createTextEditorDecorationType({
 			before: {
 				contentText:"",
@@ -262,7 +246,7 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 			},
 		});
 
-		let rulers = vscode.workspace.getConfiguration().get<{color?:string;themeColor?:string;threshold:number;lane?:string}[]>("factorio.profile.rulers",[]);
+		const rulers = vscode.workspace.getConfiguration().get<{color?:string;themeColor?:string;threshold:number;lane?:string}[]>("factorio.profile.rulers",[]);
 		this.rulerDecorationTypes = rulers.filter(ruler=>{return ruler.color || ruler.themeColor;}).map(ruler=>{
 			let lane = vscode.OverviewRulerLane.Right;
 			switch (ruler.lane) {
@@ -354,7 +338,7 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 		const lines = profile.split("\n");
 		let currmod:string;
 		let currfile:string;
-		let profileTreeStack = [new ProfileTreeNode("root",0)];
+		const profileTreeStack = [new ProfileTreeNode("root",0)];
 		let currnode:ProfileTreeNode|undefined;
 		lines.forEach(line => {
 			const parts = line.split(":");
@@ -445,9 +429,9 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 		const maxavg = reportmax.line.average;
 		const maxcount = reportmax.line.count;
 
-		let linedecs = new Array<vscode.DecorationOptions>();
-		let funcdecs = new Array<vscode.DecorationOptions>();
-		let rulerthresholds = this.rulerDecorationTypes.map((ruler,i)=>{
+		const linedecs = new Array<vscode.DecorationOptions>();
+		const funcdecs = new Array<vscode.DecorationOptions>();
+		const rulerthresholds = this.rulerDecorationTypes.map((ruler,i)=>{
 			return {
 				type: ruler.type,
 				threshold: ruler.threshold,
@@ -497,7 +481,7 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 						}
 
 					});
-					let ruler = rulerthresholds.find(ruler=>{return t >= ruler.threshold;});
+					const ruler = rulerthresholds.find(ruler=>{return t >= ruler.threshold;});
 					if (ruler)
 					{
 						ruler.decs.push({

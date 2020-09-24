@@ -8,7 +8,7 @@ export class BufferSplitter extends EventEmitter
 {
 	//private instream:Readable;
 	private buf:Buffer;
-	private matchers:SplitMatcher[];
+	private readonly matchers:SplitMatcher[];
 	constructor(instream:Readable,matchers:Buffer|(SplitMatcher)[])
 	{
 		super();
@@ -26,8 +26,8 @@ export class BufferSplitter extends EventEmitter
 
 			while(this.buf.length > 0)
 			{
-				let indexes = this.matchers.map(m => this.buf.indexOf(m instanceof Buffer?m:m.start));
-				let index = indexes.reduce((a,b)=> a===-1?b:(b===-1?a:Math.min(a,b)));
+				const indexes = this.matchers.map(m => this.buf.indexOf(m instanceof Buffer?m:m.start));
+				const index = indexes.reduce((a,b)=> a===-1?b:(b===-1?a:Math.min(a,b)));
 				if (index !== -1)
 				{
 					const match = this.matchers[indexes.indexOf(index)];
