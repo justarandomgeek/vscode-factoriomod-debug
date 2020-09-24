@@ -7,6 +7,7 @@
 * Branch name configuration for Publish was not correctly applied
 * Timeout on queued stdin commands configurable, raised default to 2s
 * Restrict tasks to operate only on the latest version of a mod
+* Support `~` in launch.json path options
 
 ## 0.18.40
 

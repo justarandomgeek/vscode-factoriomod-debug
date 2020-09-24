@@ -146,6 +146,10 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 		if(!config.factorioPath){
 			vscode.window.showInformationMessage("factorioPath is required");
 			return undefined;	// abort launch
+		} else if (config.factorioPath.match(/^~[\\\/]/)){
+			config.factorioPath = path.posix.join(
+				os.homedir().replace(/\\/g,"/"),
+				config.factorioPath.replace(/^~[\\\/]/,"") );
 		}
 		if(!fs.existsSync(config.factorioPath) ){
 			vscode.window.showInformationMessage(`factorioPath "${config.factorioPath}" does not exist`);
@@ -183,6 +187,10 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 				config.configPath = translatePath("__PATH__system-write-data__/config/config.ini",config.factorioPath);
 			}
 			config.configPathDetected = true;
+		} else if (config.configPath.match(/^~[\\\/]/)){
+			config.configPath = path.posix.join(
+				os.homedir().replace(/\\/g,"/"),
+				config.configPath.replace(/^~[\\\/]/,"") );
 		}
 
 		if (!fs.existsSync(config.configPath))
@@ -232,7 +240,12 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 		{
 			config.modsPathSource = "launch";
 			let modspath = path.posix.normalize(config.modsPath);
-			if (modspath.endsWith("/") || modspath.endsWith("\\"))
+			if (modspath.match(/^~[\\\/]/)){
+				modspath = path.posix.join(
+					os.homedir().replace(/\\/g,"/"),
+					modspath.replace(/^~[\\\/]/,"") );
+			}
+			if (modspath.match(/[\\\/]$/))
 			{
 				modspath = modspath.replace(/[\\\/]+$/,"");
 			}
