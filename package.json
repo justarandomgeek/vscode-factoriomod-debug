@@ -547,15 +547,28 @@
               "trace": {
                 "type": "boolean",
                 "description": "Enable logging of the Debug Adapter Protocol.",
-                "default": false
+                "default": false,
+                "examples":[
+                  true
+                ]
               },
               "factorioPath": {
                 "type": "string",
-                "description": "Path to Factorio binary."
+                "description": "Path to Factorio binary.",
+                "examples":[
+                  "C:/Program Files (x86)/Steam/steamapps/common/Factorio/bin/x64/factorio.exe",
+                  "C:/Program Files/Factorio/bin/x64/factorio.exe",
+                  "~/Library/Application Support/Steam/steamapps/common/Factorio/factorio.app/Contents/MacOS/factorio",
+                  "/Applications/factorio.app/Contents/MacOS/factorio",
+                  "~/.factorio/bin/x64/factorio"
+                ]
               },
               "nativeDebugger": {
                 "type": "string",
-                "description": "Native debugger to launch factorio with"
+                "description": "Native debugger to launch factorio with",
+                "examples":[
+                  "vsjitdebugger.exe"
+                ]
               },
               "configPath": {
                 "type": "string",
@@ -578,7 +591,11 @@
               "factorioArgs": {
                 "type": "array",
                 "items": {
-                  "type": "string"
+                  "type": "string",
+                  "examples":[
+                    "--load-scenario",
+                    "--disable-migration-window"
+                  ]
                 },
                 "default": [],
                 "description": "Extra command line arguments to pass to Factorio"
@@ -709,17 +726,17 @@
               "type": "factoriomod",
               "request": "launch",
               "name": "Factorio Mod Debug",
-              "factorioPath": ""
+              "factorioPath": "$0"
             }
           },
           {
             "label": "Factorio Mod Debug: Profile",
-            "description": "A new configuration for debugging Factorio mods.",
+            "description": "A new configuration for profiling Factorio mods.",
             "body": {
               "type": "factoriomod",
               "request": "launch",
               "name": "Factorio Mod Debug (Profile)",
-              "factorioPath": "",
+              "factorioPath": "$0",
               "hookMode": "profile"
             }
           }
