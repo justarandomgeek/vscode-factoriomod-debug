@@ -405,7 +405,11 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 				case "PTEND":
 					if (currnode)
 					{
-						currnode = profileTreeStack.pop();
+						if (profileTreeStack.length === 1){
+							currnode = undefined;
+						} else {
+							currnode = profileTreeStack.pop();
+						}
 					}
 					break;
 			}

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.42
+
+* Fix flamegraph not building trees correctly
+
 ## 0.18.41
 
 * Debug console supports `__modname__` prefix while in break
