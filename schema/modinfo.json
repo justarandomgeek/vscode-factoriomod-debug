@@ -40,6 +40,10 @@
               "type":"object",
               "description": "Additional scripts to run while packaging/publishing mods",
               "properties": {
+                "compile": {
+                  "type":"string",
+                  "description": "Command to run before debugging or packaging."
+                },
                 "prepublish": {
                   "type":"string",
                   "description": "Command to run while preparing the pre-publish commit. Files added to git during this command will be included in that commit."
@@ -59,6 +63,10 @@
                 "publish": {
                   "type":"string",
                   "description": "Command to run while preparing the post-publish commit, after incrementing the version. Files added to git during this command will be included in that commit."
+                },
+                "postpublish": {
+                  "type":"string",
+                  "description": "Command to run after automatic uploads."
                 }
               }
             }

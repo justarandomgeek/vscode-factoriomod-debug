@@ -90,6 +90,8 @@ All-in-one command.
   * commit "moved to version x.y.z"
   * push to git upstream, unless `info.json#/package/no_git_push` is set
   * upload to mod portal, unless `info.json#/package/no_portal_upload` is set
+  * run `info.json#/package/scripts/postpublish` if set, with extra environment variable `FACTORIO_MODPACKAGE` with the filename of the built zip.
+  * remove zip if `factorio.package.removeZipAfterPublish` is set
 
 ## JSON Validation
 

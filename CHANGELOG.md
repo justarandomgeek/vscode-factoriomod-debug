@@ -4,6 +4,8 @@
 
 * Fix flamegraph not building trees correctly
 * Configuration options for various extra diagnostics
+* `postpublish` task
+* Open Changelog command in packages view
 
 ## 0.18.41
 

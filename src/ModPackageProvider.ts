@@ -18,6 +18,7 @@ interface ModPackageScripts {
 	version?: string
 	prepublish?: string
 	publish?: string
+	postpublish?: string
 };
 
 export interface ModInfo {
@@ -112,7 +113,6 @@ export class ModTaskProvider implements vscode.TaskProvider{
 				modpackage.PublishTask(),
 				[]
 			));
-
 		};
 
 		return tasks;
@@ -347,7 +347,7 @@ export class ModPackage extends vscode.TreeItem {
 		});
 	}
 
-	private async DateStampChangelog(term:ModTaskTerminal): Promise<boolean>
+	private async DateStampChangelog(term:ModTaskTerminal): Promise<boolean|number>
 	{
 		const moddir = path.dirname(this.resourceUri.fsPath);
 		const changelogpath = path.join(moddir, "changelog.txt");
@@ -378,8 +378,9 @@ export class ModPackage extends vscode.TreeItem {
 				term.write(`No Changelog section for ${this.description}\r\n`);
 			}
 			if (this.scripts?.datestamp) {
-				await runScript(term, "datestamp", this.scripts.datestamp, moddir,
+				const code = await runScript(term, "datestamp", this.scripts.datestamp, moddir,
 					{ FACTORIO_MODNAME:this.label, FACTORIO_MODVERSION:this.description });
+				if (code !== 0){ return code; }
 			}
 			return true;
 		}
@@ -387,8 +388,9 @@ export class ModPackage extends vscode.TreeItem {
 		{
 			term.write(`No Changelog found\r\n`);
 			if (this.scripts?.datestamp) {
-				await runScript(term, "datestamp", this.scripts.datestamp, moddir,
+				const code = await runScript(term, "datestamp", this.scripts.datestamp, moddir,
 					{ FACTORIO_MODNAME:this.label, FACTORIO_MODVERSION:this.description });
+				if (code !== 0){ return code; }
 			}
 			return false;
 		}
@@ -682,6 +684,7 @@ export class ModPackage extends vscode.TreeItem {
 		}
 
 		const haschangelog = await this.DateStampChangelog(term);
+		if (typeof haschangelog === "number") {return;}
 
 		let tagname:string;
 		if (repo)
@@ -740,14 +743,20 @@ export class ModPackage extends vscode.TreeItem {
 				}
 			}
 		}
-		if(!this.noPortalUpload)
-			{
-				if(await this.PostToPortal(packagepath, packageversion, term) &&
-					config.get<boolean>("factorio.package.removeZipAfterPublish",false))
-				{
-					fs.unlinkSync(packagepath);
-				}
-			}
+		if(!this.noPortalUpload && ! await this.PostToPortal(packagepath, packageversion, term))
+		{
+			return;
+		}
+
+		if(this.scripts?.postpublish)
+		{
+			const code = await runScript(term, "postpublish", this.scripts.postpublish, moddir, { FACTORIO_MODNAME:this.label, FACTORIO_MODVERSION:packageversion, FACTORIO_MODPACKAGE:packagepath });
+			if (code !== 0) {return;}
+		}
+		if (config.get<boolean>("factorio.package.removeZipAfterPublish",false))
+		{
+			fs.unlinkSync(packagepath);
+		}
 	}
 
 	public PublishTask(): vscode.CustomExecution
@@ -778,6 +787,22 @@ export class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.Tree
 		subscriptions.push(infoWatcher);
 
 		context.subscriptions.push(vscode.tasks.registerTaskProvider("factorio",new ModTaskProvider(context, this.modPackages)));
+
+		context.subscriptions.push(
+			vscode.commands.registerCommand("factorio.openchangelog",async (mp:ModPackage) => {
+				try {
+					vscode.window.showTextDocument(vscode.Uri.joinPath(mp.resourceUri,"../changelog.txt"));
+				} catch (error) {
+					vscode.window.showErrorMessage(error);
+				}
+			}));
+
+		context.subscriptions.push(
+			vscode.commands.registerCommand("factorio.compile",async (mp:ModPackage) => {
+				const compiletask = (await vscode.tasks.fetchTasks({type:"factorio"})).find(t=>
+					t.definition.command = "compile" && t.definition.modname === mp.label)!;
+				await vscode.tasks.executeTask(compiletask);
+			}));
 
 		context.subscriptions.push(
 			vscode.commands.registerCommand("factorio.datestamp",async (mp:ModPackage) => {
@@ -845,7 +870,7 @@ export class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.Tree
 	getTreeItem(element: vscode.TreeItem): vscode.TreeItem | Thenable<vscode.TreeItem> {
 		return element;
 	}
-	getChildren(element?: vscode.TreeItem | undefined): vscode.ProviderResult<vscode.TreeItem[]> {
+	async getChildren(element?: vscode.TreeItem | undefined): Promise<vscode.TreeItem[]> {
 		if (!element) {
 			const items: vscode.TreeItem[] = [];
 			if (this.modPackages) {
@@ -853,7 +878,16 @@ export class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.Tree
 				for (const modscript of this.modPackages.values()) {
 					if (latest.has(modscript)) {
 						items.push(modscript);
-						modscript.contextValue = "latest";
+						const context = ["latest"];
+						if (modscript.scripts?.compile){
+							context.push("hascompile");
+						}
+						try {
+							await vscode.workspace.fs.stat(vscode.Uri.joinPath(modscript.resourceUri,"../changelog.txt"));
+							context.push("haschangelog");
+						} catch (error) {}
+
+						modscript.contextValue = context.join(" ");
 						modscript.collapsibleState = (()=>{
 							for (const other of this.modPackages.values()) {
 								if (modscript.label === other.label && !latest.has(other)){

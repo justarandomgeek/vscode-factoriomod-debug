@@ -67,6 +67,8 @@
   "activationEvents": [
     "onDebug",
     "onCommand:workbench.action.tasks.runTask",
+    "onCommand:factorio.openchangelog",
+    "onCommand:factorio.compile",
     "onCommand:factorio.datestamp",
     "onCommand:factorio.package",
     "onCommand:factorio.version",
@@ -310,6 +312,17 @@
     ],
     "commands": [
       {
+        "command": "factorio.openchangelog",
+        "category": "Factorio",
+        "title": "Open Changelog",
+        "icon": "$(versions)"
+      },
+      {
+        "command": "factorio.compile",
+        "category": "Factorio",
+        "title": "Compile"
+      },
+      {
         "command": "factorio.datestamp",
         "category": "Factorio",
         "title": "Datestamp Changelog",
@@ -353,6 +366,14 @@
     "menus": {
       "commandPalette": [
         {
+          "command": "factorio.openchangelog",
+          "when": "false"
+        },
+        {
+          "command": "factorio.compile",
+          "when": "false"
+        },
+        {
           "command": "factorio.datestamp",
           "when": "false"
         },
@@ -375,54 +396,69 @@
       ],
       "view/item/context": [
         {
+          "command": "factorio.openchangelog",
+          "when": "view == factoriomods && viewItem =~ /haschangelog/",
+          "group": "1_info@1"
+        },
+        {
+          "command": "factorio.compile",
+          "when": "view == factoriomods && viewItem =~ /hascompile/",
+          "group": "2_basic@1"
+        },
+        {
           "command": "factorio.datestamp",
-          "when": "view == factoriomods && viewItem == latest",
-          "group": "basic@1"
+          "when": "view == factoriomods && viewItem =~ /latest/ && viewItem =~ /haschangelog/",
+          "group": "2_basic@2"
         },
         {
           "command": "factorio.package",
-          "when": "view == factoriomods && viewItem == latest",
-          "group": "basic@2"
+          "when": "view == factoriomods && viewItem =~ /latest/",
+          "group": "2_basic@3"
         },
         {
           "command": "factorio.version",
-          "when": "view == factoriomods && viewItem == latest",
-          "group": "basic@3"
+          "when": "view == factoriomods && viewItem =~ /latest/",
+          "group": "2_basic@4"
         },
         {
           "command": "factorio.upload",
-          "when": "view == factoriomods && viewItem == latest",
-          "group": "basic@4"
+          "when": "view == factoriomods && viewItem =~ /latest/",
+          "group": "2_basic@5"
         },
         {
           "command": "factorio.publish",
-          "when": "view == factoriomods && viewItem == latest",
-          "group": "publish@1"
+          "when": "view == factoriomods && viewItem =~ /latest/",
+          "group": "3_publish@1"
         },
         {
-          "command": "factorio.datestamp",
-          "when": "view == factoriomods && viewItem == latest",
+          "command": "factorio.openchangelog",
+          "when": "view == factoriomods && viewItem =~ /haschangelog/",
           "group": "inline@1"
         },
         {
-          "command": "factorio.package",
-          "when": "view == factoriomods && viewItem == latest",
+          "command": "factorio.datestamp",
+          "when": "view == factoriomods && viewItem =~ /latest/ && viewItem =~ /haschangelog/",
           "group": "inline@2"
         },
         {
-          "command": "factorio.version",
-          "when": "view == factoriomods && viewItem == latest",
+          "command": "factorio.package",
+          "when": "view == factoriomods && viewItem =~ /latest/",
           "group": "inline@3"
         },
         {
-          "command": "factorio.upload",
-          "when": "view == factoriomods && viewItem == latest",
+          "command": "factorio.version",
+          "when": "view == factoriomods && viewItem =~ /latest/",
           "group": "inline@4"
         },
         {
-          "command": "factorio.publish",
-          "when": "view == factoriomods && viewItem == latest",
+          "command": "factorio.upload",
+          "when": "view == factoriomods && viewItem =~ /latest/",
           "group": "inline@5"
+        },
+        {
+          "command": "factorio.publish",
+          "when": "view == factoriomods && viewItem =~ /latest/",
+          "group": "inline@6"
         }
       ]
     },
