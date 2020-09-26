@@ -49,6 +49,9 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 	dataPath: string // path of `data` directory, always comes from config.ini
 	manageMod?: boolean
 	useInstrumentMode?: boolean
+	checkPrototypes?: boolean
+	checkEvents?: string[]|boolean
+	checkGlobals?: string[]|boolean
 	factorioArgs?: Array<string>
 	adjustMods?:{[key:string]:boolean|string}
 	disableExtraMods?:boolean
@@ -313,9 +316,16 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		await this.workspaceModInfoReady;
 
 		args.factorioArgs = args.factorioArgs||[];
-		if(!args.noDebug && (args.useInstrumentMode ?? true))
+		if(!args.noDebug)
 		{
-			args.factorioArgs.push("--instrument-mod","debugadapter");
+			if (args.useInstrumentMode ?? true)
+			{
+				args.factorioArgs.push("--instrument-mod","debugadapter");
+			}
+			if((args.checkPrototypes ?? true) && !args.factorioArgs.includes("--check-unused-prototype-data"))
+			{
+				args.factorioArgs.push("--check-unused-prototype-data");
+			}
 		}
 
 		if (!args.configPathDetected)
@@ -444,21 +454,21 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					this.clearQueuedStdin();
 					if (this.launchArgs.hookMode === "profile")
 					{
-						this.continueRequire(false);
+						this.continueRequire(false,"#settings");
 					}
 					else
 					{
-						this.continueRequire(this.launchArgs.hookSettings ?? false);
+						this.continueRequire(this.launchArgs.hookSettings ?? false,"#settings");
 					}
 				} else if (event === "on_instrument_data") {
 					this.clearQueuedStdin();
 					if (this.launchArgs.hookMode === "profile")
 					{
-						this.continueRequire(false);
+						this.continueRequire(false,"#data");
 					}
 					else
 					{
-						this.continueRequire(this.launchArgs.hookData ?? false);
+						this.continueRequire(this.launchArgs.hookData ?? false,"#data");
 					}
 				} else if (event.startsWith("on_instrument_control ")) {
 					this.clearQueuedStdin();
@@ -466,7 +476,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					const hookmods = this.launchArgs.hookControl ?? true;
 					const shouldhook =
 						// DA has to be specifically requested for hooks
-						modname === "debugadapter" ? typeof hookmods === "object" && hookmods.includes(modname) :
+						modname === "debugadapter" ? Array.isArray(hookmods) && hookmods.includes(modname) :
 						// everything else...
 						hookmods !== false && (hookmods === true || hookmods.includes(modname));
 					if (this.launchArgs.hookMode === "profile")
@@ -475,7 +485,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					}
 					else
 					{
-						this.continueRequire(shouldhook);
+						this.continueRequire(shouldhook,modname);
 					}
 				} else {
 					// unexpected event?
@@ -1002,7 +1012,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.inPrompt = false;
 	}
 
-	public continueRequire(shouldRequire:boolean) {
+	public continueRequire(shouldRequire:boolean,modname:string) {
 		if (!this.inPrompt)
 		{
 			if (this.launchArgs.trace) { this.sendEvent(new OutputEvent(`!! Attempted to continueRequire while not in a prompt\n`, "console")); }
@@ -1021,6 +1031,20 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			if (this.launchArgs.runningBreak !== undefined)
 			{
 				hookopts += `runningBreak=${this.launchArgs.runningBreak}`;
+			}
+			if (this.launchArgs.checkEvents !== undefined)
+			{
+				hookopts += `checkEvents=${
+					Array.isArray(this.launchArgs.checkEvents)?
+					this.launchArgs.checkEvents.includes(modname):
+					this.launchArgs.checkEvents}`;
+			}
+			if (this.launchArgs.checkGlobals !== undefined)
+			{
+				hookopts += `checkGlobals=${
+					Array.isArray(this.launchArgs.checkGlobals)?
+					this.launchArgs.checkGlobals.includes(modname):
+					this.launchArgs.checkGlobals}`;
 			}
 
 			this.writeStdin(`__DebugAdapter={${hookopts}}`);

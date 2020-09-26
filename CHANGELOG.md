@@ -3,6 +3,7 @@
 ## 0.18.42
 
 * Fix flamegraph not building trees correctly
+* Configuration options for various extra diagnostics
 
 ## 0.18.41
 

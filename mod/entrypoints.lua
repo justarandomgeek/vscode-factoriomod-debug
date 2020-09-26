@@ -161,6 +161,9 @@ local newscript = {
 
 local registered_handlers = {}
 local function check_events(f)
+  if __DebugAdapter.checkEvents == false then
+    return f
+  end
   local de = defines.events
   local groups = {
     built = {

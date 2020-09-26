@@ -602,6 +602,24 @@
                 "description": "Use Instrument Mode to hook all mods. Requires Factorio >= 0.18.10",
                 "default": true
               },
+              "checkPrototypes": {
+                "type": "boolean",
+                "description": "Add --check-unused-prototype-data to factorioArgs."
+              },
+              "checkEvents": {
+                "type": ["boolean","array"],
+                "description": "Check for complete sets of event registrations. Boolean to enable/disable for all mods, or array of mod names.",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "checkGlobals": {
+                "type": ["boolean","array"],
+                "description": "Check for assignment to undefined globals. Boolean to enable/disable for all mods, or array of mod names (`#settings` and `#data` for settings/data stage).",
+                "items": {
+                  "type": "string"
+                }
+              },
               "factorioArgs": {
                 "type": "array",
                 "items": {

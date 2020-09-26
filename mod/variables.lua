@@ -97,39 +97,41 @@ gmeta.__debugchildren = function(t,extra)
 end
 __DebugAdapter.stepIgnore(gmeta.__debugchildren)
 
-local definedGlobals = {_=true}
-function __DebugAdapter.defineGlobal(name)
-  definedGlobals[name] = true
-end
-
-local function ignore_global(k,info)
-  if definedGlobals[k] then return true end
-  if info.source:match("^@__core__") then return true end
-  if info.source:match("^@__base__") then return true end
-  return false
-end
-__DebugAdapter.stepIgnore(ignore_global)
-
-function gmeta.__newindex(t,k,v)
-  local info = debug.getinfo(2,"lS")
-  if not ignore_global(k,info) then
-    local body = {
-      category = "console",
-      output = "Assignment to undefined global: "..k.."="..variables.describe(v),
-    }
-    local istail = debug.getinfo(1,"t")
-    if istail.istailcall then
-      body.line = 1
-      body.source = "=(...tailcall...)"
-    else
-      body.line = info.currentline
-      body.source = normalizeLuaSource(info.source)
-    end
-    print("DBGprint: " .. json.encode(body))
+if __DebugAdapter.checkGlobals ~= false then
+  local definedGlobals = {_=true}
+  function __DebugAdapter.defineGlobal(name)
+    definedGlobals[name] = true
   end
-  rawset(t,k,v)
+
+  local function ignore_global(k,info)
+    if definedGlobals[k] then return true end
+    if info.source:match("^@__core__") then return true end
+    if info.source:match("^@__base__") then return true end
+    return false
+  end
+  __DebugAdapter.stepIgnore(ignore_global)
+
+  function gmeta.__newindex(t,k,v)
+    local info = debug.getinfo(2,"lS")
+    if not ignore_global(k,info) then
+      local body = {
+        category = "console",
+        output = "Assignment to undefined global: "..k.."="..variables.describe(v),
+      }
+      local istail = debug.getinfo(1,"t")
+      if istail.istailcall then
+        body.line = 1
+        body.source = "=(...tailcall...)"
+      else
+        body.line = info.currentline
+        body.source = normalizeLuaSource(info.source)
+      end
+      print("DBGprint: " .. json.encode(body))
+    end
+    rawset(t,k,v)
+  end
+  __DebugAdapter.stepIgnore(gmeta.__newindex)
 end
-__DebugAdapter.stepIgnore(gmeta.__newindex)
 
 -- variable id refs
 local nextID
