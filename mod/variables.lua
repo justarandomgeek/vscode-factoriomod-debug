@@ -245,7 +245,7 @@ function variables.tableRef(table, mode, showMeta, extra, evalName,long)
     evalName = nil
   end
   for id,varRef in pairs(refs) do
-    if varRef.type == "Table" and varRef.table == table and varRef.mode == mode and varRef.showMeta == showMeta then
+    if varRef.type == "Table" and varRef.table == table and varRef.mode == mode and varRef.showMeta == showMeta and varRef.extra == extra then
       return id
     end
   end
