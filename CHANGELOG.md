@@ -6,6 +6,7 @@
 * Configuration options for various extra diagnostics
 * `postpublish` task
 * Open Changelog command in packages view
+* Eval now correctly uses the last matching local instead of the first
 
 ## 0.18.41
 

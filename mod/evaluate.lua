@@ -86,14 +86,18 @@ local function evalmeta(frameId,alsoLookIn)
           local frame = frameId + offset
           --check for local at frameId
           i = 1
+          local islocal,localvalue
           while true do
             local name,value = getlocal(frame,i)
             if not name then break end
             if name:sub(1,1) ~= "(" then
-              if name == k then return value end
+              if name == k then
+                islocal,localvalue = true,value
+              end
             end
             i = i + 1
           end
+          if islocal then return localvalue end
 
           --check for upvalue at frameId
           local func = getinfo(frame,"f").func
@@ -152,16 +156,20 @@ local function evalmeta(frameId,alsoLookIn)
           local frame = frameId + offset
           --check for local at frameId
           i = 1
+          local localindex
           while true do
             local name = getlocal(frame,i)
             if not name then break end
             if name:sub(1,1) ~= "(" then
               if name == k then
-                debug.setlocal(frame,i,v)
-                return
+                localindex = i
               end
             end
             i = i + 1
+          end
+          if localindex then
+            debug.setlocal(frame,localindex,v)
+            return
           end
 
           --check for upvalue at frameId
