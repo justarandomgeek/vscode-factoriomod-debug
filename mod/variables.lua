@@ -876,6 +876,8 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
           i = i - 1
         end
       end
+      print("DBGsetvar: " .. json.encode({seq = seq, body = {type="error",value="invalid local name"}}))
+      return
     elseif varRef.type == "Upvalues" then
       local func = debug.getinfo(varRef.frameId,"f").func
       local i = 1
@@ -895,6 +897,8 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
         end
         i = i + 1
       end
+      print("DBGsetvar: " .. json.encode({seq = seq, body = {type="error",value="invalid upval name"}}))
+      return
     elseif varRef.type == "Table" or varRef.type == "LuaObject" then
       -- special names "[]" and others aren't valid lua so it won't parse anyway
       local goodname,newname = __DebugAdapter.evaluateInternal(nil,nil,"setvar",name)
@@ -917,6 +921,9 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
         -- also, refresh the value even if we didn't update it
         local _,resultvalue = pcall(function() return alsoLookIn[newname] end)
         print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,resultvalue)}))
+        return
+      else
+        print("DBGsetvar: " .. json.encode({seq = seq, body = {type="error",value="invalid property name"}}))
         return
       end
     end
