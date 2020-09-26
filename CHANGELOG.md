@@ -7,6 +7,7 @@
 * `postpublish` task
 * Open Changelog command in packages view
 * Eval now correctly uses the last matching local instead of the first
+* Rename shadowed locals in Variables view so they display correctly
 
 ## 0.18.41
 

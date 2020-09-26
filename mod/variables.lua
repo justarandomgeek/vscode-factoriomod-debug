@@ -500,25 +500,6 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
       local mode = varRef.mode
       local hasTemps =  false
       local i = 1
-      while true do
-        local name,value = debug.getlocal(varRef.frameId,i)
-        if not name then break end
-        local isTemp = name:sub(1,1) == "("
-        if isTemp then hasTemps = true end
-        if (mode == "temps" and isTemp) or (not mode and not isTemp) then
-          local evalName
-          if isTemp then
-            name = ("%s %d)"):format(name:sub(1,-2),i)
-          else
-            evalName = name
-          end
-          vars[#vars + 1] = variables.create(name,value,evalName)
-        end
-        i = i + 1
-      end
-      if not mode and hasTemps then
-        table.insert(vars,1,{ name = "<temporaries>", value = "<temporaries>", variablesReference = variables.scopeRef(varRef.frameId,"Locals","temps") })
-      end
 
       if mode == "varargs" then
         i = -1
@@ -528,13 +509,42 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
           vars[#vars + 1] = variables.create(("(*vararg %d)"):format(-i),value)
           i = i - 1
         end
-      elseif not mode then
-        local info = debug.getinfo(varRef.frameId,"u")
-        if info.isvararg then
-          local varargidx = info.nparams + 1
-          if hasTemps then varargidx = varargidx + 1 end
-
-          table.insert(vars,varargidx,{ name = "<varargs>", value = "<varargs>", variablesReference = variables.scopeRef(varRef.frameId,"Locals","varargs") })
+      else
+        local shadow = {}
+        while true do
+          local name,value = debug.getlocal(varRef.frameId,i)
+          if not name then break end
+          local isTemp = name:sub(1,1) == "("
+          if isTemp then hasTemps = true end
+          if (mode == "temps" and isTemp) or (not mode and not isTemp) then
+            local evalName
+            if isTemp then
+              name = ("%s %d)"):format(name:sub(1,-2),i)
+            else
+              evalName = name
+            end
+            local j = #vars + 1
+            local lastshadow = shadow[name]
+            if lastshadow then
+              local var = vars[lastshadow.index]
+              var.name = var.name.."@"..lastshadow.reg
+              if var.evalName then var.evalName = nil end
+            end
+            vars[j] = variables.create(name,value,evalName)
+            shadow[name] = {index = j, reg = i}
+          end
+          i = i + 1
+        end
+        if not mode then
+          if hasTemps then
+            table.insert(vars,1,{ name = "<temporaries>", value = "<temporaries>", variablesReference = variables.scopeRef(varRef.frameId,"Locals","temps") })
+          end
+          local info = debug.getinfo(varRef.frameId,"u")
+          if info.isvararg then
+            local varargidx = info.nparams + 1
+            if hasTemps then varargidx = varargidx + 1 end
+            table.insert(vars,varargidx,{ name = "<varargs>", value = "<varargs>", variablesReference = variables.scopeRef(varRef.frameId,"Locals","varargs") })
+          end
         end
       end
     elseif varRef.type == "Upvalues" then
@@ -791,17 +801,31 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
     if varRef.type == "Locals" then
       if varRef.mode ~= "varargs" then
         local i = 1
-        local localindex,origvalue
-        while true do
-          local lname,oldvalue = debug.getlocal(varRef.frameId,i)
-          if not lname then break end
-          if lname:sub(1,1) == "(" then
-            lname = ("%s %d)"):format(lname:sub(1,-2),i)
+        local localindex
+        local matchname,matchidx = name:match("^([_%a][_%w]*)@(%d+)$")
+        if matchname then
+          local lname = debug.getlocal(varRef.frameId,matchidx)
+          if lname == matchname then
+            localindex = matchidx
+          else
+            print("DBGsetvar: " .. json.encode({seq = seq, body = {
+              type="error",
+              value="name mismatch at register "..matchidx.." expected `"..matchname.."` got `"..lname.."`"
+            }}))
+            return
           end
-          if lname == name then
-            localindex,origvalue = i,oldvalue
+        else
+          while true do
+            local lname = debug.getlocal(varRef.frameId,i)
+            if not lname then break end
+            if lname:sub(1,1) == "(" then
+              lname = ("%s %d)"):format(lname:sub(1,-2),i)
+            end
+            if lname == name then
+              localindex = i
+            end
+            i = i + 1
           end
-          i = i + 1
         end
         if localindex then
           local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
@@ -810,7 +834,7 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
             print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,newvalue)}))
             return
           else
-            print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,origvalue)}))
+            print("DBGsetvar: " .. json.encode({seq = seq, body = {type="error",value=newvalue}}))
             return
           end
         else
@@ -820,7 +844,7 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
       else
         local i = -1
         while true do
-          local vaname,oldvalue = debug.getlocal(varRef.frameId,i)
+          local vaname = debug.getlocal(varRef.frameId,i)
           if not vaname then break end
           vaname = ("(*vararg %d)"):format(-i)
           if vaname == name then
@@ -830,7 +854,7 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
               print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,newvalue)}))
               return
             else
-              print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,oldvalue)}))
+              print("DBGsetvar: " .. json.encode({seq = seq, body = {type="error",value=newvalue}}))
               return
             end
           end
@@ -841,7 +865,7 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
       local func = debug.getinfo(varRef.frameId,"f").func
       local i = 1
       while true do
-        local upname,oldvalue = debug.getupvalue(func,i)
+        local upname = debug.getupvalue(func,i)
         if not upname then break end
         if upname == name then
           local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
@@ -850,7 +874,7 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
             print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,newvalue)}))
             return
           else
-            print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,oldvalue)}))
+            print("DBGsetvar: " .. json.encode({seq = seq, body = {type="error",value=newvalue}}))
             return
           end
         end
@@ -862,9 +886,15 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
       if goodname then
         local alsoLookIn = varRef.object or varRef.table
         local goodvalue,newvalue = __DebugAdapter.evaluateInternal(nil,alsoLookIn,"setvar",value)
-        if goodvalue then
-          -- this could fail if table has __newindex or LuaObject property is read only or wrong type, etc
-          pcall(function() alsoLookIn[newname] = newvalue end)
+        if not goodvalue then
+          print("DBGsetvar: " .. json.encode({seq = seq, body = {type="error",value=newvalue}}))
+          return
+        end
+        -- this could fail if table has __newindex or LuaObject property is read only or wrong type, etc
+        local goodassign,mesg = pcall(function() alsoLookIn[newname] = newvalue end)
+        if not goodassign then
+          print("DBGsetvar: " .. json.encode({seq = seq, body = {type="error",value=mesg}}))
+          return
         end
 
         -- it could even fail silently, or coerce the value to another type,
