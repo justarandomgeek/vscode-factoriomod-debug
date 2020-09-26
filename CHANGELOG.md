@@ -9,6 +9,7 @@
 * Eval now correctly uses the last matching local instead of the first
 * Rename shadowed locals in Variables view so they display correctly
 * Fixed not correctly differentiating multiple varRefs for the same table with `extra` property set
+* Mark generated variables as `virtual`
 
 ## 0.18.41
 

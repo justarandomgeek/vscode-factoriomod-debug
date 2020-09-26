@@ -76,12 +76,14 @@ gmeta.__debugchildren = function(t,extra)
       value = "<Lua Builtin Globals>",
       type = "<Lua Builtin Globals>",
       variablesReference = variables.tableRef(t,nil,false,"builtin"),
+      presentationHint = {kind="virtual"},
     }
     vars[#vars + 1] =  {
       name = "<Factorio API>",
       value = "<Factorio API>",
       type = "<Factorio API>",
       variablesReference = variables.tableRef(t,nil,false,"factorio"),
+      presentationHint = {kind="virtual"},
     }
 
   end
@@ -537,13 +539,21 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
         end
         if not mode then
           if hasTemps then
-            table.insert(vars,1,{ name = "<temporaries>", value = "<temporaries>", variablesReference = variables.scopeRef(varRef.frameId,"Locals","temps") })
+            table.insert(vars,1,{
+              name = "<temporaries>", value = "<temporaries>",
+              variablesReference = variables.scopeRef(varRef.frameId,"Locals","temps"),
+              presentationHint = {kind="virtual"},
+            })
           end
           local info = debug.getinfo(varRef.frameId,"u")
           if info.isvararg then
             local varargidx = info.nparams + 1
             if hasTemps then varargidx = varargidx + 1 end
-            table.insert(vars,varargidx,{ name = "<varargs>", value = "<varargs>", variablesReference = variables.scopeRef(varRef.frameId,"Locals","varargs") })
+            table.insert(vars,varargidx,{
+              name = "<varargs>", value = "<varargs>",
+              variablesReference = variables.scopeRef(varRef.frameId,"Locals","varargs"),
+              presentationHint = {kind="virtual"},
+            })
           end
         end
       end
@@ -572,6 +582,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
             type = "metatable",
             variablesReference = variables.tableRef(mt,nil,nil,nil,nil,long),
             evaluateName = evalName,
+            presentationHint = {kind="virtual"},
           }
         end
         local stop = #varRef.table
@@ -609,6 +620,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
               value = variables.describe(children),
               type = "childerror",
               variablesReference = 0,
+              presentationHint = {kind="virtual"},
             }
           end
         else
@@ -624,6 +636,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
               type = "metatable",
               variablesReference = variables.tableRef(mt,nil,nil,nil,nil,long),
               evaluateName = evalName,
+              presentationHint = {kind="virtual"},
             }
           end
 
@@ -637,7 +650,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
               value = i and ("{LocalisedString "..i.."}") or ("<"..mesg..">"),
               type = "LocalisedString",
               variablesReference = 0,
-              presentationHint = { kind = "property", attributes = { "readOnly" } },
+              presentationHint = { kind = "virtual", attributes = { "readOnly" } },
             }
           end
 
@@ -681,6 +694,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
               value = "missing iterator for table varRef mode ".. varRef.mode,
               type = "childerror",
               variablesReference = 0,
+              presentationHint = {kind="virtual"},
             }
           end
         end
@@ -714,7 +728,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
                 type = varRef.classname .. "[]",
                 variablesReference = variables.tableRef(object, keyprops.iterMode, false,nil,varRef.evalName,long),
                 indexedVariables = #object + 1,
-                presentationHint = { kind = "property", attributes = { "readOnly" } },
+                presentationHint = { kind = "virtual", attributes = { "readOnly" } },
               }
             elseif keyprops.thisTranslated then
               local value = "<Translation Not Available>"
@@ -732,7 +746,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
                 value = value,
                 type = "LocalisedString",
                 variablesReference = 0,
-                presentationHint = { kind = "property", attributes = { "readOnly" } },
+                presentationHint = { kind = "virtual", attributes = { "readOnly" } },
               }
             else
               -- Not all keys are valid on all LuaObjects of a given type. Just skip the errors (or nils)
@@ -773,7 +787,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
         value = "empty",
         type = "empty",
         variablesReference = 0,
-        presentationHint = { kind = "property", attributes = { "readOnly" } },
+        presentationHint = { kind = "virtual", attributes = { "readOnly" } },
       }
     end
   elseif not longonly then
@@ -781,6 +795,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
       name= "Expired variablesReference",
       value= "Expired variablesReference ref="..variablesReference.." seq="..seq,
       variablesReference= 0,
+      presentationHint = {kind="virtual"},
     }
   end
 
