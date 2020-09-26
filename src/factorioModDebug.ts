@@ -767,10 +767,16 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 
 	protected async setVariableRequest(response: DebugProtocol.SetVariableResponse, args: DebugProtocol.SetVariableArguments, request?: DebugProtocol.Request) {
-		response.body = await new Promise<DebugProtocol.Variable>((resolve)=>{
+		const body = await new Promise<DebugProtocol.Variable>((resolve)=>{
 			this._setvars.set(response.request_seq, resolve);
 			this.writeStdin(`__DebugAdapter.setVariable(${args.variablesReference},${luaBlockQuote(Buffer.from(args.name))},${luaBlockQuote(Buffer.from(args.value))},${response.request_seq})\n`);
 		});
+		if (body.type === "error") {
+			response.success = false;
+			response.message = body.value;
+		} else {
+			response.body = body;
+		}
 		this.sendResponse(response);
 	}
 

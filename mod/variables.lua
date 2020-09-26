@@ -791,6 +791,7 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
     if varRef.type == "Locals" then
       if varRef.mode ~= "varargs" then
         local i = 1
+        local localindex,origvalue
         while true do
           local lname,oldvalue = debug.getlocal(varRef.frameId,i)
           if not lname then break end
@@ -798,17 +799,23 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
             lname = ("%s %d)"):format(lname:sub(1,-2),i)
           end
           if lname == name then
-            local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
-            if goodvalue then
-              debug.setlocal(varRef.frameId,i,newvalue)
-              print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,newvalue)}))
-              return
-            else
-              print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,oldvalue)}))
-              return
-            end
+            localindex,origvalue = i,oldvalue
           end
           i = i + 1
+        end
+        if localindex then
+          local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
+          if goodvalue then
+            debug.setlocal(varRef.frameId,localindex,newvalue)
+            print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,newvalue)}))
+            return
+          else
+            print("DBGsetvar: " .. json.encode({seq = seq, body = variables.create(nil,origvalue)}))
+            return
+          end
+        else
+          print("DBGsetvar: " .. json.encode({seq = seq, body = {type="error",value="named var not present"}}))
+          return
         end
       else
         local i = -1
