@@ -530,7 +530,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
             if lastshadow then
               local var = vars[lastshadow.index]
               var.name = var.name.."@"..lastshadow.reg
-              if var.evalName then var.evalName = nil end
+              if var.evaluateName then var.evaluateName = nil end
             end
             vars[j] = variables.create(name,value,evalName)
             shadow[name] = {index = j, reg = i}
