@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.18.44
+
+* Locale body changed from `string.unquoted.factorio-locale` to `meta.text.factorio-locale`
+* Locale Snippets for various tags/variables
+* Correctly highlight locale variable `__CONTROL_MOVE__`
+
 ## 0.18.43
 
 * Correctly include `profile-control.lua` when debugadapter itself is not hooked

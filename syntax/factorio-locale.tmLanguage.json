@@ -14,7 +14,7 @@
 				},
 				{
 					"name": "variable.language.factorio-locale",
-					"match": "__(CONTROL(_MOVE)?|ENTITY|ITEM|TILE)__.+?__"
+					"match": "__(CONTROL|ENTITY|ITEM|TILE)__.+?__"
 				},
 				{
 					"name": "variable.language.factorio-locale",
@@ -22,7 +22,7 @@
 				},
 				{
 					"name": "variable.language.factorio-locale",
-					"match": "__CONTROL_STYLE_(BEGIN|END)__"
+					"match": "__CONTROL_(MOVE|STYLE_(BEGIN|END))__"
 				},
 				{
 					"name": "keyword.control.plural.factorio-locale",
@@ -47,12 +47,19 @@
 													"match": "rest"
 												},
 												{
-													"name": "entity.name.function.plural.factorio-locale",
-													"match": "(ends in )?\\d+(-\\d+)?"
+													"match": "(ends in )?(\\d+(-\\d+)?)",
+													"captures": {
+														"1": { "name": "entity.name.function.plural.factorio-locale" },
+														"2": { "name": "constant.numeric.plural.factorio-locale" }
+													}
 												},
 												{
 													"name":"keyword.operator.factorio-locale",
 													"match": ","
+												},
+												{
+													"name":"invalid.illegal.plural.factorio-locale",
+													"match": ".+"
 												}
 											]
 										},
@@ -60,7 +67,7 @@
 											"name": "punctuation.separator.key-value.factorio-locale"
 										},
 										"3": {
-											"name": "string.unquoted.factorio-locale",
+											"name": "meta.text.factorio-locale",
 											"patterns": [
 												{
 													"include": "#localisedSegment"
@@ -68,6 +75,10 @@
 											]
 										}
 									}
+								},
+								{
+									"name":"invalid.illegal.plural.factorio-locale",
+									"match": ".+"
 								}
 							]
 						}
@@ -82,7 +93,7 @@
 						}
 					},
 					"end": "\\[[./]font\\]",
-					"contentName": "string.unquoted.factorio-locale",
+					"contentName": "meta.text.factorio-locale",
 					"patterns": [
 						{
 							"include": "#localisedSegment"
@@ -98,7 +109,7 @@
 						}
 					},
 					"end": "\\[[./]color\\]",
-					"contentName": "string.unquoted.factorio-locale",
+					"contentName": "meta.text.factorio-locale",
 					"patterns": [
 						{
 							"include": "#localisedSegment"
@@ -146,7 +157,7 @@
 					"name": "punctuation.separator.key-value.factorio-locale"
 				},
 				"3": {
-					"name": "string.unquoted.factorio-locale",
+					"name": "meta.text.factorio-locale",
 					"patterns": [
 						{
 							"include": "#localisedSegment"

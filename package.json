@@ -502,6 +502,10 @@
       {
         "language": "factorio-changelog",
         "path": "./snippets/factorio-changelog.json"
+      },
+      {
+        "language": "factorio-locale",
+        "path": "./snippets/factorio-locale.json"
       }
     ],
     "configurationDefaults": {

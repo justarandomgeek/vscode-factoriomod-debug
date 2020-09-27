@@ -1,0 +1,119 @@
+{
+  "color": {
+    "prefix": ["color"],
+    "body": "[color=${1:red}]$0[/color]"
+  },
+  "font": {
+    "prefix": ["font"],
+    "body": "[font=${1:default-bold}]$0[/font]"
+  },
+
+  "img": {
+    "prefix": ["img"],
+    "body": "[img=${1:item/iron-plate}]"
+  },
+  "item": {
+    "prefix": ["item"],
+    "body": "[item=${1:iron-plate}]"
+  },
+  "item-group": {
+    "prefix": ["item-group"],
+    "body": "[item-group=${1:combat}]"
+  },
+  "special-item": {
+    "prefix": ["special-item"],
+    "body": "[special-item=${1:blueprint_string}]"
+  },
+  "entity": {
+    "prefix": ["entity"],
+    "body": "[entity=${1:iron-chest}]"
+  },
+  "technology": {
+    "prefix": ["technology"],
+    "body": "[technology=${1:logistics}]"
+  },
+  "recipe": {
+    "prefix": ["recipe"],
+    "body": "[recipe=${1:basic-oil-processing}]"
+  },
+  "fluid": {
+    "prefix": ["fluid"],
+    "body": "[fluid=${1:water}]"
+  },
+  "tile": {
+    "prefix": ["tile"],
+    "body": "[tile=${1:grass-1}]"
+  },
+  "virtual-signal": {
+    "prefix": ["virtual-signal"],
+    "body": "[virtual-signal=${1:signal-A}]"
+  },
+  "achievement": {
+    "prefix": ["achievement"],
+    "body": "[achievement=${1:minions}]"
+  },
+  "gps": {
+    "prefix": ["gps"],
+    "body": "[gps=${1:0,0}]"
+  },
+  "armor": {
+    "prefix": ["armor"],
+    "body": "[armor=${1:player}]"
+  },
+  "train": {
+    "prefix": ["train"],
+    "body": "[train=${1:42}]"
+  },
+  "train-stop": {
+    "prefix": ["train-stop"],
+    "body": "[train-stop=${1:42}]"
+  },
+
+  "param": {
+    "prefix": ["__1__"],
+    "body": "__${1:1}__"
+  },
+
+  "plural_for_param": {
+    "prefix": ["plural","__plural_for_parameter"],
+    "body": "__plural_for_parameter_${1:1}_{$0}__"
+  },
+
+  "rest": {
+    "prefix": ["rest"],
+    "body": "rest=$0|"
+  },
+  "ends in": {
+    "prefix": ["ends in"],
+    "body": "ends in ${1:1}=$0|"
+  },
+
+  "CONTROL": {
+    "prefix": ["__CONTROL__", "CONTROL"],
+    "body": "__CONTROL__${1:build}__"
+  },
+  "CONTROL_MOVE": {
+    "prefix": ["__CONTROL_MOVE__", "CONTROL_MOVE"],
+    "body": "__CONTROL_MOVE__"
+  },
+  "ENTITY": {
+    "prefix": ["__ENTITY__", "ENTITY"],
+    "body": "__ENTITY__${1:iron-chest}__"
+  },
+  "ITEM": {
+    "prefix": ["__ITEM__", "ITEM"],
+    "body": "__ITEM__${1:iron-plate}__"
+  },
+  "TILE": {
+    "prefix": ["__TILE__", "TILE"],
+    "body": "__TILE__${1:grass-1}__"
+  },
+  "ALT_CONTROL": {
+    "prefix": ["__ALT_CONTROL__", "ALT_CONTROL"],
+    "body": "__ALT_CONTROL__${1:1}__${2:build}__"
+  },
+  "CONTROL_STYLE": {
+    "prefix": ["__CONTROL_STYLE__", "CONTROL_STYLE"],
+    "body": "__CONTROL_STYLE_${1|BEGIN,END|}__"
+  }
+}
