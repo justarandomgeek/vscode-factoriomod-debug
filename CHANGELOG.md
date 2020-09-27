@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.43
+
+* Correctly include `profile-control.lua` when debugadapter itself is not hooked
+
 ## 0.18.42
 
 * Fix flamegraph not building trees correctly

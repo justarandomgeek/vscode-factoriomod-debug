@@ -1,3 +1,8 @@
+if not (__DebugAdapter or __Profiler) then
+  print("DBG: on_da_control")
+  debug.debug()
+end
+
 if __Profiler then
   require("__debugadapter__/profile-control.lua")
   return

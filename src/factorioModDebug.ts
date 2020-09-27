@@ -487,6 +487,17 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					{
 						this.continueRequire(shouldhook,modname);
 					}
+				} else if (event === "on_da_control") {
+					const hookmods = this.launchArgs.hookControl ?? true;
+					const dahooked = ((Array.isArray(hookmods) && hookmods.includes("debugadapter")) || hookmods === false);
+					if (this.launchArgs.hookMode === "profile")
+					{
+						this.continueProfile(!dahooked);
+					}
+					else
+					{
+						this.continueRequire(false,"debugadapter");
+					}
 				} else {
 					// unexpected event?
 					FactorioModDebugSession.output.appendLine("unexpected event: " + event);
