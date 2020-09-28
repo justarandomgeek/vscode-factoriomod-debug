@@ -2,36 +2,27 @@
 	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
 	"name": "Factorio Locale",
 	"repository": {
-		"localisedSegment" : {
+		"parameter" : {
 			"patterns": [
 				{
-					"name": "constant.character.escape.factorio-locale",
-					"match": "\\\\n"
-				},
-				{
-					"name": "variable.parameter.factorio-locale",
-					"match": "__\\d+__"
-				},
-				{
-					"name": "variable.language.factorio-locale",
-					"match": "__(CONTROL|ENTITY|ITEM|TILE)__.+?__"
-				},
-				{
-					"name": "variable.language.factorio-locale",
-					"match": "__ALT_CONTROL__\\d+__.+?__"
-				},
-				{
-					"name": "variable.language.factorio-locale",
-					"match": "__CONTROL_(MOVE|STYLE_(BEGIN|END))__"
-				},
-				{
-					"name": "keyword.control.plural.factorio-locale",
-					"match": "__plural_for_parameter_([0-9]+)_\\{([^}]*)\\}__",
+					"match": "(__)(\\d+)(__)",
 					"captures": {
-						"1": {
-							"name":"variable.parameter.factorio-locale"
-						},
-						"2": {
+						"1":{"name": "punctuation.definition.tag.begin.factorio-locale"},
+						"2":{"name": "variable.parameter.factorio-locale"},
+						"3":{"name": "punctuation.definition.tag.end.factorio-locale"}
+					}
+				},
+				{
+					"name": "meta.plural.factorio-locale",
+					"match": "(__)(plural_for_parameter)(_)([0-9]+)(_\\{)([^}]*)(\\}__)",
+					"captures": {
+						"1": {"name": "punctuation.definition.tag.begin.factorio-locale"},
+						"2": {"name": "support.function.plural.factorio-locale"},
+						"3": {"name": "punctuation.definition.tag.middle.factorio-locale"},
+						"4": {"name": "variable.parameter.factorio-locale"},
+						"5": {"name": "punctuation.definition.tag.middle.factorio-locale"},
+						"6": {
+							"name": "meta.plural-options.factorio-locale",
 							"patterns": [
 								{
 									"name":"keyword.operator.factorio-locale",
@@ -43,13 +34,13 @@
 										"1":{
 											"patterns": [
 												{
-													"name": "entity.name.function.plural.factorio-locale",
+													"name": "keyword.control.plural.rest.factorio-locale",
 													"match": "rest"
 												},
 												{
 													"match": "(ends in )?(\\d+(-\\d+)?)",
 													"captures": {
-														"1": { "name": "entity.name.function.plural.factorio-locale" },
+														"1": { "name": "keyword.control.plural.endsin.factorio-locale" },
 														"2": { "name": "constant.numeric.plural.factorio-locale" }
 													}
 												},
@@ -63,16 +54,10 @@
 												}
 											]
 										},
-										"2": {
-											"name": "punctuation.separator.key-value.factorio-locale"
-										},
+										"2": {"name": "punctuation.separator.key-value.factorio-locale"},
 										"3": {
-											"name": "meta.text.factorio-locale",
-											"patterns": [
-												{
-													"include": "#localisedSegment"
-												}
-											]
+											"name": "meta.text.plural.factorio-locale",
+											"patterns": [{"include": "#localisedSegment"}]
 										}
 									}
 								},
@@ -81,58 +66,120 @@
 									"match": ".+"
 								}
 							]
-						}
+						},
+						"7": {"name": "punctuation.definition.tag.end.factorio-locale"}
 					}
-				},
+				}
+			]
+		},
+		"localisedSegment" : {
+			"patterns": [
 				{
-					"name": "entity.name.tag.font.factorio-locale",
-					"begin": "\\[font=([^\\]]*)\\]",
-					"beginCaptures": {
-						"1":{
-							"name": "variable.other.factorio-locale"
-						}
-					},
-					"end": "\\[[./]font\\]",
-					"contentName": "meta.text.factorio-locale",
-					"patterns": [
-						{
-							"include": "#localisedSegment"
-						}
-					]
+					"name": "constant.character.escape.factorio-locale",
+					"match": "\\\\n"
 				},
+				{ "include": "#parameter" },
 				{
-					"name": "entity.name.tag.color.factorio-locale",
-					"begin": "\\[color=([^\\]]*)\\]",
-					"beginCaptures": {
-						"1":{
-							"name": "variable.other.factorio-locale"
-						}
-					},
-					"end": "\\[[./]color\\]",
-					"contentName": "meta.text.factorio-locale",
-					"patterns": [
-						{
-							"include": "#localisedSegment"
-						}
-					]
-				},
-				{
-					"name": "entity.name.tag.factorio-locale",
-					"match": "\\[(?:img|(?:special-)?item(?:-group)?|entity|technology|recipe|fluid|tile|virtual-signal|achievement|gps|armor|train(?:-stop)?)=([^\\]]*)\\]",
+					"match": "(__)(CONTROL|ENTITY|ITEM|TILE)(__)(.+?)(__)",
 					"captures": {
-						"1":{
-							"name": "variable.other.factorio-locale"
-						}
+						"1":{"name": "punctuation.definition.tag.begin.factorio-locale"},
+						"2":{"name": "entity.name.namespace.factorio-locale"},
+						"3":{"name": "punctuation.definition.tag.middle.factorio-locale"},
+						"4":{"name": "string.unquoted.factorio-locale"},
+						"5":{"name": "punctuation.definition.tag.end.factorio-locale"}
 					}
 				},
 				{
-					"name": "invalid.entity.name.tag.factorio-locale",
-					"begin": "\\[",
-					"end": "\\]"
+					"match": "(__)(ALT_CONTROL)(__)(\\d+)(__)(.+?)(__)",
+					"captures": {
+						"1":{"name": "punctuation.definition.tag.begin.factorio-locale"},
+						"2":{"name": "entity.name.namespace.factorio-locale"},
+						"3":{"name": "punctuation.definition.tag.middle.factorio-locale"},
+						"4":{"name": "constant.numeric.alt-control.factorio-locale"},
+						"5":{"name": "punctuation.definition.tag.middle.factorio-locale"},
+						"6":{"name": "string.unquoted.factorio-locale"},
+						"7":{"name": "punctuation.definition.tag.end.factorio-locale"}
+					}
 				},
 				{
-					"name": "invalid.variable.factorio-locale",
-					"match": "__.+__"
+					"match": "(__)(CONTROL_(?:MOVE|STYLE_(?:BEGIN|END)))(__)",
+					"captures": {
+						"1":{"name": "punctuation.definition.tag.begin.factorio-locale"},
+						"2":{"name": "entity.name.namespace.factorio-locale"},
+						"3":{"name": "punctuation.definition.tag.end.factorio-locale"}
+					}
+				},
+				{
+					"begin": "(\\[)(font)(=)([^\\]]*)(\\])",
+					"beginCaptures": {
+						"1":{"name": "punctuation.definition.tag.begin.factorio-locale"},
+						"2":{"name": "entity.name.tag.font.factorio-locale"},
+						"3":{"name": "punctuation.separator.key-value.factorio-locale"},
+						"4":{
+							"name": "string.unquoted.factorio-locale",
+							"patterns": [{ "include": "#parameter" }]
+						},
+						"5":{"name": "punctuation.definition.tag.end.factorio-locale"}
+					},
+					"end": "(\\[[./])(font)(\\])",
+					"endCaptures": {
+						"1":{"name": "punctuation.definition.tag.begin.factorio-locale"},
+						"2":{"name": "entity.name.tag.font.factorio-locale"},
+						"3":{"name": "punctuation.definition.tag.end.factorio-locale"}
+					},
+					"patterns": [{"include": "#localisedSegment"}]
+				},
+				{
+					"begin": "(\\[)(color)(=)([^\\]]*)(\\])",
+					"beginCaptures": {
+						"1":{"name": "punctuation.definition.tag.begin.factorio-locale"},
+						"2":{"name": "entity.name.tag.color.factorio-locale"},
+						"3":{"name": "punctuation.separator.key-value.factorio-locale"},
+						"4":{
+							"name": "string.unquoted.factorio-locale",
+							"patterns": [{ "include": "#parameter" }]
+						},
+						"5":{"name": "punctuation.definition.tag.end.factorio-locale"}
+					},
+					"end": "(\\[[./])(color)(\\])",
+					"endCaptures": {
+						"1":{"name": "punctuation.definition.tag.begin.factorio-locale"},
+						"2":{"name": "entity.name.tag.color.factorio-locale"},
+						"3":{"name": "punctuation.definition.tag.end.factorio-locale"}
+					},
+					"patterns": [{"include": "#localisedSegment"}]
+				},
+				{
+					"match": "(\\[)(img|(?:special-)?item(?:-group)?|entity|technology|recipe|fluid|tile|virtual-signal|achievement|gps|armor|train(?:-stop)?)(=)([^\\]]*)(\\])",
+					"captures": {
+						"1":{"name": "punctuation.definition.tag.begin.factorio-locale"},
+						"2":{"name": "entity.name.tag.factorio-locale"},
+						"3":{"name": "punctuation.separator.key-value.factorio-locale"},
+						"4":{
+							"name": "string.unquoted.factorio-locale",
+							"patterns": [{ "include": "#parameter" }]
+						},
+						"5":{"name": "punctuation.definition.tag.end.factorio-locale"}
+					}
+				},
+				{
+					"contentName": "invalid.entity.name.tag.factorio-locale",
+					"begin": "(\\[[./]?)",
+					"beginCaptures": {
+						"1":{"name":"punctuation.definition.tag.begin.factorio-locale"}
+					},
+					"end": "(\\])",
+					"endCaptures": {
+						"1":{"name":"punctuation.definition.tag.end.factorio-locale"}
+					}
+				},
+				{
+					"match": "(__)(.+?)(__)",
+					"captures": {
+						"1":{"name":"punctuation.definition.tag.begin.factorio-locale"},
+						"2":{"name":"invalid.variable.factorio-locale"},
+						"3":{"name":"punctuation.definition.tag.end.factorio-locale"}
+					}
 				}
 			]
 		}
@@ -140,33 +187,31 @@
 	},
 	"patterns": [
 		{
-			"name": "entity.name.class.factorio-locale",
-			"begin": "^[ \t\r]*\\[",
-			"end": "\\][ \t\r]*$"
+			"contentName": "entity.name.namespace.factorio-locale",
+			"begin": "^[ \t\r]*(\\[)",
+			"beginCaptures": {
+				"1":{"name":"punctuation.definition.tag.begin.factorio-locale"}
+			},
+			"end": "(\\])[ \t\r]*$",
+			"endCaptures": {
+				"1":{"name":"punctuation.definition.tag.end.factorio-locale"}
+			}
 		},
 		{
 			"match": "^[ \t\r]*[#;].*$",
 			"name": "comment.line.factorio-locale"
 		},
 		{
+			"match": "^[ \t\r]*([^=.]+)(=)(.+)$",
+			"name": "meta.record.factorio-locale",
 			"captures": {
-				"1": {
-					"name": "entity.other.attribute-name.factorio-locale"
-				},
-				"2": {
-					"name": "punctuation.separator.key-value.factorio-locale"
-				},
+				"1": {"name": "variable.factorio-locale"},
+				"2": {"name": "punctuation.separator.key-value.factorio-locale"},
 				"3": {
 					"name": "meta.text.factorio-locale",
-					"patterns": [
-						{
-							"include": "#localisedSegment"
-						}
-					]
+					"patterns": [{"include": "#localisedSegment"}]
 				}
-			},
-			"match": "^[ \t\r]*([^=.]+)(=)(.+)$",
-			"name": "entity.factorio-locale"
+			}
 		},
 		{
 			"match": "^.*$",

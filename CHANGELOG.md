@@ -2,7 +2,7 @@
 
 ## 0.18.44
 
-* Locale body changed from `string.unquoted.factorio-locale` to `meta.text.factorio-locale`
+* Reworked locale highlighter
 * Locale Snippets for various tags/variables
 * Correctly highlight locale variable `__CONTROL_MOVE__`
 

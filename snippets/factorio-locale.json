@@ -22,7 +22,7 @@
   },
   "special-item": {
     "prefix": ["special-item"],
-    "body": "[special-item=${1:blueprint_string}]"
+    "body": "[special-item=${1|blueprint_string,__1__|}]"
   },
   "entity": {
     "prefix": ["entity"],
@@ -58,15 +58,15 @@
   },
   "armor": {
     "prefix": ["armor"],
-    "body": "[armor=${1:player}]"
+    "body": "[armor=${1|player,__1__|}]"
   },
   "train": {
     "prefix": ["train"],
-    "body": "[train=${1:42}]"
+    "body": "[train=${1|42,__1__|}]"
   },
   "train-stop": {
     "prefix": ["train-stop"],
-    "body": "[train-stop=${1:42}]"
+    "body": "[train-stop=${1:|42,__1__|}]"
   },
 
   "param": {
