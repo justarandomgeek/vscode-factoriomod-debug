@@ -5,6 +5,7 @@
 * Reworked locale highlighter
 * Locale Snippets for various tags/variables
 * Correctly highlight locale variable `__CONTROL_MOVE__`
+* CodeAction to merge duplicate locale sections
 
 ## 0.18.43
 

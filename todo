@@ -2,7 +2,6 @@ phobos, phobos-tidy, phobos-format
 string.dump serialise to source, or at least disasm, for non-file chunks
 update mod description from readme on publish (or other configurable file?)
 generate config.ini stub when not found?
-offer to combine duplicate locale sections
 try again to use git extension api for commit/push?
 watch task to begin on project open
 profile "reset" button

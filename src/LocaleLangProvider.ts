@@ -1,6 +1,11 @@
 'use strict';
 import * as vscode from 'vscode';
 
+interface DuplicateDefinitionDiagnostic extends vscode.Diagnostic {
+	firstsym: vscode.DocumentSymbol
+	newsym: vscode.DocumentSymbol
+}
+
 export async function validateLocale(document: vscode.Uri|vscode.TextDocument): Promise<vscode.Diagnostic[]> {
 	if (document instanceof vscode.Uri)
 	{
@@ -9,6 +14,7 @@ export async function validateLocale(document: vscode.Uri|vscode.TextDocument): 
 	const locale = document.getText().split(/\r?\n/);
 	const diags: vscode.Diagnostic[] = [];
 
+	const symbols = <vscode.DocumentSymbol[]>await vscode.commands.executeCommand<(vscode.SymbolInformation|vscode.DocumentSymbol)[]>("vscode.executeDocumentSymbolProvider", document.uri);
 
 	let currentSection:string|undefined;
 	const sections = new Map<string|undefined,Set<String>>();
@@ -28,20 +34,36 @@ export async function validateLocale(document: vscode.Uri|vscode.TextDocument): 
 				currentSection = secname[1];
 				if (sections.has(currentSection))
 				{
-					diags.push({
+					const matching = symbols.filter(sym=>sym.name === currentSection);
+					const previous = matching.reduce((syma,symb)=>syma.range.start.line < symb.range.start.line?syma:symb);
+					const newsym = matching.find(sym=>sym.range.start.line === i);
+					diags.push(<DuplicateDefinitionDiagnostic>{
 						"message": "Duplicate Section",
 						"source": "factorio-locale",
 						"severity": vscode.DiagnosticSeverity.Error,
-						"range": new vscode.Range(i, line.indexOf(currentSection), i, line.indexOf(currentSection)+currentSection.length)
+						"range": new vscode.Range(i, line.indexOf(currentSection), i, line.indexOf(currentSection)+currentSection.length),
+						"relatedInformation": [new vscode.DiagnosticRelatedInformation(
+							new vscode.Location(document.uri,previous.range.start),
+							"First defined here"
+							)],
+						"code": "section.merge",
+						"firstsym": previous,
+						"newsym": newsym,
 					});
 				}
 				else if (sections.get(undefined)!.has(currentSection))
 				{
+					const matching = symbols.filter(sym=>sym.name === currentSection);
+					const previous = matching.reduce((syma,symb)=>syma.range.start.line < symb.range.start.line?syma:symb);
 					diags.push({
 						"message": "Section Name conflicts with Key in Root",
 						"source": "factorio-locale",
 						"severity": vscode.DiagnosticSeverity.Error,
-						"range": new vscode.Range(i, line.indexOf(currentSection), i, line.indexOf(currentSection)+currentSection.length)
+						"range": new vscode.Range(i, line.indexOf(currentSection), i, line.indexOf(currentSection)+currentSection.length),
+						"relatedInformation": [new vscode.DiagnosticRelatedInformation(
+							new vscode.Location(document.uri,previous.range.start),
+							"First defined here"
+							)],
 					});
 					sections.set(currentSection,new Set<String>());
 				}
@@ -68,11 +90,23 @@ export async function validateLocale(document: vscode.Uri|vscode.TextDocument): 
 				const key = keyval[1];
 				if (sections.get(currentSection)!.has(key))
 				{
+					const previous = symbols
+						.filter(sym=>sym.name === currentSection && sym.kind === vscode.SymbolKind.Namespace)
+						.map(sym=>sym.children.filter(sym=>sym.name === key))
+						.reduce(
+							(a,b)=> a.concat(b),
+							symbols.filter(sym=>sym.name === key && sym.kind === vscode.SymbolKind.String)
+						)
+						.reduce((syma,symb)=>syma.range.start.line < symb.range.start.line?syma:symb);
 					diags.push({
 						"message": "Duplicate Key",
 						"source": "factorio-locale",
 						"severity": vscode.DiagnosticSeverity.Error,
-						"range": new vscode.Range(i, line.indexOf(key), i, line.indexOf(key)+key.length)
+						"range": new vscode.Range(i, line.indexOf(key), i, line.indexOf(key)+key.length),
+						"relatedInformation": [new vscode.DiagnosticRelatedInformation(
+							new vscode.Location(document.uri,previous.range.start),
+							"First defined here"
+							)],
 					});
 				}
 				else
@@ -93,6 +127,36 @@ export async function validateLocale(document: vscode.Uri|vscode.TextDocument): 
 		}
 	}
 	return diags;
+}
+
+export class LocaleCodeActionProvider implements vscode.CodeActionProvider {
+	public provideCodeActions(document: vscode.TextDocument, range: vscode.Range, context: vscode.CodeActionContext, token: vscode.CancellationToken): vscode.CodeAction[] {
+		if (document.languageId === "factorio-locale") {
+			return context.diagnostics.filter(diag => !!diag.code).map((diag) => {
+				switch (diag.code) {
+					case "section.merge":
+						{
+							const ca = new vscode.CodeAction("Merge Sections", vscode.CodeActionKind.QuickFix.append("section").append("merge"));
+							const dupediag = <DuplicateDefinitionDiagnostic>diag;
+							ca.diagnostics = [diag];
+							ca.edit = new vscode.WorkspaceEdit();
+							const insertAt = dupediag.firstsym.range.end;
+							ca.edit.set(document.uri, [
+								vscode.TextEdit.delete(dupediag.newsym.range),
+								vscode.TextEdit.insert(insertAt,
+									document.getText(
+										dupediag.newsym.range.with(dupediag.newsym.selectionRange.end.translate(0,1))
+										))
+							]);
+							return ca;
+						}
+					default:
+						return new vscode.CodeAction("Dummy", vscode.CodeActionKind.Empty);
+				}
+			}).filter(diag => !(diag.kind && diag.kind.intersects(vscode.CodeActionKind.Empty)));
+		}
+		return [];
+	}
 }
 
 export class LocaleColorProvider implements vscode.DocumentColorProvider {
@@ -222,6 +286,7 @@ export class LocaleDocumentSymbolProvider implements vscode.DocumentSymbolProvid
 	public provideDocumentSymbols(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.DocumentSymbol[] {
 		const symbols: vscode.DocumentSymbol[] = [];
 		let category: vscode.DocumentSymbol | undefined;
+
 		for (let i = 0; i < document.lineCount; i++) {
 			const element = document.lineAt(i);
 			if (element.text.match(/^\[([^\]])+\]$/)) {
@@ -239,6 +304,8 @@ export class LocaleDocumentSymbolProvider implements vscode.DocumentSymbolProvid
 					if (category) {
 						category.children.push(s);
 						category.range = category.range.union(element.range);
+					} else {
+						symbols.push(s);
 					}
 				}
 			}

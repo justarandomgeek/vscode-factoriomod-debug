@@ -5,7 +5,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as ini from 'ini';
 import { FactorioModDebugSession } from './factorioModDebug';
-import { validateLocale, LocaleColorProvider, LocaleDocumentSymbolProvider } from './LocaleLangProvider';
+import { validateLocale, LocaleColorProvider, LocaleDocumentSymbolProvider, LocaleCodeActionProvider } from './LocaleLangProvider';
 import { ChangelogCodeActionProvider, validateChangelogTxt, ChangelogDocumentSymbolProvider } from './ChangeLogLangProvider';
 import { ModsTreeDataProvider } from './ModPackageProvider';
 
@@ -22,7 +22,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(factory);
 
 
-	diagnosticCollection = vscode.languages.createDiagnosticCollection('factorio-changelog');
+	diagnosticCollection = vscode.languages.createDiagnosticCollection('factorio');
 	context.subscriptions.push(diagnosticCollection);
 
 	context.subscriptions.push(
@@ -32,6 +32,10 @@ export function activate(context: vscode.ExtensionContext) {
 		// check diagnostics
 		uris.forEach(async uri=> diagnosticCollection.set(uri, await validateChangelogTxt(uri)));
 	});
+
+	context.subscriptions.push(
+		vscode.languages.registerCodeActionsProvider({ scheme: 'file', language: 'factorio-locale' }, new LocaleCodeActionProvider()));
+
 
 	vscode.workspace.findFiles("**/locale/*/*.cfg").then(uris => {
 		// check diagnostics
