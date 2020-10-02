@@ -1,6 +1,7 @@
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local json = require('__debugadapter__/json.lua')
 local variables = require("__debugadapter__/variables.lua") -- uses pcall
+local debug = debug
 
 local oldlog = log
 local keepoldlog = __DebugAdapter.keepoldlog

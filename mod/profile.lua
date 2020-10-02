@@ -4,6 +4,7 @@ local __Profiler = __Profiler
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local print = print
 local localised_print = localised_print
+local debug = debug
 
 --- Total time accumulated in this lua state
 local luatotal

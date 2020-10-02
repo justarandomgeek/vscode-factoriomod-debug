@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.45
+
+* Capture `debug` in case someone overwites it
+
 ## 0.18.44
 
 * Reworked locale highlighter
