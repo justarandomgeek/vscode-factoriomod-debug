@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.46
+
+* Removed Locale highlighter rule for unrecognized rich text tags
+
 ## 0.18.45
 
 * Capture `debug` in case someone overwites it

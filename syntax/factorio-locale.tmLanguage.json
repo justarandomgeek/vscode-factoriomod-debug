@@ -163,17 +163,6 @@
 					}
 				},
 				{
-					"contentName": "invalid.entity.name.tag.factorio-locale",
-					"begin": "(\\[[./]?)",
-					"beginCaptures": {
-						"1":{"name":"punctuation.definition.tag.begin.factorio-locale"}
-					},
-					"end": "(\\])",
-					"endCaptures": {
-						"1":{"name":"punctuation.definition.tag.end.factorio-locale"}
-					}
-				},
-				{
 					"match": "(__)(.+?)(__)",
 					"captures": {
 						"1":{"name":"punctuation.definition.tag.begin.factorio-locale"},
