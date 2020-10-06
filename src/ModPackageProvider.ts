@@ -407,6 +407,19 @@ export class ModPackage extends vscode.TreeItem {
 		});
 	}
 
+	public static async BuildZip(moddir:string,packagepath:string,ignore:string[],name:string,version:string): Promise<number>
+	{
+		const zipoutput = fs.createWriteStream(packagepath);
+		const archive = archiver('zip', { zlib: { level: 9 }});
+		archive.pipe(zipoutput);
+		archive.glob("**",{ cwd: moddir, root: moddir, nodir: true, ignore: ignore },{ prefix: `${name}_${version}` });
+		const bytesWritten = new Promise<number>((resolve,reject)=>{
+			zipoutput.on("close",()=>resolve(archive.pointer()));
+			archive.finalize();
+		});
+		return bytesWritten;
+	}
+
 	private async Package(term:ModTaskTerminal): Promise<string|undefined>
 	{
 		const config = vscode.workspace.getConfiguration(undefined,this.resourceUri);
@@ -431,14 +444,9 @@ export class ModPackage extends vscode.TreeItem {
 		}
 
 		const packagepath = path.join(packagebase, `${this.label}_${this.description}.zip`);
-		const zipoutput = fs.createWriteStream(packagepath);
-		const archive = archiver('zip', { zlib: { level: 9 }});
-		archive.pipe(zipoutput);
-		archive.glob("**",{ cwd: moddir, root: moddir, nodir: true, ignore: [`**/${this.label}_*.zip`].concat(this.packageIgnore||[]) },{ prefix: `${this.label}_${this.description}` });
-		const bytesWritten = await new Promise((resolve,reject)=>{
-			zipoutput.on("close",()=>resolve(archive.pointer()));
-			archive.finalize();
-		});
+
+		const ignore = [`**/${this.label}_*.zip`].concat(this.packageIgnore||[]);
+		const bytesWritten = await ModPackage.BuildZip(moddir,packagepath,ignore,this.label,this.description);
 		term.write(`Built ${this.label}_${this.description}.zip ${bytesWritten} bytes\r\n`);
 		return packagepath;
 	}
