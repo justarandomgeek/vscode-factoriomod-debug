@@ -225,8 +225,10 @@ function __DebugAdapter.attach()
         -- top of stack
         if info.what == "main" or info.what == "Lua" then
           __DebugAdapter.popEntryPointName()
-          print("DBG: leaving")
-          debugprompt()
+          if info.what == "main" and not info.source:match("^@__debugadapter__") then
+            print("DBG: leaving")
+            debugprompt()
+          end
           variables.clear()
         end
       end
