@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.47
+
+* Pretty-print mod-list.json when adjusting mods
+
 ## 0.18.46
 
 * Removed Locale highlighter rule for unrecognized rich text tags

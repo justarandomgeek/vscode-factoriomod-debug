@@ -36,7 +36,7 @@ export class ModManager {
 	public write()
 	{
 		const listPath = path.resolve(this.modsPath,"./mod-list.json");
-		fs.writeFileSync(listPath,JSON.stringify(this.modList),'utf8');
+		fs.writeFileSync(listPath,JSON.stringify(this.modList,null,2),'utf8');
 	}
 
 
