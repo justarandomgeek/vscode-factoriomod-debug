@@ -1047,21 +1047,21 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			}
 			if (this.launchArgs.runningBreak !== undefined)
 			{
-				hookopts += `runningBreak=${this.launchArgs.runningBreak}`;
+				hookopts += `runningBreak=${this.launchArgs.runningBreak},`;
 			}
 			if (this.launchArgs.checkEvents !== undefined)
 			{
 				hookopts += `checkEvents=${
 					Array.isArray(this.launchArgs.checkEvents)?
 					this.launchArgs.checkEvents.includes(modname):
-					this.launchArgs.checkEvents}`;
+					this.launchArgs.checkEvents},`;
 			}
 			if (this.launchArgs.checkGlobals !== undefined)
 			{
 				hookopts += `checkGlobals=${
 					Array.isArray(this.launchArgs.checkGlobals)?
 					this.launchArgs.checkGlobals.includes(modname):
-					this.launchArgs.checkGlobals}`;
+					this.launchArgs.checkGlobals},`;
 			}
 
 			this.writeStdin(`__DebugAdapter={${hookopts}}`);

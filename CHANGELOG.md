@@ -3,6 +3,7 @@
 ## 0.18.46
 
 * Removed Locale highlighter rule for unrecognized rich text tags
+* Fixed script error when setting checkEvents or checkGlobals
 
 ## 0.18.45
 
