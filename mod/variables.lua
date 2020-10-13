@@ -178,8 +178,12 @@ do
   end
 
   local function isUnsafeLong(t)
-    if type(t) ~= "table" then return false end
-    if rawget(t,"__self") then return luaObjectInfo.noLongRefs[t.object_name:match("^([^.]+).?")] end
+    if type(t) ~= "table" then
+      return false
+    end
+    if type(rawget(t,"__self"))=="userdata" and getmetatable(t)=="private" then
+      return luaObjectInfo.noLongRefs[t.object_name:match("^([^.]+)%.?")]
+    end
     for k,v in pairs(t) do
       if isUnsafeLong(k) or isUnsafeLong(v) then
         return true
@@ -307,7 +311,7 @@ function variables.describe(value,short)
       if vtype == "LuaCustomTable" then
           lineitem = ("%d item%s"):format(#value, #value~=1 and "s" or "" )
       else
-        if luaObjectInfo.alwaysValid[vtype:match("^([^.]+).?")] or value.valid then
+        if luaObjectInfo.alwaysValid[vtype:match("^([^.]+)%.?")] or value.valid then
           local lineitemfmt = luaObjectInfo.lineItem[vtype]
           lineitem = ("<%s>"):format(vtype)
           local litype = type(lineitemfmt)

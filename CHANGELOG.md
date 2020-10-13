@@ -3,6 +3,7 @@
 ## 0.18.47
 
 * Pretty-print mod-list.json when adjusting mods
+* Stricter check for LuaObjects in isUnsafeLong()
 
 ## 0.18.46
 
