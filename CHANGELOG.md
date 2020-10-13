@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.18.48
+
 ## 0.18.47
 
 * Pretty-print mod-list.json when adjusting mods
