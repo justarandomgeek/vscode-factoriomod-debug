@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.18.49
+
 ## 0.18.48
 
 * Fix error when mods replace builtin `print` incorrectly
