@@ -1,6 +1,7 @@
 local oldpcall = pcall
 local oldxpcall = xpcall
 local debug = debug
+local print = print
 local localised_print = localised_print
 local __DebugAdapter = __DebugAdapter
 

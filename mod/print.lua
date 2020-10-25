@@ -4,6 +4,7 @@ local variables = require("__debugadapter__/variables.lua") -- uses pcall
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 require("__debugadapter__/evaluate.lua") -- uses pcall
 local json = require('__debugadapter__/json.lua')
+local print = print
 
 ---@param expr any
 ---@param alsoLookIn table

@@ -2,6 +2,8 @@
 
 ## 0.18.48
 
+* Fix error when mods replace builtin `print` incorrectly
+
 ## 0.18.47
 
 * Pretty-print mod-list.json when adjusting mods
