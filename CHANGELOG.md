@@ -4,6 +4,7 @@
 
 * Correctly highlight empty plural
 * Fixed crash if an on_tick handler with no argument has a LuaObject in its first temporary when building callstack
+* Ignore info.json in scenarios/saves
 
 ## 0.18.48
 

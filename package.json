@@ -555,7 +555,12 @@
           "info.json",
           "!locale/*/info.json",
           "!data/**/info.json",
-          "!tests/**/info.json"
+          "!tests/**/info.json",
+          "!temp/**/info.json",
+          "!campaigns/*/info.json",
+          "!scenarios/*/info.json",
+          "!saves/**/info.json",
+          "!blueprint/info.json"
         ],
         "url": "./schema/modinfo.json"
       },
@@ -563,7 +568,11 @@
         "fileMatch": [
           "data/**/info.json",
           "tests/**/info.json",
-          "!locale/*/info.json"
+          "!locale/*/info.json",
+          "!campaigns/*/info.json",
+          "!scenarios/*/info.json",
+          "!saves/**/info.json",
+          "!blueprint/info.json"
         ],
         "url": "./schema/datainfo.json"
       },
