@@ -13,7 +13,6 @@ module.exports = {
         "@typescript-eslint"
     ],
     "rules": {
-        "@typescript-eslint/class-name-casing": "error",
         "@typescript-eslint/member-delimiter-style": [
             "error",
             {
