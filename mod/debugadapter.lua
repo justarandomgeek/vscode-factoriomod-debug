@@ -190,8 +190,10 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote,seq)
             i = i + 1
           end
         elseif entrypoint:match(" handler$") then
-          local _,event = debug.getlocal(lastframe.id,1)
-          if type(event) == "table" and event.mod_name then
+          local argname,event = debug.getlocal(lastframe.id,1)
+          if argname ~= "(*temporary)" and -- not temp -> named arg or local
+              type(event) == "table" and (not getmetatable(event)) and -- table with no meta
+              rawget(event,"mod_name") then -- cross-mod events have names
             local stackFrame = {
               id = i,
               name = "raise_event from " .. event.mod_name,

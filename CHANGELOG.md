@@ -3,6 +3,7 @@
 ## 0.18.49
 
 * Correctly highlight empty plural
+* Fixed crash if an on_tick handler with no argument has a LuaObject in its first temporary when building callstack
 
 ## 0.18.48
 
