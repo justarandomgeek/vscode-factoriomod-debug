@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.18.50
+
 ## 0.18.49
 
 * Correctly highlight empty plural
