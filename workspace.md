@@ -66,3 +66,9 @@ In addition to these, you'll want a little configuration to tell your Lua Langua
     "D:/factorio/factoriogit/data/core/lualib": true,
   },
 ```
+
+If using tasks, you may want to use git-bash as your automation shell:
+
+```jsonc
+  "terminal.integrated.automationShell.windows": "C:/Program Files/Git/usr/bin/bash.exe",
+```
