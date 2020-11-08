@@ -2,6 +2,8 @@
 
 ## 0.18.50
 
+* Always use `-F -` for tags, even when empty
+
 ## 0.18.49
 
 * Correctly highlight empty plural

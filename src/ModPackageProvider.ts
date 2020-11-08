@@ -711,8 +711,7 @@ export class ModPackage extends vscode.TreeItem {
 			}
 			let tagmessage = config.get<string>("factorio.package.tagMessage");
 			tagmessage = tagmessage?.replace(/\$VERSION/g,packageversion).replace(/\$MODNAME/g,this.label);
-			const tagarg = tagmessage ? "-F -" : "-m \"\"";
-			await runScript(term, undefined, `git tag -a ${tagname} ${tagarg}`, moddir,undefined,tagmessage);
+			await runScript(term, undefined, `git tag -a ${tagname} -F -`, moddir,undefined,tagmessage);
 		}
 
 		// build zip with <factorio.package>
