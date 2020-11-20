@@ -4,6 +4,7 @@
 
 * Always use `-F -` for tags, even when empty
 * Fix infinite recursion when cleaning long refs
+* Disabled expandable log items from `__DebugAdapter.print({...})` by default due to issues with vscode debug console
 
 ## 0.18.49
 

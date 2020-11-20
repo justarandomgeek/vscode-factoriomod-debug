@@ -18,10 +18,7 @@ function __DebugAdapter.print(expr,alsoLookIn,upStack,category)
   elseif variables.translate and texpr == "table" and (expr.object_name == "LuaProfiler" or (not getmetatable(expr) and type(expr[1])=="string")) then
     result = "{LocalisedString "..variables.translate(expr).."}"
   else
-    if texpr == "table" then
-      expr = {expr}
-    end
-    local v = variables.create("",expr, nil, true)
+    local v = variables.create(nil,expr, nil, true)
     result = v.value
     ref = v.variablesReference
   end

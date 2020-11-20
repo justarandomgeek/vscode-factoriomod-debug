@@ -164,6 +164,11 @@
             "description": "Remove mod zip after successful upload in Publish task",
             "default": false
           },
+          "factorio.debug.expandablePrint": {
+            "type": "boolean",
+            "description": "Make expandable log items from `__DebugAdapter.print({...})`.",
+            "default": false
+          },
           "factorio.profile.timerHighlightColor": {
             "type": "string",
             "description": "Color to be used to highlight hot timers",
