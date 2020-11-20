@@ -3,6 +3,7 @@
 ## 0.18.50
 
 * Always use `-F -` for tags, even when empty
+* Fix infinite recursion when cleaning long refs
 
 ## 0.18.49
 

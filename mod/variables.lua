@@ -177,15 +177,23 @@ do
     end
   end
 
-  local function isUnsafeLong(t)
+  local function isUnsafeLong(t,seen)
+    if not seen then
+      seen = {}
+    else
+      if seen[t] then
+        return false -- circular isn't inherently unsafe, unless something *else* in the table is
+      end
+    end
     if type(t) ~= "table" then
       return false
     end
     if type(rawget(t,"__self"))=="userdata" and getmetatable(t)=="private" then
       return luaObjectInfo.noLongRefs[t.object_name:match("^([^.]+)%.?")]
     end
+    seen[t] = true
     for k,v in pairs(t) do
-      if isUnsafeLong(k) or isUnsafeLong(v) then
+      if isUnsafeLong(k,seen) or isUnsafeLong(v,seen) then
         return true
       end
     end
