@@ -38,7 +38,6 @@ return {
     LuaGameViewSettings = true,
   },
   noLongRefs = {
-    LuaProfiler = true,
     LuaCustomTable = true,
     LuaLazyLoadedValue = true,
     LuaMapSettings = true,
