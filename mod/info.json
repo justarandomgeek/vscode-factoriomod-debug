@@ -1,7 +1,7 @@
 {
     "name": "debugadapter",
-    "version": "0.18.50",
-    "factorio_version": "0.18",
+    "version": "1.1.0",
+    "factorio_version": "1.1",
     "title": "Debug Adapter for Factorio Mods",
     "author": "justarandomgeek",
     "homepage": "",

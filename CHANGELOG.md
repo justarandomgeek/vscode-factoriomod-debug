@@ -1,10 +1,11 @@
 # Changelog
 
-## 0.18.50
+## 1.1.0
 
 * Always use `-F -` for tags, even when empty
 * Fix infinite recursion when cleaning long refs
 * Disabled expandable log items from `__DebugAdapter.print({...})` by default due to issues with vscode debug console
+* Updated class data and mod for Factorio 1.1.0
 
 ## 0.18.49
 
