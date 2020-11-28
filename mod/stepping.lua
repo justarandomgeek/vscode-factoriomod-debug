@@ -280,7 +280,7 @@ end
 ---@param change string
 function __DebugAdapter.updateBreakpoints(change)
   -- pass it around to everyone if possible, else just set it here...
-  if __DebugAdapter.canRemoteCall() then
+  if __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
     remote.call("debugadapter", "updateBreakpoints", change)
   else
     local source,changedbreaks = ReadBreakpoints(change)
