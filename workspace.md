@@ -13,6 +13,8 @@ I open the Factorio `mods` directory as the root of my workspace in VSCode, and 
     * `modname/`
       * `.git/...`
       * `info.json`
+      * `control.lua`
+      * `data.lua`
       * ...
     * `anothermod/`
       * ...
