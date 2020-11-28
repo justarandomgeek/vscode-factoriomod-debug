@@ -1,7 +1,11 @@
 # Changelog
 
+## 1.1.2
+
 ## 1.1.1
+
 * Fix setting breakpoints during simulations
+
 ## 1.1.0
 
 * Always use `-F -` for tags, even when empty
