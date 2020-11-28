@@ -1,5 +1,7 @@
 # Changelog
 
+## 1.1.1
+
 ## 1.1.0
 
 * Always use `-F -` for tags, even when empty
