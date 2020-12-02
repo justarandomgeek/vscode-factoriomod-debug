@@ -65,6 +65,19 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote,seq)
     if info.what == "main" then
       framename = "(main chunk)"
     end
+    local isC = info.what == "C"
+    if isC then
+      if info.name == "__index" or info.name == "__newindex" then
+        local t = __DebugAdapter.describe(select(2,debug.getlocal(i,1)),true)
+        local k = __DebugAdapter.describe(select(2,debug.getlocal(i,2)),true)
+        if info.name == "__newindex" then
+          local v = __DebugAdapter.describe(select(2,debug.getlocal(i,3)),true)
+          framename = ("__newindex(%s,%s,%s)"):format(t,k,v)
+        else
+          framename = ("__index(%s,%s)"):format(t,k)
+        end
+      end
+    end
     if info.istailcall then
       framename = ("[tail calls...] %s"):format(framename)
     end
@@ -72,7 +85,6 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote,seq)
       framename = ("[%s] %s"):format(script.mod_name, framename)
     end
     local source = normalizeLuaSource(info.source)
-    local isC = info.what == "C"
     local noSource = isC or (source:sub(1,1) == "=")
     local stackFrame = {
       id = i,

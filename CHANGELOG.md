@@ -2,6 +2,8 @@
 
 ## 1.1.2
 
+* Show best-guess arguments for `__index` and `__newindex` in stack trace
+
 ## 1.1.1
 
 * Fix setting breakpoints during simulations
