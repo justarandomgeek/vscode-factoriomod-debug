@@ -41,6 +41,7 @@ local pairs = pairs
 local type = type
 
 local variables = require("__debugadapter__/variables.lua")
+local luaObjectInfo = require("__debugadapter__/luaobjectinfo.lua")
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local json = require("__debugadapter__/json.lua")
 local datastring = require("__debugadapter__/datastring.lua")
@@ -77,6 +78,7 @@ function __DebugAdapter.attach()
   local debugprompt = debug.debug
   local evaluateInternal = __DebugAdapter.evaluateInternal
   local stringInterp = __DebugAdapter.stringInterp
+  local pendingeventlike = {}
   debug.sethook(function(event,line)
     local ignored = stepIgnoreFuncs[getinfo(2,"f").func]
     if ignored then return end
@@ -165,7 +167,7 @@ function __DebugAdapter.attach()
         end
       end
       local parent = getinfo(3,"f")
-      if not parent then
+      if not parent then -- top of a new stack
         if info.func == serpent.dump then
           -- this catches saving and the psuedo-save for crc checks
           __DebugAdapter.pushEntryPointName("saving")
@@ -185,6 +187,23 @@ function __DebugAdapter.attach()
             -- i don't know anything useful about these, but i need to push *something* to prevent
             -- misidentifying the new stack if it's re-entrant in another event
             __DebugAdapter.pushEntryPointName("unknown")
+          end
+        end
+      else -- down in a stack
+        if script then
+          local success,t,k,v = luaObjectInfo.check_eventlike(3,event)
+          if success then
+            --print("eventlike",script.mod_name,event,t,k,v)
+            local pending = pendingeventlike[info.func]
+            if not pending then
+              pending = {}
+              pendingeventlike[info.func] = pending
+            end
+            pending[#pending+1] = true
+            __DebugAdapter.pushStack{
+                mod_name = script.mod_name,
+                stack = __DebugAdapter.stackTrace(-2, nil, true),
+              }
           end
         end
       end
@@ -221,8 +240,7 @@ function __DebugAdapter.attach()
         end
       end
       local parent = getinfo(3,"f")
-      if not parent then
-        -- top of stack
+      if not parent then -- top of stack
         if info.what == "main" or info.what == "Lua" then
           __DebugAdapter.popEntryPointName()
           if info.what == "main" and not info.source:match("^@__debugadapter__") then
@@ -230,6 +248,19 @@ function __DebugAdapter.attach()
             debugprompt()
           end
           variables.clear()
+        end
+      else -- down in stack
+        if script and pendingeventlike[info.func] then
+          -- if this is a waiting eventlike, pop one...
+          local pending = pendingeventlike[info.func]
+          local count = #pending
+          --print("eventlike",script.mod_name,event,pending[count])
+          __DebugAdapter.popStack()
+          if count == 1 then
+            pendingeventlike[info.func] = nil
+          else
+            pending[count] = nil
+          end
         end
       end
     end

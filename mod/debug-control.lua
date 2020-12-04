@@ -16,6 +16,8 @@ local debug = debug
 local print = print
 local pairs = pairs
 
+require("__debugadapter__/stacks.lua") -- might have already been run, but load it now if not
+
 --- call a remote function in all registered mods
 ---@param funcname string Name of remote function to call
 ---@return table<string,any> Results indexed by mod name
@@ -109,6 +111,10 @@ end))
 remote.add_interface("debugadapter",__DebugAdapter.stepIgnoreAll{
   updateBreakpoints = updateBreakpoints,
   whois = whois,
+
+  pushStack = __DebugAdapter.pushStack,
+  popStack = __DebugAdapter.popStack,
+  peekStacks = __DebugAdapter.peekStacks,
 })
 
 return sharedevents

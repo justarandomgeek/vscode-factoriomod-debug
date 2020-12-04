@@ -22,6 +22,7 @@ local require = require
 --this has to be first before requiring other files so they can mark functions as ignored
 require("__debugadapter__/stepping.lua")
 
+require("__debugadapter__/luaobjectinfo.lua") -- uses pcall
 local variables = require("__debugadapter__/variables.lua") -- uses pcall
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local remotestepping
@@ -36,6 +37,7 @@ end
 require("__debugadapter__/print.lua") -- uses evaluate/variables
 require("__debugadapter__/entrypoints.lua") -- must be after anyone using pcall/xpcall
 
+require("__debugadapter__/stacks.lua")
 
 local script = script
 local debug = debug
@@ -131,6 +133,27 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote,seq)
     --   /command handlers (instrumented+2)
     --   special events: (instrumented+2)
     --     on_init, on_load, on_configuration_changed, on_nth_tick
+
+    -- but first, drop frames from same-stack api calls that raise events
+    local stacks = __DebugAdapter.peekStacks()
+    do
+      local dropcount = 0
+      for istack = #stacks,1,-1 do
+        local topstack = stacks[istack]
+        if topstack.mod_name == script.mod_name then
+          dropcount = dropcount + table_size(topstack.stack) + 1
+          print("dropstack",dropcount)
+        else
+          break
+        end
+      end
+      if dropcount > 0 then
+        print("drop",dropcount)
+        for drop = 1,dropcount,1 do
+          stackFrames[#stackFrames] = nil
+        end
+      end
+    end
 
     local entrypoint = __DebugAdapter.getEntryPointName()
     if entrypoint then
@@ -234,6 +257,20 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote,seq)
         end
         if not info.istailcall then
           lastframe.name = framename
+        end
+
+        -- list any eventlike api calls stacked up...
+        if stacks then
+          local nstacks = #stacks
+          for istack = nstacks,1,-1 do
+            local stack = stacks[istack]
+            --print("stack",istack,nstacks,stack.mod_name,script.mod_name)
+            for _,frame in pairs(stack.stack) do
+              frame.id = i
+              stackFrames[#stackFrames+1] = frame
+              i = i + 1
+            end
+          end
         end
       end
     end

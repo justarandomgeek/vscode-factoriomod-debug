@@ -3,6 +3,7 @@
 ## 1.1.2
 
 * Show best-guess arguments for `__index` and `__newindex` in stack trace
+* Collect and display stacks for some api calls that can raise events
 
 ## 1.1.1
 

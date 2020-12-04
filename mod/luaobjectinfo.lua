@@ -1,4 +1,5 @@
 local __DebugAdapter = __DebugAdapter
+local pcall = pcall
 local luaObjectLines = {
   ---@param stack LuaItemStack
   ---@param short boolean | nil
@@ -21,6 +22,100 @@ local luaObjectLines = {
   LuaEntity = [[<LuaEntity>{[}name={name}, type={type}, unit_number={unit_number}{]}]],
 }
 __DebugAdapter.stepIgnoreAll(luaObjectLines)
+
+-- some API functions can raise events, so we want to record the stack somewhere
+-- and indicate that it needs to be requested if something stops in the lower stack
+-- API functions (including metas) have two upval:
+-- userdata(pointer to object), userdata(pointer to member function)
+-- all functions from one object will have the same value in the first
+-- all instances of the same class::function will have the same value in the second
+local eventlike = {
+  members = {
+    -- userdata => {class="",member=""}
+  },
+  classes = {
+    __index = {
+      LuaItemStack = {
+        build_blueprint = true,
+      },
+      LuaSurface = {
+        create_entity = true,
+        set_tiles = true,
+      },
+      LuaEntity = {
+        destroy = true,
+        die = true,
+        revive = true,
+        silent_revive = true,
+        clone = true,
+        mine = true,
+      },
+      LuaPlayer = {
+        mine_entity = true,
+        mine_tile = true,
+      },
+    },
+    __newindex = {
+      LuaPlayer = {
+        opened = true,
+      }
+    }
+  }
+}
+
+local function check_eventlike(level,hooktype)
+  local info = debug.getinfo(level,"nSf")
+  if not info then return end
+  if info.what ~= "C" then return end
+  local fname = info.name
+  local classes = eventlike.classes[fname]
+  if classes then
+    local _,t = debug.getlocal(level,1)
+    if type(t) ~= "table" or getmetatable(t) ~= "private" then return end
+    local tname = t.object_name
+    if not tname then return end
+    local class = classes[tname]
+    if not class then return end
+    local _,k = debug.getlocal(level,2)
+    local member = class[k]
+    if member then
+      if fname == "__index" then
+        if hooktype == "call" or hooktype == "tail call" then
+          -- there's no good way to get return values, so fetch it myself once in call instead
+          -- and get the userdata so we can compare things...
+          -- pcall in case it's a bad lookup
+          local success,func = pcall(function () return t[k] end)
+          if success and type(func)=="function" then
+            local _,memberptr = debug.getupvalue(func,2)
+            eventlike.members[memberptr] = {class=tname,member=k}
+            -- only need to do this once, so unhook it once we get one!
+            class[k] = nil
+            if not next(class) then
+              classes[tname] = nil
+            end
+          end
+        end
+        -- this call is not eventlike itself, but the returned func will be
+        return --false,tname,k
+      else -- __newindex
+        -- do the thing
+        return true,tname,k,(select(2,debug.getlocal(level,3)))
+      end
+    end
+  else
+    local f = info.func
+    local _,memberptr = debug.getupvalue(f,2)
+    if memberptr then
+      local member = eventlike.members[memberptr]
+      if member then
+        -- do the thing
+        return true,member.class,member.member
+      end
+    end
+  end
+end
+__DebugAdapter.stepIgnore(check_eventlike)
+
 
 
 -- class data last updated factorio 1.1.0
@@ -45,6 +140,8 @@ return {
     LuaDifficultySettings = true,
   },
   lineItem = luaObjectLines,
+  eventlike = eventlike,
+  check_eventlike = check_eventlike,
   expandKeys = {
     LuaAISettings = {
       allow_destroy_when_commands_fail = {},
