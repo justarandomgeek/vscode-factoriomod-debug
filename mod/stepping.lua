@@ -351,6 +351,7 @@ end
 local vcreate = variables.create
 local vmeta = {
   __debugline = "<Debug Adapter Stepping Module>",
+  __debugtype = "DebugAdapter.Stepping",
   __debugchildren = function(t) return {
     vcreate("<breakpoints>",breakpoints),
     vcreate("<stepmode>",stepmode),

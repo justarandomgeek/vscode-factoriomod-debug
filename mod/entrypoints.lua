@@ -369,6 +369,7 @@ local newscriptmeta = {
   __index = oldscript,
   __newindex = function(t,k,v) oldscript[k] = v end,
   __debugline = "<LuaBootstrap Debug Proxy>",
+  __debugtype = "DebugAdapter.LuaBootstrap",
 }
 __DebugAdapter.stepIgnoreAll(newscript)
 __DebugAdapter.stepIgnoreAll(newscriptmeta)
@@ -391,6 +392,7 @@ local newcommandsmeta = {
   __index = oldcommands,
   __newindex = function(t,k,v) oldcommands[k] = v end,
   __debugline = "<LuaCommandProcessor Debug Proxy>",
+  __debugtype = "DebugAdapter.LuaCommandProcessor",
 }
 __DebugAdapter.stepIgnoreAll(newcommands)
 __DebugAdapter.stepIgnoreAll(newcommandsmeta)

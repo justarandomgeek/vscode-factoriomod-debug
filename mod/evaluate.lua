@@ -29,6 +29,7 @@ local function evalmeta(frameId,alsoLookIn)
   local getupvalue = debug.getupvalue
   local env = _ENV
   local em = {
+    __debugtype = "DebugAdapter.EvalEnv",
     __debugline = function(t,short)
       if short then
         return "<Eval Env>"

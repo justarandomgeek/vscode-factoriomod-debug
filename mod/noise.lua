@@ -127,6 +127,8 @@ return function(noisemeta)
     }
   end
 
+  noisemeta.__debugtype = "noise_expression"
+
   noisemeta.__debugline = function(ex,short)
     if short then
       return "<noise>"

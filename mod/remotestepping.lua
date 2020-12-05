@@ -216,6 +216,7 @@ local remotemeta = {
   __index = oldremote,
   __newindex = function(t,k,v) oldremote[k] = v end,
   __debugline = "<LuaRemote Debug Proxy>",
+  __debugtype = "DebugAdapter.LuaRemote",
   __debugchildren = function(t)
     return {
       variables.create([["interfaces"]],oldremote.interfaces),

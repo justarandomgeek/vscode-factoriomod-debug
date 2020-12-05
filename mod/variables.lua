@@ -32,11 +32,13 @@ local remote = remote and rawget(remote,"__raw") or remote
 -- Trying to expand the refs table causes some problems, so just hide it...
 local refsmeta = {
   __debugline = "<Debug Adapter Variable ID Cache [{table_size(self)}]>",
+  __debugtype = "DebugAdapter.VariableRefs",
   __debugchildren = false,
 }
 
 local longrefsmeta = {
   __debugline = "<Debug Adapter Long-lived Variable ID Cache [{table_size(self)}]>",
+  __debugtype = "DebugAdapter.VariableLongRefs",
   __debugchildren = false,
 }
 
@@ -68,6 +70,7 @@ local globalbuiltins={
 
 }
 gmeta.__debugline = "<Global Self Reference>"
+gmeta.__debugtype = "_ENV"
 gmeta.__debugchildren = function(t,extra)
   local vars = {}
   if not extra then
@@ -462,6 +465,9 @@ function variables.create(name,value,evalName,long)
     elseif mt.__debugchildren then -- mt and ...
       variablesReference = variables.tableRef(value,nil,nil,nil,evalName,long)
       -- children counts for mt children?
+    end
+    if mt and type(mt.__debugtype) == "string" then
+      vtype = mt.__debugtype
     end
   end
   return {
