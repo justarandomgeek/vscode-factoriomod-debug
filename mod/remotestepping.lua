@@ -87,7 +87,7 @@ if __DebugAdapter.instrument then
     if debugname then
       debugname = "__debugadapter_" .. debugname
       local result,multreturn = call(debugname,"remoteCallInner",
-        __DebugAdapter.currentStep(), __DebugAdapter.stackTrace(-2, nil, true), false,
+        __DebugAdapter.currentStep(), __DebugAdapter.stackTrace(-2, true), false,
         interface, func, ...)
 
       local childstep = result.step
@@ -161,7 +161,7 @@ else -- not __DebugAdapter.instrument
     if debugname then
       debugname = "__debugadapter_" .. debugname
       local result,multreturn = call(debugname,"remoteCallInner",
-        __DebugAdapter.currentStep(), __DebugAdapter.stackTrace(-2, nil, true), true,
+        __DebugAdapter.currentStep(), __DebugAdapter.stackTrace(-2, true), true,
         interface, func, ...)
 
       local childstep = result.step

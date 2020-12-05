@@ -334,7 +334,7 @@ end
 function newscript.raise_event(event,eventdata)
   -- factorio adds `mod_name`, so i don't need to
   eventdata.__debug = {
-    stack = __DebugAdapter.stackTrace(-2, nil, true),
+    stack = __DebugAdapter.stackTrace(-2, true),
   }
   oldscript.raise_event(event,eventdata)
 end
@@ -344,7 +344,7 @@ local function wrap_raise(key)
     newscript[key] = function (eventdata)
       -- factorio adds `mod_name`, so i don't need to
       eventdata.__debug = {
-        stack = __DebugAdapter.stackTrace(-2, nil, true),
+        stack = __DebugAdapter.stackTrace(-2, true),
       }
       oldscript[key](eventdata)
     end

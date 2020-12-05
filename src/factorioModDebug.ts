@@ -680,12 +680,10 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	protected async stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments) {
 
 		const startFrame = typeof args.startFrame === 'number' ? args.startFrame : 0;
-		const maxLevels = typeof args.levels === 'number' ? args.levels : 1000;
-		const endFrame = startFrame + maxLevels;
 
 		this._responses.set(response.request_seq,response);
 
-		this.writeStdin(`__DebugAdapter.stackTrace(${startFrame},${endFrame-startFrame},false,${response.request_seq})`);
+		this.writeStdin(`__DebugAdapter.stackTrace(${startFrame},false,${response.request_seq})`);
 	}
 
 	private async finishStackTrace(stack:DebugProtocol.StackFrame[], seq:number) {

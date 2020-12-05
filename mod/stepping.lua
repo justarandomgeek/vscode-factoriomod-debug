@@ -202,7 +202,7 @@ function __DebugAdapter.attach()
             pending[#pending+1] = true
             __DebugAdapter.pushStack{
                 mod_name = script.mod_name,
-                stack = __DebugAdapter.stackTrace(-2, nil, true),
+                stack = __DebugAdapter.stackTrace(-2, true),
               }
           end
         end

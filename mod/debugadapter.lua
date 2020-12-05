@@ -44,11 +44,24 @@ local debug = debug
 local print = print
 local pairs = pairs
 
+local function labelframe(i,name,sourcename)
+  return {
+    id = i,
+    name = name,
+    presentationHint = "label",
+    line = 0,
+    column = 0,
+    source = {
+      name = sourcename,
+      presentationHint = "deemphasize",
+    }
+  }
+end
+
 ---@param startFrame integer | nil
----@param levels integer | nil
 ---@param forRemote boolean | nil
 ---@return StackFrame[]
-function __DebugAdapter.stackTrace(startFrame, levels, forRemote,seq)
+function __DebugAdapter.stackTrace(startFrame, forRemote,seq)
   local offset = 5 -- 0 getinfo, 1 stackTrace, 2 debug command, 3 debug.debug, 4 sethook callback, 5 at breakpoint
   -- in exceptions    0 getinfo, 1 stackTrace, 2 debug command, 3 debug.debug, 4 xpcall callback, 5 at exception
   -- in instrument ex 0 getinfo, 1 stackTrace, 2 debug command, 3 debug.debug, 4 on_error callback,
@@ -107,12 +120,6 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote,seq)
     end
     stackFrames[#stackFrames+1] = stackFrame
     i = i + 1
-    if #stackFrames == levels then
-      if debug.getinfo(i,"f") then
-        stackIsTrucated = true
-      end
-      break
-    end
   end
 
   if script then
@@ -159,35 +166,13 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote,seq)
     if entrypoint then
       -- check for non-instrumented entry...
       if entrypoint == "unknown" then
-        local stackFrame = {
-          id = i,
-          name = "unknown entry point",
-          presentationHint = "label",
-          line = 0,
-          column = 0,
-          source = {
-            name = "unknown",
-            presentationHint = "deemphasize",
-          }
-        }
-        stackFrames[#stackFrames+1] = stackFrame
+        stackFrames[#stackFrames+1] = labelframe(i,"unknown entry point","unknown")
         i = i + 1
       elseif entrypoint == "saving" or entrypoint == "main" then
         -- nothing useful to add for these...
       elseif entrypoint:match("^remote ") then
         stackFrames[#stackFrames].name = entrypoint:match("^remote (.+)$")
-        local stackFrame = {
-          id = i,
-          name = "remote.call context switch",
-          presentationHint = "label",
-          line = 0,
-          column = 0,
-          source = {
-            name = "remote",
-            presentationHint = "deemphasize",
-          }
-        }
-        stackFrames[#stackFrames+1] = stackFrame
+        stackFrames[#stackFrames+1] = labelframe(i,"remote.call context switch","remote")
         i = i + 1
       elseif not stackIsTrucated then
         -- instrumented event/remote handler has one or two extra frames.
@@ -206,18 +191,7 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote,seq)
         if entrypoint == "hookedremote" then
           local remoteStack,remoteFName = remotestepping.parentState()
           framename = remoteFName
-          local stackFrame = {
-            id = i,
-            name = "remote.call context switch",
-            presentationHint = "label",
-            line = 0,
-            column = 0,
-            source = {
-              name = "remote",
-              presentationHint = "deemphasize",
-            }
-          }
-          stackFrames[#stackFrames+1] = stackFrame
+          stackFrames[#stackFrames+1] = labelframe(i,"remote.call context switch","remote")
           i = i + 1
           for _,frame in pairs(remoteStack) do
             frame.id = i
@@ -229,18 +203,7 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote,seq)
           if argname ~= "(*temporary)" and -- not temp -> named arg or local
               type(event) == "table" and (not getmetatable(event)) and -- table with no meta
               rawget(event,"mod_name") then -- cross-mod events have names
-            local stackFrame = {
-              id = i,
-              name = "raise_event from " .. event.mod_name,
-              presentationHint = "label",
-              line = 0,
-              column = 0,
-              source = {
-                name = "raise_event",
-                presentationHint = "deemphasize",
-              }
-            }
-            stackFrames[#stackFrames+1] = stackFrame
+            stackFrames[#stackFrames+1] = labelframe(i,"raise_event from " .. event.mod_name,"raise_event")
             i = i + 1
             if event.__debug then
               -- debug enabled mods provide a stack
@@ -265,6 +228,8 @@ function __DebugAdapter.stackTrace(startFrame, levels, forRemote,seq)
           for istack = nstacks,1,-1 do
             local stack = stacks[istack]
             --print("stack",istack,nstacks,stack.mod_name,script.mod_name)
+            stackFrames[#stackFrames+1] = labelframe(i,"api call raised event from "..stack.mod_name,"api")
+            i = i + 1
             for _,frame in pairs(stack.stack) do
               frame.id = i
               stackFrames[#stackFrames+1] = frame
