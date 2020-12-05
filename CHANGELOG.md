@@ -4,6 +4,7 @@
 
 * Show best-guess arguments for `__index` and `__newindex` in stack trace
 * Collect and display stacks for some api calls that can raise events
+* Display enum properties of LuaObjects as names from `defines.*`
 
 ## 1.1.1
 

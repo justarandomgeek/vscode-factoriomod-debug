@@ -769,6 +769,21 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
                   evalName = varRef.evalName .. "[" .. variables.describe(key,true) .. "]"
                 end
                 local var = variables.create(variables.describe(key,true),value,evalName,long)
+
+                local enum = keyprops.enum
+                local tenum = type(enum)
+                if tenum == "table" then
+                  local name = enum[value]
+                  if name then
+                    var.value = name
+                  end
+                elseif tenum == "function" then
+                  local success,name = pcall(enum,object,value)
+                  if success and name then
+                    var.value = name
+                  end
+                end
+
                 if keyprops.countLine then
                   var.value = ("%d item%s"):format(#value, #value~=1 and "s" or "")
                 end
