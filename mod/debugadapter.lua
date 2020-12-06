@@ -195,7 +195,7 @@ function __DebugAdapter.stackTrace(startFrame, forRemote,seq)
 
         local framename = entrypoint
         if entrypoint == "hookedremote" then
-          local remoteStack,remoteFName = remotestepping.parentState()
+          local remoteFName = remotestepping.parentState()
           framename = remoteFName
 
         elseif entrypoint:match(" handler$") then

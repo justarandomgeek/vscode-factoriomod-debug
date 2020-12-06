@@ -22,12 +22,11 @@ local newremote = {
 local stacks = {}
 local myRemotes = {}
 
----@return StackFrame[]
 ---@return string
 function remotestepping.parentState()
   local level = stacks[#stacks]
   if level then
-    return level.stack, level.name
+    return level.name
   end
 end
 
@@ -35,15 +34,13 @@ if __DebugAdapter.instrument then
   --- Transfer stepping state and perform the call. Vararg arguments will be forwarded to the
   --- remote function, and any return value from the remote will be returned with the new stepping state in a table.
   ---@param parentstep string "remote"*("next" | "in" | "over" | "out")
-  ---@param parentstack StackFrame[]
   ---@param pcallresult boolean
   ---@param interface string
   ---@param func string
   ---@return table
-  function remotestepping.callInner(parentstep,parentstack,pcallresult,interface,func,...)
+  function remotestepping.callInner(parentstep,pcallresult,interface,func,...)
     __DebugAdapter.pushEntryPointName("hookedremote")
     stacks[#stacks+1] = {
-      stack = parentstack,
       name = func,
     }
     if parentstep and (parentstep == "over" or parentstep == "out" or parentstep:match("^remote")) then
@@ -92,7 +89,7 @@ if __DebugAdapter.instrument then
         stack = __DebugAdapter.stackTrace(-2, true),
       }
       local result,multreturn = call(debugname,"remoteCallInner",
-        __DebugAdapter.currentStep(), {}, false,
+        __DebugAdapter.currentStep(), false,
         interface, func, ...)
       __DebugAdapter.popStack()
 
@@ -115,15 +112,13 @@ else -- not __DebugAdapter.instrument
   --- Transfer stepping state and perform the call. Vararg arguments will be forwarded to the
   --- remote function, and any return value from the remote will be returned with the new stepping state in a table.
   ---@param parentstep string "remote"*("next" | "in" | "over" | "out")
-  ---@param parentstack StackFrame[]
   ---@param pcallresult boolean
   ---@param interface string
   ---@param func string
   ---@return table
-  function remotestepping.callInner(parentstep,parentstack,pcallresult,interface,func,...)
+  function remotestepping.callInner(parentstep,pcallresult,interface,func,...)
     __DebugAdapter.pushEntryPointName("hookedremote")
     stacks[#stacks+1] = {
-      stack = parentstack,
       name = func,
     }
     if parentstep and (parentstep == "over" or parentstep == "out" or parentstep:match("^remote")) then
@@ -172,7 +167,7 @@ else -- not __DebugAdapter.instrument
         stack = __DebugAdapter.stackTrace(-2, true),
       }
       local result,multreturn = call(debugname,"remoteCallInner",
-        __DebugAdapter.currentStep(), {}, true,
+        __DebugAdapter.currentStep(), true,
         interface, func, ...)
       __DebugAdapter.popStack()
 
