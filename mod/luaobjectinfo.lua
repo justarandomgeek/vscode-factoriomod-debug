@@ -36,6 +36,9 @@ local eventlike = {
   },
   classes = {
     __index = {
+      LuaGameScript = {
+        create_surface = true,
+      },
       LuaItemStack = {
         build_blueprint = true,
       },
