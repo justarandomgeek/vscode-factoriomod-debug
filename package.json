@@ -107,11 +107,13 @@
         "properties": {
           "factorio.portal.username": {
             "type": "string",
-            "description": "Username for Factorio Mod Portal to enable automatically uploading mods. If not set, will use environment variable FACTORIO_PORTAL_USERNAME if set, or prompt for a username."
+            "description": "Username for Factorio Mod Portal to enable automatically uploading mods. If not set, will use environment variable FACTORIO_PORTAL_USERNAME if set, or prompt for a username.",
+            "scope": "machine-overridable"
           },
           "factorio.portal.password": {
             "type": "string",
-            "description": "Password for Factorio Mod Portal to enable automatically uploading mods. If not set, will use environment variable FACTORIO_PORTAL_PASSWORD if set, or prompt for a password."
+            "description": "Password for Factorio Mod Portal to enable automatically uploading mods. If not set, will use environment variable FACTORIO_PORTAL_PASSWORD if set, or prompt for a password.",
+            "scope": "machine-overridable"
           },
           "factorio.package.preparingCommitMessage": {
             "type": "string",
