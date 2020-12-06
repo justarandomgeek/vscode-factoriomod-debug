@@ -44,10 +44,18 @@ local debug = debug
 local print = print
 local pairs = pairs
 
-local function labelframe(i,name,sourcename)
+
+local sourcelabel = {
+  remote = function(mod_name) return mod_name and ("remote.call from "..mod_name) or "remote.call context switch" end,
+  unknown = function(mod_name) return "unknown entry point" end,
+  raise_event = function(mod_name) return "raise_event from "..mod_name end,
+  api = function(mod_name) return "api call raised event from "..mod_name end,
+}
+
+local function labelframe(i,sourcename,mod_name)
   return {
     id = i,
-    name = name,
+    name = (sourcelabel[sourcename] or function(mod_name) return "unkown from "..mod_name end)(mod_name),
     presentationHint = "label",
     line = 0,
     column = 0,
@@ -72,7 +80,6 @@ function __DebugAdapter.stackTrace(startFrame, forRemote,seq)
   end
   local i = (startFrame or 0) + offset
   local stackFrames = {}
-  local stackIsTrucated = false
   while true do
     local info = debug.getinfo(i,"nSlutf")
     if not info then break end
@@ -127,31 +134,30 @@ function __DebugAdapter.stackTrace(startFrame, forRemote,seq)
     -- possible entry points (in control stage):
     --   main chunks (identified above as "(main chunk)", call sethook tags as entrypoint="main", no break on exception)
     --     control.lua init and any files it requires
-    --     dostring(globaldump) for loading global from save
     --     migrations
     --     /c __modname__ command
-    --   serpent.dump(global,{numformat="%a"}) for saving/crc check (call sethook tags as entrypoint="saving", no break on exception)
+    --     simulation scripts (as commands)
     --   remote.call
-    --     from debug enabled mod (instrumented+2, entrypoint="hookedremote")
+    --     from debug enabled mod (instrumented+1/2, entrypoint="hookedremote")
     --     from non-debug enabled mod (call sethook tags as entrypoint="remote fname", no break on exception)
-    --   event handlers (instrumented+2)
+    --   event handlers (instrumented+1/2)
     --     if called by raise_event, has event.mod_name
-    --       from a debug enabled mod, has event.__debug = {stack = ...}
-    --   /command handlers (instrumented+2)
-    --   special events: (instrumented+2)
+    --   /command handlers (instrumented+1/2)
+    --   special events: (instrumented+1/2)
     --     on_init, on_load, on_configuration_changed, on_nth_tick
 
     -- but first, drop frames from same-stack api calls that raise events
     local stacks = __DebugAdapter.peekStacks()
     do
+      local dropextra = {
+        remote = 3, -- remotestepping.call, remote.call, remotestepping.callinner
+      } -- default = 1 -- try in raised event or command
       local dropcount = 0
       for istack = #stacks,1,-1 do
-        local topstack = stacks[istack]
-        if topstack.mod_name == script.mod_name then
-          dropcount = dropcount + table_size(topstack.stack) + 1
+        local stack = stacks[istack]
+        if stack.mod_name == script.mod_name then
+          dropcount = dropcount + table_size(stack.stack) + (dropextra[stack.source] or 1)
           print("dropstack",dropcount)
-        else
-          break
         end
       end
       if dropcount > 0 then
@@ -166,15 +172,15 @@ function __DebugAdapter.stackTrace(startFrame, forRemote,seq)
     if entrypoint then
       -- check for non-instrumented entry...
       if entrypoint == "unknown" then
-        stackFrames[#stackFrames+1] = labelframe(i,"unknown entry point","unknown")
+        stackFrames[#stackFrames+1] = labelframe(i,"unknown")
         i = i + 1
       elseif entrypoint == "saving" or entrypoint == "main" then
         -- nothing useful to add for these...
       elseif entrypoint:match("^remote ") then
         stackFrames[#stackFrames].name = entrypoint:match("^remote (.+)$")
-        stackFrames[#stackFrames+1] = labelframe(i,"remote.call context switch","remote")
+        stackFrames[#stackFrames+1] = labelframe(i,"remote")
         i = i + 1
-      elseif not stackIsTrucated then
+      else
         -- instrumented event/remote handler has one or two extra frames.
         -- Delete them and rename the next bottom frame...
         -- this leaves a gap in `i`. Maybe later allow expanding hidden frames?
@@ -191,29 +197,9 @@ function __DebugAdapter.stackTrace(startFrame, forRemote,seq)
         if entrypoint == "hookedremote" then
           local remoteStack,remoteFName = remotestepping.parentState()
           framename = remoteFName
-          stackFrames[#stackFrames+1] = labelframe(i,"remote.call context switch","remote")
-          i = i + 1
-          for _,frame in pairs(remoteStack) do
-            frame.id = i
-            stackFrames[#stackFrames+1] = frame
-            i = i + 1
-          end
+
         elseif entrypoint:match(" handler$") then
-          local argname,event = debug.getlocal(lastframe.id,1)
-          if argname ~= "(*temporary)" and -- not temp -> named arg or local
-              type(event) == "table" and (not getmetatable(event)) and -- table with no meta
-              rawget(event,"mod_name") then -- cross-mod events have names
-            stackFrames[#stackFrames+1] = labelframe(i,"raise_event from " .. event.mod_name,"raise_event")
-            i = i + 1
-            if event.__debug then
-              -- debug enabled mods provide a stack
-              for _,frame in pairs(event.__debug.stack) do
-                frame.id = i
-                stackFrames[#stackFrames+1] = frame
-                i = i + 1
-              end
-            end
-          end
+
         end
         if forRemote then
           framename = ("[%s] %s"):format(script.mod_name, framename)
@@ -223,12 +209,12 @@ function __DebugAdapter.stackTrace(startFrame, forRemote,seq)
         end
 
         -- list any eventlike api calls stacked up...
-        if stacks then
+        if not forRemote and stacks then
           local nstacks = #stacks
           for istack = nstacks,1,-1 do
             local stack = stacks[istack]
             --print("stack",istack,nstacks,stack.mod_name,script.mod_name)
-            stackFrames[#stackFrames+1] = labelframe(i,"api call raised event from "..stack.mod_name,"api")
+            stackFrames[#stackFrames+1] = labelframe(i,stack.source,stack.mod_name)
             i = i + 1
             for _,frame in pairs(stack.stack) do
               frame.id = i

@@ -86,9 +86,15 @@ if __DebugAdapter.instrument then
     local debugname = call("debugadapter","whois",interface)
     if debugname then
       debugname = "__debugadapter_" .. debugname
+      __DebugAdapter.pushStack{
+        source = "remote",
+        mod_name = script.mod_name,
+        stack = __DebugAdapter.stackTrace(-2, true),
+      }
       local result,multreturn = call(debugname,"remoteCallInner",
-        __DebugAdapter.currentStep(), __DebugAdapter.stackTrace(-2, true), false,
+        __DebugAdapter.currentStep(), {}, false,
         interface, func, ...)
+      __DebugAdapter.popStack()
 
       local childstep = result.step
       result = result.result
@@ -160,9 +166,15 @@ else -- not __DebugAdapter.instrument
     local debugname = call("debugadapter","whois",interface)
     if debugname then
       debugname = "__debugadapter_" .. debugname
+      __DebugAdapter.pushStack{
+        source = "remote",
+        mod_name = script.mod_name,
+        stack = __DebugAdapter.stackTrace(-2, true),
+      }
       local result,multreturn = call(debugname,"remoteCallInner",
-        __DebugAdapter.currentStep(), __DebugAdapter.stackTrace(-2, true), true,
+        __DebugAdapter.currentStep(), {}, true,
         interface, func, ...)
+      __DebugAdapter.popStack()
 
       local childstep = result.step
       result = result.result

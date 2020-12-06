@@ -201,6 +201,7 @@ function __DebugAdapter.attach()
             end
             pending[#pending+1] = true
             __DebugAdapter.pushStack{
+                source = "api",
                 mod_name = script.mod_name,
                 stack = __DebugAdapter.stackTrace(-2, true),
               }

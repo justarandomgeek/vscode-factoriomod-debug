@@ -332,21 +332,26 @@ function newscript.get_event_handler(event)
 end
 
 function newscript.raise_event(event,eventdata)
-  -- factorio adds `mod_name`, so i don't need to
-  eventdata.__debug = {
+  __DebugAdapter.pushStack{
+    source = "raise_event",
+    mod_name = script.mod_name,
     stack = __DebugAdapter.stackTrace(-2, true),
   }
   oldscript.raise_event(event,eventdata)
+  __DebugAdapter.popStack()
 end
 
 local function wrap_raise(key)
-  if type(oldscript[key])=="function" then
+  local raise = oldscript[key]
+  if type(raise)=="function" then
     newscript[key] = function (eventdata)
-      -- factorio adds `mod_name`, so i don't need to
-      eventdata.__debug = {
+      __DebugAdapter.pushStack{
+        source = "raise_event",
+        mod_name = script.mod_name,
         stack = __DebugAdapter.stackTrace(-2, true),
       }
-      oldscript[key](eventdata)
+      raise(eventdata)
+      __DebugAdapter.popStack()
     end
   end
 end
