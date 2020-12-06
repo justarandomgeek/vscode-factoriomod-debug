@@ -152,11 +152,9 @@ function __DebugAdapter.stackTrace(startFrame, forRemote,seq)
         local stack = stacks[istack]
         if stack.mod_name == script.mod_name then
           dropcount = dropcount + table_size(stack.stack) + (dropextra[stack.source] or 1)
-          print("dropstack",dropcount)
         end
       end
       if dropcount > 0 then
-        print("drop",dropcount)
         for drop = 1,dropcount,1 do
           stackFrames[#stackFrames] = nil
         end
