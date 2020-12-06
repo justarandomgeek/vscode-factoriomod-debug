@@ -41,7 +41,7 @@ if __DebugAdapter.instrument then
   function remotestepping.callInner(parentstep,pcallresult,interface,func,...)
     __DebugAdapter.pushEntryPointName("hookedremote")
     stacks[#stacks+1] = {
-      name = func,
+      name = "remote "..interface.."::"..func,
     }
     if parentstep and (parentstep == "over" or parentstep == "out" or parentstep:match("^remote")) then
       parentstep = "remote" .. parentstep
@@ -119,7 +119,7 @@ else -- not __DebugAdapter.instrument
   function remotestepping.callInner(parentstep,pcallresult,interface,func,...)
     __DebugAdapter.pushEntryPointName("hookedremote")
     stacks[#stacks+1] = {
-      name = func,
+      name = "remote "..interface.."::"..func,
     }
     if parentstep and (parentstep == "over" or parentstep == "out" or parentstep:match("^remote")) then
       parentstep = "remote" .. parentstep

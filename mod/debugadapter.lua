@@ -49,13 +49,13 @@ local sourcelabel = {
   remote = function(mod_name) return mod_name and ("remote.call from "..mod_name) or "remote.call context switch" end,
   unknown = function(mod_name) return "unknown entry point" end,
   raise_event = function(mod_name) return "raise_event from "..mod_name end,
-  api = function(mod_name) return "api call raised event from "..mod_name end,
+  api = function(mod_name,extra) return (extra or "api call").." raised event from "..mod_name end,
 }
 
-local function labelframe(i,sourcename,mod_name)
+local function labelframe(i,sourcename,mod_name,extra)
   return {
     id = i,
-    name = (sourcelabel[sourcename] or function(mod_name) return "unkown from "..mod_name end)(mod_name),
+    name = (sourcelabel[sourcename] or function(mod_name) return "unkown from "..mod_name end)(mod_name,extra),
     presentationHint = "label",
     line = 0,
     column = 0,
@@ -151,6 +151,7 @@ function __DebugAdapter.stackTrace(startFrame, forRemote,seq)
     do
       local dropextra = {
         remote = 3, -- remotestepping.call, remote.call, remotestepping.callinner
+        api = 2, -- __newindex or api closure, try in raised event
       } -- default = 1 -- try in raised event or command
       local dropcount = 0
       for istack = #stacks,1,-1 do
@@ -214,7 +215,7 @@ function __DebugAdapter.stackTrace(startFrame, forRemote,seq)
           for istack = nstacks,1,-1 do
             local stack = stacks[istack]
             --print("stack",istack,nstacks,stack.mod_name,script.mod_name)
-            stackFrames[#stackFrames+1] = labelframe(i,stack.source,stack.mod_name)
+            stackFrames[#stackFrames+1] = labelframe(i,stack.source,stack.mod_name,stack.extra)
             i = i + 1
             for _,frame in pairs(stack.stack) do
               frame.id = i
