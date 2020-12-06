@@ -57,12 +57,6 @@ local function labelframe(i,sourcename,mod_name,extra)
     id = i,
     name = (sourcelabel[sourcename] or function(mod_name) return "unkown from "..mod_name end)(mod_name,extra),
     presentationHint = "label",
-    line = 0,
-    column = 0,
-    source = {
-      name = sourcename,
-      presentationHint = "deemphasize",
-    }
   }
 end
 
