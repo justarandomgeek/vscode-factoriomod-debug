@@ -6,6 +6,7 @@
 * Collect and display stacks for some api calls that can raise events
 * Display enum properties of LuaObjects as names from `defines.*`
 * Metatable field `__debugtype` to set the displayed typename of an object
+* Show table keys with virtual children `<key>` and `<value>` and rename with unique names
 
 ## 1.1.1
 

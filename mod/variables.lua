@@ -246,6 +246,31 @@ function variables.scopeRef(frameId,name,mode)
   return id
 end
 
+
+--- Generate a variablesReference for a key-value-pair for complex keys object
+---@param key table
+---@param value any
+---@return number variablesReference
+---@return string keyName
+function variables.kvRef(key,value)
+  local refs = variables.longrefs
+
+  for id,varRef in pairs(refs) do
+    if varRef.type == "kvPair" and varRef.key == key and varRef.value == value then
+      return id,varRef.name
+    end
+  end
+  local id = nextID()
+  local name = "{<"..variables.tableRef(key,nil,nil,nil,nil,true)..">}"
+  refs[id] = {
+    type = "kvPair",
+    key = key,
+    value = value,
+    name = name,
+  }
+  return id,name
+end
+
 --- Generate a variablesReference for a table-like object
 ---@param table table
 ---@param mode string "pairs"|"ipairs"|"count"
@@ -700,7 +725,11 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
                 evalName = varRef.evalName .. "[" .. variables.describe(k,true) .. "]"
               end
               local kline,ktype = variables.describe(k,true)
-              vars[#vars + 1] = variables.create(kline,v, evalName,long)
+              local newvar = variables.create(kline,v, evalName,long)
+              if ktype == "table" then
+                newvar.variablesReference,newvar.name = variables.kvRef(k,v)
+              end
+              vars[#vars + 1] = newvar
               if count then
                 count = count - 1
                 if count == 0 then break end
@@ -813,6 +842,9 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
           presentationHint = { kind = "property", attributes = { "readOnly" } },
         }
       end
+    elseif varRef.type == "kvPair" then
+      vars[#vars + 1] = variables.create("<key>",varRef.key, nil, true)
+      vars[#vars + 1] = variables.create("<value>",varRef.value)
     end
     if #vars == 0 then
       vars[1] = {
