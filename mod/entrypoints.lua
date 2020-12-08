@@ -53,36 +53,53 @@ __DebugAdapter.stepIgnore(stack_has_location)
 local on_exception
 if __DebugAdapter.instrument then
   on_exception = function (mesg)
-    if not stack_has_location() then return end
+    if not stack_has_location() then
+      __DebugAdapter.popStack()
+      return
+    end
     local mtype = type(mesg)
     -- don't bother breaking when a remote.call's error bubbles up, we've already had that one...
-    if mtype == "string" and mesg:match("^Error when running interface function (.+)$") then
+    if mtype == "string" and (
+        mesg:match("^Error when running interface function") or
+        mesg:match("^The mod [a-zA-Z0-9 _-]+ %([0-9.]+%) caused a non%-recoverable error")
+        )then
+      __DebugAdapter.popStack()
       return
     end
     print_exception("unhandled",mesg)
     debug.debug()
+    __DebugAdapter.popStack()
     return
   end
 else
   on_exception = function (mesg)
-    if not stack_has_location() then return mesg end
+    if not stack_has_location() then
+      __DebugAdapter.popStack()
+      return mesg
+    end
     local mtype = type(mesg)
     if mtype == "string" then
-      if mesg:match("^Error when running interface function (.+)$") then
+      if mesg:match("^Error when running interface function") or
+          mesg:match("^The mod [a-zA-Z0-9 _-]+ %([0-9.]+%) caused a non%-recoverable error")
+        then
+        __DebugAdapter.popStack()
         return mesg
       end
       print_exception("unhandled", mesg)
       debug.debug()
+      __DebugAdapter.popStack()
       return mesg
     elseif mtype == "table" and mesg[1] and mesg[1] == "REMSTEP" then
       mesg[1] = ""
       -- 0=traceback 1=on_exception 2=error (rethrow from hook) 3=remote.call hook 4=calling code to remote.call
       -- remove two lines -1=try_func or remoteCallInner, -2=xpcall
       mesg[#mesg+1] = debug.traceback("",4):match("^(.+)\n[^\n]+\n[^\n]+$")
+      __DebugAdapter.popStack()
       return mesg
     else
       print_exception("unhandled",mesg)
       debug.debug()
+      __DebugAdapter.popStack()
       return mesg
     end
   end
