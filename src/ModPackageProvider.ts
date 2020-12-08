@@ -627,7 +627,17 @@ export class ModPackage extends vscode.TreeItem {
 		return new vscode.CustomExecution(async ()=>{
 			return new ModTaskPseudoterminal(async term =>{
 				await this.Update();
-				const moddir = this.resourceUri.with({path: path.posix.dirname(this.resourceUri.path)});
+				const config = vscode.workspace.getConfiguration(undefined,this.resourceUri);
+				let packagebase = path.dirname(this.resourceUri.path);
+				switch (config.get<string>("factorio.package.zipLocation","inside")) {
+					case "outside":
+						packagebase = path.dirname(packagebase);
+						break;
+					case "inside":
+					default:
+						break;
+				}
+				const moddir = this.resourceUri.with({path: packagebase});
 				const direntries = await vscode.workspace.fs.readDirectory(moddir);
 				const packages = direntries.filter(([name,type])=>{
 					return type === vscode.FileType.File && name.startsWith(this.label) && name.match(/_\d+\.\d+\.\d+\.zip$/);

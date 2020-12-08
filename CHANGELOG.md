@@ -7,6 +7,7 @@
 * Display enum properties of LuaObjects as names from `defines.*`
 * Metatable field `__debugtype` to set the displayed typename of an object
 * Show table keys with virtual children `<key>` and `<value>` and rename with unique names
+* Upload task now looks for zips in the correct place when Package is configured to place them outside the mod folder
 
 ## 1.1.1
 
