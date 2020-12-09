@@ -1,4 +1,4 @@
-import { ConsumingBuffer, PropertyTree, PropertyTreeDict, PropertyTreePrimitive } from "./PropetyTree";
+import { ConsumingBuffer, PropertyTree } from "./PropetyTree";
 
 export class MapVersion {
 	constructor(
@@ -33,15 +33,19 @@ export class MapVersion {
 
 }
 
-interface ModSettingsData extends PropertyTreeDict {
-	["startup"]:PropertyTreeDict
-	["runtime-global"]:PropertyTreeDict
-	["runtime-per-user"]:PropertyTreeDict
-}
+type ModSettingsScope = "startup"|"runtime-global"|"runtime-per-user";
+type ModSettingsType = string|number|boolean;
+type ModSettingsData = {
+	readonly [k in ModSettingsScope]: {
+		[k:string]: {
+			["value"]: ModSettingsType
+		}
+	}
+};
 
 export class ModSettings {
 	readonly version: MapVersion;
-	readonly settings: ModSettingsData;
+	private readonly settings: ModSettingsData;
 
 	constructor(b:ConsumingBuffer|Buffer)
 	{
@@ -58,7 +62,7 @@ export class ModSettings {
 		]);
 	}
 
-	set(type:"startup"|"runtime-global"|"runtime-per-user",key:string,value?:PropertyTreePrimitive)
+	set(type:ModSettingsScope,key:string,value?:ModSettingsType)
 	{
 		if (value === undefined)
 		{
@@ -68,5 +72,9 @@ export class ModSettings {
 		}
 	}
 
+	get(type:ModSettingsScope,key:string) : ModSettingsType|undefined
+	{
+		return this.settings[type][key]?.value;
+	}
 }
 
