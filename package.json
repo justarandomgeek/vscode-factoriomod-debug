@@ -705,6 +705,31 @@
                   ]
                 }
               },
+              "adjustModSettings": {
+                "description": "List of settings to adjust before launching",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["scope","name"],
+                  "properties":{
+                    "scope":
+                    {
+                      "enum": ["startup","runtime-global","runtime-per-player"],
+                      "description": "The scope of the setting to adjust"
+                    },
+                    "name":
+                    {
+                      "type":"string",
+                      "description": "The prototype name of the setting to adjust"
+                    },
+                    "value":
+                    {
+                      "description": "New value for setting, omit to clear setting",
+                      "type": ["boolean", "number", "string"]
+                    }
+                  }
+                }
+              },
               "disableExtraMods": {
                 "description": "Disable any mods not named in `adjustMods`",
                 "type": "boolean"
@@ -800,6 +825,14 @@
             "request": "launch",
             "name": "Factorio Mod Debug",
             "factorioPath": ""
+          },
+          {
+            "type": "factoriomod",
+            "request": "launch",
+            "name": "Factorio Mod Debug (Settings & Data)",
+            "factorioPath": "",
+            "hookSettings": true,
+            "hookData": true
           },
           {
             "type": "factoriomod",

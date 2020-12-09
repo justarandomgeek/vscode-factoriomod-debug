@@ -16,6 +16,7 @@ import { FactorioProcess } from './FactorioProcess';
 import { ModInfo } from './ModPackageProvider';
 import { assert } from 'console';
 import { ModManager } from './ModManager';
+import { ModSettings } from './ModSettings';
 
 interface ModPaths{
 	uri: vscode.Uri
@@ -54,6 +55,11 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 	checkGlobals?: string[]|boolean
 	factorioArgs?: Array<string>
 	adjustMods?:{[key:string]:boolean|string}
+	adjustModSettings?:{
+		scope: "startup"|"runtime-global"|"runtime-per-user"
+		name: string
+		value?:boolean|number|string
+	}[]
 	disableExtraMods?:boolean
 	allowDisableBaseMod?:boolean
 	hookSettings?:boolean
@@ -343,6 +349,15 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		}
 
 		this.createSteamAppID(args.factorioPath);
+
+		if (args.adjustModSettings)
+		{
+			const settings = new ModSettings(fs.readFileSync(path.join(args.modsPath,"mod-settings.dat")));
+			for (const s of args.adjustModSettings) {
+				settings.set(s.scope,s.name,s.value);
+			}
+			fs.writeFileSync(path.join(args.modsPath,"mod-settings.dat"),settings.save());
+		}
 
 		this.factorio = new FactorioProcess(args.factorioPath,args.factorioArgs,args.nativeDebugger);
 
