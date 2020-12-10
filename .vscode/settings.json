@@ -4,4 +4,39 @@
 	"typescript.tsdk": "node_modules/typescript/lib",
 	"files.trimTrailingWhitespace": true,
 	"editor.insertSpaces": false,
+
+	"Lua.diagnostics.globals": [
+    "game",
+    "script",
+    "remote",
+    "commands",
+    "settings",
+    "rcon",
+    "rendering",
+    "global",
+		"log",
+		"localised_print",
+    "defines",
+    "data",
+    "mods",
+    "serpent",
+    "table_size",
+    "bit32",
+
+    // "__DebugAdapter",
+    // "__Profiler",
+
+		// on_error is api for instrument mods to catch errors
+    "on_error",
+  ],
+  "Lua.runtime.version": "Lua 5.2",
+  "Lua.workspace.library": {
+    "E:/ProgramsManual/Factorio/Modding/data/core/lualib": true,
+  },
+  "Lua.diagnostics.disable": [
+    "lowercase-global",
+  ],
+  "Lua.workspace.ignoreDir": [
+    ".vscode",
+  ],
 }
