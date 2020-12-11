@@ -924,13 +924,16 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		let jsonpath = uri.path;
 		if (os.platform() === "win32" && jsonpath.startsWith("/")) {jsonpath = jsonpath.substr(1);}
 		const moddata = JSON.parse(fs.readFileSync(jsonpath, "utf8"));
-		const mp = {
-			uri: uri.with({path:path.posix.dirname(uri.path)}),
-			name: moddata.name,
-			version: moddata.version,
-			info: moddata
-		};
-		this.workspaceModInfo.push(mp);
+		if (moddata)
+		{
+			const mp = {
+				uri: uri.with({path:path.posix.dirname(uri.path)}),
+				name: moddata.name,
+				version: moddata.version,
+				info: moddata
+			};
+			this.workspaceModInfo.push(mp);
+		}
 	}
 
 	private createSteamAppID(factorioPath:string)

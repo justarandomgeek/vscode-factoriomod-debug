@@ -862,7 +862,7 @@ export class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.Tree
 		{
 			const infodoc = await vscode.workspace.openTextDocument(uri);
 			const modscript: ModInfo = JSON.parse(infodoc.getText());
-			if (modscript.name) {
+			if (modscript && modscript.name) {
 				if (this.modPackages.has(uri.toString())) {
 					await this.modPackages.get(uri.toString())?.Update();
 				}
