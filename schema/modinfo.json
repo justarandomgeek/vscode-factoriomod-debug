@@ -10,7 +10,23 @@
       "required":[
         "name", "version", "title", "author", "factorio_version"
       ],
+      "defaultSnippets": [
+        {
+            "label": "mod",
+            "body": {
+              "name": "$1",
+              "title": "$2",
+              "description": "$3",
+              "version": "${4:0.0.0}",
+              "author": "$5",
+              "factorio_version": "1.1"
+            }
+        }
+      ],
       "properties": {
+        "factorio_version": {
+          "default": "1.1"
+        },
         "package": {
           "type":"object",
           "description": "Configuration for automatically packaging and publishing this mod [VSCode Extension]",

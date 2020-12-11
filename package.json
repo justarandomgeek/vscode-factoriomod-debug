@@ -710,6 +710,12 @@
                 "type": "array",
                 "items": {
                   "type": "object",
+                  "defaultSnippets": [
+                    {
+                        "label": "setting",
+                        "body": { "scope": "${1|startup,runtime-global,runtime-per-player|}", "name": "$2", "value": "$3" }
+                    }
+                  ],
                   "required": [
                     "scope",
                     "name"
