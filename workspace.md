@@ -46,6 +46,7 @@ In addition to these, you'll want a little configuration to tell your Lua Langua
     "rendering",
     "global",
     "log",
+    "localised_print",
     "defines",
     "data", /* data */
     "mods", /* data */
