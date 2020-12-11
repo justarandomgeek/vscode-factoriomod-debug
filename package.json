@@ -13,7 +13,7 @@
     "multi-root ready"
   ],
   "engines": {
-    "vscode": "^1.50.0"
+    "vscode": "^1.51.0"
   },
   "icon": "images/factoriomod-debug-icon.png",
   "categories": [
@@ -39,29 +39,29 @@
     "publish": "vsce publish"
   },
   "dependencies": {
-    "archiver": "^5.0.2",
-    "d3": "^6.2.0",
+    "archiver": "^5.1.0",
+    "d3": "^6.3.1",
     "d3-flame-graph": "^3.1.1",
-    "ini": "^1.3.5",
-    "semver": "^7.3.2",
+    "ini": "^1.3.7",
+    "semver": "^7.3.4",
     "tree-kill": "^1.2.2",
-    "vscode-debugadapter": "^1.42.1",
+    "vscode-debugadapter": "^1.43.0",
     "web-request": "^1.0.7"
   },
   "devDependencies": {
     "@types/archiver": "^3.1.1",
     "@types/buffers": "^0.1.31",
     "@types/ini": "^1.3.30",
-    "@types/node": "^14.14.2",
+    "@types/node": "^14.14.12",
     "@types/request": "^2.48.5",
     "@types/semver": "^7.3.4",
-    "@types/vscode": "^1.50.0",
-    "@typescript-eslint/eslint-plugin": "^4.5.0",
-    "@typescript-eslint/parser": "^4.5.0",
-    "eslint": "^7.12.0",
-    "typescript": "^4.0.3",
+    "@types/vscode": "^1.51.0",
+    "@typescript-eslint/eslint-plugin": "^4.9.1",
+    "@typescript-eslint/parser": "^4.9.1",
+    "eslint": "^7.15.0",
+    "typescript": "^4.1.2",
     "vsce": "^1.81.1",
-    "vscode-debugadapter-testsupport": "^1.42.0"
+    "vscode-debugadapter-testsupport": "^1.43.0"
   },
   "main": "./out/extension",
   "activationEvents": [
@@ -710,22 +710,30 @@
                 "type": "array",
                 "items": {
                   "type": "object",
-                  "required": ["scope","name"],
-                  "properties":{
-                    "scope":
-                    {
-                      "enum": ["startup","runtime-global","runtime-per-player"],
+                  "required": [
+                    "scope",
+                    "name"
+                  ],
+                  "properties": {
+                    "scope": {
+                      "enum": [
+                        "startup",
+                        "runtime-global",
+                        "runtime-per-player"
+                      ],
                       "description": "The scope of the setting to adjust"
                     },
-                    "name":
-                    {
-                      "type":"string",
+                    "name": {
+                      "type": "string",
                       "description": "The prototype name of the setting to adjust"
                     },
-                    "value":
-                    {
+                    "value": {
                       "description": "New value for setting, omit to clear setting",
-                      "type": ["boolean", "number", "string"]
+                      "type": [
+                        "boolean",
+                        "number",
+                        "string"
+                      ]
                     }
                   }
                 }
