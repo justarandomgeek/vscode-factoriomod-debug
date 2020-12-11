@@ -10,6 +10,7 @@
 * Upload task now looks for zips in the correct place when Package is configured to place them outside the mod folder
 * Launch option `adjustModSettings` to update/clear mod settings before launching a debug session
 * Don't hang when `info.json` with `null` exists in workspace
+* Don't set extension filter on factorioPath prompt on non-windows
 
 ## 1.1.1
 

@@ -137,9 +137,7 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 				canSelectFiles: true,
 				canSelectFolders: false,
 				openLabel: "Select Factorio binary",
-				filters: {
-					"": ["exe", ""]
-				}
+				filters: os.platform() === "win32" ? { "": ["exe"] } : undefined
 			});
 			if (factorioPath)
 			{
