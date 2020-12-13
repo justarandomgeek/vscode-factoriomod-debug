@@ -38,6 +38,9 @@ local eventlike = {
     __index = {
       LuaGameScript = {
         create_surface = true,
+        remove_offline_players = true,
+        create_force = true,
+        merge_forces = true,
       },
       LuaItemStack = {
         build_blueprint = true,
@@ -45,6 +48,10 @@ local eventlike = {
       LuaSurface = {
         create_entity = true,
         set_tiles = true,
+        clone_area = true,
+        clone_entities = true,
+        close_brush = true,
+        teleport = true,
       },
       LuaEntity = {
         destroy = true,
@@ -53,16 +60,55 @@ local eventlike = {
         silent_revive = true,
         clone = true,
         mine = true,
+        connect_rolling_stock = true,
+        disconnect_rolling_stock = true,
+        set_driver = true,
+        set_passenger = true, --TODO: verify
       },
       LuaPlayer = {
+        toggle_map_editor = true,
         mine_entity = true,
         mine_tile = true,
       },
+      LuaForce = {
+        set_friend = true,
+        set_cease_fire = true,
+        reset = true,
+      },
+      LuaEquipmentGrid = {
+        put = true,
+        take = true,
+        clear = true,
+      },
+      LuaInventory = {
+        resize = true,
+      },
+      LuaCustomChartTag = {
+        destroy = true,
+      }
     },
     __newindex = {
+      LuaEntity = {
+        driving = true,
+      },
       LuaPlayer = {
         opened = true,
-      }
+        driving = true,
+      },
+      LuaCustomChartTag = {
+        text = true, --TODO: verify
+      },
+      LuaSurface = {
+        name = true,
+      },
+      LuaTrain = {
+        schedule = true,
+        manual_mode = true,
+      },
+      --just catch any write to a LuaCustomTable, to cover mod settings
+      --all LuaCustomTable::__newindex use the same pointer-to-member userdata
+      --so we can't differentiate them from here.
+      LuaCustomTable = setmetatable({},{__index = function() return true end}),
     }
   }
 }
