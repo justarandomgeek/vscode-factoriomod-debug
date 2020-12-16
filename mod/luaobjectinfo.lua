@@ -168,7 +168,7 @@ __DebugAdapter.stepIgnore(check_eventlike)
 
 
 
--- class data last updated factorio 1.1.0
+-- class data last updated factorio 1.1.6
 return {
   alwaysValid = {
     LuaRemote = true,
@@ -408,7 +408,6 @@ return {
       character_health_bonus = {},
       character_personal_logistic_requests_enabled = {},
       vehicle_logistic_requests_enabled = {},
-      auto_trash_filters = {},
       opened_gui_type = {readOnly = true, enum = invert(defines.gui_type,"defines.gui_type.")},
       build_distance = {readOnly = true},
       drop_item_distance = {readOnly = true},
@@ -573,6 +572,7 @@ return {
       distraction_command = {readOnly = true},
       time_to_next_effect = {},
       autopilot_destination = {},
+      autopilot_destinations = {readOnly = true},
       trains_count = {readOnly = true},
       trains_limit = {},
       is_entity_with_force = {readOnly = true},
@@ -580,6 +580,10 @@ return {
       is_entity_with_health = {readOnly = true},
       combat_robot_owner = {},
       link_id = {},
+      follow_target = {},
+      follow_offset = {},
+      linked_belt_type = {},
+      linked_belt_neighbour = {readOnly = true},
     },
     LuaEntityPrototype = {
       name = {readOnly = true},
@@ -602,6 +606,7 @@ return {
       sticker_box = {readOnly = true},
       collision_mask = {readOnly = true},
       collision_mask_with_flags = {readOnly = true},
+      default_collision_mask_with_flags = {readOnly = true},
       order = {readOnly = true},
       group = {readOnly = true},
       subgroup = {readOnly = true},
@@ -701,6 +706,14 @@ return {
       collision_mask_considers_tile_transitions = {readOnly = true},
       allowed_effects = {readOnly = true},
       rocket_parts_required = {readOnly = true},
+      rocket_rising_delay = {readOnly = true},
+      launch_wait_time = {readOnly = true},
+      light_blinking_speed = {readOnly = true},
+      door_opening_speed = {readOnly = true},
+      rising_speed = {readOnly = true},
+      engine_starting_speed = {readOnly = true},
+      flying_speed = {readOnly = true},
+      flying_acceleration = {readOnly = true},
       fixed_recipe = {readOnly = true},
       construction_radius = {readOnly = true},
       logistic_radius = {readOnly = true},
@@ -748,6 +761,7 @@ return {
       allow_access_to_all_forces = {readOnly = true},
       supports_direction = {readOnly = true},
       terrain_friction_modifier = {readOnly = true},
+      allow_passengers = {readOnly = true},
       max_distance_of_sector_revealed = {readOnly = true},
       max_distance_of_nearby_sector_revealed = {readOnly = true},
       adjacent_tile_collision_box = {readOnly = true},
@@ -1654,7 +1668,6 @@ return {
       character_health_bonus = {},
       character_personal_logistic_requests_enabled = {},
       vehicle_logistic_requests_enabled = {},
-      auto_trash_filters = {},
       opened_gui_type = {readOnly = true, enum = invert(defines.gui_type,"defines.gui_type.")},
       build_distance = {readOnly = true},
       drop_item_distance = {readOnly = true},

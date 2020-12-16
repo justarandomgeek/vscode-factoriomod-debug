@@ -13,6 +13,7 @@
 * Launch option `adjustModSettings` to update/clear mod settings before launching a debug session
 * Don't hang when `info.json` with `null` exists in workspace
 * Don't set extension filter on factorioPath prompt on non-windows
+* Update class data to Factorio 1.1.6
 
 ## 1.1.1
 
