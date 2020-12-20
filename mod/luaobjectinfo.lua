@@ -44,6 +44,7 @@ local eventlike = {
       },
       LuaItemStack = {
         build_blueprint = true,
+        set_stack = true,
       },
       LuaSurface = {
         create_entity = true,
