@@ -23,11 +23,10 @@ local function timedpcall(f)
   end
 end
 
-local function evalmeta(frameId,alsoLookIn)
+local function evalmeta(env,frameId,alsoLookIn)
   local getinfo = debug.getinfo
   local getlocal = debug.getlocal
   local getupvalue = debug.getupvalue
-  local env = _ENV
   local em = {
     __debugtype = "DebugAdapter.EvalEnv",
     __debugline = function(t,short)
@@ -206,8 +205,40 @@ __DebugAdapter.stepIgnore(evalmeta)
 ---@return any
 function __DebugAdapter.evaluateInternal(frameId,alsoLookIn,context,expression,timed)
   local env = _ENV
+
+  if frameId then
+    -- if there's a function here, check if it has an active local or upval
+    local i = 0
+    local found
+    while true do
+      i = i+1
+      local name,value = debug.getlocal(frameId,i)
+      if not name then
+        if found then
+          goto foundenv
+        else
+          break
+        end
+      end
+      if name == "_ENV" then
+        env = value
+        found = true
+      end
+    end
+    i = 0
+    while true do
+      i = i+1
+      local name,value = debug.getupvalue(frameId,i)
+      if not name then break end
+      if name == "_ENV" then
+        env = value
+        goto foundenv
+      end
+    end
+  end
+  ::foundenv::
   if frameId or alsoLookIn then
-    env = setmetatable({},evalmeta(frameId,alsoLookIn))
+    env = setmetatable({},evalmeta(env,frameId,alsoLookIn))
   end
   local chunksrc = ("=(%s)"):format(context or "eval")
   local f, res = load('return '.. expression, chunksrc, "t", env)
