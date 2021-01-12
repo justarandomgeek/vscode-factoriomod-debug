@@ -1,5 +1,5 @@
 import { PropertyTree } from "./PropetyTree";
-import { ConsumingBuffer } from "./ConsumingBuffer";
+import { BufferStream } from "./BufferStream";
 
 export class MapVersion {
 	constructor(
@@ -11,7 +11,7 @@ export class MapVersion {
 		)
 	{}
 
-	static load(b:ConsumingBuffer)
+	static load(b:BufferStream)
 	{
 		const main = b.readUInt16LE();
 		const major = b.readUInt16LE();
@@ -48,9 +48,9 @@ export class ModSettings {
 	readonly version: MapVersion;
 	private readonly settings: ModSettingsData;
 
-	constructor(b:ConsumingBuffer|Buffer)
+	constructor(b:BufferStream|Buffer)
 	{
-		if (b instanceof Buffer) { b = new ConsumingBuffer(b); }
+		if (b instanceof Buffer) { b = new BufferStream(b); }
 		this.version = MapVersion.load(b);
 		this.settings = <ModSettingsData>PropertyTree.load(b);
 	}

@@ -1,4 +1,4 @@
-import { ConsumingBuffer } from "./ConsumingBuffer";
+import { BufferStream } from "./BufferStream";
 
 export type PropertyTreePrimitive = null|boolean|number|string;
 export type PropertyTreeData = PropertyTreePrimitive|PropertyTreeData[]|PropertyTreeDict;
@@ -13,7 +13,7 @@ enum PropertyTreeType {
 	dictionary = 5,
 }
 
-function readPTreeString(b:ConsumingBuffer) {
+function readPTreeString(b:BufferStream) {
 	const empty = b.readUInt8() !== 0;
 	if (empty) {
 		return "";
@@ -32,7 +32,7 @@ function readPTreeString(b:ConsumingBuffer) {
 export abstract class PropertyTree {
 	protected constructor(){}
 
-	static load(b:ConsumingBuffer) : PropertyTreeData {
+	static load(b:BufferStream) : PropertyTreeData {
 		const type:PropertyTreeType = b.readUInt8();
 		b.readUInt8(); // discard isAnyType
 		switch (type) {

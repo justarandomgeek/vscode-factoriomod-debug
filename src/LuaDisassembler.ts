@@ -1,4 +1,4 @@
-import { ConsumingBuffer } from "./ConsumingBuffer";
+import { BufferStream } from "./BufferStream";
 
 /* eslint-disable no-bitwise */
 export enum LuaOpcode {
@@ -74,7 +74,7 @@ const header = [
 	0x19, 0x93, 0x0d, 0x0a, 0x1a, 0x0a, // magic
 ];
 
-function readHeader(b:ConsumingBuffer)
+function readHeader(b:BufferStream)
 {
 	for (let i = 0; i < header.length; i++) {
 		const n = b.readUInt8();
@@ -85,7 +85,7 @@ function readHeader(b:ConsumingBuffer)
 	}
 }
 
-function readLuaString(b:ConsumingBuffer)
+function readLuaString(b:BufferStream)
 {
 	const size = b.readBigUInt64LE();
 	if (size > 0)
@@ -132,7 +132,7 @@ class LuaUpval {
 	readonly instack:boolean;
 	readonly idx:number;
 
-	constructor(b:ConsumingBuffer)
+	constructor(b:BufferStream)
 	{
 		this.instack = b.readUInt8() !== 0;
 		this.idx = b.readUInt8();
@@ -144,7 +144,7 @@ export class LuaLocal {
 	readonly start:number;
 	readonly end:number;
 
-	constructor(b:ConsumingBuffer)
+	constructor(b:BufferStream)
 	{
 		this.name = readLuaString(b);
 		this.start = b.readUInt32LE();
@@ -209,7 +209,7 @@ export class LuaFunction {
 	readonly firstline:number;
 	readonly lastline:number;
 
-	constructor(b:ConsumingBuffer, withheader?:boolean) {
+	constructor(b:BufferStream, withheader?:boolean) {
 		if (withheader)
 		{
 			readHeader(b);
