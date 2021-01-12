@@ -1,4 +1,5 @@
-import { ConsumingBuffer, PropertyTree } from "./PropetyTree";
+import { PropertyTree } from "./PropetyTree";
+import { ConsumingBuffer } from "./ConsumingBuffer";
 
 export class MapVersion {
 	constructor(

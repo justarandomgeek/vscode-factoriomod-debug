@@ -1,57 +1,4 @@
-export class ConsumingBuffer {
-	private i:number = 0;
-	constructor(private readonly b:Buffer)
-	{}
-
-	readUInt8()
-	{
-		const n = this.b.readUInt8(this.i);
-		this.i += 1;
-		return n;
-	}
-
-	readUInt16LE()
-	{
-		const n = this.b.readUInt16LE(this.i);
-		this.i += 2;
-		return n;
-	}
-
-	readUInt32LE()
-	{
-		const n = this.b.readUInt32LE(this.i);
-		this.i += 4;
-		return n;
-	}
-
-	readDoubleLE()
-	{
-		const n = this.b.readDoubleLE(this.i);
-		this.i += 8;
-		return n;
-	}
-
-	readString()
-	{
-		const empty = this.readUInt8()!==0;
-		if (empty)
-		{
-			return "";
-		}
-		else
-		{
-			let size = this.readUInt8();
-			if (size===255)
-			{
-				size = this.readUInt32LE();
-			}
-
-			const str = this.b.slice(this.i,this.i+size).toString("utf8");
-			this.i += size;
-			return str;
-		}
-	}
-}
+import { ConsumingBuffer } from "./ConsumingBuffer";
 
 export type PropertyTreePrimitive = null|boolean|number|string;
 export type PropertyTreeData = PropertyTreePrimitive|PropertyTreeData[]|PropertyTreeDict;
@@ -64,6 +11,22 @@ enum PropertyTreeType {
 	string = 3,
 	list = 4,
 	dictionary = 5,
+}
+
+function readPTreeString(b:ConsumingBuffer) {
+	const empty = b.readUInt8() !== 0;
+	if (empty) {
+		return "";
+	}
+
+	else {
+		let size = b.readUInt8();
+		if (size === 255) {
+			size = b.readUInt32LE();
+		}
+
+		return b.readString(size);
+	}
 }
 
 export abstract class PropertyTree {
@@ -80,13 +43,13 @@ export abstract class PropertyTree {
 			case PropertyTreeType.number:
 				return b.readDoubleLE();
 			case PropertyTreeType.string:
-				return b.readString();
+				return readPTreeString(b);
 			case PropertyTreeType.list:
 				{
 					const count = b.readUInt32LE();
 					const arr = <PropertyTreeData[]>[];
 					for (let i = 0; i < count; i++) {
-						b.readString();
+						readPTreeString(b);
 						const value = PropertyTree.load(b);
 						arr.push(value);
 					}
@@ -97,7 +60,7 @@ export abstract class PropertyTree {
 					const count = b.readUInt32LE();
 					const rec:PropertyTreeDict = {};
 					for (let i = 0; i < count; i++) {
-						const keystr = b.readString();
+						const keystr = readPTreeString(b);
 						if (!keystr)
 						{
 							throw new Error("Missing key in PropertyTree Dictionary");

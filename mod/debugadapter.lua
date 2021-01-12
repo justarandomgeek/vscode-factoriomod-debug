@@ -19,6 +19,14 @@ end
 __DebugAdapter = __DebugAdapter or {} -- but might have been defined already for selective instrument mode
 local __DebugAdapter = __DebugAdapter
 local require = require
+
+pcall(function()
+  -- see if we have debug.getinfo(,"p") to get currentpc and protoid
+  -- if not, this will throw and exit the pcall immediately before setting flag
+  debug.getinfo(1,"p")
+  __DebugAdapter.hascurrentpc = true
+end)
+
 --this has to be first before requiring other files so they can mark functions as ignored
 require("__debugadapter__/stepping.lua")
 
@@ -101,7 +109,8 @@ function __DebugAdapter.stackTrace(startFrame, forRemote,seq)
       framename = ("[%s] %s"):format(script.mod_name, framename)
     end
     local source = normalizeLuaSource(info.source)
-    local noSource = isC or (source:sub(1,1) == "=")
+    local noLuaSource = (source:sub(1,1) == "=")
+    local noSource = isC or noLuaSource
     local stackFrame = {
       id = i,
       name = framename,
@@ -109,15 +118,22 @@ function __DebugAdapter.stackTrace(startFrame, forRemote,seq)
       column = noSource and 0 or 1,
       moduleId = forRemote and script.mod_name,
       presentationHint = forRemote and "subtle",
-      source = {
-        name = isC and "C" or source,
-      }
     }
-    if noSource or __DebugAdapter.isStepIgnore(info.func) then
-      stackFrame.source.presentationHint = "deemphasize"
-    end
-    if not noSource then
-      stackFrame.source.path = source
+    if not isC then
+      if noLuaSource then
+        if __DebugAdapter.hascurrentpc then
+          --get needed info for preparing disassembly...
+        end
+      else
+        local dasource = {
+          name = source,
+          path = source,
+        }
+        if __DebugAdapter.isStepIgnore(info.func) then
+          dasource.presentationHint = "deemphasize"
+        end
+        stackFrame.source = dasource
+      end
     end
     stackFrames[#stackFrames+1] = stackFrame
     i = i + 1
