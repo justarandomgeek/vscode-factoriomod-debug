@@ -71,7 +71,8 @@ do
   end
 end
 
-function __DebugAdapter.attach()
+local hook
+do
   local getinfo = debug.getinfo
   local sub = string.sub
   local format = string.format
@@ -79,10 +80,10 @@ function __DebugAdapter.attach()
   local evaluateInternal = __DebugAdapter.evaluateInternal
   local stringInterp = __DebugAdapter.stringInterp
   local pendingeventlike = {}
-  debug.sethook(function(event,line)
+  function hook(event,line)
     local ignored = stepIgnoreFuncs[getinfo(2,"f").func]
     if ignored then return end
-    if event == "line" then
+    if event == "line" or event == "count" then
       local s = getinfo(2,"S").source
       -- startup logging gets all the serpent loads of `global`
       -- serpent itself will also always show up as one of these
@@ -92,7 +93,7 @@ function __DebugAdapter.attach()
         if smode == "in" or smode == "next" or (smode == "over" and stepdepth<=0) then
           stepmode = nil
           stepdepth = 0
-          print(format("DBG: step %s:%d", s, line))
+          print(format("DBG: step %s:%d", s, line or -1))
           debugprompt()
           -- cleanup variablesReferences
           variables.clear()
@@ -268,13 +269,15 @@ function __DebugAdapter.attach()
         end
       end
     end
-  end,"clr")
+  end
+end
+function __DebugAdapter.attach()
+  debug.sethook(hook,"clr")
   -- on_error is api for instrument mods to catch errors
   if on_error then
     on_error(__DebugAdapter.on_exception)
   end
 end
-
 ---@param source string
 ---@param breaks SourceBreakpoint[]
 function __DebugAdapter.setBreakpoints(source,breaks)
