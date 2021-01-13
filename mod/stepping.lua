@@ -169,10 +169,7 @@ do
       end
       local parent = getinfo(3,"f")
       if not parent then -- top of a new stack
-        if info.func == serpent.dump then
-          -- this catches saving and the psuedo-save for crc checks
-          __DebugAdapter.pushEntryPointName("saving")
-        elseif info.what == "main" then
+        if info.what == "main" then
           -- main chunks: loading `global` from save, console commands, file chunks
           __DebugAdapter.pushEntryPointName("main")
         elseif info.what == "Lua" then
