@@ -226,9 +226,11 @@ function __DebugAdapter.evaluateInternal(frameId,alsoLookIn,context,expression,t
       end
     end
     i = 0
+    local info = debug.getinfo(frameId,"f")
+    local func = info.func
     while true do
       i = i+1
-      local name,value = debug.getupvalue(frameId,i)
+      local name,value = debug.getupvalue(func,i)
       if not name then break end
       if name == "_ENV" then
         env = value
