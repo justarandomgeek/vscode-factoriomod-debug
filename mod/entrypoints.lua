@@ -4,6 +4,7 @@ local debug = debug
 local print = print
 local localised_print = localised_print
 local __DebugAdapter = __DebugAdapter
+local luaObjectInfo = require("__debugadapter__/luaobjectinfo.lua")
 
 local function print_exception(type,mesg)
   if mesg == nil then mesg = "<nil>" end
@@ -66,9 +67,21 @@ if __DebugAdapter.instrument then
       __DebugAdapter.popStack()
       return
     end
+
+    -- if an api was called that threw directly when i expected a re-entrant stack, clean it up...
+    -- 0 = get_info, 1 = check_eventlike, 2 = on_exception,
+    -- 3 = pCallWithStackTraceMessageHandler, 4 = at execption
+    local popped
+    if luaObjectInfo.check_eventlike(4,"error") then
+      __DebugAdapter.popStack()
+      popped = true
+    end
+
     print_exception("unhandled",mesg)
     debug.debug()
-    __DebugAdapter.popStack()
+    if not popped then
+      __DebugAdapter.popStack()
+    end
     return
   end
 else
