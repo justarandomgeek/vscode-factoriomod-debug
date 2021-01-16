@@ -4,6 +4,10 @@ local variables = require("__debugadapter__/variables.lua") -- uses pcall
 local print = print
 local debug = debug
 
+-- log protection is disabled in Instrument Mode on Factorio >= 0.18.34
+-- don't bother attempting the hook otherwise
+if not __DebugAdapter.instrument then return end
+
 local oldlog = log
 local keepoldlog = __DebugAdapter.keepoldlog
 local function newlog(mesg)
@@ -37,8 +41,4 @@ local function newlog(mesg)
 end
 __DebugAdapter.stepIgnore(newlog)
 
--- log protection is disabled in Instrument Mode on Factorio >= 0.18.34
-if __DebugAdapter.instrument then
-  log = newlog
-  return
-end
+log = newlog
