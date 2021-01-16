@@ -36,6 +36,18 @@ local eventlike = {
   },
   classes = {
     __index = {
+      LuaBootstrap = {
+        raise_event = true,
+        raise_console_chat = true,
+        raise_player_crafted_item = true,
+        raise_player_fast_transferred = true,
+        raise_biter_base_built = true,
+        raise_market_item_purchased = true,
+        raise_script_built = true,
+        raise_script_destroy = true,
+        raise_script_revive = true,
+        raise_script_set_tiles = true,
+      },
       LuaGameScript = {
         create_surface = true,
         remove_offline_players = true,

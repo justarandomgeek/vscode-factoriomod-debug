@@ -56,7 +56,6 @@ local pairs = pairs
 local sourcelabel = {
   remote = function(mod_name) return mod_name and ("remote.call from "..mod_name) or "remote.call context switch" end,
   unknown = function(mod_name) return "unknown entry point" end,
-  raise_event = function(mod_name) return "raise_event from "..mod_name end,
   api = function(mod_name,extra) return (extra or "api call").." raised event from "..mod_name end,
 }
 
@@ -147,12 +146,12 @@ function __DebugAdapter.stackTrace(startFrame, forRemote, seq)
     --     /c __modname__ command
     --     simulation scripts (as commands)
     --   remote.call
-    --     from debug enabled mod (instrumented+1/2, entrypoint="hookedremote")
+    --     from debug enabled mod (instrumented+1, entrypoint="hookedremote")
     --     from non-debug enabled mod (call sethook tags as entrypoint="remote fname", no break on exception)
-    --   event handlers (instrumented+1/2)
+    --   event handlers (instrumented+1)
     --     if called by raise_event, has event.mod_name
-    --   /command handlers (instrumented+1/2)
-    --   special events: (instrumented+1/2)
+    --   /command handlers (instrumented+1)
+    --   special events: (instrumented+1)
     --     on_init, on_load, on_configuration_changed, on_nth_tick
 
     -- but first, drop frames from same-stack api calls that raise events

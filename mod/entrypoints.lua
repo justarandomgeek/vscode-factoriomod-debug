@@ -310,44 +310,6 @@ function newscript.get_event_handler(event)
   return registered_handlers[event] or oldscript.get_event_handler(event)
 end
 
-function newscript.raise_event(event,eventdata)
-  __DebugAdapter.pushStack{
-    source = "raise_event",
-    mod_name = script.mod_name,
-    stack = __DebugAdapter.stackTrace(-2, true),
-  }
-  oldscript.raise_event(event,eventdata)
-  __DebugAdapter.popStack()
-end
-
-local function wrap_raise(key)
-  local raise = oldscript[key]
-  if type(raise)=="function" then
-    newscript[key] = function (eventdata)
-      __DebugAdapter.pushStack{
-        source = "raise_event",
-        mod_name = script.mod_name,
-        stack = __DebugAdapter.stackTrace(-2, true),
-      }
-      raise(eventdata)
-      __DebugAdapter.popStack()
-    end
-  end
-end
-
-for _,fname in pairs{
-  "raise_console_chat",
-  "raise_player_crafted_item",
-  "raise_player_fast_transferred",
-  "raise_biter_base_built",
-  "raise_market_item_purchased",
-  "raise_script_built",
-  "raise_script_destroy",
-  "raise_script_revive",
-  "raise_script_set_tiles",
-} do
-  wrap_raise(fname)
-end
 
 local newscriptmeta = {
   __index = oldscript,
