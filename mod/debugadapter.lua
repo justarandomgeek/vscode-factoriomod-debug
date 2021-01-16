@@ -21,7 +21,7 @@ local __DebugAdapter = __DebugAdapter
 local require = require
 
 pcall(function()
-  -- see if we have debug.getinfo(,"p") to get currentpc and protoid
+  -- see if we have debug.getinfo(,"p") to get currentpc
   -- if not, this will throw and exit the pcall immediately before setting flag
   debug.getinfo(1,"p")
   __DebugAdapter.hascurrentpc = true
