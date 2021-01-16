@@ -71,11 +71,10 @@ end
 ---@param startFrame integer | nil
 ---@param forRemote boolean | nil
 ---@return StackFrame[]
-function __DebugAdapter.stackTrace(startFrame, forRemote,seq)
-  local offset = 5 -- 0 getinfo, 1 stackTrace, 2 debug command, 3 debug.debug, 4 sethook callback, 5 at breakpoint
-  -- in exceptions    0 getinfo, 1 stackTrace, 2 debug command, 3 debug.debug, 4 xpcall callback, 5 at exception
-  -- in instrument ex 0 getinfo, 1 stackTrace, 2 debug command, 3 debug.debug, 4 on_error callback,
-  --                  5 pCallWithStackTraceMessageHandler, 6 at exception
+function __DebugAdapter.stackTrace(startFrame, forRemote, seq)
+  local offset = 5 -- 0 getinfo, 1 stackTrace, 2 debug command, 3 debug.debug,
+  -- in normal stepping:                       4 sethook callback, 5 at breakpoint
+  -- in exception (instrument only)            4 on_error callback, 5 pCallWithStackTraceMessageHandler, 6 at exception
   if __DebugAdapter.instrument and not forRemote and
     debug.getinfo(4,"f").func == __DebugAdapter.on_exception then
     offset = offset + 1
@@ -190,13 +189,10 @@ function __DebugAdapter.stackTrace(startFrame, forRemote,seq)
         stackFrames[#stackFrames+1] = labelframe(i,"remote")
         i = i + 1
       else
-        -- instrumented event/remote handler has one or two extra frames.
+        -- instrumented event/remote handler has one extra frame.
         -- Delete them and rename the next bottom frame...
         -- this leaves a gap in `i`. Maybe later allow expanding hidden frames?
         stackFrames[#stackFrames] = nil --remoteCallInner or try_func
-        if not __DebugAdapter.instrument then
-          stackFrames[#stackFrames] = nil --xpcall
-        end
 
         ---@type StackFrame
         local lastframe = stackFrames[#stackFrames]

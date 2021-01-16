@@ -12,7 +12,6 @@ local __DebugAdapter = __DebugAdapter
 local script = script
 local setmetatable = setmetatable
 local unpack = table.unpack
-local xpcall = xpcall
 
 ---@type LuaRemote
 local oldremote = remote
@@ -30,169 +29,75 @@ function remotestepping.parentState()
   end
 end
 
-if __DebugAdapter.instrument then
-  --- Transfer stepping state and perform the call. Vararg arguments will be forwarded to the
-  --- remote function, and any return value from the remote will be returned with the new stepping state in a table.
-  ---@param parentstep string "remote"*("next" | "in" | "over" | "out")
-  ---@param pcallresult boolean
-  ---@param interface string
-  ---@param func string
-  ---@return table
-  function remotestepping.callInner(parentstep,pcallresult,interface,func,...)
-    __DebugAdapter.pushEntryPointName("hookedremote")
-    stacks[#stacks+1] = {
-      name = "remote "..interface.."::"..func,
-    }
-    if parentstep and (parentstep == "over" or parentstep == "out" or parentstep:match("^remote")) then
-      parentstep = "remote" .. parentstep
-    end
-    __DebugAdapter.step(parentstep,true)
 
-    local remotefunc = myRemotes[interface][func]
-    local result = {remotefunc(...)}
-
-    parentstep = __DebugAdapter.currentStep()
-    __DebugAdapter.step(nil,true)
-    stacks[#stacks] = nil
-    __DebugAdapter.popEntryPointName()
-    parentstep = parentstep and parentstep:match("^remote(.+)$") or parentstep
-    if pcallresult then
-      table.insert(result,1,true)
-    end
-    return {step=parentstep,result=result},true
+--- Transfer stepping state and perform the call. Vararg arguments will be forwarded to the
+--- remote function, and any return value from the remote will be returned with the new stepping state in a table.
+---@param parentstep string "remote"*("next" | "in" | "over" | "out")
+---@param interface string
+---@param func string
+---@return table
+function remotestepping.callInner(parentstep,interface,func,...)
+  __DebugAdapter.pushEntryPointName("hookedremote")
+  stacks[#stacks+1] = {
+    name = "remote "..interface.."::"..func,
+  }
+  if parentstep and (parentstep == "over" or parentstep == "out" or parentstep:match("^remote")) then
+    parentstep = "remote" .. parentstep
   end
+  __DebugAdapter.step(parentstep,true)
 
-  --- Replacement for LuaRemote::call() which passes stepping state along with the call.
-  --- Signature and returns are the same as original LuaRemote::call()
-  function newremote.call(interface,func,...)
-    do
-      local itype = type(interface)
-      local ftype = type(func)
-      if itype ~= "string" then
-        error("Bad argument `interface` expected string got "..itype,2)
-      elseif ftype ~= "string" then
-        error("Bad argument `func` expected string got "..ftype,2)
-      elseif not oldremote.interfaces[interface] then
-        error("Unknown interface: "..interface,2)
-      elseif not oldremote.interfaces[interface][func] then
-        error("No such function: "..interface.."."..func,2)
-      end
-    end
-    local call = oldremote.call
-    -- find out who owns it, if they have debug registered...
-    local debugname = call("debugadapter","whois",interface)
-    if debugname then
-      debugname = "__debugadapter_" .. debugname
-      __DebugAdapter.pushStack{
-        source = "remote",
-        mod_name = script.mod_name,
-        stack = __DebugAdapter.stackTrace(-2, true),
-      }
-      local result,multreturn = call(debugname,"remoteCallInner",
-        __DebugAdapter.currentStep(), false,
-        interface, func, ...)
-      __DebugAdapter.popStack()
+  local remotefunc = myRemotes[interface][func]
+  local result = {remotefunc(...)}
 
-      local childstep = result.step
-      result = result.result
-
-      __DebugAdapter.step(childstep,true)
-      if multreturn then
-        return unpack(result)
-      else
-        return result[1]
-      end
-
-    else
-      -- if whois doesn't know who owns it, they must not have debug registered...
-      return call(interface,func,...)
-    end
-  end
-else -- not __DebugAdapter.instrument
-  --- Transfer stepping state and perform the call. Vararg arguments will be forwarded to the
-  --- remote function, and any return value from the remote will be returned with the new stepping state in a table.
-  ---@param parentstep string "remote"*("next" | "in" | "over" | "out")
-  ---@param pcallresult boolean
-  ---@param interface string
-  ---@param func string
-  ---@return table
-  function remotestepping.callInner(parentstep,pcallresult,interface,func,...)
-    __DebugAdapter.pushEntryPointName("hookedremote")
-    stacks[#stacks+1] = {
-      name = "remote "..interface.."::"..func,
-    }
-    if parentstep and (parentstep == "over" or parentstep == "out" or parentstep:match("^remote")) then
-      parentstep = "remote" .. parentstep
-    end
-    __DebugAdapter.step(parentstep,true)
-
-    local remotefunc = myRemotes[interface][func]
-    local result = {xpcall(remotefunc,__DebugAdapter.on_exception,...)}
-
-    parentstep = __DebugAdapter.currentStep()
-    __DebugAdapter.step(nil,true)
-    stacks[#stacks] = nil
-    __DebugAdapter.popEntryPointName()
-    parentstep = parentstep and parentstep:match("^remote(.+)$") or parentstep
-    if not pcallresult then
-      table.remove(result,1)
-    end
-    return {step=parentstep,result=result},true
-  end
-
-  --- Replacement for LuaRemote::call() which passes stepping state along with the call.
-  --- Signature and returns are the same as original LuaRemote::call()
-  function newremote.call(interface,func,...)
-    do
-      local itype = type(interface)
-      local ftype = type(func)
-      if itype ~= "string" then
-        error("Bad argument `interface` expected string got "..itype,2)
-      elseif ftype ~= "string" then
-        error("Bad argument `func` expected string got "..ftype,2)
-      elseif not oldremote.interfaces[interface] then
-        error("Unknown interface: "..interface,2)
-      elseif not oldremote.interfaces[interface][func] then
-        error("No such function: "..interface.."."..func,2)
-      end
-    end
-    local call = oldremote.call
-    -- find out who owns it, if they have debug registered...
-    local debugname = call("debugadapter","whois",interface)
-    if debugname then
-      debugname = "__debugadapter_" .. debugname
-      __DebugAdapter.pushStack{
-        source = "remote",
-        mod_name = script.mod_name,
-        stack = __DebugAdapter.stackTrace(-2, true),
-      }
-      local result,multreturn = call(debugname,"remoteCallInner",
-        __DebugAdapter.currentStep(), true,
-        interface, func, ...)
-      __DebugAdapter.popStack()
-
-      local childstep = result.step
-      result = result.result
-
-      if not result[1] then
-        local err = result[2]
-        error({"REMSTEP","Error when running interface function ", interface, ".", func, ":\n", err},-1)
-      end
-
-      __DebugAdapter.step(childstep,true)
-      if multreturn then
-        return unpack(result,2)
-      else
-        return result[2]
-      end
-
-    else
-      -- if whois doesn't know who owns it, they must not have debug registered...
-      return call(interface,func,...)
-    end
-  end
+  parentstep = __DebugAdapter.currentStep()
+  __DebugAdapter.step(nil,true)
+  stacks[#stacks] = nil
+  __DebugAdapter.popEntryPointName()
+  parentstep = parentstep and parentstep:match("^remote(.+)$") or parentstep
+  return {step=parentstep,result=result}
 end
 
+--- Replacement for LuaRemote::call() which passes stepping state along with the call.
+--- Signature and returns are the same as original LuaRemote::call()
+function newremote.call(interface,func,...)
+  do
+    local itype = type(interface)
+    local ftype = type(func)
+    if itype ~= "string" then
+      error("Bad argument `interface` expected string got "..itype,2)
+    elseif ftype ~= "string" then
+      error("Bad argument `func` expected string got "..ftype,2)
+    elseif not oldremote.interfaces[interface] then
+      error("Unknown interface: "..interface,2)
+    elseif not oldremote.interfaces[interface][func] then
+      error("No such function: "..interface.."."..func,2)
+    end
+  end
+  local call = oldremote.call
+  -- find out who owns it, if they have debug registered...
+  local debugname = call("debugadapter","whois",interface)
+  if debugname then
+    debugname = "__debugadapter_" .. debugname
+    __DebugAdapter.pushStack{
+      source = "remote",
+      mod_name = script.mod_name,
+      stack = __DebugAdapter.stackTrace(-2, true),
+    }
+    local result = call(debugname,"remoteCallInner",
+      __DebugAdapter.currentStep(),
+      interface, func, ...)
+    __DebugAdapter.popStack()
+
+    local childstep = result.step
+    result = result.result
+
+    __DebugAdapter.step(childstep,true)
+    return unpack(result)
+  else
+    -- if whois doesn't know who owns it, they must not have debug registered...
+    return call(interface,func,...)
+  end
+end
 function remotestepping.hasInterface(name)
   return myRemotes[name] ~= nil
 end

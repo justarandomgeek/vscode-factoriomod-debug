@@ -51,9 +51,8 @@ local function stack_has_location()
 end
 __DebugAdapter.stepIgnore(stack_has_location)
 
-local on_exception
 if __DebugAdapter.instrument then
-  on_exception = function (mesg)
+  local on_exception = function (mesg)
     if not stack_has_location() then
       __DebugAdapter.popStack()
       return
@@ -84,41 +83,9 @@ if __DebugAdapter.instrument then
     end
     return
   end
-else
-  on_exception = function (mesg)
-    if not stack_has_location() then
-      __DebugAdapter.popStack()
-      return mesg
-    end
-    local mtype = type(mesg)
-    if mtype == "string" then
-      if mesg:match("^Error when running interface function") or
-          mesg:match("^The mod [a-zA-Z0-9 _-]+ %([0-9.]+%) caused a non%-recoverable error")
-        then
-        __DebugAdapter.popStack()
-        return mesg
-      end
-      print_exception("unhandled", mesg)
-      debug.debug()
-      __DebugAdapter.popStack()
-      return mesg
-    elseif mtype == "table" and mesg[1] and mesg[1] == "REMSTEP" then
-      mesg[1] = ""
-      -- 0=traceback 1=on_exception 2=error (rethrow from hook) 3=remote.call hook 4=calling code to remote.call
-      -- remove two lines -1=try_func or remoteCallInner, -2=xpcall
-      mesg[#mesg+1] = debug.traceback("",4):match("^(.+)\n[^\n]+\n[^\n]+$")
-      __DebugAdapter.popStack()
-      return mesg
-    else
-      print_exception("unhandled",mesg)
-      debug.debug()
-      __DebugAdapter.popStack()
-      return mesg
-    end
-  end
+  --shared for remotestepping
+  __DebugAdapter.on_exception = on_exception
 end
---shared for remotestepping
-__DebugAdapter.on_exception = on_exception
 
 local entrypoint = {}
 
@@ -136,31 +103,13 @@ end
 
 -- don't need the rest in data stage...
 if not script then return end
-local try
-if __DebugAdapter.instrument then
-  function try(func,entryname)
-    if func == nil then return nil end
-    return __DebugAdapter.stepIgnore(function(...)
-      __DebugAdapter.pushEntryPointName(entryname)
-      func(...)
-      __DebugAdapter.popEntryPointName()
-    end)
-  end
-else
-  function try(func,entryname)
-    if func == nil then return nil end
-    return __DebugAdapter.stepIgnore(function(...)
-      __DebugAdapter.pushEntryPointName(entryname)
-      local success,message = oldxpcall(func,on_exception,...)
-      if not success then
-        -- factorio will add a new stacktrace below whatever i give it here, and there doesn't seem to be anything i can do about it.
-        -- but i can rename it at least...
-        local rethrow = error
-        rethrow(message,-1)
-      end
-      __DebugAdapter.popEntryPointName()
-    end)
-  end
+local function try(func,entryname)
+  if func == nil then return nil end
+  return __DebugAdapter.stepIgnore(function(...)
+    __DebugAdapter.pushEntryPointName(entryname)
+    func(...)
+    __DebugAdapter.popEntryPointName()
+  end)
 end
 __DebugAdapter.stepIgnore(try)
 
