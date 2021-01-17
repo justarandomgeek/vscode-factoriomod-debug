@@ -42,8 +42,8 @@ function remotestepping.callInner(interface,func,...)
   stacks[#stacks+1] = {
     name = "remote "..interface.."::"..func,
   }
-  if parentstep and (parentstep == "over" or parentstep == "out" or parentstep:match("^remote")) then
-    parentstep = "remote" .. parentstep
+  if parentstep and parentstep >= 0 then
+    parentstep = parentstep + 1
   end
   __DebugAdapter.step(parentstep,true)
 
@@ -54,7 +54,9 @@ function remotestepping.callInner(interface,func,...)
   __DebugAdapter.step(nil,true)
   stacks[#stacks] = nil
   __DebugAdapter.popEntryPointName()
-  parentstep = parentstep and parentstep:match("^remote(.+)$") or parentstep
+  if parentstep and parentstep >= 0 then
+    parentstep = parentstep - 1
+  end
   __DebugAdapter.crossStepping(parentstep)
   return result
 end

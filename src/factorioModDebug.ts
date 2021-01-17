@@ -873,11 +873,16 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 
 	private step(event:'in'|'out'|'over' = 'in') {
+		const stepdepth = {
+			in: -1,
+			over: 0,
+			out: 1,
+		};
 		if(this.breakPointsChanged.size !== 0)
 		{
 			this.updateBreakpoints();
 		}
-		this.writeStdin(`__DebugAdapter.step("${event}")`);
+		this.writeStdin(`__DebugAdapter.step(${stepdepth[event]})`);
 		this.writeStdin("cont");
 	}
 

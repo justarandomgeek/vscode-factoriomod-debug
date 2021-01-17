@@ -54,8 +54,7 @@ end
 
 ---@type table<string,table<number,SourceBreakpoint>>
 local breakpoints = {}
-local stepmode = nil
-local stepdepth = 0
+local stepdepth = nil
 
 local runningBreak
 do
@@ -90,9 +89,8 @@ do
       if sub(s,1,1) == "@" then
         s = normalizeLuaSource(s)
         local smode = stepmode
-        if smode == "in" or smode == "next" or (smode == "over" and stepdepth<=0) then
-          stepmode = nil
-          stepdepth = 0
+        if stepdepth and stepdepth<=0 then
+          stepdepth = nil
           print(format("DBG: step %s:%d", s, line or -1))
           debugprompt()
           -- cleanup variablesReferences
@@ -142,10 +140,7 @@ do
                   }
                   print("DBGlogpoint: " .. json.encode(logpoint))
                 else
-                  if (stepmode == "over") then
-                    stepmode = nil
-                    stepdepth = 0
-                  end
+                  stepdepth = nil
                   print("DBG: breakpoint")
                   debugprompt()
                   -- cleanup variablesReferences
@@ -162,8 +157,7 @@ do
       local info = getinfo(2,"Slf")
       local s = info.source
       if sub(s,1,1) == "@" then
-        local smode = stepmode
-        if smode == "over" or smode == "out" then
+        if stepdepth and stepdepth >= 0 then
           stepdepth = stepdepth + 1
         end
       end
@@ -229,16 +223,8 @@ do
             end
           end
         end
-        local smode = stepmode
-        if smode == "over" then
+        if stepdepth and stepdepth >= 0 then
           stepdepth = stepdepth - 1
-        elseif smode == "out" then
-          local sdepth = stepdepth
-          if sdepth <= 0 then
-            stepmode = "next"
-            sdepth = 0
-          end
-          stepdepth = sdepth - 1
         end
       end
       local parent = getinfo(3,"f")
@@ -333,23 +319,17 @@ function __DebugAdapter.dumpBreakpoints(source)
   end
 end
 
----@param steptype string "remote"*("next" | "in" | "over" | "out")
----@param internal boolean | nil
-function __DebugAdapter.step(steptype,internal)
-  stepmode = steptype
-  if steptype == "over" or steptype == "out" then
-    if not internal then
-      stepdepth = 0
-    end
-    if stepdepth ~= 0 then
-      print(("step %s with existing depth! %d"):format(steptype,stepdepth))
-    end
+---@param depth number
+function __DebugAdapter.step(depth)
+  if depth and stepdepth then
+    print(("step %d with existing depth! %d"):format(depth,stepdepth))
   end
+  stepdepth = depth
 end
 
----@return string "remote"*("next" | "in" | "over" | "out")
+---@return number
 function __DebugAdapter.currentStep()
-  return stepmode
+  return stepdepth
 end
 
 local vcreate = variables.create
@@ -358,7 +338,6 @@ local vmeta = {
   __debugtype = "DebugAdapter.Stepping",
   __debugchildren = function(t) return {
     vcreate("<breakpoints>",breakpoints),
-    vcreate("<stepmode>",stepmode),
     vcreate("<stepdepth>",stepdepth),
   } end,
 }
