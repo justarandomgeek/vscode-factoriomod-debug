@@ -115,6 +115,8 @@ remote.add_interface("debugadapter",__DebugAdapter.stepIgnoreAll{
   pushStack = __DebugAdapter.pushStack,
   popStack = __DebugAdapter.popStack,
   peekStacks = __DebugAdapter.peekStacks,
+  crossStepping = __DebugAdapter.crossStepping,
+  peekStepping = __DebugAdapter.peekStepping,
 })
 
 return sharedevents

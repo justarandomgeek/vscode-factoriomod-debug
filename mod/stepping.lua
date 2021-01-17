@@ -200,12 +200,12 @@ do
             pending[#pending+1] = true
 
             local label = classname.."::"..member..(v and ("="..__DebugAdapter.describe(v,true)) or "()")
-            __DebugAdapter.pushStack{
+            __DebugAdapter.pushStack({
                 source = "api",
                 extra = label,
                 mod_name = script.mod_name,
                 stack = __DebugAdapter.stackTrace(-1, true),
-              }
+              }, __DebugAdapter.currentStep())
           end
         end
       end

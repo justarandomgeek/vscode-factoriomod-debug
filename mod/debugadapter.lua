@@ -211,20 +211,19 @@ function __DebugAdapter.stackTrace(startFrame, forRemote, seq)
         if not info.istailcall then
           lastframe.name = framename
         end
-
-        -- list any eventlike api calls stacked up...
-        if not forRemote and stacks then
-          local nstacks = #stacks
-          for istack = nstacks,1,-1 do
-            local stack = stacks[istack]
-            --print("stack",istack,nstacks,stack.mod_name,script.mod_name)
-            stackFrames[#stackFrames+1] = labelframe(i,stack.source,stack.mod_name,stack.extra)
+      end
+      -- list any eventlike api calls stacked up...
+      if not forRemote and stacks then
+        local nstacks = #stacks
+        for istack = nstacks,1,-1 do
+          local stack = stacks[istack]
+          --print("stack",istack,nstacks,stack.mod_name,script.mod_name)
+          stackFrames[#stackFrames+1] = labelframe(i,stack.source,stack.mod_name,stack.extra)
+          i = i + 1
+          for _,frame in pairs(stack.stack) do
+            frame.id = i
+            stackFrames[#stackFrames+1] = frame
             i = i + 1
-            for _,frame in pairs(stack.stack) do
-              frame.id = i
-              stackFrames[#stackFrames+1] = frame
-              i = i + 1
-            end
           end
         end
       end
