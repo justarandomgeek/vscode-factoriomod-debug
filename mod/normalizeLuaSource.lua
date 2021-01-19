@@ -2,6 +2,7 @@ local __DebugAdapter = __DebugAdapter
 local string = string
 local ssub = string.sub
 local smatch = string.match
+local pcall = pcall
 
 local levelpath
 if script and script.mod_name == "level" then
@@ -13,6 +14,29 @@ if script and script.mod_name == "level" then
       basepath = basepath,
     }
   end
+  local success = pcall(function()
+    local level = script.level -- will throw here if factorio doesn't support this yet
+    if level.is_tutorial then
+      levelpath = {
+        modname = "base",
+        basepath = "tutorials/"..level.level_name.."/",
+      }
+    elseif level.campaign_name then
+      levelpath = {
+        modname = level.mod_name or "#user",
+        basepath = "campaigns/"..level.campaign_name.."/"..level.level_name.."/",
+      }
+    else
+      levelpath = {
+        modname = level.mod_name or "#user",
+        basepath = "scenarios/"..level.level_name.."/",
+      }
+    end
+
+    function levelPath(modname,basepath)
+      __DebugAdapter.print("__DebugAdapter.levelPath is no longer required",nil,2,"console")
+    end
+  end)
   if __DebugAdapter then __DebugAdapter.levelPath = levelPath end
   if __Profiler then __Profiler.levelPath = levelPath end
 end

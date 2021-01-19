@@ -32,7 +32,7 @@ require("__debugadapter__/stepping.lua")
 
 require("__debugadapter__/luaobjectinfo.lua") -- uses pcall
 local variables = require("__debugadapter__/variables.lua") -- uses pcall
-local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
+local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua") -- uses pcall
 require("__debugadapter__/evaluate.lua") -- uses pcall
 local json = require('__debugadapter__/json.lua')
 if __DebugAdapter.hooklog ~= false then
