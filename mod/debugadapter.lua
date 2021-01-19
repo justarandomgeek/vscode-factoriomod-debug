@@ -33,10 +33,6 @@ require("__debugadapter__/stepping.lua")
 require("__debugadapter__/luaobjectinfo.lua") -- uses pcall
 local variables = require("__debugadapter__/variables.lua") -- uses pcall
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
-local remotestepping
-if script then -- don't attempt to hook in data stage
-  remotestepping = require("__debugadapter__/remotestepping.lua") -- uses xpcall in non-instrument mode
-end
 require("__debugadapter__/evaluate.lua") -- uses pcall
 local json = require('__debugadapter__/json.lua')
 if __DebugAdapter.hooklog ~= false then
@@ -168,36 +164,20 @@ function __DebugAdapter.stackTrace(startFrame, forRemote, seq)
       end
     end
 
-    local entrypoint = __DebugAdapter.getEntryPointName()
-    if entrypoint and false then
-      -- check for non-instrumented entry...
-      if entrypoint == "unknown" then
-        stackFrames[#stackFrames+1] = labelframe(i,"unknown")
-        i = i + 1
-      elseif entrypoint == "saving" or entrypoint == "main" then
-        -- nothing useful to add for these...
-      elseif entrypoint:match("^remote ") then
-        stackFrames[#stackFrames].name = entrypoint:match("^remote (.+)$")
-        stackFrames[#stackFrames+1] = labelframe(i,"remote")
-        i = i + 1
-      else
-
-        ---@type StackFrame
-        local lastframe = stackFrames[#stackFrames]
-        local info = debug.getinfo(lastframe.id,"t")
-
+    -- try to improve the label on the entrypoint
+    do
+      local lastframe = stackFrames[#stackFrames]
+      local info = debug.getinfo(lastframe.id,"f")
+      local entrypoint = __DebugAdapter.getEntryLabel(info.func)
+      if entrypoint then
         local framename = entrypoint
-        if entrypoint:match(" handler$") then
-
-        end
         if forRemote then
           framename = ("[%s] %s"):format(script.mod_name, framename)
         end
-        if not info.istailcall then
-          lastframe.name = framename
-        end
+        lastframe.name = framename
       end
     end
+
     -- list any eventlike api calls stacked up...
     if not forRemote and stacks then
       local nstacks = #stacks

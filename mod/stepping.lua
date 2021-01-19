@@ -30,7 +30,7 @@ function __DebugAdapter.isStepIgnore(f)
 end
 stepIgnore(__DebugAdapter.isStepIgnore)
 
--- capture the raw object, before remotestepping hooks it or through the hook
+-- capture the raw object
 local remote = remote and rawget(remote,"__raw") or remote
 
 local debug = debug
@@ -46,11 +46,6 @@ local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local json = require("__debugadapter__/json.lua")
 local datastring = require("__debugadapter__/datastring.lua")
 local ReadBreakpoints = datastring.ReadBreakpoints
-local remotestepping
-if script then -- don't attempt to hook in data stage
-  remotestepping = require("__debugadapter__/remotestepping.lua")
-end
-
 
 ---@type table<string,table<number,SourceBreakpoint>>
 local breakpoints = {}

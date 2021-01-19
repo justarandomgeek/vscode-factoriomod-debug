@@ -3,7 +3,9 @@ local debug = debug
 local print = print
 local localised_print = localised_print
 local __DebugAdapter = __DebugAdapter
+local setmetatable = setmetatable
 local luaObjectInfo = require("__debugadapter__/luaobjectinfo.lua")
+local variables = require("__debugadapter__/variables.lua")
 
 local function print_exception(type,mesg)
   if mesg == nil then mesg = "<nil>" end
@@ -86,24 +88,30 @@ if __DebugAdapter.instrument then
   __DebugAdapter.on_exception = on_exception
 end
 
-local entrypoint = {}
-
-function __DebugAdapter.getEntryPointName()
-  return entrypoint[#entrypoint]
-end
-function __DebugAdapter.pushEntryPointName(entry)
-  entrypoint[#entrypoint+1] = entry
-end
-function __DebugAdapter.popEntryPointName()
-  local entry = entrypoint[#entrypoint]
-  entrypoint[#entrypoint] = nil
-  return entry
-end
 
 -- don't need the rest in data stage...
 if not script then return end
 
 local handlernames = setmetatable({},{__mode="k"})
+local myRemotes = {}
+
+function __DebugAdapter.getEntryLabel(func)
+  do
+    local handler = handlernames[func]
+    if handler then
+      return handler
+    end
+  end
+  -- it would be nice to pre-calculate all this, but changing the functions in a
+  -- remote table at runtime is actually valid, so an old result may not be correct!
+  for name,interface in pairs(myRemotes) do
+    for fname,f in pairs(interface) do
+      if f == func then
+        return "remote "..fname.."::"..name
+      end
+    end
+  end
+end
 local function labelhandler(func,entryname)
   if func == nil then return nil end
   if handlernames[func] then
@@ -185,7 +193,6 @@ local function check_events(f)
   }
   return __DebugAdapter.stepIgnore(function()
     if f then f() end
-    __DebugAdapter.pushEntryPointName("check_events")
     if next(registered_handlers) then
       for group,gevents in pairs(groups) do
         local foundany = false
@@ -246,7 +253,6 @@ local function check_events(f)
         end
       end
     end
-    __DebugAdapter.popEntryPointName()
   end)
 end
 __DebugAdapter.stepIgnore(check_events)
@@ -339,5 +345,43 @@ __DebugAdapter.stepIgnoreAll(newcommands)
 __DebugAdapter.stepIgnoreAll(newcommandsmeta)
 setmetatable(newcommands,newcommandsmeta)
 
+local oldremote = remote
+local newremote = {
+  __raw = oldremote,
+}
+
+function newremote.add_interface(remotename,funcs,...)
+  myRemotes[remotename] = funcs
+  return oldremote.add_interface(remotename,funcs,...)
+end
+
+function newremote.remove_interface(remotename,...)
+  myRemotes[remotename] = nil
+  return oldremote.remove_interface(remotename,...)
+end
+
+local remotemeta = {
+  __index = oldremote,
+  __newindex = function(t,k,v) oldremote[k] = v end,
+  __debugline = "<LuaRemote Debug Proxy>",
+  __debugtype = "DebugAdapter.LuaRemote",
+  __debugchildren = function(t)
+    return {
+      variables.create([["interfaces"]],oldremote.interfaces),
+      variables.create("<raw>",oldremote),
+      {
+        name = "<myRemotes>",
+        value = "<myRemotes>",
+        type = "table",
+        variablesReference = variables.tableRef(myRemotes),
+      },
+    }
+  end,
+}
+__DebugAdapter.stepIgnoreAll(newremote)
+__DebugAdapter.stepIgnoreAll(remotemeta)
+setmetatable(newremote,remotemeta)
+
 script = newscript
 commands = newcommands
+remote = newremote

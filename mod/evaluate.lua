@@ -9,7 +9,7 @@ local xpcall = xpcall -- ditto
 local setmetatable = setmetatable
 local load = load
 
--- capture the raw object, before remotestepping hooks it or through the hook
+-- capture the raw object
 local remote = remote and rawget(remote,"__raw") or remote
 
 local function timedpcall(f)
