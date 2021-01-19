@@ -9,6 +9,7 @@
 * Removed break-on-exception when not running in Instrument Mode
 * If selected frame has a local or upval `_ENV`, evals will use it instead of the global environment
 * Removed Event Check
+* Expand functions's upvals as children in Variables view
 ## 1.1.2
 
 * Show best-guess arguments for `__index` and `__newindex` in stack trace

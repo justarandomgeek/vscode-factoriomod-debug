@@ -187,7 +187,18 @@ do
         return false -- circular isn't inherently unsafe, unless something *else* in the table is
       end
     end
-    if type(t) ~= "table" then
+    local ttype = type(t)
+    if ttype == "function" then
+      local i = 1
+      while true do
+        local name,value = debug.getupvalue(t,i)
+        if not name then break end
+        if isUnsafeLong(value,seen) then
+          return true
+        end
+      end
+      return false
+    elseif ttype ~= "table" then
       return false
     end
     if type(rawget(t,"__self"))=="userdata" and getmetatable(t)=="private" then
@@ -212,6 +223,14 @@ do
         end
       elseif varRef.type == "LuaObject" then
         if isUnsafeLong(varRef.object) then
+          variables.longrefs[id]=nil
+        end
+      elseif varRef.type == "kvPair" then
+        if isUnsafeLong(varRef.key) or isUnsafeLong(varRef.value) then
+          variables.longrefs[id]=nil
+        end
+      elseif varRef.type == "Function" then
+        if isUnsafeLong(varRef.func) then
           variables.longrefs[id]=nil
         end
       else
@@ -260,7 +279,15 @@ function variables.kvRef(key,value)
     end
   end
   local id = nextID()
-  local name = "{<"..variables.tableRef(key,nil,nil,nil,nil,true)..">}"
+  local keytype = type(key)
+  local name = "<"..keytype.." "..id..">"
+  if keytype == "table" then
+    name = "{<table "..variables.tableRef(key,nil,nil,nil,nil,true)..">}"
+  elseif keytype == "function" then
+    name = "<function "..variables.funcRef(key)..">"
+  end
+
+
   refs[id] = {
     type = "kvPair",
     key = key,
@@ -268,6 +295,25 @@ function variables.kvRef(key,value)
     name = name,
   }
   return id,name
+end
+
+--- Generate a variablesReference for a function
+---@param func function
+---@return number variablesReference
+function variables.funcRef(func)
+  local refs = variables.longrefs
+
+  for id,varRef in pairs(refs) do
+    if varRef.type == "Function" and varRef.func == func then
+      return id
+    end
+  end
+  local id = nextID()
+  refs[id] = {
+    type = "Function",
+    func = func,
+  }
+  return id
 end
 
 --- Generate a variablesReference for a table-like object
@@ -493,6 +539,8 @@ function variables.create(name,value,evalName,long)
     if mt and type(mt.__debugtype) == "string" then
       vtype = mt.__debugtype
     end
+  elseif vtype == "function" then
+    variablesReference = variables.funcRef(value)
   end
   return {
     name = name,
@@ -725,7 +773,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
               end
               local kline,ktype = variables.describe(k,true)
               local newvar = variables.create(kline,v, evalName,long)
-              if ktype == "table" then
+              if ktype == "table" or ktype == "function" then
                 newvar.variablesReference,newvar.name = variables.kvRef(k,v)
               end
               vars[#vars + 1] = newvar
@@ -844,6 +892,16 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
     elseif varRef.type == "kvPair" then
       vars[#vars + 1] = variables.create("<key>",varRef.key, nil, true)
       vars[#vars + 1] = variables.create("<value>",varRef.value)
+    elseif varRef.type == "Function" then
+      local func = varRef.func
+      local i = 1
+      while true do
+        local name,value = debug.getupvalue(func,i)
+        if not name then break end
+        if name == "" then name = "<"..i..">" end
+        vars[#vars + 1] = variables.create(name,value,name)
+        i = i + 1
+      end
     end
     if #vars == 0 then
       vars[1] = {
