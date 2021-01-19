@@ -4,7 +4,6 @@ local print = print
 local localised_print = localised_print
 local __DebugAdapter = __DebugAdapter
 local setmetatable = setmetatable
-local luaObjectInfo = require("__debugadapter__/luaobjectinfo.lua")
 local variables = require("__debugadapter__/variables.lua")
 
 local function print_exception(type,mesg)
