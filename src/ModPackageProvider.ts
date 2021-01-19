@@ -1000,7 +1000,7 @@ async function runScript(term:ModTaskTerminal, name:string|undefined, command:st
 			{
 				term.write(`>> Mod script "${name}" returned ${code} <<\r\n`);
 			}
-			resolve(code);
+			resolve(code ?? -1);
 		});
 
 		scriptProc.on("error", (error) => {
