@@ -9,99 +9,14 @@ local variables = require("__debugadapter__/variables.lua")
 local remotestepping = {}
 
 local __DebugAdapter = __DebugAdapter
-local script = script
 local setmetatable = setmetatable
-local unpack = table.unpack
 
 ---@type LuaRemote
 local oldremote = remote
 local newremote = {
   __raw = oldremote,
 }
-local stacks = {}
 local myRemotes = {}
-
----@return string
-function remotestepping.parentState()
-  local level = stacks[#stacks]
-  if level then
-    return level.name
-  end
-end
-
-
---- Transfer stepping state and perform the call. Vararg arguments will be forwarded to the
---- remote function, and any return value from the remote will be returned with the new stepping state in a table.
----@param interface string
----@param func string
----@return table
-function remotestepping.callInner(interface,func,...)
-  ---@type string "remote"*("next" | "in" | "over" | "out")
-  local parentstep = __DebugAdapter.peekStepping()
-  __DebugAdapter.pushEntryPointName("hookedremote")
-  stacks[#stacks+1] = {
-    name = "remote "..interface.."::"..func,
-  }
-  if parentstep and parentstep >= 0 then
-    parentstep = parentstep + 1
-  end
-  __DebugAdapter.step(parentstep,true)
-
-  local remotefunc = myRemotes[interface][func]
-  local result = {remotefunc(...)}
-
-  parentstep = __DebugAdapter.currentStep()
-  __DebugAdapter.step(nil,true)
-  stacks[#stacks] = nil
-  __DebugAdapter.popEntryPointName()
-  if parentstep and parentstep >= 0 then
-    parentstep = parentstep - 1
-  end
-  __DebugAdapter.crossStepping(parentstep)
-  return result
-end
-
---- Replacement for LuaRemote::call() which passes stepping state along with the call.
---- Signature and returns are the same as original LuaRemote::call()
-function newremote.call(interface,func,...)
-  do
-    local itype = type(interface)
-    local ftype = type(func)
-    if itype ~= "string" then
-      error("Bad argument `interface` expected string got "..itype,2)
-    elseif ftype ~= "string" then
-      error("Bad argument `func` expected string got "..ftype,2)
-    elseif not oldremote.interfaces[interface] then
-      error("Unknown interface: "..interface,2)
-    elseif not oldremote.interfaces[interface][func] then
-      error("No such function: "..interface.."."..func,2)
-    end
-  end
-  local call = oldremote.call
-  -- find out who owns it, if they have debug registered...
-  local debugname = call("debugadapter","whois",interface)
-  if debugname then
-    debugname = "__debugadapter_" .. debugname
-    __DebugAdapter.pushStack({
-      source = "remote",
-      mod_name = script.mod_name,
-      stack = __DebugAdapter.stackTrace(-2, true),
-    }, __DebugAdapter.currentStep())
-    local result = call(debugname,"remoteCallInner",
-      interface, func, ...)
-
-    local childstep = __DebugAdapter.peekStepping()
-    __DebugAdapter.popStack()
-    __DebugAdapter.step(childstep,true)
-    return unpack(result)
-  else
-    -- if whois doesn't know who owns it, they must not have debug registered...
-    return call(interface,func,...)
-  end
-end
-function remotestepping.hasInterface(name)
-  return myRemotes[name] ~= nil
-end
 
 function remotestepping.isRemote(func)
   -- it would be nice to pre-calculate all this, but changing the functions in a
@@ -134,12 +49,6 @@ local remotemeta = {
     return {
       variables.create([["interfaces"]],oldremote.interfaces),
       variables.create("<raw>",oldremote),
-      {
-        name = "<stacks>",
-        value = "<stacks>",
-        type = "StackFrame[]",
-        variablesReference = variables.tableRef(stacks),
-      },
       {
         name = "<myRemotes>",
         value = "<myRemotes>",

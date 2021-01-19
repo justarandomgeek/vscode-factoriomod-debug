@@ -1,4 +1,3 @@
-local oldpcall = pcall
 local oldxpcall = xpcall
 local debug = debug
 local print = print
@@ -103,15 +102,18 @@ end
 
 -- don't need the rest in data stage...
 if not script then return end
-local function try(func,entryname)
+
+local handlernames = setmetatable({},{__mode="k"})
+local function labelhandler(func,entryname)
   if func == nil then return nil end
-  return __DebugAdapter.stepIgnore(function(...)
-    __DebugAdapter.pushEntryPointName(entryname)
-    func(...)
-    __DebugAdapter.popEntryPointName()
-  end)
+  if handlernames[func] then
+    handlernames[func] = "(shared handler)"
+  else
+    handlernames[func] = entryname
+  end
+  return func
 end
-__DebugAdapter.stepIgnore(try)
+__DebugAdapter.stepIgnore(labelhandler)
 
 local function caught(filter, user_handler)
   return __DebugAdapter.stepIgnore(function(mesg)
@@ -250,17 +252,17 @@ end
 __DebugAdapter.stepIgnore(check_events)
 
 function newscript.on_init(f)
-  oldscript.on_init(check_events(try(f,"on_init handler")))
+  oldscript.on_init(check_events(labelhandler(f,"on_init handler")))
 end
 newscript.on_init()
 
 function newscript.on_load(f)
-  oldscript.on_load(check_events(try(f,"on_load handler")))
+  oldscript.on_load(check_events(labelhandler(f,"on_load handler")))
 end
 newscript.on_load()
 
 function newscript.on_configuration_changed(f)
-  return oldscript.on_configuration_changed(try(f,"on_configuration_changed handler"))
+  return oldscript.on_configuration_changed(labelhandler(f,"on_configuration_changed handler"))
 end
 
 function newscript.on_nth_tick(tick,f)
@@ -269,9 +271,9 @@ function newscript.on_nth_tick(tick,f)
   else
     local ttype = type(tick)
     if ttype == "number" then
-      return oldscript.on_nth_tick(tick,try(f,("on_nth_tick %d handler"):format(tick)))
+      return oldscript.on_nth_tick(tick,labelhandler(f,("on_nth_tick %d handler"):format(tick)))
     elseif ttype == "table" then
-      return oldscript.on_nth_tick(tick,try(f,("on_nth_tick {%s} handler"):format(table.concat(tick,","))))
+      return oldscript.on_nth_tick(tick,labelhandler(f,("on_nth_tick {%s} handler"):format(table.concat(tick,","))))
     else
       error("Bad argument `tick` expected number or table got "..ttype,2)
     end
@@ -290,10 +292,10 @@ function newscript.on_event(event,f,filters)
       end
     end
     registered_handlers[event] = f
-    return oldscript.on_event(event,try(f, ("%s handler"):format(evtname)),filters)
+    return oldscript.on_event(event,labelhandler(f, ("%s handler"):format(evtname)),filters)
   elseif etype == "string" then
     registered_handlers[event] = f
-    return oldscript.on_event(event,try(f, ("%s handler"):format(event)))
+    return oldscript.on_event(event,labelhandler(f, ("%s handler"):format(event)))
   elseif etype == "table" then
     for _,e in pairs(event) do
       newscript.on_event(e,f)
@@ -301,13 +303,6 @@ function newscript.on_event(event,f,filters)
   else
     error({"","Invalid Event type ",etype},2)
   end
-end
-
--- if a mod tries to get/wrap/set a handler, the raw get would get my wrapped
--- function, only to wrap it again. This unwraps it, which also preserves identity
--- if a mod wants to test which function is registered for some reason.
-function newscript.get_event_handler(event)
-  return registered_handlers[event] or oldscript.get_event_handler(event)
 end
 
 
@@ -327,7 +322,7 @@ local newcommands = {
 }
 
 function newcommands.add_command(name,help,f)
-  return oldcommands.add_command(name,help,try(f, "command /" .. name))
+  return oldcommands.add_command(name,help,labelhandler(f, "command /" .. name))
 end
 
 function newcommands.remove_command(name)

@@ -52,38 +52,9 @@ if __DebugAdapter.nohook then
   -- and a minimal version of the __da_da remote so other lua can print vars
   remote.add_interface("__debugadapter_" .. script.mod_name ,{
     setBreakpoints = function() end,
-    remoteCallInner = function() error("`debugadapter` is not hooked") end,
-    remoteHasInterface = function() return false end, -- we're not hooked, don't call anything via remoteCallInner
     longVariables = __DebugAdapter.variables,
     evaluate = __DebugAdapter.evaluate,
   })
-end
-
-local whoiscache = {}
-local function whois(remotename)
-  local interfaces = remote.interfaces
-  local call = remote.call
-
-  local firstguess = whoiscache[remotename] or remotename
-  local debugname = "__debugadapter_"..firstguess
-  if interfaces[debugname] then
-    if call(debugname,"remoteHasInterface",firstguess) then
-      whoiscache[remotename] = firstguess
-      return firstguess
-    end
-  end
-
-  for interfacename,_ in pairs(interfaces) do
-    local modname = interfacename:match("^__debugadapter_(.+)$")
-    if modname then
-      if call(interfacename,"remoteHasInterface",remotename) then
-        whoiscache[remotename] = modname
-        return modname
-      end
-    end
-  end
-
-  return nil
 end
 
 local sharedevents = {}
@@ -110,7 +81,6 @@ end))
 
 remote.add_interface("debugadapter",__DebugAdapter.stepIgnoreAll{
   updateBreakpoints = updateBreakpoints,
-  whois = whois,
 
   pushStack = __DebugAdapter.pushStack,
   popStack = __DebugAdapter.popStack,

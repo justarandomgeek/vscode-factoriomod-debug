@@ -54,9 +54,7 @@ local pairs = pairs
 
 
 local sourcelabel = {
-  remote = function(mod_name) return mod_name and ("remote.call from "..mod_name) or "remote.call context switch" end,
-  unknown = function(mod_name) return "unknown entry point" end,
-  api = function(mod_name,extra) return (extra or "api call").." raised event from "..mod_name end,
+  api = function(mod_name,extra) return (extra or "api call").." from "..mod_name end,
 }
 
 local function labelframe(i,sourcename,mod_name,extra)
@@ -140,32 +138,27 @@ function __DebugAdapter.stackTrace(startFrame, forRemote, seq)
   if script then
     -- Don't bother with any of this in data stage: it's all main chunks!
     -- possible entry points (in control stage):
-    --   main chunks (identified above as "(main chunk)", call sethook tags as entrypoint="main", no break on exception)
+    --   main chunks (identified above as "(main chunk)")
     --     control.lua init and any files it requires
     --     migrations
     --     /c __modname__ command
     --     simulation scripts (as commands)
     --   remote.call
-    --     from debug enabled mod (instrumented+1, entrypoint="hookedremote")
-    --     from non-debug enabled mod (call sethook tags as entrypoint="remote fname", no break on exception)
-    --   event handlers (instrumented+1)
+    --   event handlers
     --     if called by raise_event, has event.mod_name
-    --   /command handlers (instrumented+1)
-    --   special events: (instrumented+1)
+    --   /command handlers
+    --   special events:
     --     on_init, on_load, on_configuration_changed, on_nth_tick
 
     -- but first, drop frames from same-stack api calls that raise events
     local stacks = __DebugAdapter.peekStacks()
     do
-      local dropextra = {
-        remote = 3, -- remotestepping.call, remote.call, remotestepping.callinner
-        api = 2, -- __newindex or api closure, try in raised event
-      } -- default = 1 -- try in raised event or command
       local dropcount = 0
       for istack = #stacks,1,-1 do
         local stack = stacks[istack]
         if stack.mod_name == script.mod_name then
-          dropcount = dropcount + table_size(stack.stack) + (dropextra[stack.source] or 1)
+          -- drop the listed frames plus the __newindex or api closure
+          dropcount = dropcount + table_size(stack.stack) + 1
         end
       end
       if dropcount > 0 then
@@ -176,7 +169,7 @@ function __DebugAdapter.stackTrace(startFrame, forRemote, seq)
     end
 
     local entrypoint = __DebugAdapter.getEntryPointName()
-    if entrypoint then
+    if entrypoint and false then
       -- check for non-instrumented entry...
       if entrypoint == "unknown" then
         stackFrames[#stackFrames+1] = labelframe(i,"unknown")
@@ -188,21 +181,13 @@ function __DebugAdapter.stackTrace(startFrame, forRemote, seq)
         stackFrames[#stackFrames+1] = labelframe(i,"remote")
         i = i + 1
       else
-        -- instrumented event/remote handler has one extra frame.
-        -- Delete them and rename the next bottom frame...
-        -- this leaves a gap in `i`. Maybe later allow expanding hidden frames?
-        stackFrames[#stackFrames] = nil --remoteCallInner or try_func
 
         ---@type StackFrame
         local lastframe = stackFrames[#stackFrames]
         local info = debug.getinfo(lastframe.id,"t")
 
         local framename = entrypoint
-        if entrypoint == "hookedremote" then
-          local remoteFName = remotestepping.parentState()
-          framename = remoteFName
-
-        elseif entrypoint:match(" handler$") then
+        if entrypoint:match(" handler$") then
 
         end
         if forRemote then
@@ -212,19 +197,19 @@ function __DebugAdapter.stackTrace(startFrame, forRemote, seq)
           lastframe.name = framename
         end
       end
-      -- list any eventlike api calls stacked up...
-      if not forRemote and stacks then
-        local nstacks = #stacks
-        for istack = nstacks,1,-1 do
-          local stack = stacks[istack]
-          --print("stack",istack,nstacks,stack.mod_name,script.mod_name)
-          stackFrames[#stackFrames+1] = labelframe(i,stack.source,stack.mod_name,stack.extra)
+    end
+    -- list any eventlike api calls stacked up...
+    if not forRemote and stacks then
+      local nstacks = #stacks
+      for istack = nstacks,1,-1 do
+        local stack = stacks[istack]
+        --print("stack",istack,nstacks,stack.mod_name,script.mod_name)
+        stackFrames[#stackFrames+1] = labelframe(i,stack.source,stack.mod_name,stack.extra)
+        i = i + 1
+        for _,frame in pairs(stack.stack) do
+          frame.id = i
+          stackFrames[#stackFrames+1] = frame
           i = i + 1
-          for _,frame in pairs(stack.stack) do
-            frame.id = i
-            stackFrames[#stackFrames+1] = frame
-            i = i + 1
-          end
         end
       end
     end
@@ -294,8 +279,6 @@ do
     log("debugadapter registered for " .. script.mod_name .. ininstrument)
     remote.add_interface("__debugadapter_" .. script.mod_name ,{
       setBreakpoints = __DebugAdapter.setBreakpoints,
-      remoteCallInner = remotestepping.callInner,
-      remoteHasInterface = remotestepping.hasInterface,
       longVariables = __DebugAdapter.variables,
       evaluate = __DebugAdapter.evaluate,
     })

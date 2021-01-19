@@ -78,17 +78,16 @@ do
   local debugprompt = debug.debug
   local evaluateInternal = __DebugAdapter.evaluateInternal
   local stringInterp = __DebugAdapter.stringInterp
-  local pendingeventlike = {}
+  local pending = {}
   function hook(event,line)
-    local ignored = stepIgnoreFuncs[getinfo(2,"f").func]
-    if ignored then return end
     if event == "line" or event == "count" then
+      local ignored = stepIgnoreFuncs[getinfo(2,"f").func]
+      if ignored then return end
       local s = getinfo(2,"S").source
       -- startup logging gets all the serpent loads of `global`
       -- serpent itself will also always show up as one of these
       if sub(s,1,1) == "@" then
         s = normalizeLuaSource(s)
-        local smode = stepmode
         if stepdepth and stepdepth<=0 then
           stepdepth = nil
           print(format("DBG: step %s:%d", s, line or -1))
@@ -156,99 +155,85 @@ do
     elseif event == "call" then
       local info = getinfo(2,"Slf")
       local s = info.source
-      if sub(s,1,1) == "@" then
+
+      local success,classname,member,v = luaObjectInfo.check_eventlike(3,event)
+      local parent =  getinfo(3,"f")
+      if success then
         if stepdepth and stepdepth >= 0 then
           stepdepth = stepdepth + 1
         end
-      end
-      local parent = getinfo(3,"f")
-      if not parent then -- top of a new stack
-        if info.what == "main" then
-          -- main chunks: loading `global` from save, console commands, file chunks
-          __DebugAdapter.pushEntryPointName("main")
-        elseif info.what == "Lua" then
-          -- note that this won't see any entrypoints which are stepIgnore,
-          -- which includes all break-on-exception instrumented entry points
-          -- have to check for remotestepping here as we might also end up here for
-          -- C++ code that invokes Lua metamethods, like _ENV __index
-          local remoteFName = remotestepping and remotestepping.isRemote(info.func)
-          if remoteFName then
-            -- remote.calls that don't go through my hooks. no stacks, but at least we can name it...
-            __DebugAdapter.pushEntryPointName("remote " .. remoteFName)
-          else
-            -- i don't know anything useful about these, but i need to push *something* to prevent
-            -- misidentifying the new stack if it's re-entrant in another event
-            __DebugAdapter.pushEntryPointName("unknown")
-          end
+        -- if current is eventlike do outer stack/stepping pass out
+        local label = classname.."::"..member..(v and ("="..__DebugAdapter.describe(v,true)) or "()")
+        __DebugAdapter.pushStack({
+            source = "api",
+            extra = label,
+            mod_name = script.mod_name,
+            stack = __DebugAdapter.stackTrace(-1, true),
+          }, __DebugAdapter.currentStep())
+          __DebugAdapter.step(nil,true)
+          pending[info.func] = (pending[info.func] or 0) + 1
+      elseif (not parent) or pending[parent.func] then
+        -- if parent is nil or eventlike do inner stepping pass in
+        __DebugAdapter.step(__DebugAdapter.peekStepping(),true)
+        if stepdepth and stepdepth >= 0 then
+          stepdepth = stepdepth + 1
         end
-      else -- down in a stack
-        if script then
-          local success,classname,member,v = luaObjectInfo.check_eventlike(3,event)
-          if success then
-            --print("eventlike",script.mod_name,event,t,k,v)
-            local pending = pendingeventlike[info.func]
-            if not pending then
-              pending = {}
-              pendingeventlike[info.func] = pending
-            end
-            pending[#pending+1] = true
-
-            local label = classname.."::"..member..(v and ("="..__DebugAdapter.describe(v,true)) or "()")
-            __DebugAdapter.pushStack({
-                source = "api",
-                extra = label,
-                mod_name = script.mod_name,
-                stack = __DebugAdapter.stackTrace(-1, true),
-              }, __DebugAdapter.currentStep())
-          end
+      else
+        if stepdepth and stepdepth >= 0 then
+          stepdepth = stepdepth + 1
         end
       end
     elseif event == "return" then
       local info = getinfo(2,"Slf")
       local s = info.source
-      if sub(s,1,1) == "@" then
-        if info.what == "main" then
-          if s == "@__core__/lualib/noise.lua" then
-            local i,k,v
-            i = 0
-            repeat
-              i = i + 1
-              k,v = debug.getlocal(2,i)
-            until not k or k == "noise_expression_metatable"
-            if v then
-              require("__debugadapter__/noise.lua")(v)
-              log("installed noise expression hook")
-            else
-              log("failed to install noise expression hook")
-            end
-          end
+      if info.what == "main" and s == "@__core__/lualib/noise.lua" then
+        local i,k,v
+        i = 0
+        repeat
+          i = i + 1
+          k,v = debug.getlocal(2,i)
+        until not k or k == "noise_expression_metatable"
+        if v then
+          require("__debugadapter__/noise.lua")(v)
+          log("installed noise expression hook")
+        else
+          log("failed to install noise expression hook")
         end
+      end
+      local parent = getinfo(3,"f")
+      local p = pending[info.func]
+      if p then
+        -- if current is eventlike pop stack, do outer stepping pass in
+        __DebugAdapter.step(__DebugAdapter.popStack(),true)
+        if stepdepth and stepdepth >= 0 then
+          stepdepth = stepdepth - 1
+        end
+        p = p - 1
+        if p == 0 then
+          pending[info.func] = nil
+        else
+          pending[info.func] = p
+        end
+      elseif  (not parent) or pending[parent.func] then
+        -- if parent is nil or eventlike do inner stepping pass out
+        if stepdepth and stepdepth >= 0 then
+          stepdepth = stepdepth - 1
+        end
+        __DebugAdapter.crossStepping(__DebugAdapter.currentStep())
+        __DebugAdapter.step(nil,true)
+      else
         if stepdepth and stepdepth >= 0 then
           stepdepth = stepdepth - 1
         end
       end
-      local parent = getinfo(3,"f")
+
       if not parent then -- top of stack
         if info.what == "main" or info.what == "Lua" then
-          __DebugAdapter.popEntryPointName()
           if info.what == "main" and not info.source:match("^@__debugadapter__") then
             print("DBG: leaving")
             debugprompt()
           end
           variables.clear()
-        end
-      else -- down in stack
-        if script and pendingeventlike[info.func] then
-          -- if this is a waiting eventlike, pop one...
-          local pending = pendingeventlike[info.func]
-          local count = #pending
-          --print("eventlike",script.mod_name,event,pending[count])
-          __DebugAdapter.popStack()
-          if count == 1 then
-            pendingeventlike[info.func] = nil
-          else
-            pending[count] = nil
-          end
         end
       end
     end

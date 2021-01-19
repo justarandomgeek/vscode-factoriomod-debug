@@ -1,5 +1,6 @@
 local invert = require("__debugadapter__/enumutil.lua").invert
 local __DebugAdapter = __DebugAdapter
+local script = script
 local pcall = pcall
 local luaObjectLines = {
   ---@param stack LuaItemStack
@@ -36,6 +37,9 @@ local eventlike = {
   },
   classes = {
     __index = {
+      LuaRemote = {
+        call = true,
+      },
       LuaBootstrap = {
         raise_event = true,
         raise_console_chat = true,
@@ -127,6 +131,7 @@ local eventlike = {
 }
 
 local function check_eventlike(level,hooktype)
+  if not script then return end
   local info = debug.getinfo(level,"nSf")
   if not info then return end
   if info.what ~= "C" then return end

@@ -13,12 +13,14 @@ function __DebugAdapter.pushStack(stack,stepping)
   end
 end
 
-function __DebugAdapter.popStack(stepping)
+function __DebugAdapter.popStack()
   if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
-    remote.call("debugadapter", "popStack", stepping)
+    return remote.call("debugadapter", "popStack")
   else
     stacks[#stacks] = nil
-    cross_stepping = stepping
+    local stepping = cross_stepping
+    cross_stepping = nil
+    return stepping
   end
 end
 
