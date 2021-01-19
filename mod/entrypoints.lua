@@ -1,4 +1,4 @@
-local oldxpcall = xpcall
+local rawxpcall = xpcall
 local debug = debug
 local print = print
 local localised_print = localised_print
@@ -63,8 +63,10 @@ __DebugAdapter.stepIgnore(labelhandler)
 
 local function caught(filter, user_handler)
   return __DebugAdapter.stepIgnore(function(mesg)
+    debug.sethook()
     print_exception(filter,mesg)
     debug.debug()
+    __DebugAdapter.attach()
     if user_handler then
       return user_handler(mesg)
     else
@@ -75,11 +77,11 @@ end
 __DebugAdapter.stepIgnore(caught)
 
 function pcall(func,...)
-  return oldxpcall(func, caught("pcall"), ...)
+  return rawxpcall(func, caught("pcall"), ...)
 end
 __DebugAdapter.stepIgnore(pcall)
 function xpcall(func, user_handler, ...)
-  return oldxpcall(func, caught("xpcall",user_handler), ...)
+  return rawxpcall(func, caught("xpcall",user_handler), ...)
 end
 __DebugAdapter.stepIgnore(xpcall)
 
