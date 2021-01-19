@@ -13,7 +13,7 @@ local keepoldlog = __DebugAdapter.keepoldlog
 local function newlog(mesg)
   local outmesg = mesg
   local tmesg = type(mesg)
-  if variables.translate and tmesg == "table" and (mesg.object_name == "LuaProfiler" or (not getmetatable(mesg) and type(mesg[1])=="string")) then
+  if tmesg == "table" and (mesg.object_name == "LuaProfiler" or (not getmetatable(mesg) and type(mesg[1])=="string")) then
     outmesg = "{LocalisedString "..variables.translate(mesg).."}"
   elseif tmesg ~= "string" then
     outmesg = variables.describe(mesg)

@@ -13,7 +13,7 @@ local load = load
 local remote = remote and rawget(remote,"__raw") or remote
 
 local function timedpcall(f)
-  if game and variables.translate then
+  if game then
     local t = game.create_profiler()
     local res = {pcall(f)}
     t.stop()
@@ -352,14 +352,14 @@ function __DebugAdapter.evaluate(frameId,context,expression,seq,formod)
     else
       local outmesg = result
       local tmesg = type(result)
-      if variables.translate and tmesg == "table" and (result.object_name == "LuaProfiler" or (not getmetatable(result) and type(result[1])=="string")) then
+      if tmesg == "table" and (result.object_name == "LuaProfiler" or (not getmetatable(result) and type(result[1])=="string")) then
         outmesg = "{LocalisedString "..variables.translate(result).."}"
       elseif tmesg ~= "string" then
         outmesg = variables.describe(result)
       end
       evalresult = {result = outmesg, type="error", variablesReference=0, seq=seq}
     end
-    if timer then -- timer won't be present if variables.translate isn't
+    if timer then
       evalresult.timer = variables.translate(timer)
     end
   else

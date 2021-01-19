@@ -163,22 +163,21 @@ end
 
 do
   local localised_print = localised_print
-  if localised_print then
-    function variables.translate(mesg)
-      local translationID = nextID()
-      local success,result = pcall(localised_print, {"",
-      "***DebugAdapterBlockPrint***\n"..
-      "DBGtranslate: ", translationID, "\n",
-      mesg,"\n"..
-      "***EndDebugAdapterBlockPrint***"
-      })
-      if success then
-        return translationID
-      else
-        return success,result
-      end
+  function variables.translate(mesg)
+    local translationID = nextID()
+    local success,result = pcall(localised_print, {"",
+    "***DebugAdapterBlockPrint***\n"..
+    "DBGtranslate: ", translationID, "\n",
+    mesg,"\n"..
+    "***EndDebugAdapterBlockPrint***"
+    })
+    if success then
+      return translationID
+    else
+      return success,result
     end
   end
+
 
   local function isUnsafeLong(t,seen)
     if not seen then
@@ -685,7 +684,7 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
 
           -- rough heuristic for matching LocalisedStrings
           -- tables with no meta, and [1] that is string
-          if variables.translate and filter == "named" and not mt and type(varRef.table[1]) == "string" then
+          if filter == "named" and not mt and type(varRef.table[1]) == "string" then
             -- print a translation for this with unique id
             local i,mesg = variables.translate(varRef.table)
             vars[#vars + 1] = {
@@ -778,8 +777,8 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
                 presentationHint = { kind = "virtual", attributes = { "readOnly" } },
               }
             elseif keyprops.thisTranslated then
-              local value = "<Translation Not Available>"
-              if variables.translate then
+              local value
+              do
                 -- print a translation for this with unique id
                 local id,mesg = variables.translate(object)
                 if id then

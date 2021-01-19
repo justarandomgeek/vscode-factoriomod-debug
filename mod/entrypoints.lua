@@ -15,14 +15,6 @@ local function print_exception(type,mesg)
   "***EndDebugAdapterBlockPrint***"
   })
 end
-if not localised_print then
-  function print_exception(type,mesg)
-    print("***DebugAdapterBlockPrint***\n"..
-    "DBG: exception "..type.."\n"..
-    __DebugAdapter.describe(mesg).."\n"..
-    "***EndDebugAdapterBlockPrint***")
-  end
-end
 __DebugAdapter.print_exception = print_exception
 
 function __DebugAdapter.breakpoint(mesg)
