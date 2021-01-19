@@ -183,12 +183,13 @@ do
     if not seen then
       seen = {}
     else
-      if seen[t] then
+      if seen[t] or seen == t or isUnsafeLong == t then
         return false -- circular isn't inherently unsafe, unless something *else* in the table is
       end
     end
     local ttype = type(t)
     if ttype == "function" then
+      seen[t] = true
       local i = 1
       while true do
         local name,value = debug.getupvalue(t,i)
