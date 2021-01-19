@@ -193,24 +193,24 @@ do
       local i = 1
       while true do
         local name,value = debug.getupvalue(t,i)
-        if not name then break end
+        if not name then return false end
         if isUnsafeLong(value,seen) then
           return true
         end
+        i = i + 1
       end
-      return false
-    elseif ttype ~= "table" then
-      return false
-    end
-    if type(rawget(t,"__self"))=="userdata" and getmetatable(t)=="private" then
-      return luaObjectInfo.noLongRefs[t.object_name:match("^([^.]+)%.?")]
-    end
-    seen[t] = true
-    for k,v in pairs(t) do
-      if isUnsafeLong(k,seen) or isUnsafeLong(v,seen) then
-        return true
+    elseif ttype == "table" then
+      if type(rawget(t,"__self"))=="userdata" and getmetatable(t)=="private" then
+        return luaObjectInfo.noLongRefs[t.object_name:match("^([^.]+)%.?")]
+      end
+      seen[t] = true
+      for k,v in pairs(t) do
+        if isUnsafeLong(k,seen) or isUnsafeLong(v,seen) then
+          return true
+        end
       end
     end
+    return false
   end
   __DebugAdapter.stepIgnore(isUnsafeLong)
 
