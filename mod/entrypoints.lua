@@ -24,7 +24,7 @@ if not localised_print then
     "***EndDebugAdapterBlockPrint***")
   end
 end
-__DebugAdapter.stepIgnore(print_exception)
+__DebugAdapter.print_exception = print_exception
 
 function __DebugAdapter.breakpoint(mesg)
   if mesg then
@@ -35,59 +35,6 @@ function __DebugAdapter.breakpoint(mesg)
   debug.debug()
   return
 end
-
-local function stack_has_location()
-  local i = 4
-  -- 1 = stack_has_location, 2 = on_exception,
-  -- 3 = pCallWithStackTraceMessageHandler, 4 = at exception
-  local info = debug.getinfo(i,"Sf")
-  repeat
-    if (info.what ~= "C") and (info.source:sub(1,1) ~= "=") and not __DebugAdapter.isStepIgnore(info.func) then
-      return true
-    end
-    i = i + 1
-    info = debug.getinfo(i,"Sf")
-  until not info
-  return false
-end
-__DebugAdapter.stepIgnore(stack_has_location)
-
-if __DebugAdapter.instrument then
-  local on_exception = function (mesg)
-    if not stack_has_location() then
-      __DebugAdapter.popStack()
-      return
-    end
-    local mtype = type(mesg)
-    -- don't bother breaking when a remote.call's error bubbles up, we've already had that one...
-    if mtype == "string" and (
-        mesg:match("^Error when running interface function") or
-        mesg:match("^The mod [a-zA-Z0-9 _-]+ %([0-9.]+%) caused a non%-recoverable error")
-        )then
-      __DebugAdapter.popStack()
-      return
-    end
-
-    -- if an api was called that threw directly when i expected a re-entrant stack, clean it up...
-    -- 0 = get_info, 1 = check_eventlike, 2 = on_exception,
-    -- 3 = pCallWithStackTraceMessageHandler, 4 = at execption
-    local popped
-    if luaObjectInfo.check_eventlike(4,"error") then
-      __DebugAdapter.popStack()
-      popped = true
-    end
-
-    print_exception("unhandled",mesg)
-    debug.debug()
-    if not popped then
-      __DebugAdapter.popStack()
-    end
-    return
-  end
-  --shared for remotestepping
-  __DebugAdapter.on_exception = on_exception
-end
-
 
 -- don't need the rest in data stage...
 if not script then return end

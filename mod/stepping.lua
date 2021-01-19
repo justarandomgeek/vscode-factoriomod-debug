@@ -66,6 +66,7 @@ do
 end
 
 local hook
+local pending = {}
 do
   local getinfo = debug.getinfo
   local sub = string.sub
@@ -73,7 +74,7 @@ do
   local debugprompt = debug.debug
   local evaluateInternal = __DebugAdapter.evaluateInternal
   local stringInterp = __DebugAdapter.stringInterp
-  local pending = {}
+
   function hook(event,line)
     if event == "line" or event == "count" then
       local ignored = stepIgnoreFuncs[getinfo(2,"f").func]
@@ -234,11 +235,70 @@ do
     end
   end
 end
+
+local on_exception
+if __DebugAdapter.instrument then
+  local function stack_has_location()
+    local i = 4
+    -- 1 = stack_has_location, 2 = on_exception,
+    -- 3 = pCallWithStackTraceMessageHandler, 4 = at exception
+    local info = debug.getinfo(i,"Sf")
+    repeat
+      if (info.what ~= "C") and (info.source:sub(1,1) ~= "=") and not __DebugAdapter.isStepIgnore(info.func) then
+        return true
+      end
+      i = i + 1
+      info = debug.getinfo(i,"Sf")
+    until not info
+    return false
+  end
+  __DebugAdapter.stepIgnore(stack_has_location)
+
+  function on_exception (mesg)
+    debug.sethook()
+    if not stack_has_location() then
+      __DebugAdapter.popStack()
+      debug.sethook(hook,"clr")
+      return
+    end
+    local mtype = type(mesg)
+    -- don't bother breaking when a remote.call's error bubbles up, we've already had that one...
+    if mtype == "string" and (
+        mesg:match("^Error when running interface function") or
+        mesg:match("^The mod [a-zA-Z0-9 _-]+ %([0-9.]+%) caused a non%-recoverable error")
+        )then
+      __DebugAdapter.popStack()
+      debug.sethook(hook,"clr")
+      return
+    end
+
+    -- if an api was called that threw directly when i expected a re-entrant stack, clean it up...
+    -- 0 = get_info, 1 = check_eventlike, 2 = on_exception,
+    -- 3 = pCallWithStackTraceMessageHandler, 4 = at execption
+    local popped
+    local info = debug.getinfo(3,"f")
+    local p = pending[info.func]
+    if p then
+      __DebugAdapter.popStack()
+      popped = true
+    end
+
+    __DebugAdapter.print_exception("unhandled",mesg)
+    debug.debug()
+    if not popped then
+      __DebugAdapter.popStack()
+    end
+    debug.sethook(hook,"clr")
+    return
+  end
+  -- shared for stack trace to know to skip one extra
+  __DebugAdapter.on_exception = on_exception
+end
 function __DebugAdapter.attach()
   debug.sethook(hook,"clr")
   -- on_error is api for instrument mods to catch errors
   if on_error then
-    on_error(__DebugAdapter.on_exception)
+    on_error(on_exception)
   end
 end
 ---@param source string
