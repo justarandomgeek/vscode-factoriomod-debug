@@ -659,16 +659,6 @@
                 "type": "boolean",
                 "description": "Add --check-unused-prototype-data to factorioArgs."
               },
-              "checkEvents": {
-                "type": [
-                  "boolean",
-                  "array"
-                ],
-                "description": "Check for complete sets of event registrations. Boolean to enable/disable for all mods, or array of mod names.",
-                "items": {
-                  "type": "string"
-                }
-              },
               "checkGlobals": {
                 "type": [
                   "boolean",

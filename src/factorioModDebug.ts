@@ -51,7 +51,6 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 	manageMod?: boolean
 	useInstrumentMode?: boolean
 	checkPrototypes?: boolean
-	checkEvents?: string[]|boolean
 	checkGlobals?: string[]|boolean
 	factorioArgs?: Array<string>
 	adjustMods?:{[key:string]:boolean|string}
@@ -1069,13 +1068,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			if (this.launchArgs.runningBreak !== undefined)
 			{
 				hookopts += `runningBreak=${this.launchArgs.runningBreak},`;
-			}
-			if (this.launchArgs.checkEvents !== undefined)
-			{
-				hookopts += `checkEvents=${
-					Array.isArray(this.launchArgs.checkEvents)?
-					this.launchArgs.checkEvents.includes(modname):
-					this.launchArgs.checkEvents},`;
 			}
 			if (this.launchArgs.checkGlobals !== undefined)
 			{

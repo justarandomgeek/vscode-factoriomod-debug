@@ -90,120 +90,13 @@ local newscript = {
   __raw = oldscript
 }
 
-local registered_handlers = {}
-local function check_events(f)
-  if __DebugAdapter.checkEvents == false then
-    return f
-  end
-  local de = defines.events
-  local groups = {
-    built = {
-      [de.on_built_entity] = true,
-      [de.on_robot_built_entity] = true,
-      [de.script_raised_built] = true,
-      [de.script_raised_revive] = true,
-      [de.on_entity_cloned] = true,
-    },
-
-    destroyed = {
-      [de.on_entity_died] = 1,
-      [de.on_post_entity_died] = 1,
-
-      [de.on_pre_chunk_deleted] = 2,
-      [de.on_chunk_deleted] = 2,
-
-      [de.on_pre_surface_cleared] = 3,
-      [de.on_surface_cleared] = 3,
-
-      [de.on_pre_surface_deleted] = 4,
-      [de.on_surface_deleted] = 4,
-
-      [de.on_pre_player_mined_item] = 5,
-      [de.on_player_mined_entity] = 5,
-      [de.on_player_mined_item] = 5,
-      [de.on_player_mined_tile] = 5,
-
-      [de.on_robot_pre_mined] = 6,
-      [de.on_robot_mined] = 6,
-      [de.on_robot_mined_entity] = 6,
-      [de.on_robot_mined_tile] = 6,
-
-      [de.script_raised_destroy] = true,
-    }
-  }
-  return __DebugAdapter.stepIgnore(function()
-    if f then f() end
-    if next(registered_handlers) then
-      for group,gevents in pairs(groups) do
-        local foundany = false
-        local notfound = {}
-        local hassubgroup = {}
-        for event,subgroup in pairs(gevents) do
-          if registered_handlers[event] then
-            foundany = true
-            if subgroup ~= true then
-              hassubgroup[subgroup] = true
-            end
-          else
-            notfound[event] = subgroup
-          end
-        end
-        for event,subgroup in pairs(notfound) do
-          if hassubgroup[subgroup] then
-            notfound[event] = nil
-          end
-        end
-        if foundany and next(notfound) then
-          local message = {"Mod Debugger Event Check: ", script.mod_name, " is listening for \"", group, "\" events but not"}
-          local singles = {}
-          local subgroups = {}
-          for event,subgroup in pairs(notfound) do
-            local eventname = tostring(event)
-            for k,v in pairs(de) do
-              if event == v then
-                eventname = k
-                break
-              end
-            end
-            if subgroup == true then
-              singles[#singles+1] = eventname
-            else
-              subgroups[subgroup] = subgroups[subgroup] or {}
-              local sg = subgroups[subgroup]
-              sg[#sg+1] = eventname
-            end
-          end
-          if singles[1] then
-            message[#message+1] = " "
-            message[#message+1] = table.concat(singles,", ")
-          end
-          local submessages = {}
-          for _,subgroup in pairs(subgroups) do
-            submessages[#submessages+1] = "at least one of (" .. table.concat(subgroup,", ") .. ")"
-          end
-          if submessages[1] then
-            if singles[1] then
-              message[#message+1] = ", "
-            else
-              message[#message+1] = " "
-            end
-            message[#message+1] = table.concat(submessages,", ")
-          end
-          print(table.concat(message))
-        end
-      end
-    end
-  end)
-end
-__DebugAdapter.stepIgnore(check_events)
-
 function newscript.on_init(f)
-  oldscript.on_init(check_events(labelhandler(f,"on_init handler")))
+  oldscript.on_init(labelhandler(f,"on_init handler"))
 end
 newscript.on_init()
 
 function newscript.on_load(f)
-  oldscript.on_load(check_events(labelhandler(f,"on_load handler")))
+  oldscript.on_load(labelhandler(f,"on_load handler"))
 end
 newscript.on_load()
 
@@ -237,10 +130,8 @@ function newscript.on_event(event,f,filters)
         break
       end
     end
-    registered_handlers[event] = f
     return oldscript.on_event(event,labelhandler(f, ("%s handler"):format(evtname)),filters)
   elseif etype == "string" then
-    registered_handlers[event] = f
     return oldscript.on_event(event,labelhandler(f, ("%s handler"):format(event)))
   elseif etype == "table" then
     for _,e in pairs(event) do

@@ -36,7 +36,6 @@ If you use a Steam install, a file `steam_appid.txt` with content `427520` in th
 
 The debugger also injects diagnostics into all hooked mods:
 
-  * Event Check: After on_init/on_load completes, the debugger checks the set of registered events and issues warnings if you seem to be registered for incomplete sets for entity creation/destruction. It will list the events needed to make a complete set.
   * Global Assignment: A warning will be issued on the first assignment to an undefined global variable. `__DebugAdapter.defineGlobal(name)` can be used to disable this warning for the given name.
 
 ## Profiling
