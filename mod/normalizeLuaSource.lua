@@ -16,6 +16,7 @@ if script and script.mod_name == "level" then
   end
   local success = pcall(function()
     local level = script.level -- will throw here if factorio doesn't support this yet
+    assert(level.mod_name) -- for now throw if there's no mod name. remove when #user is able to resolve
     if level.is_tutorial then
       levelpath = {
         modname = "base",
