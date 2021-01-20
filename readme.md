@@ -14,15 +14,11 @@ This is a debug adapter for developing Factorio mods. It supports breakpoints, s
 
 In Factorio >=0.18.10, Instrument Mode is used by default to enable debugging automatically in control stage. Data and Settings stage hooks can be enabled in launch.json, as well as filtering which mods hooks are installed in for Control stage.
 
-In a level script (scenario/campaign), you can also provide a hint to locate the files inside a mod:
-```lua
-if __DebugAdapter then __DebugAdapter.levelPath("modname","scenarios/scenarioname/") end
-```
-
-If you need to use debugging without Instrument mode, you can disable it by setting `useIntrumentMode:false` in launch.json and include a require for the debugadapter at the top of the appropriate stage file (control, data, settings) while debugging:
+If you need to use debugging without Instrument mode, you can set `useIntrumentMode:false` in launch.json and include a require for the debugadapter at the top of the appropriate stage file (control, data, settings) while debugging:
 ```lua
 require('__debugadapter__/debugadapter.lua')
 ```
+Running without Instrument Mode will disable break-on-exception.
 
 ## Enabling Debugging inside Zip Files
 
@@ -40,7 +36,7 @@ The debugger also injects diagnostics into all hooked mods:
 
 ## Profiling
 
-In Factorio >= 0.18.27, you can set `"hookMode": "profile"` to enable profiling. This mode does not provide stepping or inspection, but instead provides inline timing/hitcount data for every line and function executed in control stage. Flamegraph, higlighting and rulers are also provided to assist in finding hotspots. In this mode `__DebugAdapter` is not provided, but `__Profiler` is, with `__Profiler.levelPath()` which works the same as `__DebugAdapter.levelPath()`.
+In Factorio >= 0.18.27, you can set `"hookMode": "profile"` to enable profiling. This mode does not provide stepping or inspection, but instead provides inline timing/hitcount data for every line and function executed in control stage. Flamegraph, higlighting and rulers are also provided to assist in finding hotspots. Mods may recognize the this mode by the presence of the global variable `__Profiler`.
 
 The profiler also provides a remote inteface `profiler` with the following functions:
 
