@@ -186,7 +186,7 @@ __DebugAdapter.stepIgnore(check_eventlike)
 
 
 
--- class data last updated factorio 1.1.6
+-- class data last updated factorio 1.1.12
 return {
   alwaysValid = {
     LuaRemote = true,
@@ -254,6 +254,7 @@ return {
     },
     LuaBootstrap = {
       mod_name = {readOnly = true},
+      level = {readOnly = true},
       active_mods = {readOnly = true},
       is_game_in_debug_mode = {readOnly = true},
     },
@@ -455,6 +456,8 @@ return {
       supports_direction = {readOnly = true},
       orientation = {},
       cliff_orientation = {readOnly = true},
+      relative_turret_orientation = {},
+      torso_orientation = {},
       amount = {},
       initial_amount = {},
       effectivity_modifier = {},
@@ -482,6 +485,7 @@ return {
       belt_neighbours = {readOnly = true},
       fluidbox = {},
       backer_name = {},
+      entity_label = {},
       time_to_live = {},
       color = {},
       text = {},
@@ -548,7 +552,6 @@ return {
       spawner = {readOnly = true},
       units = {readOnly = true},
       power_switch_state = {},
-      relative_turret_orientation = {},
       effects = {readOnly = true},
       infinity_container_filters = {},
       remove_unfiltered_items = {},
@@ -926,6 +929,15 @@ return {
       fuel_value = {readOnly = true},
       hidden = {readOnly = true},
     },
+    LuaFontPrototype = {
+      name = {readOnly = true},
+      from = {readOnly = true},
+      size = {readOnly = true},
+      spacing = {readOnly = true},
+      border = {readOnly = true},
+      filtered = {readOnly = true},
+      border_color = {readOnly = true},
+    },
     LuaForce = {
       name = {readOnly = true},
       technologies = {readOnly = true},
@@ -1028,6 +1040,7 @@ return {
       trivial_smoke_prototypes = {readOnly = true},
       shortcut_prototypes = {readOnly = true},
       recipe_category_prototypes = {readOnly = true},
+      font_prototypes = {readOnly = true},
       map_gen_presets = {readOnly = true},
       styles = {readOnly = true},
       tick = {readOnly = true},
@@ -1804,6 +1817,7 @@ return {
       subgroup = {readOnly = true},
       request_paste_multiplier = {readOnly = true},
       overload_multiplier = {readOnly = true},
+      allow_inserter_overload = {readOnly = true},
       allow_as_intermediate = {readOnly = true},
       allow_intermediates = {readOnly = true},
       show_amount_in_title = {readOnly = true},

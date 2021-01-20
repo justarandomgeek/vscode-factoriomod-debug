@@ -4,6 +4,8 @@
 
 ## 1.1.4
 
+* Update class data to Factorio 1.1.12
+
 ## 1.1.3
 
 * Step-in on api access that raises events will step into handlers
