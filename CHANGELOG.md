@@ -5,6 +5,7 @@
 ## 1.1.4
 
 * Update class data to Factorio 1.1.12
+* Fixed "attempt to index local 'lastframe' (a nil value)" when calling `__DebugAdapter.breakpoint`
 
 ## 1.1.3
 

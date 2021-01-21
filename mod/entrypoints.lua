@@ -18,13 +18,14 @@ end
 __DebugAdapter.print_exception = print_exception
 
 function __DebugAdapter.breakpoint(mesg)
+  debug.sethook()
   if mesg then
     print_exception("manual",mesg)
   else
     print("DBG: breakpoint")
   end
   debug.debug()
-  return
+  return __DebugAdapter.attach()
 end
 
 -- don't need the rest in data stage...
