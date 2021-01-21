@@ -5,6 +5,7 @@ export class BufferStream extends Readable {
 	constructor(b:Buffer) {
 		super();
 		this.push(b);
+		this.push(null);
 	}
 
 	readUInt8() {
