@@ -161,6 +161,41 @@ do
   __DebugAdapter.stepIgnore(nextID)
 end
 
+local function isUnsafeLong(t,seen)
+  if not seen then
+    seen = {}
+  else
+    if seen[t] or seen == t or isUnsafeLong == t then
+      return false -- circular isn't inherently unsafe, unless something *else* in the table is
+    end
+  end
+  local ttype = type(t)
+  if ttype == "function" then
+    seen[t] = true
+    local i = 1
+    while true do
+      local name,value = debug.getupvalue(t,i)
+      if not name then return false end
+      if isUnsafeLong(value,seen) then
+        return true
+      end
+      i = i + 1
+    end
+  elseif ttype == "table" then
+    if type(rawget(t,"__self"))=="userdata" and getmetatable(t)=="private" then
+      return luaObjectInfo.noLongRefs[t.object_name:match("^([^.]+)%.?")]
+    end
+    seen[t] = true
+    for k,v in pairs(t) do
+      if isUnsafeLong(k,seen) or isUnsafeLong(v,seen) then
+        return true
+      end
+    end
+  end
+  return false
+end
+__DebugAdapter.stepIgnore(isUnsafeLong)
+
 do
   local localised_print = localised_print
   function variables.translate(mesg)
@@ -177,42 +212,6 @@ do
       return success,result
     end
   end
-
-
-  local function isUnsafeLong(t,seen)
-    if not seen then
-      seen = {}
-    else
-      if seen[t] or seen == t or isUnsafeLong == t then
-        return false -- circular isn't inherently unsafe, unless something *else* in the table is
-      end
-    end
-    local ttype = type(t)
-    if ttype == "function" then
-      seen[t] = true
-      local i = 1
-      while true do
-        local name,value = debug.getupvalue(t,i)
-        if not name then return false end
-        if isUnsafeLong(value,seen) then
-          return true
-        end
-        i = i + 1
-      end
-    elseif ttype == "table" then
-      if type(rawget(t,"__self"))=="userdata" and getmetatable(t)=="private" then
-        return luaObjectInfo.noLongRefs[t.object_name:match("^([^.]+)%.?")]
-      end
-      seen[t] = true
-      for k,v in pairs(t) do
-        if isUnsafeLong(k,seen) or isUnsafeLong(v,seen) then
-          return true
-        end
-      end
-    end
-    return false
-  end
-  __DebugAdapter.stepIgnore(isUnsafeLong)
 
   --- Clear all existing variable references, when stepping invalidates them
   function variables.clear(longonly)
@@ -316,6 +315,15 @@ function variables.funcRef(func)
   }
   return id
 end
+
+
+function variables.funcDisassemble(func)
+  local info = debug.getinfo(func,"S")
+  if info.source:sub(1,1) == "@" then return end
+  if isUnsafeLong(func) then return end
+  return variables.funcRef(func)
+end
+
 
 --- Generate a variablesReference for a table-like object
 ---@param table table

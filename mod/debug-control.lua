@@ -54,6 +54,8 @@ if __DebugAdapter.nohook then
     setBreakpoints = function() end,
     longVariables = __DebugAdapter.variables,
     evaluate = __DebugAdapter.evaluate,
+    dump = function() end,
+    source = function() end,
   })
 end
 

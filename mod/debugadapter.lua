@@ -101,7 +101,8 @@ function __DebugAdapter.stackTrace(startFrame, forRemote, seq)
       framename = ("[%s] %s"):format(script.mod_name, framename)
     end
     local source = normalizeLuaSource(info.source)
-    local noLuaSource = (source:sub(1,1) == "=")
+    local sourceIsCode = source == "=(dostring)"
+    local noLuaSource = (not sourceIsCode) and source:sub(1,1) == "="
     local noSource = isC or noLuaSource
     local stackFrame = {
       id = i,
@@ -112,20 +113,38 @@ function __DebugAdapter.stackTrace(startFrame, forRemote, seq)
       presentationHint = forRemote and "subtle",
     }
     if not isC then
+      local dasource = {
+        name = source,
+        path = source,
+      }
+      if __DebugAdapter.isStepIgnore(info.func) then
+        dasource.presentationHint = "deemphasize"
+      end
+
       if noLuaSource then
         if __DebugAdapter.hascurrentpc then
-          --get needed info for preparing disassembly...
+          local disid = variables.funcDisassemble(info.func)
+          if disid then
+            stackFrame.line = debug.getinfo(i,"p").currentpc + 4
+            stackFrame.column = 1
+            dasource = {
+              name = source.." "..disid,
+              sourceReference = disid,
+              origin = "disassembly",
+            }
+          end
         end
-      else
-        local dasource = {
-          name = source,
-          path = source,
-        }
-        if __DebugAdapter.isStepIgnore(info.func) then
-          dasource.presentationHint = "deemphasize"
+      elseif sourceIsCode then
+        local disid = variables.funcDisassemble(info.func)
+        if disid then
+          dasource = {
+            name = source.." "..disid,
+            sourceReference = disid,
+            origin = "dostring",
+          }
         end
-        stackFrame.source = dasource
       end
+      stackFrame.source = dasource
     end
     stackFrames[#stackFrames+1] = stackFrame
     i = i + 1
@@ -200,6 +219,71 @@ function __DebugAdapter.stackTrace(startFrame, forRemote, seq)
   return stackFrames
 end
 
+do
+  local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/' -- You will need this for encoding/decoding
+-- encoding
+  local function enc(data)
+    return ((data:gsub('.', function(x)
+      local r,b='',x:byte()
+      for i=8,1,-1 do r=r..(b%2^i-b%2^(i-1)>0 and '1' or '0') end
+      return r;
+    end)..'0000'):gsub('%d%d%d?%d?%d?%d?', function(x)
+      if (#x < 6) then return '' end
+      local c=0
+      for i=1,6 do c=c+(x:sub(i,i)=='1' and 2^(6-i) or 0) end
+      return b:sub(c+1,c+1)
+    end)..({ '', '==', '=' })[#data%3+1])
+  end
+
+  function __DebugAdapter.dump(id,internal)
+    local ref = variables.longrefs[id]
+    if ref and ref.type == "Function" then
+      print("DBGdump: " .. json.encode{dump=enc(string.dump(ref.func)),ref=id})
+      return true
+    end
+    if internal then return false end
+    -- or remote lookup to find a long ref in another lua...
+    if __DebugAdapter.canRemoteCall() then
+      local call = remote.call
+      for remotename,_ in pairs(remote.interfaces) do
+        local modname = remotename:match("^__debugadapter_(.+)$")
+        if modname then
+          if call(remotename,"dump",ref,true) then
+            return true
+          end
+        end
+      end
+    end
+
+    print("DBGdump: " .. json.encode{ref=id})
+    return false
+  end
+end
+
+function __DebugAdapter.source(id,internal)
+  local ref = variables.longrefs[id]
+  if ref and ref.type == "Function" then
+    print("DBGdump: " .. json.encode{source=debug.getinfo(ref.func,"S").source,ref=id})
+    return true
+  end
+  if internal then return false end
+  -- or remote lookup to find a long ref in another lua...
+  if __DebugAdapter.canRemoteCall() then
+    local call = remote.call
+    for remotename,_ in pairs(remote.interfaces) do
+      local modname = remotename:match("^__debugadapter_(.+)$")
+      if modname then
+        if call(remotename,"source",ref,true) then
+          return true
+        end
+      end
+    end
+  end
+
+  print("DBGdump: " .. json.encode{ref=id})
+  return false
+end
+
 ---@return Module[]
 function __DebugAdapter.modules()
   local modules = {}
@@ -261,6 +345,8 @@ do
       setBreakpoints = __DebugAdapter.setBreakpoints,
       longVariables = __DebugAdapter.variables,
       evaluate = __DebugAdapter.evaluate,
+      dump = __DebugAdapter.dump,
+      source = __DebugAdapter.source,
     })
 
     __DebugAdapter.attach()

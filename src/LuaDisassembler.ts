@@ -90,12 +90,19 @@ function readLuaString(b:BufferStream)
 	const size = b.readBigUInt64LE();
 	if (size > 0)
 	{
-		return b.readString(Number(size));
+		const s = b.readString(Number(size)-1);
+		b.readUInt8();
+		return s;
 	} else {
 		return "";
 	}
 }
 
+/*
+|   B   |   C   |   A   |   Op   |
+|       Bx      |   A   |   Op   |
+|           Ax          |   Op   |
+*/
 export class LuaInstruction {
 	constructor(private readonly raw:number){}
 
@@ -107,10 +114,10 @@ export class LuaInstruction {
 		return (this.raw >> 6)& 0xff;
 	}
 	public get B() {
-		return (this.raw >> 14)& 0x1ff;
+		return (this.raw >> 23)& 0x1ff;
 	}
 	public get C() {
-		return (this.raw >> 23)& 0x1ff;
+		return (this.raw >> 14)& 0x1ff;
 	}
 	public get Ax() {
 		return (this.raw >> 6)& 0x3ffffff;
@@ -220,14 +227,14 @@ export class LuaFunction {
 		this.is_vararg = b.readUInt8() !== 0;
 		this.maxstack = b.readUInt8();
 
-		const num_insts = b.readBigUInt64LE();
+		const num_insts = b.readUInt32LE();
 		for (let i = 0; i < num_insts; i++) {
 			const inst = b.readUInt32LE();
 			this.instructions.push(new LuaInstruction(inst));
 
 		}
 
-		const num_const = b.readBigUInt64LE();
+		const num_const = b.readUInt32LE();
 		for (let i = 0; i < num_const; i++) {
 			const type:LuaConstType = b.readUInt8();
 			switch (type) {
@@ -248,39 +255,41 @@ export class LuaFunction {
 			}
 		}
 
-		const num_protos = b.readBigUInt64LE();
+		const num_protos = b.readUInt32LE();
 		for (let i = 0; i < num_protos; i++) {
 			this.inner_functions.push(new LuaFunction(b));
 		}
 
-		const num_upvals = b.readBigUInt64LE();
+		const num_upvals = b.readUInt32LE();
 		for (let i = 0; i < num_upvals; i++) {
 			this.upvals.push(new LuaUpval(b));
 		}
 
 		this.source = readLuaString(b);
 
-		const num_lineinfo = b.readBigUInt64LE();
+		const num_lineinfo = b.readUInt32LE();
 		for (let i = 0; i < num_lineinfo; i++) {
 			this.instructions[i].line = b.readUInt32LE();
 		}
 
-		const num_locals = b.readBigUInt64LE();
+		const num_locals = b.readUInt32LE();
 		for (let i = 0; i <  num_locals; i++) {
 			this.locals.push(new LuaLocal(b));
 		}
 
-		for (let i = 0; i < num_upvals; i++) {
+		const num_upval_names = b.readUInt32LE();
+		for (let i = 0; i < num_upval_names; i++) {
 			this.upvals[i].name = readLuaString(b);
 		}
 	}
 
 	getDisassembledFile() {
+		const instructions = this.instructions.map((i,pc)=>this.getInstructionLabel(pc));
 		return [
 			`function at ${this.source}:${this.firstline}-${this.lastline}`,
 			`${this.is_vararg?"vararg":`${this.nparam} params`} ${this.upvals.length} upvals ${this.maxstack} maxstack`,
 			`${this.instructions.length} instructions ${this.constants.length} constants ${this.inner_functions.length} functions`,
-			...this.instructions.map((i,pc)=>this.getInstructionLabel(pc)),
+			...instructions,
 		].join("\n");
 	}
 
@@ -289,105 +298,105 @@ export class LuaFunction {
 		const next = this.instructions[pc+1];
 		switch (current.Op) {
 			case LuaOpcode.OP_LOADK:
-				return `LOADK\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.constants[current.Bx].label}`;
+				return `LOADK     [${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.constants[current.Bx].label}`;
 			case LuaOpcode.OP_LOADKX:
-				return `LOADKX\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.constants[next.Ax].label}`;
+				return `LOADKX    [${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.constants[next.Ax].label}`;
 			case LuaOpcode.OP_LOADBOOL:
-				return `LOADBOOL\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${current.B!==0}${current.C!==0?" pc++":""}`;
+				return `LOADBOOL  [${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${current.B!==0}${current.C!==0?" pc++":""}`;
 			case LuaOpcode.OP_LOADNIL:
-				return `LOADNIL\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)}...${this.getRegisterLabel(pc,current.A+current.B)})`;
+				return `LOADNIL   [${current.line}]\t${this.getRegisterLabel(pc,current.A)}...${this.getRegisterLabel(pc,current.A+current.B)})`;
 			case LuaOpcode.OP_GETUPVAL:
-				return `GETUPVAL\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.getUpvalLabel(current.B)}`;
+				return `GETUPVAL  [${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.getUpvalLabel(current.B)}`;
 			case LuaOpcode.OP_GETTABUP:
-				return `GETTABUP\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.getUpvalLabel(current.B)}[${this.getRegisterOrConstantLabel(pc,current.C)}]`;
+				return `GETTABUP  [${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.getUpvalLabel(current.B)}[${this.getRegisterOrConstantLabel(pc,current.C)}]`;
 			case LuaOpcode.OP_GETTABLE:
-				return `GETTABLE\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterLabel(pc,current.B)}[${this.getRegisterOrConstantLabel(pc,current.C)}]`;
+				return `GETTABLE  [${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterLabel(pc,current.B)}[${this.getRegisterOrConstantLabel(pc,current.C)}]`;
 			case LuaOpcode.OP_SETTABUP:
-				return `SETTABUP\t[${current.line}]\t${this.getUpvalLabel(current.A)}[${this.getRegisterOrConstantLabel(pc,current.B)}] := ${this.getRegisterOrConstantLabel(pc,current.C)}`;
+				return `SETTABUP  [${current.line}]\t${this.getUpvalLabel(current.A)}[${this.getRegisterOrConstantLabel(pc,current.B)}] := ${this.getRegisterOrConstantLabel(pc,current.C)}`;
 			case LuaOpcode.OP_SETUPVAL:
-				return `SETUPVAL\t[${current.line}]\t${this.getUpvalLabel(current.B)} := ${this.getRegisterLabel(pc,current.B)}`;
+				return `SETUPVAL  [${current.line}]\t${this.getUpvalLabel(current.B)} := ${this.getRegisterLabel(pc,current.B)}`;
 			case LuaOpcode.OP_SETTABLE:
-				return `SETTABUP\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)}[${this.getRegisterOrConstantLabel(pc,current.B)}] := ${this.getRegisterOrConstantLabel(pc,current.C)}`;
+				return `SETTABUP  [${current.line}]\t${this.getRegisterLabel(pc,current.A)}[${this.getRegisterOrConstantLabel(pc,current.B)}] := ${this.getRegisterOrConstantLabel(pc,current.C)}`;
 			case LuaOpcode.OP_NEWTABLE:
-				return `NEWTABLE\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)} := {} size(${current.B},${current.C})`;
+				return `NEWTABLE  [${current.line}]\t${this.getRegisterLabel(pc,current.A)} := {} size(${current.B},${current.C})`;
 			case LuaOpcode.OP_SELF:
-				return `SELF\t[${current.line}]\t${this.getRegisterLabel(pc,current.A+1)} := ${this.getRegisterLabel(pc,current.B)}; ${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterLabel(pc,current.B)}[${this.getRegisterOrConstantLabel(pc,current.C)}]`;
+				return `SELF      [${current.line}]\t${this.getRegisterLabel(pc,current.A+1)} := ${this.getRegisterLabel(pc,current.B)}; ${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterLabel(pc,current.B)}[${this.getRegisterOrConstantLabel(pc,current.C)}]`;
 
 			case LuaOpcode.OP_ADD:
-				return `ADD\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterOrConstantLabel(pc,current.B)} + ${this.getRegisterOrConstantLabel(pc,current.C)}`;
+				return `ADD       [${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterOrConstantLabel(pc,current.B)} + ${this.getRegisterOrConstantLabel(pc,current.C)}`;
 			case LuaOpcode.OP_SUB:
-				return `SUB\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterOrConstantLabel(pc,current.B)} - ${this.getRegisterOrConstantLabel(pc,current.C)}`;
+				return `SUB       [${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterOrConstantLabel(pc,current.B)} - ${this.getRegisterOrConstantLabel(pc,current.C)}`;
 			case LuaOpcode.OP_MUL:
-				return `MUL\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterOrConstantLabel(pc,current.B)} * ${this.getRegisterOrConstantLabel(pc,current.C)}`;
+				return `MUL       [${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterOrConstantLabel(pc,current.B)} * ${this.getRegisterOrConstantLabel(pc,current.C)}`;
 			case LuaOpcode.OP_DIV:
-				return `DIV\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterOrConstantLabel(pc,current.B)} / ${this.getRegisterOrConstantLabel(pc,current.C)}`;
+				return `DIV       [${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterOrConstantLabel(pc,current.B)} / ${this.getRegisterOrConstantLabel(pc,current.C)}`;
 			case LuaOpcode.OP_MOD:
-				return `MOD\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterOrConstantLabel(pc,current.B)} % ${this.getRegisterOrConstantLabel(pc,current.C)}`;
+				return `MOD       [${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterOrConstantLabel(pc,current.B)} % ${this.getRegisterOrConstantLabel(pc,current.C)}`;
 			case LuaOpcode.OP_POW:
-				return `POW\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterOrConstantLabel(pc,current.B)} ^ ${this.getRegisterOrConstantLabel(pc,current.C)}`;
+				return `POW       [${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterOrConstantLabel(pc,current.B)} ^ ${this.getRegisterOrConstantLabel(pc,current.C)}`;
 
 			case LuaOpcode.OP_MOVE:
-				return `MOVE\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterLabel(pc,current.B)}`;
+				return `MOVE      [${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterLabel(pc,current.B)}`;
 			case LuaOpcode.OP_UNM:
-				return `UNM\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)}:= -${this.getRegisterLabel(pc,current.B)}`;
+				return `UNM       [${current.line}]\t${this.getRegisterLabel(pc,current.A)}:= -${this.getRegisterLabel(pc,current.B)}`;
 			case LuaOpcode.OP_NOT:
-				return `NOT\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)} := not ${this.getRegisterLabel(pc,current.B)}`;
+				return `NOT       [${current.line}]\t${this.getRegisterLabel(pc,current.A)} := not ${this.getRegisterLabel(pc,current.B)}`;
 			case LuaOpcode.OP_LEN:
-				return `LEN\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)} := length of ${this.getRegisterLabel(pc,current.B)}`;
+				return `LEN       [${current.line}]\t${this.getRegisterLabel(pc,current.A)} := length of ${this.getRegisterLabel(pc,current.B)}`;
 
 			case LuaOpcode.OP_CONCAT:
-				return `CONCAT\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterLabel(pc,current.B)}.. ... ..${this.getRegisterLabel(pc,current.C)}`;
+				return `CONCAT    [${current.line}]\t${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterLabel(pc,current.B)}.. ... ..${this.getRegisterLabel(pc,current.C)}`;
 
 			case LuaOpcode.OP_JMP:
-				return `JMP\t[${current.line}]\tpc+=${current.sBx}${current.A?`; close >= ${current.A+1}`:""}`;
+				return `JMP       [${current.line}]\tpc+=${current.sBx}${current.A?`; close >= ${current.A+1}`:""}`;
 
 			case LuaOpcode.OP_EQ:
-				return `EQ\t[${current.line}]\tif(${this.getRegisterOrConstantLabel(pc,current.B)} ${current.A?"==":"~="} ${this.getRegisterOrConstantLabel(pc,current.B)}) then pc++`;
+				return `EQ        [${current.line}]\tif(${this.getRegisterOrConstantLabel(pc,current.B)} ${current.A?"==":"~="} ${this.getRegisterOrConstantLabel(pc,current.B)}) then pc++`;
 			case LuaOpcode.OP_LT:
-				return `LT\t[${current.line}]\tif(${this.getRegisterOrConstantLabel(pc,current.B)} ${current.A?"<":">="} ${this.getRegisterOrConstantLabel(pc,current.B)}) then pc++`;
+				return `LT        [${current.line}]\tif(${this.getRegisterOrConstantLabel(pc,current.B)} ${current.A?"<":">="} ${this.getRegisterOrConstantLabel(pc,current.B)}) then pc++`;
 			case LuaOpcode.OP_LE:
-				return `LE\t[${current.line}]\tif(${this.getRegisterOrConstantLabel(pc,current.B)} ${current.A?"<=":">"} ${this.getRegisterOrConstantLabel(pc,current.B)}) then pc++`;
+				return `LE        [${current.line}]\tif(${this.getRegisterOrConstantLabel(pc,current.B)} ${current.A?"<=":">"} ${this.getRegisterOrConstantLabel(pc,current.B)}) then pc++`;
 
 			case LuaOpcode.OP_TEST:
-				return `TEST\t[${current.line}]\tif ${current.C?"":"not "}${this.getRegisterLabel(pc,current.A)} then pc++`;
+				return `TEST      [${current.line}]\tif ${current.C?"":"not "}${this.getRegisterLabel(pc,current.A)} then pc++`;
 			case LuaOpcode.OP_TESTSET:
-				return `TESTSET\t[${current.line}]\tif ${current.C?"not ":""}${this.getRegisterLabel(pc,current.A)} then ${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterLabel(pc,current.B)} else pc++`;
+				return `TESTSET   [${current.line}]\tif ${current.C?"not ":""}${this.getRegisterLabel(pc,current.A)} then ${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterLabel(pc,current.B)} else pc++`;
 
 			case LuaOpcode.OP_CALL:
-				return `CALL\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)}(${current.B?current.B-1:"var"} args ${current.C?current.C-1:"var"} returns)`;
+				return `CALL      [${current.line}]\t${this.getRegisterLabel(pc,current.A)}(${current.B?current.B-1:"var"} args ${current.C?current.C-1:"var"} returns)`;
 
 			case LuaOpcode.OP_TAILCALL:
-				return `TAILCALL\t[${current.line}]\treturn ${this.getRegisterLabel(pc,current.A)}(${current.B?current.B-1:"var"} args)`;
+				return `TAILCALL  [${current.line}]\treturn ${this.getRegisterLabel(pc,current.A)}(${current.B?current.B-1:"var"} args)`;
 
 			case LuaOpcode.OP_RETURN:
-				return `RETURN\t[${current.line}]\treturn ${current.B?current.B-1:"var"} results ${current.B>1?`starting at ${this.getRegisterLabel(pc,current.A)}`:""}`;
+				return `RETURN    [${current.line}]\treturn ${current.B?current.B-1:"var"} results ${current.B>1?`starting at ${this.getRegisterLabel(pc,current.A)}`:""}`;
 
 			case LuaOpcode.OP_FORLOOP:
-				return `FORLOOP\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)} += ${this.getRegisterLabel(pc,current.A+2)}; if ${this.getRegisterLabel(pc,current.A)} <= ${this.getRegisterLabel(pc,current.A+1)} then { pc+=${current.sBx}; ${this.getRegisterLabel(pc,current.A+3)} := ${this.getRegisterLabel(pc,current.A)} }`;
+				return `FORLOOP   [${current.line}]\t${this.getRegisterLabel(pc,current.A)} += ${this.getRegisterLabel(pc,current.A+2)}; if ${this.getRegisterLabel(pc,current.A)} <= ${this.getRegisterLabel(pc,current.A+1)} then { pc+=${current.sBx}; ${this.getRegisterLabel(pc,current.A+3)} := ${this.getRegisterLabel(pc,current.A)} }`;
 			case LuaOpcode.OP_FORPREP:
-				return `FORPREP\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)} -= ${this.getRegisterLabel(pc,current.A+2)}; pc += ${current.sBx}`;
+				return `FORPREP   [${current.line}]\t${this.getRegisterLabel(pc,current.A)} -= ${this.getRegisterLabel(pc,current.A+2)}; pc += ${current.sBx}`;
 
 			case LuaOpcode.OP_TFORCALL:
-				return `TFORCALL\t[${current.line}]\t${this.getRegisterLabel(pc,current.A+3)}...${this.getRegisterLabel(pc,current.A+2+current.C)} := ${this.getRegisterLabel(pc,current.A)}(${this.getRegisterLabel(pc,current.A+1)},${this.getRegisterLabel(pc,current.A+2)})`;
+				return `TFORCALL  [${current.line}]\t${this.getRegisterLabel(pc,current.A+3)}...${this.getRegisterLabel(pc,current.A+2+current.C)} := ${this.getRegisterLabel(pc,current.A)}(${this.getRegisterLabel(pc,current.A+1)},${this.getRegisterLabel(pc,current.A+2)})`;
 			case LuaOpcode.OP_TFORLOOP:
-				return `TFORLOOP\t[${current.line}]\tif ${this.getRegisterLabel(pc,current.A+1)} ~= nil then { ${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterLabel(pc,current.A+1)}; pc += ${current.sBx} }`;
+				return `TFORLOOP  [${current.line}]\tif ${this.getRegisterLabel(pc,current.A+1)} ~= nil then { ${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterLabel(pc,current.A+1)}; pc += ${current.sBx} }`;
 
 			case LuaOpcode.OP_SETLIST:
 				const C = current.C ? current.C - 1 : next.Ax;
 				const FPF = 50;
-				return `SETLIST\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)}[${(C*FPF)+1}...${(C*FPF)+current.B}] := ${this.getRegisterLabel(pc,current.A+1)}...${this.getRegisterLabel(pc,current.A+current.B)}`;
+				return `SETLIST   [${current.line}]\t${this.getRegisterLabel(pc,current.A)}[${(C*FPF)+1}...${(C*FPF)+current.B}] := ${this.getRegisterLabel(pc,current.A+1)}...${this.getRegisterLabel(pc,current.A+current.B)}`;
 
 			case LuaOpcode.OP_CLOSURE:
 				const func = this.inner_functions[current.Bx];
-				return `CLOSURE\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)} := closure(${func.source}:${func.firstline}-${func.lastline})`;
+				return `CLOSURE   [${current.line}]\t${this.getRegisterLabel(pc,current.A)} := closure(${func.source}:${func.firstline}-${func.lastline})`;
 
 			case LuaOpcode.OP_VARARG:
-				return `VARARG\t[${current.line}]\t${this.getRegisterLabel(pc,current.A)}...${current.B?this.getRegisterLabel(pc,current.A+current.B-2):"top"}`;
+				return `VARARG    [${current.line}]\t${this.getRegisterLabel(pc,current.A)}...${current.B?this.getRegisterLabel(pc,current.A+current.B-2):"top"}`;
 			case LuaOpcode.OP_EXTRAARG:
-				return `EXTRAARG\t`;
+				return `EXTRAARG`;
 
 			default:
-				return `UNKNOWN\tOP(${current.Op}) A(${current.A}) B(${current.B}) C(${current.C})`;
+				return `UNKNOWN   OP(${current.Op}) A(${current.A}) B(${current.B}) C(${current.C})`;
 		}
 	}
 
@@ -401,7 +410,7 @@ export class LuaFunction {
 	}
 
 	getUpvalLabel(idx:number) : string {
-		return `Up(${this.upvals[idx].name ?? idx})`;
+		return `Up(${this.upvals[idx]?.name ?? idx})`;
 	}
 
 	getRegisterLabel(pc:number,idx:number) : string {

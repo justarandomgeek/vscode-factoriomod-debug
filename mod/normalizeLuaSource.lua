@@ -47,16 +47,18 @@ local knownSources = {}
 ---@param source string
 ---@return string
 local function normalizeLuaSource(source)
+  if source == "?" then return "=(unknown)" end
   local first = ssub(source,1,1)
   if first == "=" then return source end
   if first ~= "@" then return "=(dostring)" end
   local known = knownSources[source]
   if known then return known end
-  local filename = smatch(source,"__level__/(.+)")
-  if not filename then
-    --main scenario script gets absolute path, check for that too...
-    filename = smatch(source,"currently%-playing/(.+)")
-  end
+  local filename =
+    smatch(source,"__level__/(.+)") or
+    --main scenario script gets absolute path, check for those too...
+    smatch(source,"currently%-playing/(.+)") or
+    smatch(source,"currently%-playing%-background/(.+)") or
+    smatch(source,"currently%-playing%-tutorial/(.+)")
   if not filename then
     -- still not a scenario file, just return it as-is
     knownSources[source] = source

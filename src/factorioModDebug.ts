@@ -17,6 +17,8 @@ import { ModInfo } from './ModPackageProvider';
 import { assert } from 'console';
 import { ModManager } from './ModManager';
 import { ModSettings } from './ModSettings';
+import { LuaFunction } from './LuaDisassembler';
+import { BufferStream } from './BufferStream';
 
 interface ModPaths{
 	uri: vscode.Uri
@@ -104,6 +106,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	private readonly _responses = new Map<number,DebugProtocol.Response>();
 
+	private readonly _dumps = new Map<number, resolver<string>>();
 	private readonly _scopes = new Map<number, resolver<Scope[]>>();
 	private readonly _vars = new Map<number, resolver<Variable[]>>();
 	private readonly _setvars = new Map<number, resolver<Variable>>();
@@ -552,6 +555,9 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			} else if (mesg.startsWith("DBGstack: ")) {
 				const stackresult:{frames:DebugProtocol.StackFrame[];seq:number} = JSON.parse(mesg.substring(10).trim());
 				this.finishStackTrace(stackresult.frames,stackresult.seq);
+			} else if (mesg.startsWith("DBGdump: ")) {
+				const dump:{dump:string|undefined;source:string|undefined;ref:number} = JSON.parse(mesg.substring(9).trim());
+				this.finishSource(dump);
 			} else if (mesg.startsWith("EVTmodules: ")) {
 				if (this.launchArgs.trace){this.sendEvent(new OutputEvent(`> EVTmodules\n`, "console"));}
 				await this.updateModules(JSON.parse(mesg.substring(12).trim()));
@@ -904,6 +910,32 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.exceptionFilters.clear();
 		args.filters.forEach(f=>this.exceptionFilters.add(f));
 		this.sendResponse(response);
+	}
+
+	protected async sourceRequest(response: DebugProtocol.SourceResponse, args: DebugProtocol.SourceArguments): Promise<void> {
+		const ref = args.source?.sourceReference;
+		if (ref) {
+			const dump = new Promise<string>((resolve)=>{
+				this._dumps.set(ref, resolve);
+				this.writeStdin(`__DebugAdapter.${args.source?.origin==="dostring"?"source":"dump"}(${ref})\n`);
+			});
+			response.body = { content: `${await dump}` };
+		}
+		this.sendResponse(response);
+	}
+	private finishSource(dump:{dump:string|undefined;source:string|undefined;ref:number}) {
+		let source:string;
+		if (dump.dump) {
+			const func = new LuaFunction(new BufferStream(Buffer.from(dump.dump,"base64")),true);
+			source = func.getDisassembledFile();
+		} else if (dump.source) {
+			source = dump.source;
+		} else {
+			return this._dumps.get(dump.ref)?.("Invalid Source ID");
+		}
+		const resolver = this._dumps.get(dump.ref);
+		this._dumps.delete(dump.ref);
+		return resolver?.(source);
 	}
 
 	private createSource(filePath: string): Source {
