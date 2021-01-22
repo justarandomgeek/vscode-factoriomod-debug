@@ -297,6 +297,25 @@ function variables.kvRef(key,value)
   return id,name
 end
 
+--- Generate a variablesReference for a source string
+---@param source string
+---@return number variablesReference
+function variables.sourceRef(source)
+  local refs = variables.longrefs
+
+  for id,varRef in pairs(refs) do
+    if varRef.type == "Source" and varRef.source == source then
+      return id
+    end
+  end
+  local id = nextID()
+  refs[id] = {
+    type = "Source",
+    source = source,
+  }
+  return id
+end
+
 --- Generate a variablesReference for a function
 ---@param func function
 ---@return number variablesReference

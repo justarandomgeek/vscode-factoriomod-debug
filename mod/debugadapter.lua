@@ -135,11 +135,11 @@ function __DebugAdapter.stackTrace(startFrame, forRemote, seq)
           end
         end
       elseif sourceIsCode then
-        local disid = variables.funcDisassemble(info.func)
-        if disid then
+        local sourcid = variables.sourceRef(info.source)
+        if sourcid then
           dasource = {
-            name = source.." "..disid,
-            sourceReference = disid,
+            name = source.." "..sourcid,
+            sourceReference = sourcid,
             origin = "dostring",
           }
         end
@@ -248,7 +248,7 @@ do
       for remotename,_ in pairs(remote.interfaces) do
         local modname = remotename:match("^__debugadapter_(.+)$")
         if modname then
-          if call(remotename,"dump",ref,true) then
+          if call(remotename,"dump",id,true) then
             return true
           end
         end
@@ -262,8 +262,8 @@ end
 
 function __DebugAdapter.source(id,internal)
   local ref = variables.longrefs[id]
-  if ref and ref.type == "Function" then
-    print("DBGdump: " .. json.encode{source=debug.getinfo(ref.func,"S").source,ref=id})
+  if ref and ref.type == "Source" then
+    print("DBGdump: " .. json.encode{source=ref.source,ref=id})
     return true
   end
   if internal then return false end
@@ -273,7 +273,7 @@ function __DebugAdapter.source(id,internal)
     for remotename,_ in pairs(remote.interfaces) do
       local modname = remotename:match("^__debugadapter_(.+)$")
       if modname then
-        if call(remotename,"source",ref,true) then
+        if call(remotename,"source",id,true) then
           return true
         end
       end
