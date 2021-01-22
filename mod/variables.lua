@@ -233,6 +233,8 @@ do
         if isUnsafeLong(varRef.func) then
           variables.longrefs[id]=nil
         end
+      elseif varRef.type == "Source" then
+        -- Source strings are always safe
       else
         variables.longrefs[id]=nil
       end
