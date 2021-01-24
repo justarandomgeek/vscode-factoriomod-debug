@@ -287,13 +287,14 @@ end
 ---@return Module[]
 function __DebugAdapter.modules()
   local modules = {}
+  modules[1] = { id = "core", name = "core", }
+  modules[2] = { id = "level", name = "level", }
   for name,version in pairs(mods or script.active_mods) do
     modules[#modules+1] = {
       id = name, name = name,
       version = version,
     }
   end
-  modules[#modules+1] = { id = "level", name = "level", }
   print("DBGmodules: " .. json.encode(modules))
 end
 

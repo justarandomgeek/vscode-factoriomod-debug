@@ -8,6 +8,7 @@
 * Fixed "attempt to index local 'lastframe' (a nil value)" when calling `__DebugAdapter.breakpoint`
 * Use Command text as source when available
 * Disassemble Lua if no source is available
+* Correctly resolve `@__core__` paths
 
 ## 1.1.3
 
