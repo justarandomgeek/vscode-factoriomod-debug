@@ -922,11 +922,33 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	protected async sourceRequest(response: DebugProtocol.SourceResponse, args: DebugProtocol.SourceArguments): Promise<void> {
 		const ref = args.source?.sourceReference;
 		if (ref) {
-			const dump = new Promise<string>((resolve)=>{
-				this._dumps.set(ref, resolve);
-				this.writeStdin(`__DebugAdapter.${args.source?.origin==="dostring"?"source":"dump"}(${ref})\n`);
-			});
-			response.body = { content: `${await dump}` };
+			let consume:resolver<void>;
+			const consumed = new Promise<void>((resolve)=>consume=resolve);
+			const cts = new vscode.CancellationTokenSource();
+			const body = await Promise.race([
+				new Promise<string>(async (resolve)=>{
+					this._dumps.set(ref, resolve);
+					if (!await this.writeOrQueueStdin(
+							`__DebugAdapter.${args.source?.origin==="dostring"?"source":"dump"}(${ref})\n`,
+							consumed,
+							cts.token))
+					{
+						this._dumps.delete(ref);
+						consume!();
+						resolve(`Expired source ref=${ref}`);
+					}
+				}),
+				new Promise<string>((resolve) => {
+					// just time out if we're in a menu with no lua running to empty the queue...
+					// in which case it's just expired anyway
+					setTimeout(()=>{
+						cts.cancel();
+						resolve(`No Lua State Available ref=${ref} seq=${response.request_seq}`);
+					}, this.launchArgs.runningTimeout ?? 2000);
+				})
+			]);
+			consume!();
+			response.body = { content: body };
 		}
 		this.sendResponse(response);
 	}
