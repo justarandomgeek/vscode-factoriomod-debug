@@ -72,8 +72,6 @@ do
   local sub = string.sub
   local format = string.format
   local debugprompt = debug.debug
-  local evaluateInternal = __DebugAdapter.evaluateInternal
-  local stringInterp = __DebugAdapter.stringInterp
 
   function hook(event,line)
     if event == "line" or event == "count" then
@@ -106,7 +104,7 @@ do
               local isHit = true
 
               if b.condition then
-                local success,conditionResult = evaluateInternal(frameId,nil,"breakpoint",b.condition)
+                local success,conditionResult = __DebugAdapter.evaluateInternal(frameId,nil,"breakpoint",b.condition)
                 if success then
                   isHit = conditionResult
                 end
@@ -115,7 +113,7 @@ do
               if b.hitCondition then
                 if isHit then -- only counts if condition was true
                   b.hits = (b.hits or 0) + 1
-                  local success,hitResult = evaluateInternal(frameId,nil,"breakpoint",b.hitCondition)
+                  local success,hitResult = __DebugAdapter.evaluateInternal(frameId,nil,"breakpoint",b.hitCondition)
                   if success and type(hitResult) == "number" and b.hits < hitResult then
                     isHit = false
                   end
@@ -125,7 +123,7 @@ do
               if isHit then
                 if b.logMessage then
                   -- parse and print logMessage as an expression in the scope of the breakpoint
-                  local result = stringInterp(b.logMessage,frameId,nil,"logpoint")
+                  local result = __DebugAdapter.stringInterp(b.logMessage,frameId,nil,"logpoint")
                   local varresult = variables.create(nil,result)
                   local logpoint = {
                     output = varresult.value,
