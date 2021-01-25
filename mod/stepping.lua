@@ -77,74 +77,79 @@ do
     if event == "line" or event == "count" then
       local ignored = stepIgnoreFuncs[getinfo(2,"f").func]
       if ignored then return end
-      local s = getinfo(2,"S").source
-      -- startup logging gets all the serpent loads of `global`
-      -- serpent itself will also always show up as one of these
-      if sub(s,1,1) == "@" then
-        s = normalizeLuaSource(s)
-        if stepdepth and stepdepth<=0 then
-          stepdepth = nil
-          print(format("DBG: step %s:%d", s, line or -1))
-          debugprompt()
-          -- cleanup variablesReferences
-          variables.clear()
-        elseif runningBreak() then
-          print("DBG: running")
-          debugprompt()
-          variables.clear()
-        else
-          local filebreaks = breakpoints[s]
-          if filebreaks then
-            local b = filebreaks[line]
-            if b then
-              -- 0 is getinfo, 1 is sethook callback, 2 is at breakpoint
-              local frameId = 3
+      local rawsource = getinfo(2,"S").source
+      local s = normalizeLuaSource(rawsource)
+      if stepdepth and stepdepth<=0 then
+        stepdepth = nil
+        print(format("DBG: step %s:%d", s, line or -1))
+        debugprompt()
+        -- cleanup variablesReferences
+        variables.clear()
+      elseif runningBreak() then
+        print("DBG: running")
+        debugprompt()
+        variables.clear()
+      else
+        local filebreaks = breakpoints[s]
+        if not filebreaks then
+          if s == "=(dostring)" then
+            local sourceid = variables.sourceRef(rawsource,true)
+            if sourceid then
+              filebreaks = breakpoints["&ref "..sourceid]
+            end
+          end
+        end
+        if filebreaks then
+          local b = filebreaks[line]
+          if b then
+            -- 0 is getinfo, 1 is sethook callback, 2 is at breakpoint
+            local frameId = 3
 
-              -- check b.condition and b.hitConditon
-              local isHit = true
+            -- check b.condition and b.hitConditon
+            local isHit = true
 
-              if b.condition then
-                local success,conditionResult = __DebugAdapter.evaluateInternal(frameId,nil,"breakpoint",b.condition)
-                if success then
-                  isHit = conditionResult
+            if b.condition then
+              local success,conditionResult = __DebugAdapter.evaluateInternal(frameId,nil,"breakpoint",b.condition)
+              if success then
+                isHit = conditionResult
+              end
+            end
+
+            if b.hitCondition then
+              if isHit then -- only counts if condition was true
+                b.hits = (b.hits or 0) + 1
+                local success,hitResult = __DebugAdapter.evaluateInternal(frameId,nil,"breakpoint",b.hitCondition)
+                if success and type(hitResult) == "number" and b.hits < hitResult then
+                  isHit = false
                 end
               end
+            end
 
-              if b.hitCondition then
-                if isHit then -- only counts if condition was true
-                  b.hits = (b.hits or 0) + 1
-                  local success,hitResult = __DebugAdapter.evaluateInternal(frameId,nil,"breakpoint",b.hitCondition)
-                  if success and type(hitResult) == "number" and b.hits < hitResult then
-                    isHit = false
-                  end
-                end
+            if isHit then
+              if b.logMessage then
+                -- parse and print logMessage as an expression in the scope of the breakpoint
+                local result = __DebugAdapter.stringInterp(b.logMessage,frameId,nil,"logpoint")
+                local varresult = variables.create(nil,result)
+                local logpoint = {
+                  output = varresult.value,
+                  variablesReference = varresult.variablesReference,
+                  filePath = s,
+                  line = line,
+                }
+                print("DBGlogpoint: " .. json.encode(logpoint))
+              else
+                stepdepth = nil
+                print("DBG: breakpoint")
+                debugprompt()
+                -- cleanup variablesReferences
+                variables.clear()
               end
-
-              if isHit then
-                if b.logMessage then
-                  -- parse and print logMessage as an expression in the scope of the breakpoint
-                  local result = __DebugAdapter.stringInterp(b.logMessage,frameId,nil,"logpoint")
-                  local varresult = variables.create(nil,result)
-                  local logpoint = {
-                    output = varresult.value,
-                    variablesReference = varresult.variablesReference,
-                    filePath = s,
-                    line = line,
-                  }
-                  print("DBGlogpoint: " .. json.encode(logpoint))
-                else
-                  stepdepth = nil
-                  print("DBG: breakpoint")
-                  debugprompt()
-                  -- cleanup variablesReferences
-                  variables.clear()
-                end
-                b.hits = nil
-              end
+              b.hits = nil
             end
           end
         end
       end
+
     --ignore "tail call" since it's just one of each
     elseif event == "call" then
       local info = getinfo(2,"Slf")

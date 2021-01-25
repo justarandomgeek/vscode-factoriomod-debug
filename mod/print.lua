@@ -44,11 +44,29 @@ function __DebugAdapter.print(expr,alsoLookIn,upStack,category)
     local printinfo = debug.getinfo(1,"t")
     if printinfo.istailcall then
       body.line = 1
-      body.source = "=(...tailcall...)"
+      body.source = {
+        name = "=(...tailcall...)",
+      }
     else
       local info = debug.getinfo(2,"lS")
       body.line = info.currentline
-      body.source = normalizeLuaSource(info.source)
+      local source = normalizeLuaSource(info.source)
+      local dasource = {
+        name = source,
+        path = source,
+      }
+      if source == "=(dostring)" then
+        local sourceid = variables.sourceRef(info.source)
+        if sourceid then
+          dasource = {
+            name = "=(dostring) "..sourceid..".lua",
+            sourceReference = sourceid,
+            origin = "dostring",
+          }
+        end
+      end
+      body.source = dasource
+      loc = info.source..":"..info.currentline..": "
     end
   end
   print("DBGprint: " .. json.encode(body))

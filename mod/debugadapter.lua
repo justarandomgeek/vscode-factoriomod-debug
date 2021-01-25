@@ -128,18 +128,18 @@ function __DebugAdapter.stackTrace(startFrame, forRemote, seq)
             stackFrame.line = debug.getinfo(i,"p").currentpc + 4
             stackFrame.column = 1
             dasource = {
-              name = source.." "..disid,
+              name = source.." "..disid..".luadis",
               sourceReference = disid,
               origin = "disassembly",
             }
           end
         end
       elseif sourceIsCode then
-        local sourcid = variables.sourceRef(info.source)
-        if sourcid then
+        local sourceid = variables.sourceRef(info.source)
+        if sourceid then
           dasource = {
-            name = source.." "..sourcid,
-            sourceReference = sourcid,
+            name = "=(dostring) "..sourceid..".lua",
+            sourceReference = sourceid,
             origin = "dostring",
           }
         end

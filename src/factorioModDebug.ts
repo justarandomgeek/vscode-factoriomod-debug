@@ -545,9 +545,10 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				if(vscode.workspace.getConfiguration().get<boolean>("factorio.debug.expandablePrint",false) && body.variablesReference) {
 					e.body.variablesReference = body.variablesReference;
 				}
-				if(body.source) {
-					e.body.source = this.createSource(body.source);
+				if(body.source.path) {
+					body.source.path = this.convertDebuggerPathToClient(body.source.path);
 				}
+				e.body.source = body.source;
 				if (body.line) {
 					e.body.line = this.convertDebuggerLineToClient(body.line);
 				}
@@ -659,23 +660,29 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
 		let bpuri:vscode.Uri;
-		const inpath = <string>args.source.path;
-		if (inpath.match(/^[a-zA-Z]:/)) // matches c:\... or c:/... style windows paths, single drive letter
+		let bppath:string;
+		if (args.source.path)
 		{
-			bpuri = vscode.Uri.file(inpath.replace(/\\/g,"/"));
-		}
-		else // everything else is already a URI
-		{
-			bpuri = vscode.Uri.parse(inpath);
+			const inpath = <string>args.source.path;
+			if (inpath.match(/^[a-zA-Z]:/)) // matches c:\... or c:/... style windows paths, single drive letter
+			{
+				bpuri = vscode.Uri.file(inpath.replace(/\\/g,"/"));
+			}
+			else // everything else is already a URI
+			{
+				bpuri = vscode.Uri.parse(inpath);
+			}
+			bppath = this.convertClientPathToDebugger(bpuri.toString());
+		} else {
+			bppath = `&ref ${args.source.sourceReference}`;
 		}
 
-		const path = this.convertClientPathToDebugger(bpuri.toString());
 		const bps = (args.breakpoints || []).map((bp)=>{
 			bp.line = this.convertClientLineToDebugger(bp.line);
 			return bp;
 		});
-		this.breakPoints.set(path, bps || []);
-		this.breakPointsChanged.add(path);
+		this.breakPoints.set(bppath, bps || []);
+		this.breakPointsChanged.add(bppath);
 
 		const actualBreakpoints = (bps || []).map((bp) => { return {line:bp.line, verified:true }; });
 

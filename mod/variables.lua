@@ -126,10 +126,25 @@ if __DebugAdapter.checkGlobals ~= false then
       local istail = debug.getinfo(1,"t")
       if istail.istailcall then
         body.line = 1
-        body.source = "=(...tailcall...)"
+        body.source = { name = "=(...tailcall...)" }
       else
         body.line = info.currentline
-        body.source = normalizeLuaSource(info.source)
+        local source = normalizeLuaSource(info.source)
+        local dasource = {
+          name = source,
+          path = source,
+        }
+        if source == "=(dostring)" then
+          local sourceid = variables.sourceRef(info.source)
+          if sourceid then
+            dasource = {
+              name = "=(dostring) "..sourceid..".lua",
+              sourceReference = sourceid,
+              origin = "dostring",
+            }
+          end
+        end
+        body.source = dasource
       end
       print("DBGprint: " .. json.encode(body))
     end
@@ -302,7 +317,7 @@ end
 --- Generate a variablesReference for a source string
 ---@param source string
 ---@return number variablesReference
-function variables.sourceRef(source)
+function variables.sourceRef(source,checkonly)
   local refs = variables.longrefs
 
   for id,varRef in pairs(refs) do
@@ -310,6 +325,7 @@ function variables.sourceRef(source)
       return id
     end
   end
+  if checkonly then return end
   local id = nextID()
   refs[id] = {
     type = "Source",
