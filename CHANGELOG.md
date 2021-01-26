@@ -9,6 +9,7 @@
 * Use Command text as source when available
 * Disassemble Lua if no source is available
 * Correctly resolve `@__core__` paths
+* Fixed `script.on_event` would silently ignore filters when registering lists of events
 
 ## 1.1.3
 

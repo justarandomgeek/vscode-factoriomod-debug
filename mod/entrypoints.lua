@@ -133,8 +133,14 @@ function newscript.on_event(event,f,filters)
     end
     return oldscript.on_event(event,labelhandler(f, ("%s handler"):format(evtname)),filters)
   elseif etype == "string" then
+    if filters then
+      error("Filters can only be used when registering single events.",2)
+    end
     return oldscript.on_event(event,labelhandler(f, ("%s handler"):format(event)))
   elseif etype == "table" then
+    if filters then
+      error("Filters can only be used when registering single events.",2)
+    end
     for _,e in pairs(event) do
       newscript.on_event(e,f)
     end
