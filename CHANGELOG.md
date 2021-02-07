@@ -4,6 +4,8 @@
 
 ## 1.1.5
 
+* Added `no_git_tag` option in `info.json`
+
 ## 1.1.4
 
 * Update class data to Factorio 1.1.12

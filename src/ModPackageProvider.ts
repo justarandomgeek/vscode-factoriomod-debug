@@ -37,6 +37,7 @@ export interface ModInfo {
 	package?: {
 		ignore?: string[]
 		no_git_push?: boolean
+		no_git_tag?: boolean
 		git_publish_branch?: string|null
 		no_portal_upload?: boolean
 		scripts?: ModPackageScripts
@@ -252,6 +253,7 @@ export class ModPackage extends vscode.TreeItem {
 	public description: string; // used as modversion
 	public packageIgnore?: string[];
 	public noGitPush?: boolean;
+	public noGitTag?: boolean;
 	public gitPublishBranch?: string|null;
 	public noPortalUpload?: boolean;
 	public scripts?: ModPackageScripts;
@@ -269,6 +271,7 @@ export class ModPackage extends vscode.TreeItem {
 		//this.id = modscript.name;
 		this.packageIgnore = modscript.package?.ignore;
 		this.noGitPush = modscript.package?.no_git_push;
+		this.noGitTag = modscript.package?.no_git_tag;
 		this.gitPublishBranch = modscript.package?.git_publish_branch;
 		this.noPortalUpload = modscript.package?.no_portal_upload;
 		this.scripts = modscript.package?.scripts;
@@ -704,7 +707,7 @@ export class ModPackage extends vscode.TreeItem {
 		const haschangelog = await this.DateStampChangelog(term);
 		if (typeof haschangelog === "number") {return;}
 
-		let tagname:string;
+		let tagname:string|undefined;
 		if (repo)
 		{
 			if(haschangelog) {await runScript(term, undefined, `git add changelog.txt`, moddir);}
@@ -712,16 +715,20 @@ export class ModPackage extends vscode.TreeItem {
 				`git commit --author "${ config.get<string>("factorio.package.autoCommitAuthor")! }" --allow-empty -F -`,
 				moddir, undefined,
 				config.get<string>("factorio.package.preparingCommitMessage")!.replace(/\$VERSION/g,packageversion).replace(/\$MODNAME/g,this.label));
-			tagname = config.get<string>("factorio.package.tagName","$VERSION");
-			tagname = tagname.replace(/\$VERSION/g,packageversion).replace(/\$MODNAME/g,this.label);
-			if (config.get<boolean>("factorio.package.tagVPrefix"))
+
+			if (!this.noGitTag)
 			{
-				term.write(`Using deprecated option factorio.package.tagVPrefix. Use factorio.package.tagName instead. \r\n`);
-				tagname = "v" + tagname;
+				tagname = config.get<string>("factorio.package.tagName","$VERSION");
+				tagname = tagname.replace(/\$VERSION/g,packageversion).replace(/\$MODNAME/g,this.label);
+				if (config.get<boolean>("factorio.package.tagVPrefix"))
+				{
+					term.write(`Using deprecated option factorio.package.tagVPrefix. Use factorio.package.tagName instead. \r\n`);
+					tagname = "v" + tagname;
+				}
+				let tagmessage = config.get<string>("factorio.package.tagMessage");
+				tagmessage = tagmessage?.replace(/\$VERSION/g,packageversion).replace(/\$MODNAME/g,this.label);
+				await runScript(term, undefined, `git tag -a ${tagname} -F -`, moddir,undefined,tagmessage);
 			}
-			let tagmessage = config.get<string>("factorio.package.tagMessage");
-			tagmessage = tagmessage?.replace(/\$VERSION/g,packageversion).replace(/\$MODNAME/g,this.label);
-			await runScript(term, undefined, `git tag -a ${tagname} -F -`, moddir,undefined,tagmessage);
 		}
 
 		// build zip with <factorio.package>
@@ -752,7 +759,7 @@ export class ModPackage extends vscode.TreeItem {
 				const upstream = repo?.state.HEAD?.upstream;
 				if (upstream)
 				{
-					await runScript(term, undefined, `git push ${upstream.remote} ${branchname} ${tagname!}`, moddir);
+					await runScript(term, undefined, `git push ${upstream.remote} ${branchname} ${tagname ?? ""}`, moddir);
 				}
 				else
 				{

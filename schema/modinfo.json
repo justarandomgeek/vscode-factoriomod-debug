@@ -43,6 +43,10 @@
               "type":"boolean",
               "description": "Don't automatically `git push` in Publish"
             },
+            "no_git_tag": {
+              "type":"boolean",
+              "description": "Don't automatically `git tag` in Publish"
+            },
             "git_publish_branch": {
               "type":["string", "null"],
               "default": "master",

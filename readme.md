@@ -80,6 +80,7 @@ All-in-one command.
   * run **Datestamp**
   * git commit "preparing release of version x.y.z", tag x.y.z
   * run **Package**
+  * git tag, unless `info.json#/package/no_git_tag` is set
   * run **Increment Version**
   * run `info.json#/package/scripts/publish` if set
   * commit "moved to version x.y.z"
