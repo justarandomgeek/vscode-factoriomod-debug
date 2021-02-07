@@ -108,7 +108,7 @@ Language support including syntax highlighting and document outline.
 
 ## String Interpolation
 
-Logpoint expressions and `__debugline` strings are will interpolate expressions in `{}`. The inner expression is evaluated as lua code, and has access to all locals and upvalues at the current location (for logpoints), or members of the current object and the object itself as `self` (for `__debugline`). The expression always has access to globals. `{[}` and `{]}` can be used to emit literal `{` and `}`.
+Logpoint expressions, `__DebugAdapter.print()`,  and `__debugline` strings will evaluate expressions in `{}`. The inner expression is evaluated as lua code, and has access to all locals and upvalues at the current location (for logpoints), or members of the current object and the object itself as `self` (for `__debugline`). The expression always has access to globals. `{[}` and `{]}` can be used to emit literal `{` and `}`.
 
 ## Debug Print
 
