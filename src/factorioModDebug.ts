@@ -542,7 +542,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					body.output = this.translations.get(id) ?? `{Missing Translation ID ${id}}`;
 				}
 				const e:DebugProtocol.OutputEvent = new OutputEvent(body.output+"\n", body.category ?? "console");
-				if(vscode.workspace.getConfiguration().get<boolean>("factorio.debug.expandablePrint",false) && body.variablesReference) {
+				if(body.variablesReference) {
 					e.body.variablesReference = body.variablesReference;
 				}
 				if(body.source.path) {

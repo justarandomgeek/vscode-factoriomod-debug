@@ -5,6 +5,8 @@
 ## 1.1.5
 
 * Added `no_git_tag` option in `info.json`
+* Re-enabled expandable log items from `__DebugAdapter.print()`
+* Expand embedded expressions in printed strings as variables
 
 ## 1.1.4
 

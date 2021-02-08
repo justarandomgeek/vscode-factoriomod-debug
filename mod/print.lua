@@ -14,7 +14,15 @@ function __DebugAdapter.print(expr,alsoLookIn,upStack,category)
   local texpr = type(expr)
   local result,ref
   if texpr == "string" then
-    result = __DebugAdapter.stringInterp(expr,3,alsoLookIn,"print")
+    local exprs
+    result,exprs = __DebugAdapter.stringInterp(expr,3,alsoLookIn,"print")
+    setmetatable(exprs,{
+      __debugline = function() return result end,
+      __debugtype = "<print>",
+    })
+
+    local v = variables.create(nil,{exprs}, nil, true)
+    ref = v.variablesReference
   elseif variables.translate and texpr == "table" and (expr.object_name == "LuaProfiler" or (not getmetatable(expr) and type(expr[1])=="string")) then
     result = "{LocalisedString "..variables.translate(expr).."}"
   else
@@ -66,7 +74,6 @@ function __DebugAdapter.print(expr,alsoLookIn,upStack,category)
         end
       end
       body.source = dasource
-      loc = info.source..":"..info.currentline..": "
     end
   end
   print("DBGprint: " .. json.encode(body))

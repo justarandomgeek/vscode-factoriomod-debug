@@ -128,10 +128,14 @@ do
             if isHit then
               if b.logMessage then
                 -- parse and print logMessage as an expression in the scope of the breakpoint
-                local result = __DebugAdapter.stringInterp(b.logMessage,frameId,nil,"logpoint")
-                local varresult = variables.create(nil,result)
+                local result,exprs = __DebugAdapter.stringInterp(b.logMessage,frameId,nil,"logpoint")
+                setmetatable(exprs,{
+                  __debugline = function() return result end,
+                  __debugtype = "<print>",
+                })
+                local varresult = variables.create(nil,{exprs}, nil, true)
                 local logpoint = {
-                  output = varresult.value,
+                  output = result,
                   variablesReference = varresult.variablesReference,
                   filePath = s,
                   line = line,

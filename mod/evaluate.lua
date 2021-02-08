@@ -266,38 +266,74 @@ end
 ---@return string
 function __DebugAdapter.stringInterp(str,frameId,alsoLookIn,context)
   local sub = string.sub
-  return string.gsub(str,"(%b{})",
+  local evals = {}
+  local evalidx = 1
+  local result = string.gsub(str,"(%b{})",
     function(expr)
-      if expr == "{[}" then return "{" end
-      if expr == "{]}" then return "}" end
-      if expr == "{...}" then
+      if expr == "{[}" then
+        evals[evalidx] = "{"
+        evalidx = evalidx+1
+        return "{"
+      elseif expr == "{]}" then
+        evals[evalidx] = "}"
+        evalidx = evalidx+1
+        return "}"
+      elseif expr == "{...}" then
         -- expand a comma separated list of short described varargs
-        if not frameId then return "<error>" end
-        frameId = frameId + 2
-        local info = debug.getinfo(frameId,"u")
+        if not frameId then
+          evals[evalidx] = setmetatable({},{
+            __debugline = "no frame for `...`",
+            __debugtype = "error",
+            __debugchildren = false,
+          })
+          evalidx = evalidx+1
+          return "<error>"
+        end
+        local fId = frameId + 2
+        local info = debug.getinfo(fId,"u")
         if info and info.isvararg then
           local i = -1
           local args = {}
           while true do
-            local name,value = debug.getlocal(frameId,i)
+            local name,value = debug.getlocal(fId,i)
             if not name then break end
             args[#args + 1] = variables.describe(value,true)
             i = i - 1
           end
-          return table.concat(args,", ")
+          local result = table.concat(args,", ")
+          evals[evalidx] = setmetatable(args,{
+            __debugline = "...",
+            __debugtype = "vararg",
+          })
+          evalidx = evalidx+1
+          return result
         else
+          evals[evalidx] = setmetatable({},{
+            __debugline = "frame for `...` is not vararg",
+            __debugtype = "error",
+            __debugchildren = false,
+          })
+          evalidx = evalidx+1
           return "<error>"
         end
       end
       expr = sub(expr,2,-2)
       local success,result = __DebugAdapter.evaluateInternal(frameId and frameId+3,alsoLookIn,context or "interp",expr)
       if success then
+        evals[evalidx] = result
+        evalidx = evalidx+1
         return variables.describe(result)
       else
+        evals[evalidx] = setmetatable({},{
+          __debugline = result,
+          __debugtype = "error",
+          __debugchildren = false,
+        })
+        evalidx = evalidx+1
         return "<error>"
       end
-      return expr
     end)
+    return result,evals
 end
 
 ---@param frameId number
