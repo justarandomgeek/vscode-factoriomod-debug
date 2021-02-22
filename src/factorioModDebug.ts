@@ -1182,7 +1182,8 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		const zipext = vscode.extensions.getExtension("slevesque.vscode-zipexplorer");
 		if (zipext)
 		{
-			vscode.commands.executeCommand("zipexplorer.clear");
+			await zipext.activate();
+			await vscode.commands.executeCommand("zipexplorer.clear");
 		}
 		for (const module of modules) {
 			this._modules.set(module.name,module);
@@ -1291,8 +1292,8 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 						{
 							// if zip exists, try to mount it
 							//TODO: can i check if it's already mounted somehow?
-							//TODO: mount it fast enough to actually read dirname inside
-							vscode.commands.executeCommand("zipexplorer.exploreZipFile", zipuri);
+							//TODO: can i actually read dirname inside? doesn't seem to be registered as an fs handler
+							await vscode.commands.executeCommand("zipexplorer.exploreZipFile", zipuri);
 
 							const zipinside = vscode.Uri.joinPath(zipuri,module.name+"_"+module.version).with({scheme: "zip"});
 							module.symbolFilePath = zipinside.toString();
