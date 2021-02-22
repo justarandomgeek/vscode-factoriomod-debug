@@ -1209,14 +1209,25 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				continue;
 			}
 
-			const wm = this.workspaceModInfo.find(m=>m.name===module.name && semver.eq(m.version,module.version!));
-			if (wm)
+			try
 			{
-				// find it in workspace
-				module.symbolFilePath = wm.uri.toString();
-				module.symbolStatus = "Loaded Workspace Directory";
-				FactorioModDebugSession.output.appendLine(`loaded ${module.name} ${module.version} from workspace ${module.symbolFilePath}`);
-				continue;
+				const wm = this.workspaceModInfo.find(m=>m.name===module.name && semver.eq(m.version,module.version!,{"loose":true}));
+				if (wm)
+				{
+					// find it in workspace
+					module.symbolFilePath = wm.uri.toString();
+					module.symbolStatus = "Loaded Workspace Directory";
+					FactorioModDebugSession.output.appendLine(`loaded ${module.name} ${module.version} from workspace ${module.symbolFilePath}`);
+					continue;
+				}
+			}
+			catch (ex)
+			{
+				if ((<vscode.FileSystemError>ex).code !== "FileNotFound")
+				{
+					FactorioModDebugSession.output.appendLine(`failed loading ${module.name} ${module.version} from workspace: ${ex}`);
+				}
+				// continue;
 			}
 
 			if (this.launchArgs.modsPath)
@@ -1227,12 +1238,12 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					{
 						const stat = await vscode.workspace.fs.stat(dir);
 						// eslint-disable-next-line no-bitwise
-						if (stat.type|vscode.FileType.Directory)
+						if (stat.type&vscode.FileType.Directory)
 						{
 
 							const modinfo:ModInfo = JSON.parse(Buffer.from(
 								await vscode.workspace.fs.readFile(vscode.Uri.joinPath(dir,"info.json"))).toString("utf8"));
-							if (modinfo.name===module.name && semver.eq(modinfo.version,module.version!))
+							if (modinfo.name===module.name && semver.eq(modinfo.version,module.version!,{"loose":true}))
 							{
 								module.symbolFilePath = dir.toString();
 								module.symbolStatus = "Loaded Mod Directory";
@@ -1245,7 +1256,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					{
 						if ((<vscode.FileSystemError>ex).code !== "FileNotFound")
 						{
-							FactorioModDebugSession.output.appendLine(`${ex}`);
+							FactorioModDebugSession.output.appendLine(`failed loading ${module.name} ${module.version} from modspath: ${ex}`);
 						}
 						return false;
 					}

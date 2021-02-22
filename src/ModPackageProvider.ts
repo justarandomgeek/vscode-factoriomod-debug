@@ -282,7 +282,7 @@ export class ModPackage extends vscode.TreeItem {
 		const namecomp = a.label.toLowerCase().localeCompare(b.label.toLowerCase());
 		if (namecomp !== 0) {return namecomp * 100;}
 
-		const vercomp = semver.compare(a.description,b.description);
+		const vercomp = semver.compare(a.description,b.description,{"loose":true});
 		if (vercomp !== 0) {return -vercomp * 10;}
 
 		if (a.resourceUri<b.resourceUri) {return -1;}
@@ -306,7 +306,7 @@ export class ModPackage extends vscode.TreeItem {
 		}
 		const latest = new Set<ModPackage>();
 		for (const mps of byModName.values()) {
-			latest.add(mps.reduce((a,b)=>(semver.compare(a.description,b.description) < 0) ? b : a));
+			latest.add(mps.reduce((a,b)=>(semver.compare(a.description,b.description,{"loose":true}) < 0) ? b : a));
 		}
 		return latest;
 	}
@@ -480,7 +480,7 @@ export class ModPackage extends vscode.TreeItem {
 			return;
 		}
 
-		const newversion = semver.inc(this.description,'patch')!;
+		const newversion = semver.inc(this.description,'patch',{"loose":true})!;
 		const version = syms.find(sym=>sym.name === "version")!;
 
 		we.replace(this.resourceUri,
