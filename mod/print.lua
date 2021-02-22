@@ -16,13 +16,15 @@ function __DebugAdapter.print(expr,alsoLookIn,upStack,category)
   if texpr == "string" then
     local exprs
     result,exprs = __DebugAdapter.stringInterp(expr,3,alsoLookIn,"print")
-    setmetatable(exprs,{
-      __debugline = function() return result end,
-      __debugtype = "<print>",
-    })
+    if next(exprs) then
+      setmetatable(exprs,{
+        __debugline = function() return result end,
+        __debugtype = "<print>",
+      })
 
-    local v = variables.create(nil,{exprs}, nil, true)
-    ref = v.variablesReference
+      local v = variables.create(nil,{exprs}, nil, true)
+      ref = v.variablesReference
+    end
   elseif variables.translate and texpr == "table" and (expr.object_name == "LuaProfiler" or (not getmetatable(expr) and type(expr[1])=="string")) then
     result = "{LocalisedString "..variables.translate(expr).."}"
   else
@@ -45,7 +47,11 @@ function __DebugAdapter.print(expr,alsoLookIn,upStack,category)
       local info = debug.getinfo(upStack,"lS")
       if info then
         body.line = info.currentline
-        body.source = normalizeLuaSource(info.source)
+        local source = normalizeLuaSource(info.source)
+        body.source = {
+          name = source,
+          path = source,
+        }
       end
     end
   else
