@@ -12,15 +12,6 @@ function OnSetText(uri, text)
 
   local diffs = {}
 
-  --ignore /c at the start of a file to parse large commands stored as files
-  if false and text:sub(1, 2)=="/c" then
-    diffs[#diffs+1] = {
-      start  = 1,
-      finish = 3,
-      text = "",
-    }
-  end
-
   for start, name, finish in text:gmatch("require%s*%(?%s*['\"]()(.-)()['\"]%s*%)?") do
     -- if name has slashes, convert to a dotted path
     if name:match("[\\/]") then
