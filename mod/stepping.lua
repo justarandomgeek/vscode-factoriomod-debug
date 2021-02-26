@@ -4,6 +4,10 @@ local stepIgnoreFuncs = {}
 setmetatable(stepIgnoreFuncs,{__mode="k"})
 ---@param f function
 local __DebugAdapter = __DebugAdapter
+
+---Mark a function to be ignored by the stepping hook
+---@param f function
+---@return function f
 local function stepIgnore(f)
   stepIgnoreFuncs[f] = true
   return f
@@ -11,6 +15,9 @@ end
 stepIgnore(stepIgnore)
 __DebugAdapter.stepIgnore = stepIgnore
 
+---Mark all functions in a table (keys and values) to be ignored by the stepping hook
+---@param t table
+---@return table
 local function stepIgnoreAll(t)
   for k,v in pairs(t) do
     if type(k) == "function" then
@@ -25,6 +32,9 @@ end
 stepIgnore(stepIgnoreAll)
 __DebugAdapter.stepIgnoreAll = stepIgnoreAll
 
+---Check if a function is ignored
+---@param f function
+---@return boolean
 function __DebugAdapter.isStepIgnore(f)
   return stepIgnoreFuncs[f]
 end
@@ -73,6 +83,9 @@ do
   local format = string.format
   local debugprompt = debug.debug
 
+  ---debug hook function
+  ---@param event string
+  ---@param line number|nil
   function hook(event,line)
     if event == "line" or event == "count" then
       local ignored = stepIgnoreFuncs[getinfo(2,"f").func]
@@ -383,7 +396,7 @@ local vcreate = variables.create
 local vmeta = {
   __debugline = "<Debug Adapter Stepping Module>",
   __debugtype = "DebugAdapter.Stepping",
-  __debugchildren = function(t) return {
+  __debugchildren = function() return {
     vcreate("<breakpoints>",breakpoints),
     vcreate("<stepdepth>",stepdepth),
   } end,

@@ -1,6 +1,11 @@
 __DebugAdapter = __DebugAdapter or {
+
   nohook = true,
+  ---@param f function
+  ---@return function
   stepIgnore = function(f) return f end,
+  ---@param t table
+  ---@return table
   stepIgnoreAll = function(t) return t end,
   -- evaluate needs this, but without hooks we can only end up in this lua state when remote.call is legal
   canRemoteCall = function() return true end,
@@ -20,14 +25,18 @@ require("__debugadapter__/stacks.lua") -- might have already been run, but load 
 
 --- call a remote function in all registered mods
 ---@param funcname string Name of remote function to call
----@return table<string,any> Results indexed by mod name
+---@return table<string,Any> Results indexed by mod name
 local function callAll(funcname,...)
   local results = {}
   local call = remote.call
+  ---@type string
   for remotename,_ in pairs(remote.interfaces) do
+    ---@type string
     local modname = remotename:match("^__debugadapter_(.+)$")
     if modname then
-      results[modname] = call(remotename,funcname,...)
+      ---@type Any
+      local result = call(remotename,funcname,...)
+      results[modname] = result
     end
   end
   return results
@@ -35,8 +44,12 @@ end
 __DebugAdapter.stepIgnore(callAll)
 
 -- calls from other entrypoints come here anyway, so just skip right to it
+---@param change string
 local function updateBreakpoints(change)
-  local source,changedbreaks = ReadBreakpoints(change)
+  ---@type string
+  local source,
+  ---@type SourceBreakpoint[]
+  changedbreaks = ReadBreakpoints(change)
   callAll("setBreakpoints",source,changedbreaks)
 end
 __DebugAdapter.updateBreakpoints = updateBreakpoints
@@ -74,6 +87,7 @@ script.on_load(__DebugAdapter.stepIgnore(function()
   if sharedevents.on_load then return sharedevents.on_load() end
 end))
 
+---@param e table
 script.on_event(defines.events.on_tick,__DebugAdapter.stepIgnore(function(e)
   print("DBG: on_tick")
   debug.debug()

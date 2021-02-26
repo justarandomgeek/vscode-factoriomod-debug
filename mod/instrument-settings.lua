@@ -1,5 +1,6 @@
 local json = require('__debugadapter__/json.lua')
 local modules = {}
+---@type string
 for name,version in pairs(mods) do
   modules[#modules+1] = {
     id = name, name = name,

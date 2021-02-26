@@ -1,9 +1,18 @@
+---@class cross_stack
+---@field source string What caused this stack to be recorded
+---@field extra any An extra label frame to add when printing stack traces
+---@field mod_name string The mod name this stack came from
+---@field stack StackFrame[] pre-prepared stack frames
 
+---@type cross_stack[]
 local stacks = {}
+---@type string
 local cross_stepping
 
 local remote = remote and rawget(remote,"__raw") or remote
 
+---@param stack cross_stack
+---@param stepping string
 function __DebugAdapter.pushStack(stack,stepping)
   if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
     remote.call("debugadapter", "pushStack", stack,stepping)
@@ -13,6 +22,7 @@ function __DebugAdapter.pushStack(stack,stepping)
   end
 end
 
+---@return string
 function __DebugAdapter.popStack()
   if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
     return remote.call("debugadapter", "popStack")
@@ -24,6 +34,7 @@ function __DebugAdapter.popStack()
   end
 end
 
+---@return cross_stack[]
 function __DebugAdapter.peekStacks()
   if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
     return remote.call("debugadapter", "peekStacks")
@@ -32,6 +43,8 @@ function __DebugAdapter.peekStacks()
   end
 end
 
+---@param stepping string
+---@return nil
 function __DebugAdapter.crossStepping(stepping)
   if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
     return remote.call("debugadapter", "crossStepping", stepping)
@@ -40,6 +53,7 @@ function __DebugAdapter.crossStepping(stepping)
   end
 end
 
+---@return string
 function __DebugAdapter.peekStepping()
   if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
     return remote.call("debugadapter", "peekStepping")

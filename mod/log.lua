@@ -9,6 +9,7 @@ local debug = debug
 if not __DebugAdapter.instrument then return end
 
 local oldlog = log
+---@type boolean
 local keepoldlog = __DebugAdapter.keepoldlog
 local function newlog(mesg)
   local outmesg = mesg

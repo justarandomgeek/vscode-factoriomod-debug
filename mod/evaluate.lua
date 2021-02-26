@@ -12,8 +12,16 @@ local load = load
 -- capture the raw object
 local remote = remote and rawget(remote,"__raw") or remote
 
+---Timed version of `pcall`. If `game.create_profiler()` is available, it will
+---be used to measure the execution time of `f`. The timer or nil is added as an
+---additional first return value, followed by `pcall`'s normal returns
+---@param f function
+---@return LuaProfiler|nil
+---@return boolean
+---@return ...
 local function timedpcall(f)
   if game then
+    ---@type LuaProfiler
     local t = game.create_profiler()
     local res = {pcall(f)}
     t.stop()
@@ -29,6 +37,9 @@ local function evalmeta(env,frameId,alsoLookIn)
   local getupvalue = debug.getupvalue
   local em = {
     __debugtype = "DebugAdapter.EvalEnv",
+    ---@param t table
+    ---@param short boolean
+    ---@return string
     __debugline = function(t,short)
       if short then
         return "<Eval Env>"
@@ -43,6 +54,9 @@ local function evalmeta(env,frameId,alsoLookIn)
 
       return ("<Evaluate Environment%s>"):format(envname or "")
     end,
+    ---@param t table
+    ---@param k string
+    ---@return any
     __index = function(t,k)
       -- go ahead and loop _ENV back...
       if k == "_ENV" then return t end
@@ -114,6 +128,9 @@ local function evalmeta(env,frameId,alsoLookIn)
       --else forward to global lookup...
       return env[k]
     end,
+    ---@param t table
+    ---@param k string
+    ---@param v any
     __newindex = function(t,k,v)
       -- don't allow setting _ENV or _G in evals
       if k == "_ENV" or k == "_G" then return end
@@ -201,8 +218,11 @@ __DebugAdapter.stepIgnore(evalmeta)
 ---@param alsoLookIn table | nil
 ---@param context string
 ---@param expression string
----@return boolean
----@return any
+---@param timed nil|boolean
+---@return boolean success
+---@return ...
+---@overload fun(frameId:number|nil,alsoLookIn:table|nil,context:string,expression:string,timed:true): LuaProfiler,boolean,...
+---@overload fun(frameId:number|nil,alsoLookIn:table|nil,context:string,expression:string,timed:false): boolean,...
 function __DebugAdapter.evaluateInternal(frameId,alsoLookIn,context,expression,timed)
   local env = _ENV
 
@@ -365,9 +385,20 @@ function __DebugAdapter.evaluate(frameId,context,expression,seq,formod)
   local info = not frameId or debug.getinfo(frameId,"f")
   local evalresult
   if info then
-    local timer,success,result
+    ---@type LuaProfiler|nil
+    local timer
+    ---@type boolean
+    local success
+    ---@type Any
+    local result
     if context == "repl" then
-      timer,success,result = __DebugAdapter.evaluateInternal(frameId and frameId+1,nil,context,expression,true)
+      ---@type LuaProfiler
+      timer,
+      ---@type boolean
+      success,
+      ---@type Any
+      result
+      = __DebugAdapter.evaluateInternal(frameId and frameId+1,nil,context,expression,true)
     else
       success,result = __DebugAdapter.evaluateInternal(frameId and frameId+1,nil,context,expression)
     end

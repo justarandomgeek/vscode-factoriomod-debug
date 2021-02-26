@@ -11,11 +11,16 @@ end
 if data then
   -- data stage clears package.loaded between files, so we stash a copy in Lua registry too
   local reg = debug.getregistry()
+  ---@type DebugAdapter
   local regDA = reg.__DebugAdapter
   if regDA then return regDA end
 end
 
 -- this is a global so the vscode extension can get to it from debug.debug()
+---@class DebugAdapter
+---@field nohook boolean set in DA's control.lua if it does not have hooks installed
+---@field hooklog boolean|nil enable replacing `log`
+---@field runningBreak number|nil frequency to check for pause in long-running code
 __DebugAdapter = __DebugAdapter or {} -- but might have been defined already for selective instrument mode
 local __DebugAdapter = __DebugAdapter
 local require = require

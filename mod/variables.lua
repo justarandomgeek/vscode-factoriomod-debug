@@ -7,6 +7,7 @@ end
 if data then
   -- data stage clears package.loaded between files, so we stash a copy in Lua registry too
   local reg = debug.getregistry()
+  ---@type DAvarslib
   local regvars = reg.__DAVariables
   if regvars then return regvars end
 end
@@ -43,6 +44,7 @@ local longrefsmeta = {
 }
 
 --- Debug Adapter variables module
+---@class DAvarslib
 local variables = {
   -- normal refs are cleared after every continue
   refs = setmetatable({},refsmeta),

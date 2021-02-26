@@ -130,6 +130,13 @@ local eventlike = {
   }
 }
 
+---Test if a hooked call/return represents an event-like api call
+---@param level number the stack level of the code interrupted by the hook
+---@param hooktype string the debug hook type we're in while checking this
+---@return boolean is_eventlike
+---@return string classname
+---@return string method
+---@return any value if api access was a `__newindex` call
 local function check_eventlike(level,hooktype)
   if not script then return end
   local info = debug.getinfo(level,"nSf")
@@ -140,6 +147,7 @@ local function check_eventlike(level,hooktype)
   if classes then
     local _,t = debug.getlocal(level,1)
     if type(t) ~= "table" or getmetatable(t) ~= "private" then return end
+    ---@type string
     local tname = t.object_name
     if not tname then return end
     local class = classes[tname]

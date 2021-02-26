@@ -34,6 +34,8 @@ if script and script.mod_name == "level" then
       }
     end
 
+    ---@param modname string
+    ---@param basepath string
     function levelPath(modname,basepath)
       __DebugAdapter.print("__DebugAdapter.levelPath is no longer needed",nil,2,"console")
     end

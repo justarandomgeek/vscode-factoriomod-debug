@@ -6,11 +6,15 @@ local print = print
 local localised_print = localised_print
 local debug = debug
 
---- Total time accumulated in this lua state
+---@class TimeAndCount
+---@field count number
+---@field timer LuaProfiler
+
+---@type LuaProfiler Total time accumulated in this lua state
 local luatotal
---- Time accumulated per line
+---@type table<string,table<number,TimeAndCount>> Time accumulated per line
 local linedata = {}
---- Time accumulated per function
+---@type table<string,table<number,TimeAndCount>> Time accumulated per function
 local funcdata = {}
 
 if not __Profiler.slowStart then
@@ -20,6 +24,9 @@ if not __Profiler.updateRate then
   __Profiler.updateRate = 500
 end
 
+---@param file string
+---@param line number
+---@return LuaProfiler
 local function getlinetimer(file,line)
   local f = linedata[file]
   if not f then
@@ -40,6 +47,9 @@ local function getlinetimer(file,line)
   return ld.timer
 end
 
+---@param file string
+---@param line number
+---@return LuaProfiler
 local function getfunctimer(file,line)
   -- line data needs file for dumps to work
   if not linedata[file] then linedata[file] = {} end
@@ -63,35 +73,41 @@ local function getfunctimer(file,line)
   return fd.timer
 end
 
+---@type number
 local dumpcount = 0
+---@type boolean
 local dumpnow
-local hooktimer -- time not yet accumulated to specific line/function timer(s)
-local activeline -- the timer for the current line, if any
-local callstack = {} -- the timers for lines higher up the callstack, if any
-local calltree = { -- timer tree for flamegraph
+---@type LuaProfiler time not yet accumulated to specific line/function timer(s)
+local hooktimer
+---@type LuaProfiler the timer for the current line, if any
+local activeline
+-- the timers for lines higher up the callstack, if any
+local callstack = {}
+-- timer tree for flamegraph
+
+---@type flamenode
+local calltree = {
   root = true,
   children = {}
 }
---[[
-  treenode = {
-    -- any names this fun is called by
-    funcnames = {string=>itself}
-    -- file and line are as close to unique id per function as we get
-    filename = string,
-    line = int,
-    -- time in this tree...
-    timer = timer,
-    -- nodes called from this node
-    children = treenode[filename..line],
-  }
-]]
 
+---@class flamenode
+---@field root boolean if this node is the root of the tree - will not include other fields except `children`
+---@field funcnames table<string,string> any names this fun is called by, as both key and value
+---@field filename string the file this function is defined in
+---@field line number the line this function is defined at
+---@field timer LuaProfiler the time in this function
+---@field children table<string,flamenode> nodes for functions called by this function
+
+
+---@param tree flamenode
 local function dumptree(tree)
   if tree.root then
     print("PROOT:")
   else
     localised_print{"","PTREE:",tree.funcname,":",tree.filename,":",tree.line,":",tree.timer}
   end
+  ---@type flamenode
   for _,node in pairs(tree.children) do
     dumptree(node)
   end
@@ -99,13 +115,20 @@ local function dumptree(tree)
 end
 
 
+---@param treenode flamenode
+---@param source string
+---@param linedefined string
+---@param name string|nil
+---@return flamenode
 local function getstackbranch(treenode,source,linedefined,name)
+  ---@type string
   local fname = (name or '(anon)')
   local childindex = fname..":"..source..":"..linedefined
   local child = treenode.children[childindex]
   if child then
     return child
   else
+    ---@type flamenode
     child = {
       name = childindex,
       funcname = fname, filename = source, line = linedefined,
@@ -183,6 +206,8 @@ end
 local function attach()
   local getinfo = debug.getinfo
   local sub = string.sub
+  ---@param event string
+  ---@param line number
   debug.sethook(function(event,line)
     if hooktimer then
       hooktimer.stop()

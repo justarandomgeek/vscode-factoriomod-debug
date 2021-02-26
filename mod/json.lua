@@ -11,6 +11,8 @@ local ipairs = ipairs
 local tostring = tostring
 local type = type
 
+---@param f function
+---@return function
 local stepIgnore = __DebugAdapter and __DebugAdapter.stepIgnore or function(f) return f end
 
 local function encode_nil()
@@ -22,16 +24,27 @@ local escape_char_map = {
   [ "\\" ] = "\\\\", [ "\"" ] = "\\\"", [ "\b" ] = "\\b",
   [ "\f" ] = "\\f", [ "\n" ] = "\\n", [ "\r" ] = "\\r",
   [ "\t" ] = "\\t", }
-local function escape_char(c)
+
+---JSON Escape a single character
+---@param c string A single character to escape
+---@return string escaped The JSON escaped character
+  local function escape_char(c)
   return escape_char_map[c] or sformat("\\u%04x", sbyte(c))
 end
 stepIgnore(escape_char)
 
+
+---Output a string formatted as a JSON string
+---@param val string
+---@return string json
 local function encode_string(val)
   return '"' .. val:gsub('[%z\1-\31\\"]', escape_char) .. '"'
 end
 stepIgnore(encode_string)
 
+---Output a number formatted as a JSON number
+---@param val number
+---@return string json
 local function encode_number(val)
   -- Check for NaN, -inf and inf
   if val ~= val then
@@ -48,6 +61,10 @@ stepIgnore(encode_number)
 
 local encode;
 
+---Output a table formatted as a JSON object or array
+---@param val table
+---@param stack table|nil List of already-seen tables
+---@return string json
 local function encode_table(val, stack)
   local res = {}
   stack = stack or {}
@@ -97,6 +114,10 @@ local type_encode = {
   ["number"] = encode_number,
 }
 
+---Output a value formatted as JSON
+---@param value table|string|number|boolean|nil
+---@param stack table|nil List of already-seen tables
+---@return string json
 function encode(value, stack)
   local t = type(value)
   local f = type_encode[t]
