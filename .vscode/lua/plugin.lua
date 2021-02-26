@@ -7,6 +7,7 @@
 ---@param  text string # The content of file
 ---@return nil|diff[]
 function OnSetText(uri, text)
+  ---@type diff[]
   local diffs = {}
 
   for start, name, finish in text:gmatch("require%(?['\"]()(.-)()['\"]%)?") do
