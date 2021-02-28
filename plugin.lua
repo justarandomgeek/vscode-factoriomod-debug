@@ -39,20 +39,22 @@ function OnSetText(uri, text)
     end
     thismod = thismod:gsub("[^a-zA-Z0-9_]","_")
     local gname = "__"..thismod.."__global"
-    -- "define" it at the start of control.lua
-    if uri:match("control%.lua$") then
-      diffs[#diffs+1] = {
-        start  = 1,
-        finish = 0,
-        text = gname.." = {}\n",
-      }
-    end
-
+    local replaced
     for start, finish in text:gmatch("[^a-zA-Z0-9_]()global()%s*[=.%[]") do
       diffs[#diffs+1] = {
         start  = start,
         finish = finish - 1,
         text = gname,
+      }
+      replaced = true
+    end
+
+    -- and "define" it at the start of any file that used it
+    if replaced then
+      diffs[#diffs+1] = {
+        start  = 1,
+        finish = 0,
+        text = gname.."={}\n",
       }
     end
   end
