@@ -1,5 +1,27 @@
 --##
 
+-- allow for require to search relative to this plugin file
+-- open for improvements!
+do
+  ---@type table
+  local config = require("config")
+  ---@type table
+  local fs = require("bee.filesystem")
+  ---@type table
+  local workspace = require("workspace")
+
+  ---@type userdata
+  local pluginPath = fs.path(config.config.runtime.plugin)
+  if pluginPath:is_relative() then
+    if not workspace.path then
+      return
+    end
+    pluginPath = fs.path(workspace.path) / pluginPath
+  end
+
+  package.path = package.path .. ";" .. tostring(pluginPath):gsub("/[^/]-%.lua$", "/?.lua")
+end
+
 ---@class diff
 ---@field start  integer # The number of bytes at the beginning of the replacement
 ---@field finish integer # The number of bytes at the end of the replacement
