@@ -7,6 +7,8 @@
 ---@param  text string # The content of file
 ---@return nil|diff[]
 function OnSetText(uri, text)
+  if text:sub(1, 4)=="--##" then return end
+
   ---@type diff[]
   local diffs = {}
 
