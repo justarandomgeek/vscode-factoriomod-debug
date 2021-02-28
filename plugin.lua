@@ -24,6 +24,8 @@ function OnSetText(uri, text)
     end
 
     -- then convert the modname prefix, if any...
+    ---@param match string
+    ---@return string
     name = name:gsub("^__(.-)__", function(match)
       return match
     end)
