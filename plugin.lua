@@ -13,12 +13,12 @@ if not _G.__plugin_initialized then
   local workspace = require("workspace")
 
   ---@type userdata
-  local pluginPath = fs.path(config.config.runtime.plugin)
-  if pluginPath:is_relative() then
-    pluginPath = fs.path(workspace.path) / pluginPath
+  local plugin_path = fs.path(config.config.runtime.plugin)
+  if plugin_path:is_relative() then
+    plugin_path = fs.path(workspace.path) / plugin_path
   end
 
-  package.path = package.path .. ";" .. pluginPath:string():gsub("/[^/]-%.lua$", "/?.lua")
+  package.path = package.path .. ";" .. (plugin_path:parent_path() / "?.lua"):string()
 end
 
 ---@class diff
