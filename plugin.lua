@@ -247,7 +247,6 @@ function replace_remotes(uri, text, diffs)
       diffs[#diffs] = nil
       goto continue
     end
-    -- name cannot be nil anymore, it might just be empty if it's at the end of the file
     chain_diff[2] = {i = s_name}
     chain_diff[3] = {i = f_name}
     modify_chain_diff_to_use_source_to_index_into_table(chain_diff, 2, name)
@@ -259,7 +258,6 @@ function replace_remotes(uri, text, diffs)
         diffs[#diffs] = nil
         goto continue
       end
-      -- func cannot be nil anymore, it might just be empty if it's at the end of the file
       chain_diff[4] = {i = s_func}
       local finish_chain_diff_elem = {i = f_func}
       chain_diff[5] = finish_chain_diff_elem
