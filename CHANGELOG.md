@@ -7,6 +7,9 @@
 * Added `no_git_tag` option in `info.json`
 * Re-enabled expandable log items from `__DebugAdapter.print()`
 * Expand embedded expressions in printed strings as variables
+* Use "loose" semver parsing in various places, to handle extra leading zeros
+* Converted "Output" window messages to debug console output
+* Activate Zip Explorer extension before trying to run commands from it
 
 ## 1.1.4
 
