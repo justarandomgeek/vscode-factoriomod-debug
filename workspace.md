@@ -10,6 +10,7 @@ I open the Factorio `mods` directory as the root of my workspace in VSCode, and 
     * `.vscode/`
       * `launch.json`
       * `settings.json`
+      * `lua/plugin.lua`
     * `modname/`
       * `.git/...`
       * `info.json`
@@ -65,10 +66,15 @@ In addition to these, you'll want a little configuration to tell your Lua Langua
     "lowercase-global"
   ],
   "Lua.workspace.library": {
-    /* Adjust this to match your Factorio install path */
-    "D:/factorio/factoriogit/data/core/lualib": true,
+
+    /* Adjust these to match your Factorio install path */
+    "D:/factorio/factoriogit/data/": true, /* for __base__ and __core__ */
+    "D:/factorio/factoriogit/data/core/lualib": true, /* some basic libs can be required directly*/
+
   },
 ```
+
+Clone [the Factorio Sumneko Lua Plugin](https://github.com/JanSharp/FactorioSumnekoLuaPlugin) into `.vscode/lua` to improve handling of `require`s, `global`, and `remote.call`.
 
 If using tasks, you may want to use git-bash as your automation shell:
 
