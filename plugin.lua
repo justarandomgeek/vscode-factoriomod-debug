@@ -266,7 +266,7 @@ function replace_remotes(uri, text, diffs)
 
       chain_diff[6] = {i = p_finish}
       if func_comma_or_parenth == ")" then
-        extend_chain_diff_elem_text(finish_chain_diff_elem, "(")
+        extend_chain_diff_elem_text(finish_chain_diff_elem, "()")
       else
         if text:match("^%s*%)", p_finish) then
           extend_chain_diff_elem_text(finish_chain_diff_elem, "(,") -- unexpected symbol near ','
