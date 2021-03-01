@@ -2,7 +2,9 @@
 
 -- allow for require to search relative to this plugin file
 -- open for improvements!
-do
+if not _G.__plugin_initialized then
+  _G.__plugin_initialized = true
+
   ---@type table
   local config = require("config")
   ---@type table
@@ -13,13 +15,10 @@ do
   ---@type userdata
   local pluginPath = fs.path(config.config.runtime.plugin)
   if pluginPath:is_relative() then
-    if not workspace.path then
-      return
-    end
     pluginPath = fs.path(workspace.path) / pluginPath
   end
 
-  package.path = package.path .. ";" .. tostring(pluginPath):gsub("/[^/]-%.lua$", "/?.lua")
+  package.path = package.path .. ";" .. pluginPath:string():gsub("/[^/]-%.lua$", "/?.lua")
 end
 
 ---@class diff
