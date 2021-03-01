@@ -238,23 +238,26 @@ function replace_remotes(uri, text, diffs)
     local open_parenth_diff = {i = p_open_parenth, text = ""}
     chain_diff[1] = open_parenth_diff
 
+    -- TODO: since name and func are now always literal strings the
+    -- modify_chain_diff_to_use_source_to_index_into_table call can be simplified
+
     ---@type string|number|nil
-    local name, f_name, name_comma, s_param_2 = text:match("^([\"'][^\"']*[\"'])()%s*(,?)()", s_name)
+    local name, f_name, name_comma_or_parenth, s_param_2 = text:match("^([\"'][^\"']*[\"'])()%s*([,)])()", s_name)
     if not name then
-      ---@type string|number|nil
-      name, f_name, name_comma, s_param_2 = text:match("^([^%s,%)]*)()%s*(,?)()", s_name)
+      diffs[#diffs] = nil
+      goto continue
     end
     -- name cannot be nil anymore, it might just be empty if it's at the end of the file
     chain_diff[2] = {i = s_name}
     chain_diff[3] = {i = f_name}
     modify_chain_diff_to_use_source_to_index_into_table(chain_diff, 2, name)
 
-    if name_comma ~= "" then
+    if name_comma_or_parenth == "," then
       ---@type string|number|nil
-      local s_func, func, f_func, func_comma, p_finish = text:match("^%s*()([\"'][^\"']*[\"'])()%s*(,?)()", s_param_2)
+      local s_func, func, f_func, func_comma_or_parenth, p_finish = text:match("^%s*()([\"'][^\"']*[\"'])()%s*([,)])()", s_param_2)
       if not func then
-        ---@type string|number|nil
-        s_func, func, f_func, func_comma, p_finish = text:match("^%s*()([^%s,%)]*)()%s*(,?)()", s_param_2)
+        diffs[#diffs] = nil
+        goto continue
       end
       -- func cannot be nil anymore, it might just be empty if it's at the end of the file
       chain_diff[4] = {i = s_func}
@@ -264,12 +267,8 @@ function replace_remotes(uri, text, diffs)
 
 
       chain_diff[6] = {i = p_finish}
-      if func_comma == "" then
-        if text:match("^%s*%)", p_finish) then
-          extend_chain_diff_elem_text(finish_chain_diff_elem, "(")
-        else
-          extend_chain_diff_elem_text(finish_chain_diff_elem, "(0 ") -- missing closing parenthesis
-        end
+      if func_comma_or_parenth == ")" then
+        extend_chain_diff_elem_text(finish_chain_diff_elem, "(")
       else
         if text:match("^%s*%)", p_finish) then
           extend_chain_diff_elem_text(finish_chain_diff_elem, "(,") -- unexpected symbol near ','
@@ -280,6 +279,8 @@ function replace_remotes(uri, text, diffs)
     end
 
     add_chain_diff(chain_diff, diffs)
+
+    ::continue::
   end
 end
 
