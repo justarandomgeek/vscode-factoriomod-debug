@@ -222,7 +222,8 @@ __DebugAdapter.stepIgnore(evalmeta)
 ---@return boolean success
 ---@return ...
 ---@overload fun(frameId:number|nil,alsoLookIn:table|nil,context:string,expression:string,timed:true): LuaProfiler,boolean,...
----@overload fun(frameId:number|nil,alsoLookIn:table|nil,context:string,expression:string,timed:false): boolean,...
+---@overload fun(frameId:number|nil,alsoLookIn:table|nil,context:string,expression:string,timed:false|nil): boolean,...
+---@overload fun(frameId:number|nil,alsoLookIn:table|nil,context:string,expression:string): boolean,...
 function __DebugAdapter.evaluateInternal(frameId,alsoLookIn,context,expression,timed)
   local env = _ENV
 
@@ -385,21 +386,13 @@ function __DebugAdapter.evaluate(frameId,context,expression,seq,formod)
   local info = not frameId or debug.getinfo(frameId,"f")
   local evalresult
   if info then
-    ---@type LuaProfiler|nil
-    local timer
-    ---@type boolean
-    local success
-    ---@type Any
-    local result
+    ---@typelist LuaProfiler,boolean,Any
+    local timer,success,result
     if context == "repl" then
-      ---@type LuaProfiler
-      timer,
-      ---@type boolean
-      success,
-      ---@type Any
-      result
-      = __DebugAdapter.evaluateInternal(frameId and frameId+1,nil,context,expression,true)
+      ---@typelist LuaProfiler,boolean,Any
+      timer,success,result = __DebugAdapter.evaluateInternal(frameId and frameId+1,nil,context,expression,true)
     else
+      ---@typelist boolean,Any
       success,result = __DebugAdapter.evaluateInternal(frameId and frameId+1,nil,context,expression)
     end
     if success then

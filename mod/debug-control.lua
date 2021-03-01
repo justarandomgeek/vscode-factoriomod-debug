@@ -46,10 +46,8 @@ __DebugAdapter.stepIgnore(callAll)
 -- calls from other entrypoints come here anyway, so just skip right to it
 ---@param change string
 local function updateBreakpoints(change)
-  ---@type string
-  local source,
-  ---@type SourceBreakpoint[]
-  changedbreaks = ReadBreakpoints(change)
+  ---@typelist string,SourceBreakpoint[]
+  local source,changedbreaks = ReadBreakpoints(change)
   callAll("setBreakpoints",source,changedbreaks)
 end
 __DebugAdapter.updateBreakpoints = updateBreakpoints
