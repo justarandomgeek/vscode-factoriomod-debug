@@ -39,6 +39,8 @@ function OnSetText(uri, text)
 
   ---@type string|number
   for start, name, finish in text:gmatch("require%s*%(?%s*['\"]()(.-)()['\"]%s*%)?") do
+    ---@type string
+    local original_name = name
     -- if name has slashes, convert to a dotted path
     if name:match("[\\/]") then
       name = name:gsub("%.lua$",""):gsub("[\\/]",".")
@@ -51,11 +53,13 @@ function OnSetText(uri, text)
       return match
     end)
 
-    diffs[#diffs+1] = {
-      start  = start,
-      finish = finish - 1,
-      text = name,
-    }
+    if name ~= original_name then
+      diffs[#diffs+1] = {
+        start  = start,
+        finish = finish - 1,
+        text = name,
+      }
+    end
   end
 
   -- rename `global` so we can tell them apart!
