@@ -998,9 +998,9 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	private createSteamAppID(factorioPath:string)
 	{
-		if (fs.existsSync(path.resolve(factorioPath,"../steam_api64.dll")) || // windows
-			fs.existsSync(path.resolve(factorioPath,"../steam_api.dylib")) || // mac
-			fs.existsSync(path.resolve(factorioPath,"../steam_api.so")))      // linux
+		if (fs.existsSync(path.resolve(factorioPath,"../steam_api64.dll"))    ||// windows
+			fs.existsSync(path.resolve(factorioPath,"../libsteam_api.dylib")) ||// mac
+			fs.existsSync(path.resolve(factorioPath,"../libsteam_api.so")))     // linux
 		{
 			this.sendEvent(new OutputEvent("detected steam...\n","stdout"));
 			const appidPath = path.resolve(factorioPath,"../steam_appid.txt");
