@@ -1,4 +1,8 @@
 
+# Introduction
+
+This is a plugin for the [sumneko.lua](https://github.com/sumneko/lua-language-server) vscode extension to help with factorio related syntax and intelisense.
+
 # Installing and updating
 
 ## How to install - clone
