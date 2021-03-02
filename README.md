@@ -3,6 +3,8 @@
 
 This is a plugin for the [sumneko.lua](https://github.com/sumneko/lua-language-server) vscode extension to help with factorio related syntax and intelisense.
 
+Since this is still in development there might be some changes you may want to keep an eye out for. Chances are there will be some form of a change log as well as a per workspace configuration file if it turns out to be desirable.
+
 # Installing and updating
 
 ## How to install - clone
