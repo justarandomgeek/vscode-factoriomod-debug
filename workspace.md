@@ -68,8 +68,8 @@ In addition to these, you'll want a little configuration to tell your Lua Langua
   "Lua.workspace.library": {
 
     /* Adjust these to match your Factorio install path */
-    "D:/factorio/factoriogit/data/": true, /* for __base__ and __core__ */
-    "D:/factorio/factoriogit/data/core/lualib": true, /* some basic libs can be required directly*/
+    "C:/path/to/factorio/data/": true, /* for __base__ and __core__ */
+    "C:/path/to/factorio/data/core/lualib": true, /* some basic libs can be required directly*/
 
   },
 ```
