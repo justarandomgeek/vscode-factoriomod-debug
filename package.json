@@ -144,6 +144,12 @@
             "deprecationMessage": "Use tagName instead",
             "default": false
           },
+          "factorio.package.defaultPublishBranch": {
+            "type": ["string","null"],
+            "description": "Default branch name to check for in `publish` task, if not set in `info.json`. Set to `null` to disable checking unless configured in `info.json`",
+            "default": "master",
+            "examples": ["main", "master", null]
+          },
           "factorio.package.tagMessage": {
             "type": "string",
             "description": "Message for version tags. Use `$VERSION` or `$MODNAME` to insert the version number or name."

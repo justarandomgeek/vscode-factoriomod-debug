@@ -669,7 +669,7 @@ export class ModPackage extends vscode.TreeItem {
 		const config = vscode.workspace.getConfiguration(undefined,this.resourceUri);
 
 		const packageversion = this.description;
-		let branchname:string = "master";
+		let branchname:string|null;
 		if (repo)
 		{
 			// throw if uncommitted changes
@@ -678,14 +678,18 @@ export class ModPackage extends vscode.TreeItem {
 				term.write("Cannot Publish with uncommitted changes\r\n");
 				return;
 			}
-			if (this.gitPublishBranch === null)
+			branchname =
+				(this.gitPublishBranch !== undefined)?
+				this.gitPublishBranch:
+				config.get<string|null>("factorio.package.defaultPublishBranch", "master");
+
+			if (branchname === null)
 			{
 				branchname = repo.state.HEAD?.name!;
 			}
 			else
 			{
-				branchname = this.gitPublishBranch ?? "master";
-				// throw if not on master
+				// throw if not on publish branch
 				if (repo.state.HEAD?.name !== branchname)
 				{
 					term.write(`Cannot Publish on branch other than '${branchname}'\r\n`);
@@ -759,11 +763,11 @@ export class ModPackage extends vscode.TreeItem {
 				const upstream = repo?.state.HEAD?.upstream;
 				if (upstream)
 				{
-					await runScript(term, undefined, `git push ${upstream.remote} ${branchname} ${tagname ?? ""}`, moddir);
+					await runScript(term, undefined, `git push ${upstream.remote} ${branchname!} ${tagname ?? ""}`, moddir);
 				}
 				else
 				{
-					term.write(`no remote set as upstream on ${branchname}\r\n`);
+					term.write(`no remote set as upstream on ${branchname!}\r\n`);
 				}
 			}
 		}

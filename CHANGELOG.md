@@ -10,6 +10,7 @@
 * Use "loose" semver parsing in various places, to handle extra leading zeros
 * Converted "Output" window messages to debug console output
 * Activate Zip Explorer extension before trying to run commands from it
+* Added setting `factorio.package.defaultPublishBranch`
 
 ## 1.1.4
 
