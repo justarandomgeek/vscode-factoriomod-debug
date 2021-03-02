@@ -51,7 +51,7 @@ And if the workspace is at `C:/dev/factorio/modding` the `Lua.runtime.plugin` wo
 
 # Help, it broke!
 
-If the plugin is causing the language server to report syntax errors when there really aren't any and you need a temporary "solution" before reporting the issue and waiting for a fix simply put `--##` at the very very start of the file. **This method of telling the plugin to ignore a file might be changed in the near future. This process has not been thought all the way through**.
+If the plugin is causing the language server to report syntax errors when there really aren't any and you need a temporary "solution" before reporting the issue and waiting for a fix simply put `--##` at the very very start of the file. **This method of telling the plugin to ignore a file might be changed in the future. This process has not been thought all the way through**.
 
 # Features
 
