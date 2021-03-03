@@ -1186,131 +1186,134 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			await vscode.commands.executeCommand("zipexplorer.clear");
 		}
 		for (const module of modules) {
-			this._modules.set(module.name,module);
+			try {
+				this._modules.set(module.name,module);
 
-			if (module.name === "level")
-			{
-				// find `level` nowhere
-				module.symbolStatus = "No Symbols (Level)";
-
-				//FactorioModDebugSession.output.appendLine(`no source loaded for ${module.name}`);
-				continue;
-			}
-
-			if (module.name === "core" || module.name === "base")
-			{
-				// find `core` and `base` in data
-				module.symbolFilePath = vscode.Uri.joinPath(vscode.Uri.file(this.launchArgs.dataPath),module.name).toString();
-				module.symbolStatus = "Loaded Data Directory";
-				this.sendEvent(new OutputEvent(`loaded ${module.name} from data ${module.symbolFilePath}\n`,"stdout"));
-				continue;
-			}
-
-			try
-			{
-				const wm = this.workspaceModInfo.find(m=>m.name===module.name && semver.eq(m.version,module.version!,{"loose":true}));
-				if (wm)
+				if (module.name === "level")
 				{
-					// find it in workspace
-					module.symbolFilePath = wm.uri.toString();
-					module.symbolStatus = "Loaded Workspace Directory";
-					this.sendEvent(new OutputEvent(`loaded ${module.name} ${module.version} from workspace ${module.symbolFilePath}\n`,"stdout"));
+					// find `level` nowhere
+					module.symbolStatus = "No Symbols (Level)";
 					continue;
 				}
-			}
-			catch (ex)
-			{
-				if ((<vscode.FileSystemError>ex).code !== "FileNotFound")
-				{
-					this.sendEvent(new OutputEvent(`failed loading ${module.name} ${module.version} from workspace: ${ex}\n`,"stderr"));
-				}
-			}
 
-			if (this.launchArgs.modsPath)
-			{
-				const sendEvent = this.sendEvent;
-				async function trydir(dir:vscode.Uri): Promise<boolean>
+				if (module.name === "core" || module.name === "base")
 				{
-					try
-					{
-						const stat = await vscode.workspace.fs.stat(dir);
-						// eslint-disable-next-line no-bitwise
-						if (stat.type&vscode.FileType.Directory)
-						{
-
-							const modinfo:ModInfo = JSON.parse(Buffer.from(
-								await vscode.workspace.fs.readFile(vscode.Uri.joinPath(dir,"info.json"))).toString("utf8"));
-							if (modinfo.name===module.name && semver.eq(modinfo.version,module.version!,{"loose":true}))
-							{
-								module.symbolFilePath = dir.toString();
-								module.symbolStatus = "Loaded Mod Directory";
-								sendEvent(new OutputEvent(`loaded ${module.name} ${module.version} from modspath ${module.symbolFilePath}\n`,"stdout"));
-								return true;
-							}
-						}
-					}
-					catch (ex)
-					{
-						if ((<vscode.FileSystemError>ex).code !== "FileNotFound")
-						{
-							sendEvent(new OutputEvent(`failed loading ${module.name} ${module.version} from modspath: ${ex}\n`,"stderr"));
-						}
-						return false;
-					}
-					return false;
+					// find `core` and `base` in data
+					module.symbolFilePath = vscode.Uri.joinPath(vscode.Uri.file(this.launchArgs.dataPath),module.name).toString();
+					module.symbolStatus = "Loaded Data Directory";
+					this.sendEvent(new OutputEvent(`loaded ${module.name} from data ${module.symbolFilePath}\n`,"stdout"));
+					continue;
 				}
 
-				// find it in mods dir:
-				// 1) unversioned folder
-				let dir = vscode.Uri.joinPath(vscode.Uri.file(this.launchArgs.modsPath),module.name);
-				if(await trydir(dir)){continue;};
-
-				// 2) versioned folder
-				dir = vscode.Uri.joinPath(vscode.Uri.file(this.launchArgs.modsPath),module.name+"_"+module.version);
-				if(await trydir(dir)){continue;};
-
-				// 3) versioned zip
-				if (zipext)
+				try
 				{
-					const zipuri = vscode.Uri.joinPath(vscode.Uri.file(this.launchArgs.modsPath),module.name+"_"+module.version+".zip");
-					let stat:vscode.FileStat|undefined;
-					try
+					const wm = this.workspaceModInfo.find(m=>m.name===module.name && semver.eq(m.version,module.version!,{"loose":true}));
+					if (wm)
 					{
-						stat = await vscode.workspace.fs.stat(zipuri);
+						// find it in workspace
+						module.symbolFilePath = wm.uri.toString();
+						module.symbolStatus = "Loaded Workspace Directory";
+						this.sendEvent(new OutputEvent(`loaded ${module.name} ${module.version} from workspace ${module.symbolFilePath}\n`,"stdout"));
+						continue;
 					}
-					catch (ex)
+				}
+				catch (ex)
+				{
+					if ((<vscode.FileSystemError>ex).code !== "FileNotFound")
 					{
-						if ((<vscode.FileSystemError>ex).code !== "FileNotFound")
-						{
-							this.sendEvent(new OutputEvent(`${ex}\n`,"stderr"));
-						}
+						this.sendEvent(new OutputEvent(`failed loading ${module.name} ${module.version} from workspace: ${ex}\n`,"stderr"));
 					}
-					// eslint-disable-next-line no-bitwise
-					if (stat && stat.type|vscode.FileType.File)
+				}
+
+				if (this.launchArgs.modsPath)
+				{
+					const sendEvent = this.sendEvent;
+					async function trydir(dir:vscode.Uri): Promise<boolean>
 					{
 						try
 						{
-							// if zip exists, try to mount it
-							//TODO: can i check if it's already mounted somehow?
-							//TODO: can i actually read dirname inside? doesn't seem to be registered as an fs handler
-							await vscode.commands.executeCommand("zipexplorer.exploreZipFile", zipuri);
+							const stat = await vscode.workspace.fs.stat(dir);
+							// eslint-disable-next-line no-bitwise
+							if (stat.type&vscode.FileType.Directory)
+							{
 
-							const zipinside = vscode.Uri.joinPath(zipuri,module.name+"_"+module.version).with({scheme: "zip"});
-							module.symbolFilePath = zipinside.toString();
-							module.symbolStatus = "Loaded Zip";
-							this.sendEvent(new OutputEvent(`loaded ${module.name} ${module.version} from mod zip ${zipuri.toString()}\n`,"stdout"));
-							continue;
+								const modinfo:ModInfo = JSON.parse(Buffer.from(
+									await vscode.workspace.fs.readFile(vscode.Uri.joinPath(dir,"info.json"))).toString("utf8"));
+								if (modinfo.name===module.name && semver.eq(modinfo.version,module.version!,{"loose":true}))
+								{
+									module.symbolFilePath = dir.toString();
+									module.symbolStatus = "Loaded Mod Directory";
+									sendEvent(new OutputEvent(`loaded ${module.name} ${module.version} from modspath ${module.symbolFilePath}\n`,"stdout"));
+									return true;
+								}
+							}
 						}
 						catch (ex)
 						{
-							this.sendEvent(new OutputEvent(`failed loading ${module.name} ${module.version} from mod zip ${zipuri.toString()}: ${ex}\n`,"stderr"));
+							if ((<vscode.FileSystemError>ex).code !== "FileNotFound")
+							{
+								sendEvent(new OutputEvent(`failed loading ${module.name} ${module.version} from modspath: ${ex}\n`,"stderr"));
+							}
+							return false;
+						}
+						return false;
+					}
+
+					// find it in mods dir:
+					// 1) unversioned folder
+					let dir = vscode.Uri.joinPath(vscode.Uri.file(this.launchArgs.modsPath),module.name);
+					if(await trydir(dir)){continue;};
+
+					// 2) versioned folder
+					dir = vscode.Uri.joinPath(vscode.Uri.file(this.launchArgs.modsPath),module.name+"_"+module.version);
+					if(await trydir(dir)){continue;};
+
+					// 3) versioned zip
+					if (zipext)
+					{
+						const zipuri = vscode.Uri.joinPath(vscode.Uri.file(this.launchArgs.modsPath),module.name+"_"+module.version+".zip");
+						let stat:vscode.FileStat|undefined;
+						try
+						{
+							stat = await vscode.workspace.fs.stat(zipuri);
+						}
+						catch (ex)
+						{
+							if ((<vscode.FileSystemError>ex).code !== "FileNotFound")
+							{
+								this.sendEvent(new OutputEvent(`${ex}\n`,"stderr"));
+							}
+						}
+						// eslint-disable-next-line no-bitwise
+						if (stat && (stat.type&vscode.FileType.File))
+						{
+							try
+							{
+								// if zip exists, try to mount it
+								//TODO: can i check if it's already mounted somehow?
+								//TODO: can i actually read dirname inside? doesn't seem to be registered as an fs handler
+								await vscode.commands.executeCommand("zipexplorer.exploreZipFile", zipuri);
+
+								const zipinside = vscode.Uri.joinPath(zipuri,module.name+"_"+module.version).with({scheme: "zip"});
+								module.symbolFilePath = zipinside.toString();
+								module.symbolStatus = "Loaded Zip";
+								this.sendEvent(new OutputEvent(`loaded ${module.name} ${module.version} from mod zip ${zipuri.toString()}\n`,"stdout"));
+								continue;
+							}
+							catch (ex)
+							{
+								this.sendEvent(new OutputEvent(`failed loading ${module.name} ${module.version} from mod zip ${zipuri.toString()}: ${ex}\n`,"stderr"));
+							}
 						}
 					}
 				}
-			}
 
-			module.symbolStatus = "Unknown";
-			this.sendEvent(new OutputEvent(`no source found for ${module.name} ${module.version}\n`,"console"));
+				module.symbolStatus = "Unknown";
+				this.sendEvent(new OutputEvent(`no source found for ${module.name} ${module.version}\n`,"console"));
+			} catch (ex) {
+				module.symbolStatus = "Error";
+				this.sendEvent(new OutputEvent(`failed locating source for ${module.name} ${module.version}: ${ex}\n`,"stderr"));
+			}
 		}
 		//TODO: another event to update it with levelpath for __level__ eventually?
 		this._modules.forEach((module:Module) =>{

@@ -5,6 +5,7 @@
 ## 1.1.6
 
 * Fixed steam detection on mac/linux
+* Additional diagnostics for failures while locating source for mods
 
 ## 1.1.5
 
