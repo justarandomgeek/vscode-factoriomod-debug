@@ -1177,6 +1177,36 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.inPrompt = false;
 	}
 
+	private async trydir(dir:vscode.Uri,module:DebugProtocol.Module): Promise<boolean>
+	{
+		try
+		{
+			const stat = await vscode.workspace.fs.stat(dir);
+			// eslint-disable-next-line no-bitwise
+			if (stat.type&vscode.FileType.Directory)
+			{
+
+				const modinfo:ModInfo = JSON.parse(Buffer.from(
+					await vscode.workspace.fs.readFile(vscode.Uri.joinPath(dir,"info.json"))).toString("utf8"));
+				if (modinfo.name===module.name && semver.eq(modinfo.version,module.version!,{"loose":true}))
+				{
+					module.symbolFilePath = dir.toString();
+					module.symbolStatus = "Loaded Mod Directory";
+					this.sendEvent(new OutputEvent(`loaded ${module.name} ${module.version} from modspath ${module.symbolFilePath}\n`,"stdout"));
+					return true;
+				}
+			}
+		}
+		catch (ex)
+		{
+			if ((<vscode.FileSystemError>ex).code !== "FileNotFound")
+			{
+				this.sendEvent(new OutputEvent(`failed loading ${module.name} ${module.version} from modspath: ${ex}\n`,"stderr"));
+			}
+			return false;
+		}
+		return false;
+	}
 
 	private async updateModules(modules: DebugProtocol.Module[]) {
 		const zipext = vscode.extensions.getExtension("slevesque.vscode-zipexplorer");
@@ -1227,46 +1257,14 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 				if (this.launchArgs.modsPath)
 				{
-					const sendEvent = this.sendEvent;
-					async function trydir(dir:vscode.Uri): Promise<boolean>
-					{
-						try
-						{
-							const stat = await vscode.workspace.fs.stat(dir);
-							// eslint-disable-next-line no-bitwise
-							if (stat.type&vscode.FileType.Directory)
-							{
-
-								const modinfo:ModInfo = JSON.parse(Buffer.from(
-									await vscode.workspace.fs.readFile(vscode.Uri.joinPath(dir,"info.json"))).toString("utf8"));
-								if (modinfo.name===module.name && semver.eq(modinfo.version,module.version!,{"loose":true}))
-								{
-									module.symbolFilePath = dir.toString();
-									module.symbolStatus = "Loaded Mod Directory";
-									sendEvent(new OutputEvent(`loaded ${module.name} ${module.version} from modspath ${module.symbolFilePath}\n`,"stdout"));
-									return true;
-								}
-							}
-						}
-						catch (ex)
-						{
-							if ((<vscode.FileSystemError>ex).code !== "FileNotFound")
-							{
-								sendEvent(new OutputEvent(`failed loading ${module.name} ${module.version} from modspath: ${ex}\n`,"stderr"));
-							}
-							return false;
-						}
-						return false;
-					}
-
 					// find it in mods dir:
 					// 1) unversioned folder
 					let dir = vscode.Uri.joinPath(vscode.Uri.file(this.launchArgs.modsPath),module.name);
-					if(await trydir(dir)){continue;};
+					if(await this.trydir(dir,module)){continue;};
 
 					// 2) versioned folder
 					dir = vscode.Uri.joinPath(vscode.Uri.file(this.launchArgs.modsPath),module.name+"_"+module.version);
-					if(await trydir(dir)){continue;};
+					if(await this.trydir(dir,module)){continue;};
 
 					// 3) versioned zip
 					if (zipext)

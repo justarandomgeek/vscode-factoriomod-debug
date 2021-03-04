@@ -2,6 +2,10 @@
 
 [<img height='36' style='border:0px;height:36px;' src='https://az743702.vo.msecnd.net/cdn/kofi2.png?v=2' border='0' alt='Buy Me a Coffee at ko-fi.com'/>](https://ko-fi.com/X8X41IE4T)
 
+## 1.1.7
+
+* Fixed `failed locating source` for unpacked mods located through modsPath
+
 ## 1.1.6
 
 * Fixed steam detection on mac/linux
