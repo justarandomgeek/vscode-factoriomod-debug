@@ -134,15 +134,19 @@ end
 
 ---@param chain_diff ChainDiffElem[]
 ---@param i_in_chain_diff number @ index of the elem in `chain_diff` that represents the source
----@param str string
-local function modify_chain_diff_to_use_source_to_index_into_table(chain_diff, i_in_chain_diff, str)
-  local str_contents = try_parse_string_literal(str)
-  if str_contents and str_contents:match("^[a-zA-Z_][a-zA-Z0-9_]*$") then
+---@param source string
+---@param is_literal_contents? boolean @ is 'source' the contents of a literal string already
+local function use_source_to_index(chain_diff, i_in_chain_diff, source, is_literal_contents)
+  local contents = is_literal_contents and source or try_parse_string_literal(source)
+  if contents and contents:match("^[a-zA-Z_][a-zA-Z0-9_]*$") then
+    -- source is a literal string and a valid identifier
     extend_chain_diff_elem_text(chain_diff[i_in_chain_diff - 1], ".")
-    chain_diff[i_in_chain_diff].text = str_contents
+    chain_diff[i_in_chain_diff].text = contents
   else
+    -- source is a variable, expression or literal string which is an invalid identifier
     extend_chain_diff_elem_text(chain_diff[i_in_chain_diff - 1], "[")
     extend_chain_diff_elem_text(chain_diff[i_in_chain_diff + 1], "]")
+    -- leaves chain_diff[i_in_chain_diff] untouched
   end
 end
 
@@ -208,9 +212,9 @@ function replace_remotes(uri, text, diffs)
   -- s = start, f = finish, p = position, no prefix = an actual string capture
 
   ---@type string|number
-  for s_call, f_call, p_open_parenth, s_name
+  for s_call, f_call, p_open_parenth, p_param_1
   in
-    text:gmatch("remote%s*%.%s*()call()%s*()%(%s*()")
+    text:gmatch("remote%s*%.%s*()call()%s*()%(()")
   do
     add_diff(diffs, s_call, f_call, "__all_remote_interfaces")
 
@@ -219,40 +223,50 @@ function replace_remotes(uri, text, diffs)
     local open_parenth_diff = {i = p_open_parenth, text = ""}
     chain_diff[1] = open_parenth_diff
 
-    -- TODO: since name and func are now always literal strings the
-    -- modify_chain_diff_to_use_source_to_index_into_table call can be simplified
+    ---parse one param and use it to index into the previous table
+    ---creates 2 new elements in the chain_diff where the first one
+    ---represents the actual string contents or identifier
+    ---@param p_param_start integer
+    ---@return string|nil
+    ---@return ","|")"|string|nil
+    ---@return number|nil
+    local function process_param(p_param_start)
+      ---@type string|number|nil
+      local s_param, param, f_param, comma_or_parenth, p_param_finish
+        = text:match("^%s*()[\"']([^\"']*)[\"']()%s*([,)])()", p_param_start)
 
-    ---@type string|number|nil
-    local name, f_name, name_comma_or_parenth, s_param_2 = text:match("^([\"'][^\"']*[\"'])()%s*([,)])()", s_name)
+      if not param then
+        diffs[#diffs] = nil
+        return nil
+      end
+      local i = #chain_diff + 1
+      chain_diff[i] = {i = s_param}
+      chain_diff[i + 1] = {i = f_param}
+      use_source_to_index(chain_diff, i, param, true)
+
+      return param, comma_or_parenth, p_param_finish
+    end
+
+    local name, name_comma_or_parenth, s_param_2 = process_param(p_param_1)
     if not name then
-      diffs[#diffs] = nil
       goto continue
     end
-    chain_diff[2] = {i = s_name}
-    chain_diff[3] = {i = f_name}
-    modify_chain_diff_to_use_source_to_index_into_table(chain_diff, 2, name)
 
     if name_comma_or_parenth == "," then
-      ---@type string|number|nil
-      local s_func, func, f_func, func_comma_or_parenth, p_finish = text:match("^%s*()([\"'][^\"']*[\"'])()%s*([,)])()", s_param_2)
+
+      local func, func_comma_or_parenth, p_finish = process_param(s_param_2)
       if not func then
-        diffs[#diffs] = nil
         goto continue
       end
-      chain_diff[4] = {i = s_func}
-      local finish_chain_diff_elem = {i = f_func}
-      chain_diff[5] = finish_chain_diff_elem
-      modify_chain_diff_to_use_source_to_index_into_table(chain_diff, 4, func)
-
 
       chain_diff[6] = {i = p_finish}
       if func_comma_or_parenth == ")" then
-        extend_chain_diff_elem_text(finish_chain_diff_elem, "()")
+        extend_chain_diff_elem_text(chain_diff[5], "()")
       else
         if text:match("^%s*%)", p_finish) then
-          extend_chain_diff_elem_text(finish_chain_diff_elem, "(,") -- unexpected symbol near ','
+          extend_chain_diff_elem_text(chain_diff[5], "(,") -- unexpected symbol near ','
         else
-          extend_chain_diff_elem_text(finish_chain_diff_elem, "(")
+          extend_chain_diff_elem_text(chain_diff[5], "(")
         end
       end
     end
