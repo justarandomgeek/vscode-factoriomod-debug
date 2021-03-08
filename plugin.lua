@@ -99,39 +99,6 @@ function OnSetText(uri, text)
   return diffs
 end
 
----if str is a string wrapped in "" or '' get the string inside those quotes
----otherwise returns nil
----@param str string
----@return string|nil
-local function try_get_source_string_contents(str)
-  return str:match("^[\"']") and str:sub(2, -2)
-end
-
--- ---if str is a valid identifier, returns "." .. str, otherwise the [] equivalent
--- ---@param str string
--- ---@return string
--- local function use_string_to_index_into_table(str)
---   if str:match("^[a-zA-Z_][a-zA-Z0-9_]*$") then
---     return "." .. str
---   else
---     return '["' .. str .. '"]'
---   end
--- end
-
--- ---converts an identifier or string taken from source code
--- ---and converts it into a string that can be appended to something to index
--- ---into said something (most likely a table)
--- ---@param str string
--- ---@return string
--- local function use_source_to_index_into_table(str)
---   local str_contents = try_get_source_string_contents(str)
---   if str_contents then
---     return use_string_to_index_into_table(str_contents)
---   else
---     return "[" .. str .. "]"
---   end
--- end
-
 ---extends the text of a ChainDiffElem or setting it if it is nil
 ---@param elem ChainDiffElem
 ---@param text string
@@ -155,11 +122,21 @@ local function add_diff(diffs, start, finish, replacement)
   }
 end
 
+---if 'source' is a string wrapped in "" or '' get the string inside those quotes
+---otherwise returns nil
+---@param source string
+---@return string|nil
+local function try_parse_string_literal(source)
+  ---@type string|number
+  local str, f_str = source:match("^[\"']([^\"']*)[\"']%s*()")
+  return f_str == #str and str
+end
+
 ---@param chain_diff ChainDiffElem[]
 ---@param i_in_chain_diff number @ index of the elem in `chain_diff` that represents the source
 ---@param str string
 local function modify_chain_diff_to_use_source_to_index_into_table(chain_diff, i_in_chain_diff, str)
-  local str_contents = try_get_source_string_contents(str)
+  local str_contents = try_parse_string_literal(str)
   if str_contents and str_contents:match("^[a-zA-Z_][a-zA-Z0-9_]*$") then
     extend_chain_diff_elem_text(chain_diff[i_in_chain_diff - 1], ".")
     chain_diff[i_in_chain_diff].text = str_contents
