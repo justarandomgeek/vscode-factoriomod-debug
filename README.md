@@ -77,6 +77,23 @@ That means if there is a folder with the name `modname` it can now find the file
 
 (This might get improved to support folders with version numbers at the end. Zips may currently not even be possible with the extension, however it _might_ get supoort at some point too.)
 
+## Normalized require
+
+the module paths passed to `require` also get normilzed to follow `this.kind.of.pattern`, because it is the only pattern currently supported by the language server for it to locate files.
+
+For example
+```lua
+require("folder.foo")
+require("folder/bar")
+require("folder/baz.lua")
+```
+Would look like this to the language server
+```lua
+require("folder.foo")
+require("folder.bar")
+require("folder.baz")
+```
+
 ## Factorio global
 
 If the language server sees multiple mods it can happen that it thinks your `global` contains keys/data it really doesn't because some other mod stores said data in global. For that reason the plugin tries it's best to make `global` look like `__modname__global` to the language server.
@@ -121,3 +138,22 @@ remote.__all_remote_interfaces.foo.bar("arg 1", "arg 2")
 ```
 
 Then when you for example hover over the string `"bar"` in the `remote.call` call you should get intelisense showing the signature of the function bar as defined above.
+
+## ---@typelist
+
+The language server is getting better support for EmmyLua annotations, but it was really missing a way to define multiple types on the same line. For example for functions that return multiple values.
+
+For example
+```lua
+---@typelist integer, string
+local foo, bar = string.match("Hello world!", "()(l+)")
+```
+Would look something similar to this to the language server
+```lua
+---@type integer
+local foo,
+---@type string
+bar = string.match("Hello world!", "()(l+)")
+```
+
+It only supports `---@typelist` being on one line and it only affects the next line. And it uses `,` (commas) as separators. (commas inside `< >` or `( )` are ignored on the `---@typelist` line.)
