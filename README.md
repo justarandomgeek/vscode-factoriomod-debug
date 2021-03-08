@@ -139,7 +139,7 @@ Then when you for example hover over the string `"bar"` in the `remote.call` cal
 
 ### More about remote.add_interface
 
-If you payed close attention to the previous example you may notice that the `remote.add_interface` replacement has to remove the closing `)` (parenthesis) of the call. In order to find this parethesis it's using `%b()` in a pattern, which means it can fail to find the right parenthesis if there are unbalanced or escaped parenthesis inside strings or comments. You can either manually add parenthesis inside comments to balance them out again, or if it's just not worth it you can add `--##` somewhere within or after the `remote.add_interface` call.
+If you payed close attention to the previous example you may notice that the `remote.add_interface` replacement has to remove the closing `)` (parenthesis) of the call. In order to find this parethesis it's using `%b()` in a pattern, which means it can fail to find the right parenthesis if there are unbalanced or escaped parenthesis inside strings or comments. You can either manually add parenthesis inside comments to balance them out again, or if it's just not worth it you can add `--##` somewhere within or after the `remote.add_interface` call, but the earlier the better, because it will only search for it until the end of the line where it found it's closing parenthesis.
 
 Here are some examples
 ```lua
@@ -160,6 +160,13 @@ remote.add_interface("foo", { --## plugin, don't even try
     return "())(((()())(())()))())"
   end,
 })
+
+local foo = {
+  bar = function()
+    return "())(((()())(())()))())"
+  end,
+}
+remote.add_interface("foo", foo)
 ```
 Would look something similar to this to the language server (notice the strings)
 ```lua
@@ -180,6 +187,13 @@ remote.add_interface("foo", { --## plugin, don't even try
     return "())(((()())(())()))())"
   end,
 })
+
+local foo = {
+  bar = function()
+    return "())(((()())(())()))())"
+  end,
+}
+remote.__all_remote_interfaces.foo = foo
 ```
 
 ## ---@typelist
