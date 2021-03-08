@@ -311,6 +311,10 @@ function type_list(uri, text, diffs)
     text:gmatch("()---@typelist([^\n]*)\n()([^\n]*)")
   do
 
+    if next_line:match("^%s*%-%-") then
+      goto continue
+    end
+
     ---@type string[]
     local types = {}
     do
