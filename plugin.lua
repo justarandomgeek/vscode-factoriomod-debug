@@ -1,5 +1,9 @@
 --##
 
+-- (this should probably be in some better location, maybe the readme? i'm not sure)
+-- what do the different prefixes for gmatch results mean:
+-- s = start, f = finish, p = position, no prefix = an actual string capture
+
 -- allow for require to search relative to this plugin file
 -- open for improvements!
 if not _G.__plugin_initialized then
@@ -185,34 +189,76 @@ end
 ---@param diffs diff[] @ The diffs to add more diffs to
 function replace_remotes(uri, text, diffs)
 
+  ---parse one param and use it to index into the previous table
+  ---creates 2 new elements in the chain_diff where the first one
+  ---represents the actual string contents or identifier
+  ---@param chain_diff ChainDiffElem[]
+  ---@param p_param_start integer
+  ---@return string|nil
+  ---@return ","|")"|string|nil
+  ---@return number|nil
+  local function process_param(chain_diff, p_param_start)
+    ---@type string|number|nil
+    local s_param, param, f_param, comma_or_parenth, p_param_finish
+      = text:match("^%s*()[\"']([^\"']*)[\"']()%s*([,)])()", p_param_start)
+
+    if not param then
+      diffs[#diffs] = nil
+      return nil
+    end
+    local i = #chain_diff + 1
+    chain_diff[i] = {i = s_param}
+    chain_diff[i + 1] = {i = f_param}
+    use_source_to_index(chain_diff, i, param, true)
+
+    return param, comma_or_parenth, p_param_finish
+  end
+
   -- remote.add_interface
-  -- TODO: impl
 
-  -- ---@type string|number
-  -- for sadd, fadd, popen_parenth, sname, name, fname, picomma
-  -- in
-  --   text:gmatch("remote%s*%.%s*()add_interface()%s*()%(()%s*(.-)%s*()(),")
-  -- do
-  --   add_diff(diffs, sadd, fadd, "__all_remote_interfaces")
-  --   add_diff(diffs, popen_parenth, popen_parenth + 1, "")
-  --   add_diff(diffs, sname, fname, use_source_to_index_into_table(name))
-  --   add_diff(diffs, picomma, picomma + 1, "=")
-  -- end
+  ---@type string|number
+  for s_entire_thing, s_add, f_add, p_open_parenth, p_param_1
+  in
+    text:gmatch("()remote%s*%.%s*()add_interface()%s*()%(()")
+  do
 
-  -- ---@type string|number
-  -- for start, finish in text:gmatch("()%}%)()") do
-  --   add_diff(diffs, start, finish, "}")
-  -- end
+    ---@type ChainDiffElem[]
+    local chain_diff = {}
+    local open_parenth_diff = {i = p_open_parenth, text = ""}
+    chain_diff[1] = open_parenth_diff
+
+    local name, name_comma_or_parenth, s_param_2 = process_param(chain_diff, p_param_1)
+    if not name then
+      goto continue
+    end
+
+    if name_comma_or_parenth == "," then
+      -- p_closing_parenth is one past the actual closing parenthesis
+      ---@type number
+      local p_closing_parenth, f_entire_thing = text:match("^%b()()[^\n]*()", p_open_parenth)
+
+      if p_closing_parenth
+        and not text:sub(s_entire_thing, f_entire_thing):find("--##", 1, true)
+      then
+        extend_chain_diff_elem_text(chain_diff[3], "=")
+        chain_diff[4] = {i = s_param_2}
+        add_diff(diffs, s_add, f_add, "__all_remote_interfaces")
+        add_chain_diff(chain_diff, diffs)
+        add_diff(diffs, p_closing_parenth - 1, p_closing_parenth, "")
+      end
+    end
+
+    ::continue::
+  end
 
 
 
   -- remote.call
   -- this in particular needs to work as you're typing, not just once you're done
   -- which segnificantly complicates things, like we can't use the commas as reliable anchors
-  -- s = start, f = finish, p = position, no prefix = an actual string capture
 
   ---@type string|number
-  for s_call, f_call, p_open_parenth, p_param_1
+  for s_call, f_call, p_open_parenth, s_param_1
   in
     text:gmatch("remote%s*%.%s*()call()%s*()%(()")
   do
@@ -223,38 +269,13 @@ function replace_remotes(uri, text, diffs)
     local open_parenth_diff = {i = p_open_parenth, text = ""}
     chain_diff[1] = open_parenth_diff
 
-    ---parse one param and use it to index into the previous table
-    ---creates 2 new elements in the chain_diff where the first one
-    ---represents the actual string contents or identifier
-    ---@param p_param_start integer
-    ---@return string|nil
-    ---@return ","|")"|string|nil
-    ---@return number|nil
-    local function process_param(p_param_start)
-      ---@type string|number|nil
-      local s_param, param, f_param, comma_or_parenth, p_param_finish
-        = text:match("^%s*()[\"']([^\"']*)[\"']()%s*([,)])()", p_param_start)
-
-      if not param then
-        diffs[#diffs] = nil
-        return nil
-      end
-      local i = #chain_diff + 1
-      chain_diff[i] = {i = s_param}
-      chain_diff[i + 1] = {i = f_param}
-      use_source_to_index(chain_diff, i, param, true)
-
-      return param, comma_or_parenth, p_param_finish
-    end
-
-    local name, name_comma_or_parenth, s_param_2 = process_param(p_param_1)
+    local name, name_comma_or_parenth, s_param_2 = process_param(chain_diff, s_param_1)
     if not name then
       goto continue
     end
 
     if name_comma_or_parenth == "," then
-
-      local func, func_comma_or_parenth, p_finish = process_param(s_param_2)
+      local func, func_comma_or_parenth, p_finish = process_param(chain_diff, s_param_2)
       if not func then
         goto continue
       end

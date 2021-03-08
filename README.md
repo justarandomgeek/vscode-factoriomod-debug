@@ -104,8 +104,6 @@ In order to not touch the wrong things it only replaces those where `global` is 
 
 ## Remotes
 
-**!! `remote.add_interface` is not implemented yet !!**
-
 To help with intelisense for remotes, such as go to definition or knowing about which parameters a remote interface function takes and what it returns the plugin makes `remote.call` and `remote.add_interface` calls look different to the language server.
 
 For example
@@ -138,6 +136,51 @@ remote.__all_remote_interfaces.foo.bar("arg 1", "arg 2")
 ```
 
 Then when you for example hover over the string `"bar"` in the `remote.call` call you should get intelisense showing the signature of the function bar as defined above.
+
+### More about remote.add_interface
+
+If you payed close attention to the previous example you may notice that the `remote.add_interface` replacement has to remove the closing `)` (parenthesis) of the call. In order to find this parethesis it's using `%b()` in a pattern, which means it can fail to find the right parenthesis if there are unbalanced or escaped parenthesis inside strings or comments. You can either manually add parenthesis inside comments to balance them out again, or if it's just not worth it you can add `--##` somewhere within or after the `remote.add_interface` call.
+
+Here are some examples
+```lua
+remote.add_interface("foo", {
+  bar = function()
+    return ")"
+  end,
+})
+
+remote.add_interface("foo", {
+  bar = function() -- ( for plugin
+    return ")"
+  end,
+})
+
+remote.add_interface("foo", { --## plugin, don't even try
+  bar = function()
+    return "())(((()())(())()))())"
+  end,
+})
+```
+Would look something similar to this to the language server (notice the strings)
+```lua
+remote.__all_remote_interfaces.foo = {
+  bar = function()
+    return ""
+  end,
+})
+
+remote.__all_remote_interfaces.foo = {
+  bar = function() -- ( for plugin
+    return ")"
+  end,
+}
+
+remote.add_interface("foo", { --## plugin, don't even try
+  bar = function()
+    return "())(((()())(())()))())"
+  end,
+})
+```
 
 ## ---@typelist
 
