@@ -6,7 +6,8 @@
     "name":{
       "type":"string",
       "title": "Internal name of the mod",
-      "pattern": "[a-zA-Z0-9_-]{1,100}"
+      "pattern": "[a-zA-Z0-9_-]+",
+      "maxLength": 100
     },
     "version": {
       "type":"string",
@@ -16,7 +17,8 @@
     "title": {
       "type": "string",
       "title": "Display name of the mod",
-      "description": "Can be overwritten by locale entry in the `mod-name` category"
+      "description": "Can be overwritten by locale entry in the `mod-name` category",
+      "maxLength": 100
     },
     "author": {
       "type": "string",
@@ -46,7 +48,41 @@
       "title": "Mods this mod depends on or are incompatible with",
       "items": {
         "type":"string",
-        "pattern": "^(([!?]|\\(\\?\\)) *)?([a-zA-Z0-9_ -]+)( *([<>=]=?) *((\\d+\\.){1,2}\\d+))?$"
+        "pattern": "^(([!?~]|\\(\\?\\)) *)?([a-zA-Z0-9_ -]+)( *([<>=]=?) *((\\d+\\.){1,2}\\d+))?$",
+        "defaultSnippets": [
+          {
+            "label": "simple",
+            "body": "${1:modname}"
+          },
+          {
+            "label": "version",
+            "body": "${1:modname} ${2|<,<=,>,>=,==|} ${3:0.0.0}"
+          },
+          {
+            "label": "incompatible",
+            "body": "! ${1:modname}"
+          },
+          {
+            "label": "optional",
+            "body": "? ${1:modname}"
+          },
+          {
+            "label": "hidden",
+            "body": "(?) ${1:modname}"
+          },
+          {
+            "label": "unordered",
+            "body": "~ ${1:modname}"
+          },
+          {
+            "label": "version",
+            "body": "${1:modname} ${2|<,<=,>,>=,==|} ${3:0.0.0}"
+          },
+          {
+            "label": "full",
+            "body": "${1| ,~,!,?,(?)|} ${2:modname} ${3|<,<=,>,>=,==|} ${4:0.0.0}"
+          }
+        ]
       }
     }
   }

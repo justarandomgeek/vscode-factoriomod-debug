@@ -4,7 +4,9 @@
 
 ## 1.1.8
 
-* Mod name lengths are now limited to 100 characters
+* Mod name and title lengths are now limited to 100 characters
+* Correctly validate `~` unordered mod dependencies
+* Snippet for creating dependency entries
 
 ## 1.1.7
 
