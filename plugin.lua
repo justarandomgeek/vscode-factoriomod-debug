@@ -22,7 +22,11 @@ if not _G.__plugin_initialized then
     plugin_path = fs.path(workspace.path) / plugin_path
   end
 
-  package.path = package.path .. ";" .. (plugin_path:parent_path() / "?.lua"):string()
+  ---@type string
+  local new_path = (plugin_path:parent_path() / "?.lua"):string()
+  if not package.path:find(new_path, 1, true) then
+    package.path = package.path..";"..new_path
+  end
 end
 
 ---@class diff
