@@ -5,6 +5,7 @@ local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local print = print
 local localised_print = localised_print
 local debug = debug
+local mod_name = script.mod_name
 
 ---@class TimeAndCount
 ---@field count number
@@ -170,7 +171,7 @@ end
 local function dump()
   local t = game.create_profiler()
   print("***DebugAdapterBlockPrint***\nPROFILE:")
-  localised_print{"","PMN:",script.mod_name,":",luatotal}
+  localised_print{"","PMN:",mod_name,":",luatotal}
   luatotal = nil
   for file,f in pairs(linedata) do
     print("PFN:"..file)
@@ -203,12 +204,13 @@ local function dump()
   calltree = { root = true, children = {} }
 end
 
-local function attach()
+local hook
+do
   local getinfo = debug.getinfo
   local sub = string.sub
   ---@param event string
   ---@param line number
-  debug.sethook(function(event,line)
+  function hook(event,line)
     if hooktimer then
       hooktimer.stop()
     elseif game then
@@ -290,11 +292,14 @@ local function attach()
     if hooktimer then
       return hooktimer.reset()
     end
-  end, (__Profiler.trackLines ~= false) and "clr" or "cr")
+  end
+end
+local function attach()
+  debug.sethook(hook, (__Profiler.trackLines ~= false) and "clr" or "cr")
 end
 
-if script.mod_name ~= "debugadapter" then -- don't hook myself!
-  remote.add_interface("__profiler_" .. script.mod_name ,{
+if mod_name ~= "debugadapter" then -- don't hook myself!
+  remote.add_interface("__profiler_" .. mod_name ,{
     dump = function()
       dumpnow = true
     end,
@@ -303,6 +308,6 @@ if script.mod_name ~= "debugadapter" then -- don't hook myself!
       dumpnow = true
     end,
   })
-  log("profiler registered for " .. script.mod_name)
+  log("profiler registered for " .. mod_name)
   attach()
 end
