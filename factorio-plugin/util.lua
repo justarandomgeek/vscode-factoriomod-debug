@@ -1,3 +1,4 @@
+--##
 
 ---extends the text of a ChainDiffElem or setting it if it is nil
 ---@param elem ChainDiffElem
