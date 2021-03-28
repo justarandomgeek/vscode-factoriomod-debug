@@ -22,13 +22,13 @@ local function replace(uri, text, diffs)
   local function process_func_param(s_func_param, class_name_getter)
     ---@type string|number
     local s_func, param_name, f_func = text:match("^%s*()function%s*%(%s*([^)%s]+)()", s_func_param)
-      if s_func and not text:find("^[^\n]-%-%-##", f_func) then
-        local class_name = class_name_getter()
-        if class_name then
-          util.add_diff(diffs, s_func_param, s_func,
-            "\n---@diagnostic disable-next-line\n---@param "..param_name.." "..class_name.."\n")
-        end
+    if s_func and not text:find("^[^\n]-%-%-##", f_func) then
+      local class_name = class_name_getter()
+      if class_name then
+        util.add_diff(diffs, s_func_param, s_func,
+          "\n---@diagnostic disable-next-line\n---@param "..param_name.." "..class_name.."\n")
       end
+    end
   end
 
   ---@param s_param number
