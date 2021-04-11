@@ -65,19 +65,28 @@ local function replace(uri, text, diffs)
     end
   end
 
-  ---@type number
-  for s_param in text:gmatch("on_event%s*%(%s*()") do
-    process_regular(s_param)
-  end
-
-  ---@type number
-  for s_param in text:gmatch("[Ee]vent%s*%.%s*register%s*%(%s*()") do
-    process_regular(s_param)
+  ---@type string|number
+  for preceding_text, s_param in util.gmatch_at_start_of_line(text, "([^\n]-)on_event%s*%(%s*()") do
+    if not preceding_text:find("--", 1, true) then
+      process_regular(s_param)
+    end
   end
 
   ---@type string|number
-  for class_name, s_func_param in text:gmatch("[Ee]vent%s*%.%s*([a-zA-Z_][a-zA-Z0-9_]*)%s*%(()") do
-    process_func_param(s_func_param, function() return class_name end)
+  for preceding_text, s_param in util.gmatch_at_start_of_line(text, "([^\n]-)[Ee]vent%s*%.%s*register%s*%(%s*()") do
+    if not preceding_text:find("--", 1, true) then
+      process_regular(s_param)
+    end
+  end
+
+  ---@type string|number
+  for preceding_text, class_name, s_func_param
+  in
+    util.gmatch_at_start_of_line(text, "([^\n]-)[Ee]vent%s*%.%s*([a-zA-Z_][a-zA-Z0-9_]*)%s*%(()")
+  do
+    if not preceding_text:find("--", 1, true) then
+      process_func_param(s_func_param, function() return class_name end)
+    end
   end
 end
 

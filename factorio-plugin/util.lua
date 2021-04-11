@@ -1,5 +1,28 @@
 --##
 
+---it's string.gmatch, but anchored at the start of a line
+---it is not supported to capture the entire match by not defining any captures
+---in that case explicitly define the capture. (Because a newline might be added at the start)
+---@param s string
+---@param pattern string
+---@param init? integer
+---@return fun(): string|integer, ...
+local function gmatch_at_start_of_line(s, pattern, init)
+  local first = false
+  local unpack = table.unpack
+  ---@type fun(): string|integer, ...
+  local gmatch_iterator = s:gmatch("\n"..pattern, init)
+  return function()
+    if first then
+      local result = {s:match("^"..pattern)}
+      if result[1] then
+        return unpack(result)
+      end
+    end
+    return gmatch_iterator()
+  end
+end
+
 ---extends the text of a ChainDiffElem or setting it if it is nil
 ---@param elem ChainDiffElem
 ---@param text string
@@ -82,6 +105,7 @@ local function add_chain_diff(chain_diff, diffs)
 end
 
 return {
+  gmatch_at_start_of_line = gmatch_at_start_of_line,
   add_diff = add_diff,
   add_chain_diff = add_chain_diff,
   extend_chain_diff_elem_text = extend_chain_diff_elem_text,
