@@ -21,7 +21,6 @@ local function replace(uri, text, diffs)
       = text:match("^%s*()[\"']([^\"']*)[\"']()%s*([,)])()", p_param_start)
 
     if not param then
-      diffs[#diffs] = nil
       return nil
     end
     local i = #chain_diff + 1
@@ -89,12 +88,14 @@ local function replace(uri, text, diffs)
 
     local name, name_comma_or_parenth, s_param_2 = process_param(chain_diff, s_param_1)
     if not name then
+      diffs[#diffs] = nil
       goto continue
     end
 
     if name_comma_or_parenth == "," then
       local func, func_comma_or_parenth, p_finish = process_param(chain_diff, s_param_2)
       if not func then
+        diffs[#diffs] = nil
         goto continue
       end
 
