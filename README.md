@@ -214,3 +214,30 @@ bar = string.match("Hello world!", "()(l+)")
 ```
 
 It only supports `---@typelist` being on one line and it only affects the next line. And it uses `,` (commas) as separators. (commas inside `< >` or `( )` are ignored on the `---@typelist` line.)
+
+## ---@narrow
+
+Another thing the annotations are lacking currently is a way to change the type of a variable, which is usually something you want to narrow down the type of that variable.
+
+For example
+```lua
+---@param value any
+local function foo(value)
+  if type(value) == "string" then
+    ---@narrow value string
+    -- now value is a string, not any
+  end
+end
+```
+Would look something similar to this to the language server
+```lua
+---@param value any
+local function foo(value)
+  if type(value) == "string" then
+    value = value ---@type string
+    -- now value is a string, not any
+  end
+end
+```
+
+It specifically looks for `---@narrow` followed by space and an identifier, then does the replacement so that the type is actually used in place, exactly how/where you wrote it.
