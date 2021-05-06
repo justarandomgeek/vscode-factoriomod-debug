@@ -16,6 +16,7 @@ local function replace(uri, text, diffs)
     -- a variable (like when you position your curosr on the identifier)
     util.add_diff(diffs, s, s_id, string.rep(" ", 11)..id.."=")
     util.add_diff(diffs, f, f, "---@type")
+    -- TODO: somehow prevent this from duplicating the name if the variable gets renamed
   end
 end
 

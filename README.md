@@ -241,3 +241,5 @@ end
 ```
 
 It specifically looks for `---@narrow` followed by space and an identifier, then does the replacement so that the type is actually used in place, exactly how/where you wrote it.
+
+**Known Issues:** When renaming the variable the new name gets duplicated on the `---@narrow` line. Now sure how to fix this yet
