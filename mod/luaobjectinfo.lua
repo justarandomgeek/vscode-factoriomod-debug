@@ -1251,7 +1251,7 @@ return {
 
             ["ammo-turret"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not string.match(k,"^turret_") end),
             ["artillery-turret"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not string.match(k,"^artillery_turret_") end),
-            ["artillery-wagon"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not string.match(k,"^artillery_turret_") end),
+            ["artillery-wagon"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not string.match(k,"^artillery_wagon_") end),
             ["roboport"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not string.match(k,"^roboport_") end),
             ["beacon"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not string.match(k,"^beacon_") end),
             ["character-corpse"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not string.match(k,"^character_corpse_") end),
