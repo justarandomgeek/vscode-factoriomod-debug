@@ -38,6 +38,9 @@ if not script then return end
 
 ---@type table<function,string>
 local handlernames = setmetatable({},{__mode="k"})
+---@type table<string,function>
+local handlers = {}
+
 ---@type table<string,table<string,function>>
 local myRemotes = {}
 
@@ -67,12 +70,20 @@ end
 ---@param entryname string
 ---@return function func
 local function labelhandler(func,entryname)
-  if func == nil then return nil end
-  if handlernames[func] then
-    handlernames[func] = "(shared handler)"
-  else
-    handlernames[func] = entryname
+  if func then
+    if handlernames[func] then
+      handlernames[func] = "(shared handler)"
+    else
+      handlernames[func] = entryname
+    end
+    do
+      local oldhandler = handlers[entryname]
+      if oldhandler and oldhandler ~= func then
+        __DebugAdapter.print("Replacing existing {entryname} {oldhandler} with {func}",nil,3,"console",true)
+      end
+    end
   end
+  handlers[entryname] = func
   return func
 end
 __DebugAdapter.stepIgnore(labelhandler)

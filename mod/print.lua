@@ -10,13 +10,14 @@ local print = print
 ---@param alsoLookIn table
 ---@param upStack number
 ---@param category string "console"|"stdout"|"stderr"
-function __DebugAdapter.print(expr,alsoLookIn,upStack,category)
+---@param noexprs boolean
+function __DebugAdapter.print(expr,alsoLookIn,upStack,category,noexprs)
   local texpr = type(expr)
   local result,ref
   if texpr == "string" then
     local exprs
     result,exprs = __DebugAdapter.stringInterp(expr,3,alsoLookIn,"print")
-    if next(exprs) then
+    if next(exprs) and not noexprs then
       setmetatable(exprs,{
         __debugline = function() return result end,
         __debugtype = "<print>",
