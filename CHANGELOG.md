@@ -5,6 +5,7 @@
 ## 1.1.9
 
 * Correctly reverse-lookup `defines.inventory.artillery_wagon_ammo`
+* Warn when using `math.randomseed()` which is disabled in Factorio
 
 ## 1.1.8
 

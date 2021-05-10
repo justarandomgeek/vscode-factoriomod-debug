@@ -47,6 +47,7 @@ require("__debugadapter__/print.lua") -- uses evaluate/variables
 require("__debugadapter__/entrypoints.lua") -- must be after anyone using pcall/xpcall
 
 require("__debugadapter__/stacks.lua")
+require("__debugadapter__/misc.lua")
 
 local script = script
 local debug = debug
