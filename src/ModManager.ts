@@ -55,10 +55,14 @@ export class ModManager {
 			const dirinfopath = path.resolve(dirpath,"info.json");
 			if (fs.existsSync(dirinfopath))
 			{
-				const dirinfo:ModInfo = JSON.parse(fs.readFileSync(dirinfopath,"utf8"));
-				if (dirinfo.name === name && dirinfo.version === version)
+				const jsonstr = fs.readFileSync(dirinfopath,"utf8");
+				if (jsonstr)
 				{
-					return true;
+					const dirinfo:ModInfo = JSON.parse(jsonstr);
+					if (dirinfo.name === name && dirinfo.version === version)
+					{
+						return true;
+					}
 				}
 			}
 			return false;

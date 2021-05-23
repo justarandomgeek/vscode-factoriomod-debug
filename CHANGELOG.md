@@ -7,6 +7,7 @@
 * Correctly reverse-lookup `defines.inventory.artillery_wagon_ammo`
 * Warn when using `math.randomseed()` which is disabled in Factorio
 * Warn when replacing an existing event handler
+* Correctly handle empty `info.json` files in workspace
 
 ## 1.1.8
 

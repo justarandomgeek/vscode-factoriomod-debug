@@ -981,18 +981,26 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	private updateInfoJson(uri:vscode.Uri)
 	{
-		let jsonpath = uri.path;
-		if (os.platform() === "win32" && jsonpath.startsWith("/")) {jsonpath = jsonpath.substr(1);}
-		const moddata = JSON.parse(fs.readFileSync(jsonpath, "utf8"));
-		if (moddata)
-		{
-			const mp = {
-				uri: uri.with({path:path.posix.dirname(uri.path)}),
-				name: moddata.name,
-				version: moddata.version,
-				info: moddata
-			};
-			this.workspaceModInfo.push(mp);
+		try {
+			let jsonpath = uri.path;
+			if (os.platform() === "win32" && jsonpath.startsWith("/")) {jsonpath = jsonpath.substr(1);}
+			const jsonstr = fs.readFileSync(jsonpath, "utf8");
+			if (jsonstr)
+			{
+				const moddata = JSON.parse(jsonstr);
+				if (moddata)
+				{
+					const mp = {
+						uri: uri.with({path:path.posix.dirname(uri.path)}),
+						name: moddata.name,
+						version: moddata.version,
+						info: moddata
+					};
+					this.workspaceModInfo.push(mp);
+				}
+			}
+		} catch (error) {
+			this.sendEvent(new OutputEvent(`failed to read ${uri} ${error}\n`,"stderr"));
 		}
 	}
 
