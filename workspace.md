@@ -65,13 +65,11 @@ In addition to these, you'll want a little configuration to tell your Lua Langua
   "Lua.diagnostics.disable": [
     "lowercase-global"
   ],
-  "Lua.workspace.library": {
-
+  "Lua.workspace.library": [
     /* Adjust these to match your Factorio install path */
-    "C:/path/to/factorio/data/": true, /* for __base__ and __core__ */
-    "C:/path/to/factorio/data/core/lualib": true, /* some basic libs can be required directly*/
-
-  },
+    "C:/path/to/factorio/data/", /* for __base__ and __core__ */
+    "C:/path/to/factorio/data/core/lualib", /* some basic libs can be required directly*/
+  ],
 ```
 
 Clone [the Factorio Sumneko Lua Plugin](https://github.com/JanSharp/FactorioSumnekoLuaPlugin) into `.vscode/lua` to improve handling of `require`s, `global`, and `remote.call`.
