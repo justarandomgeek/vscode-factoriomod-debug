@@ -25,6 +25,9 @@ __DebugAdapter = __DebugAdapter or {} -- but might have been defined already for
 local __DebugAdapter = __DebugAdapter
 local require = require
 
+-- capture raw remote before it gets replaced
+local remote = remote
+
 pcall(function()
   -- see if we have debug.getinfo(,"p") to get currentpc
   -- if not, this will throw and exit the pcall immediately before setting flag

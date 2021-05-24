@@ -4,6 +4,7 @@
 
 ## 1.1.10
 
+* Correctly capture raw `remote` for debugger internal use before replacing it with wrapper
 
 ## 1.1.9
 
