@@ -19,6 +19,8 @@ git clone --single-branch --branch master https://github.com/JanSharp/FactorioSu
 ```
 This will clone the master branch of this repository into the `lua` folder from the current directory, which is the `.vscode` directory.
 
+After installing make sure to reload vscode.
+
 ## How to update
 
 To update the plugin simply use `git pull`. The master branch should always be in a functional state.
@@ -29,6 +31,8 @@ To update the plugin simply use `git pull`. The master branch should always be i
 git pull
 ```
 Or use any other method of using git you're comfortable with.
+
+After updating make sure to reload vscode.
 
 ## But i'm different
 
