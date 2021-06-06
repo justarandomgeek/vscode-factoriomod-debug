@@ -1,0 +1,598 @@
+import { WritableStream as WritableMemoryStream } from "memory-streams";
+
+
+function extend_string(param:{
+	pre?:string		// if str is not empty this will be preprended
+	str:string		// the part to concat which may be empty ("")
+	post?:string	// if str is not empty this will be appended
+
+	//if str is empty this will be used, pre and post will not be applied however
+	fallback?:string
+}):string {
+	if (!param.str) {
+		return param.fallback ?? "";
+	} else {
+		return `${param.pre??""}${param.str}${param.post??""}`;
+	}
+}
+
+function escape_lua_keyword(str:string) {
+	const keywords = ["and", "break", "do", "else", "elseif", "end", "false", "for",
+		"function", "goto", "if", "in", "local", "nil", "not", "or", "repeat", "return",
+		"then", "true", "until", "while"];
+	return keywords.includes(str)?`${str}_`:str;
+}
+
+function to_lua_ident(str:string) {
+	return escape_lua_keyword(str.replace(/[^a-zA-Z0-9]/g,"_").replace(/^([0-9])/,"_$1"));
+}
+
+export class ApiDocGenerator {
+	private readonly docs:ApiDocs;
+
+	private readonly classes:Map<string,ApiClass>;
+	private readonly events:Map<string,ApiEvent>;
+	private readonly concepts:Map<string,ApiConcept>;
+	private readonly builtins:Map<string,ApiBuiltin>;
+	private readonly globals:Map<string,ApiGlobalObject>;
+
+	private readonly defines:Set<string>;
+
+	//TODO: version
+	private runtime_api_base:string = "https://lua-api.factorio.com/latest/";
+
+	constructor(readonly docjson:string) {
+		this.docs = JSON.parse(docjson);
+
+		this.classes = new Map(this.docs.classes.map(c => [c.name,c]));
+		this.events = new Map(this.docs.events.map(c => [c.name,c]));
+		this.concepts = new Map(this.docs.concepts.map(c => [c.name,c]));
+		this.builtins = new Map(this.docs.builtin_types.map(c => [c.name,c]));
+
+		this.globals = new Map(this.docs.global_objects.map(g => [this.format_type(g.type,()=>{throw "complex global";}),g]));
+
+		this.defines = new Set<string>();
+		this.defines.add("defines");
+		this.docs.defines.forEach(define=>this.add_define(define,"defines."));
+	}
+
+	public generate_emmylua_docs() {
+		const ms = new WritableMemoryStream();
+		ms.write(`---@meta\n`);
+		ms.write(`---@diagnostic disable\n`);
+		ms.write(`\n`);
+		this.generate_emmylua_builtin(ms);
+		ms.write(`\n`);
+		this.generate_emmylua_defines(ms);
+		ms.write(`\n`);
+		this.generate_emmylua_events(ms);
+		ms.write(`\n`);
+		this.generate_emmylua_classes(ms);
+		ms.write(`\n`);
+		this.generate_emmylua_concepts(ms);
+		ms.write(`\n`);
+		this.generate_emmylua_custom(ms);
+		ms.write(`\n`);
+		this.generate_emmylua_table_types(ms);
+		ms.write(`\n`);
+		return ms.toBuffer();
+	}
+
+	private generate_emmylua_builtin(output:WritableMemoryStream) {
+		this.docs.builtin_types.forEach(builtin=>{
+			if (!(["string","boolean","table"].includes(builtin.name))) {
+				output.write(this.convert_description(
+					extend_string({str:builtin.description, post:"\n\n"}) + this.view_documentation(builtin.name)
+					));
+				output.write(`---@class ${builtin.name}:number\n`);
+			}
+		});
+	}
+	private generate_emmylua_defines(output:WritableMemoryStream) {
+		output.write(this.convert_description(this.view_documentation("defines")));
+		output.write("---@class defines\n");
+		output.write("defines={}\n");
+
+		const generate = (define:ApiDefine,name_prefix:string) => {
+			const name = `${name_prefix}${define.name}`;
+			output.write(this.convert_description(
+				extend_string({str: define.description, post: "\n\n"})+this.view_documentation(name)
+			));
+			output.write(`---@class ${name}\n${name}={\n`);
+			const child_prefix = `${name}.`;
+			if (define.values) {
+				define.values.forEach(value=>{
+					output.write(this.convert_description(
+						extend_string({str: value.description, post: "\n\n"})+this.view_documentation(`${name}.${value.name}`)
+						));
+					output.write(to_lua_ident(value.name)+"=0,\n");
+					this.defines.add(`${child_prefix}${value.name}`);
+				});
+			}
+			output.write("}\n");
+			if (define.subkeys) {
+				define.subkeys.forEach(subkey=>generate(subkey,child_prefix));
+			}
+		};
+
+		this.docs.defines.forEach(define=>generate(define,"defines."));
+	}
+	private generate_emmylua_events(output:WritableMemoryStream) {
+		this.docs.events.forEach(event=>{
+			const view_documentation_link = this.view_documentation(event.name);
+			output.write(this.convert_description(this.format_entire_description(event,view_documentation_link)));
+			output.write(`---@class ${event.name}\n`);
+			event.data.forEach(param=>{
+				output.write(this.convert_description(extend_string({str: param.description, post: "\n\n"}) + view_documentation_link));
+				output.write(`---@field ${param.name} ${this.format_type(param.type,()=>[`${event.name}.${param.name}`, view_documentation_link])}`);
+				output.write(param.optional?"|nil\n":"\n");
+			});
+		});
+	}
+	private generate_emmylua_classes(output:WritableMemoryStream) {
+		this.docs.classes.forEach(aclass=>{
+			this.add_class(output,aclass);
+		});
+	}
+
+	private convert_param_or_return_description(description?:string):string
+	{
+		if (!description) {
+			return "\n";
+		} else if (!description.includes("\n")) {
+			return `@${this.preprocess_description(description)}\n`;
+		} else {
+			return `@\n${this.convert_description(description)}`;
+		}
+	}
+
+	private convert_param_or_return(api_type:ApiType|undefined, description:string|undefined, get_table_name_and_view_doc_link:()=>[string,string]):string
+	{
+		return this.format_type(api_type,get_table_name_and_view_doc_link)+this.convert_param_or_return_description(description);
+	}
+
+	// get the description of a global variable with for the given type if there is one
+	private try_get_global_description(doc_type_name:string): string
+	{
+		return this.globals.get(doc_type_name)?.description ?? "";
+	}
+
+	private convert_base_classes(base_classes?:string[]):string
+	{
+		return base_classes?":"+base_classes.join(","):"";
+	}
+
+	// get either `local <to_id(doc_type_name)>` or `<global_name_for_this_type>` using globals_map
+	private get_local_or_global(doc_type_name:string): string
+	{
+		return this.globals.get(doc_type_name)?.name ?? `local ${to_lua_ident(doc_type_name)}`;
+	}
+
+	private add_class(output:WritableMemoryStream,aclass:ApiClass,is_struct?:boolean) {
+		const add_attribute = (attribute:ApiAttribute,oper_lua_name?:string,oper_html_name?:string)=>{
+			const aname = oper_lua_name ?? attribute.name;
+			const view_doc_link = this.view_documentation(`${aclass.name}::${oper_html_name ?? aname}`);
+			output.write(this.convert_description(this.format_entire_description(
+				attribute, view_doc_link, `[${attribute.read?"R":""}${attribute.write?"W":""}]${extend_string({pre:"\n", str:attribute.description})}`
+			)));
+			output.write(`---@field ${aname} ${this.format_type(attribute.type, ()=>[`${aclass.name}.${aname}`,view_doc_link])}\n`);
+		};
+
+		const view_documentation_for_method = (method_name:string)=>{
+			return this.view_documentation(`${aclass.name}::${method_name}`);
+		};
+
+		const add_vararg_annotation = (parameter:ApiParameter, method:ApiMethod)=>{
+			output.write(`---@vararg ${this.format_type(parameter.type,()=>[`${aclass.name}.${method.name}_vararg`, view_documentation_for_method(method.name)])}\n`);
+			if (parameter.description) {
+				output.write(this.convert_description(`\n**vararg**: ${parameter.description.includes("\n")?"\n\n":""}${parameter.description}`));
+			}
+		};
+
+		const add_param_annotation = (parameter:ApiParameter,method:ApiMethod)=>{
+			output.write(`---@param ${escape_lua_keyword(parameter.name)}${parameter.optional?"?":" "}`);
+			output.write(this.convert_param_or_return(parameter.type,parameter.description,()=>[
+				`${aclass.name}.${method.name}.${parameter.name}`, view_documentation_for_method(method.name)
+			]));
+		};
+
+		const add_return_annotation = (method:ApiMethod)=>{
+			if (method.return_type) {
+				output.write(`---@return ${this.convert_param_or_return(method.return_type,method.return_description,()=>[
+					`${aclass.name}.${method.name}_return`, view_documentation_for_method(method.name)
+				])}`);
+			}
+		};
+
+		const convert_description_for_method = (method:ApiMethod,html_name?:string)=>
+			this.convert_description(this.format_entire_description(method,view_documentation_for_method(html_name??method.name)));
+
+		const add_regular_method = (method:ApiMethod,oper_lua_name?:string,oper_html_name?:string)=>{
+			output.write(convert_description_for_method(method,oper_html_name));
+			const sorted_params = method.parameters.sort((a,b)=>a.order - b.order);
+			sorted_params.forEach(p=>{
+				if(p.name === "...") {
+					add_vararg_annotation(p,method);
+				} else {
+					add_param_annotation(p,method);
+				}
+			});
+			add_return_annotation(method);
+
+			output.write(`${oper_lua_name??method.name}=function(${sorted_params.map(p=>escape_lua_keyword(p.name)).join(",")})end,\n`);
+		};
+
+		const add_method_taking_table = (method:ApiMethod)=>{
+			const param_class_name = `${aclass.name}.${method.name}_param`;
+			this.add_table_type(output,method,param_class_name,this.view_documentation(`${aclass.name}::${method.name}`));
+			output.write("\n");
+			output.write(convert_description_for_method(method));
+			output.write(`---@param param${method.table_is_optional?"?":" "}${param_class_name}\n`);
+			add_return_annotation(method);
+			output.write(`${method.name}=function(param)end,\n`);
+		};
+
+		const add_method = (method:ApiMethod)=> method.takes_table?add_method_taking_table(method):add_regular_method(method);
+
+		const needs_label = !!aclass.description || !!aclass.notes;
+		output.write(this.convert_description(this.format_entire_description(
+			aclass, this.view_documentation(aclass.name),
+			extend_string({
+				pre: "**Global Description:**\n",
+				str: this.try_get_global_description(aclass.name),
+				post: (needs_label?"\n\n**Class Description:**\n":"\n\n")+aclass.description,
+				fallback: aclass.description,
+			})
+		)));
+		output.write(`---@class ${aclass.name}${this.convert_base_classes(aclass.base_classes)}\n`);
+
+		if (!is_struct) {
+			if(aclass.operators?.find((operator:ApiOperator)=>!["index","length","call"].includes(operator.name))){
+					throw "Unkown operator";
+			}
+		}
+
+		aclass.attributes?.forEach(a=>add_attribute(a));
+
+		if (!is_struct) {
+			(aclass.operators?.filter(op=>["index","length"].includes(op.name)) as ApiAttribute[]).forEach((operator)=>{
+				//TODO: copy?
+				const lua_name = operator.name === "index" ? "__index" : "__len";
+				const html_name = `operator%20${ operator.name === "index" ? "[]" : "#"}`;
+				add_attribute(operator,lua_name,html_name);
+			});
+
+			output.write(this.get_local_or_global(aclass.name)+"={\n");
+			aclass.methods?.forEach(add_method);
+
+			const callop = aclass.operators?.find(op=>op.name==="call") as ApiMethod;
+			if (callop){
+				add_regular_method(callop, "__call", "operator%20()");
+			}
+			output.write("}\n");
+		}
+
+	}
+
+	private generate_emmylua_concepts(output:WritableMemoryStream) {
+		const add_specification = (specification:ApiSpecificationConcept)=>{
+			const view_documentation_link = this.view_documentation(specification.name);
+			const sorted_options = specification.options.sort((a,b)=>a.order - b.order);
+			const get_table_name_and_view_doc_link = (option:ApiSpecificationConcept["options"][0]):[string,string]=>{
+				return [`${specification.name}.${option.order}`, view_documentation_link];
+			};
+			output.write(this.convert_description(this.format_entire_description(
+				specification, view_documentation_link,
+				`${extend_string({str:specification.description, post:"\n\n"})
+				}May be specified in one of the following ways:${
+					sorted_options.map(option=>`\n- ${
+						this.format_type(option.type, ()=>get_table_name_and_view_doc_link(option), true)
+					}${extend_string({pre:": ",str:option.description})}`)
+				}`
+			)));
+			output.write(`---@class ${specification.name}:`);
+			output.write(sorted_options.map(option=>this.format_type(option.type, ()=>get_table_name_and_view_doc_link(option))).join(","));
+			output.write("\n");
+		};
+
+		const add_concept = (concept:ApiConceptConcept)=>{
+			output.write(this.convert_description(this.format_entire_description(concept,this.view_documentation(concept.name))));
+			output.write(`---@class ${concept.name}\n`);
+		};
+
+		const add_struct = (struct:ApiStructConcept)=>{
+			this.add_class(output, struct,true);
+		};
+
+		const add_flag = (flag:ApiFlagConcept)=>{
+			const view_documentation_link = this.view_documentation(flag.name);
+			output.write(this.convert_description(this.format_entire_description(flag,view_documentation_link)));
+			output.write(`---@class ${flag.name}\n`);
+			flag.options.forEach(option=>{
+				output.write(this.convert_description(
+					extend_string({str:option.description, post:"\n\n"})+
+					view_documentation_link
+					));
+				output.write(`---@field ${option.name} boolean|nil\n`);
+			});
+		};
+
+		const add_table_concept = (table_concept:ApiTableConcept)=>{
+			this.add_table_type(output, table_concept, table_concept.name, this.view_documentation(table_concept.name));
+		};
+
+		const add_union = (union:ApiUnionConcept)=>{
+			output.write(this.convert_description(this.format_entire_description(
+				union, this.view_documentation(union.name),[
+					union.description, "Possible values are:",
+					union.options.sort((a,b)=>a.order-b.order).map(option=>
+						`\n- "${option.name}"${extend_string({pre:" - ",str:option.description})}`)
+				].filter(s=>!!s).join("\n\n")
+			)));
+			output.write(`---@class ${union.name}\n`);
+		};
+
+		const add_filter = (filter:ApiFilterConcept)=>{
+			this.add_table_type(output,filter,filter.name,this.view_documentation(filter.name), "Applies to filter");
+		};
+
+		this.docs.concepts.forEach(concept=>{
+			switch (concept.category) {
+				case "specification":
+					return add_specification(concept);
+				case "concept":
+					return add_concept(concept);
+				case "struct":
+					return add_struct(concept);
+				case "flag":
+					return add_flag(concept);
+				case "table":
+					return add_table_concept(concept);
+				case "union":
+					return add_union(concept);
+				case "filter":
+					return add_filter(concept);
+				default:
+					throw "Unknown concept category";
+			}
+		});
+	}
+	private generate_emmylua_custom(output:WritableMemoryStream) {
+		//TODO: just copy custom.lua
+	}
+	private generate_emmylua_table_types(output:WritableMemoryStream) {
+		output.write(this.tablebuff.toBuffer());
+	}
+
+
+	private add_define(define:ApiDefine,name_prefix:string):void {
+		const name = `${name_prefix}${define.name}`;
+		this.defines.add(name);
+		const child_prefix = `${name}.`;
+		if (define.values) {
+			define.values.forEach(value=>{
+				this.defines.add(`${child_prefix}${value.name}`);
+			});
+		}
+		if (define.subkeys) {
+			define.subkeys.forEach(subkey=>this.add_define(subkey,child_prefix));
+		}
+	}
+
+	private readonly complex_table_type_name_lut = new Set<string>();
+	private tablebuff = new WritableMemoryStream();
+
+	private add_table_type(output:WritableMemoryStream, type_data:ApiWithParameters, table_class_name:string, view_documentation_link:string, applies_to:string = "Applies to"): string
+	{
+
+		output.write(this.convert_description(view_documentation_link));
+		output.write(`---@class ${table_class_name}\n`);
+
+		interface parameter_info{
+			readonly name:string
+			readonly type:ApiType
+			description:string
+			readonly optional?:boolean
+		}
+		const custom_parameter_map = new Map<string, parameter_info>();
+		const custom_parameters:parameter_info[] = [];
+
+		type_data.parameters.sort((a,b)=>a.order-b.order).forEach((parameter,i)=>{
+			const name = parameter.name;
+			const custom_parameter = {name:name, type:parameter.type, description:parameter.description, optional:parameter.optional};
+			custom_parameter_map.set(name, custom_parameter);
+			custom_parameters.push(custom_parameter);
+		});
+
+		if (type_data.variant_parameter_groups)
+		{
+			type_data.variant_parameter_groups.sort((a,b)=>a.order-b.order).forEach(group=>{
+				group.parameters.sort((a,b)=>a.order-b.order).forEach(parameter => {
+					let custom_description = `${applies_to} **"${group.name}"**: ${parameter.optional?"(optional)":"(required)"}${extend_string({pre:"\n", str:parameter.description})}`;
+
+					let custom_parameter = custom_parameter_map.get(parameter.name);
+					if (custom_parameter)
+					{
+						custom_parameter.description = extend_string({
+						str: custom_parameter.description, post: "\n\n"
+						})+custom_description;
+					} else {
+						custom_parameter = {name:parameter.name, type:parameter.type, description:custom_description, optional:parameter.optional};
+						custom_parameter_map.set(parameter.name, custom_parameter);
+						custom_parameters.push(custom_parameter);
+					}
+				});
+			});
+		}
+
+		custom_parameters.forEach(custom_parameter=>{
+			output.write(this.convert_description(extend_string({str: custom_parameter.description, post: "\n\n"})+view_documentation_link));
+			output.write(`---@field ${custom_parameter.name} ${this.format_type(custom_parameter.type, ()=>
+				[`${table_class_name}.${custom_parameter.name}`, view_documentation_link])}`);
+			output.write((custom_parameter.optional? "|nil\n":"\n"));
+		});
+
+		return table_class_name;
+	}
+
+	private resolve_internal_reference(reference:string, display_name?:string):string
+	{
+		let relative_link:string;
+		if (this.builtins.has(reference)) {
+			relative_link = "Builtin-Types.html#"+reference;
+		} else if (this.classes.has(reference)) {
+			relative_link = reference+".html";
+		} else if (this.events.has(reference)) {
+			relative_link = "events.html#"+reference;
+		} else if (this.defines.has(reference)) {
+			relative_link = "defines.html#"+reference;
+		} else {
+			const matches = reference.match(/^(.*?)::(.*)$/);
+			if (!!matches) {
+				const class_name = matches![1];
+				const member_name = matches![2];
+				const build_link = (main:string)=> `${main}.html#${class_name}.${member_name}`;
+				if (this.classes.has(class_name)) {
+					relative_link = build_link(class_name);
+				} else if (this.concepts.has(class_name)) {
+					relative_link = build_link("Concepts");
+				} else {
+					throw "unresolved reference";
+				}
+			} else if (reference.match(/Filters$/)) {
+				if (reference.match(/^Lua/)) {
+					relative_link = "Event-Filters.html#"+reference;
+				} else if (this.concepts.has(reference)) { // the other types of filters are just concepts
+					relative_link = "Concepts.html#"+reference;
+				} else {
+					throw "unresolved reference";
+				}
+			} else if (this.concepts.has(reference)) {
+				relative_link = "Concepts.html#"+reference;
+			} else {
+				throw "unresolved reference";
+			}
+		}
+		return `[${display_name??reference}](${this.runtime_api_base}${relative_link})`;
+	}
+
+	private resolve_link(link:string,display_name?:string):string {
+		if (link.match(/^http(s?):\/\//)) {
+			return `[${display_name??link}](${link})`;
+		} else if (link.match(/\.html($|#)/)) {
+			return `[${display_name??link}](${this.runtime_api_base}${link})`;
+		} else {
+			return this.resolve_internal_reference(link,display_name);
+		}
+	}
+
+	private resolve_all_links(str:string):string {
+		return str.replace(/\[(.+?)\]\((.+?)\)/g,(match,name,link)=>{
+			return this.resolve_link(link,name);
+		});
+	}
+
+	private view_documentation(reference:string):string {
+		return this.resolve_internal_reference(reference, "View documentation");
+	}
+
+	private preprocess_description(description:string):string {
+		const escape_single_newline = (str:string) => {
+			return this.resolve_all_links(str.replace(/([^\n])\n([^\n])/g,"$1  \n$2"));
+		};
+
+		//TODO: verify
+		let result = new WritableMemoryStream();
+
+		for (const match of description.matchAll(/((?:(?!```).)*)($|```(?:(?!```).)*```)/gs)) {
+			result.write(escape_single_newline(match[1]));
+			if (match[2]) {
+				result.write(match[2]);
+			}
+		}
+		return result.toString();
+	}
+
+	private convert_description(description:string):string {
+		if (!description) {
+			return "";
+		}
+		return `---${this.preprocess_description(description).replace(/\n/g,"\n---")}\n`;
+	}
+
+	private format_type(api_type:ApiType|undefined,get_table_name_and_view_doc_link:()=>[string,string], add_doc_links?: boolean):string
+	{
+		const wrap = add_doc_links ? (x:string)=>this.resolve_internal_reference(x) : (x:string)=>x;
+
+		const modify_getter = (table_name_appended_str:string) => ():[string,string] => {
+			const [table_class_name, view_documentation_link] = get_table_name_and_view_doc_link();
+			return [table_class_name+table_name_appended_str, view_documentation_link];
+		};
+
+		if (!api_type) { return "any"; }
+		if (typeof api_type === "string") { return wrap(api_type); }
+
+		switch (api_type.complex_type) {
+			case "array":
+				return this.format_type(api_type.value, get_table_name_and_view_doc_link)+"[]";
+			case "dictionary":
+				return `${wrap("table")}<${this.format_type(api_type.key, modify_getter("_key"))},${this.format_type(api_type.value, modify_getter("_value"))}>`;
+			case "variant":
+				return api_type.options.map((o,i)=> this.format_type(o,modify_getter("."+i))).join("|");
+			case "LuaLazyLoadedValue":
+				return `${wrap("LuaLazyLoadedValue")}<${this.format_type(api_type.value, get_table_name_and_view_doc_link)},nil>`;
+			case "LuaCustomTable":
+				return `${wrap("LuaCustomTable")}<${this.format_type(api_type.key, modify_getter("_key"))},${this.format_type(api_type.value, modify_getter("_value"))}>`;
+			case "table":
+				const [table_class_name, view_documentation_link] = get_table_name_and_view_doc_link();
+
+				if (this.complex_table_type_name_lut.has(table_class_name)) {return table_class_name;}
+
+				this.complex_table_type_name_lut.add(table_class_name);
+				return this.add_table_type(this.tablebuff,api_type, table_class_name, view_documentation_link);
+			case "function":
+				return `fun(${api_type.parameters.map((p,i)=>`param${i+1}:${this.format_type(p,modify_getter(`_param${i+1}`))}`).join(",")})`;
+		}
+	}
+
+	private format_notes(notes?:string[]):string
+	{
+		if (!notes) { return ""; }
+		return notes.map(note=>`**Note:** ${note}`).join("\n\n");
+	}
+
+	private format_examples(examples?:string[]):string
+	{
+		if (!examples) { return ""; }
+		return examples.map(example=>`### Example\n${example}`).join("\n\n");
+	}
+
+	private format_subclasses(subclasses?:string[]):string
+	{
+		if (!subclasses) { return ""; }
+		if (subclasses.length === 1)
+		{
+			return `_Can only be used if this is ${subclasses[0]}_`;
+		} else {
+			return `_Can only be used if this is ${subclasses.slice(0,-1).join(", ")} or ${subclasses[subclasses.length-1]}_`;
+		}
+	}
+
+	private format_see_also(see_also?:string[]):string
+	{
+		if (!see_also) { return ""; }
+		return `### See also\n${see_also.map(sa=>`- ${this.resolve_internal_reference(sa)}`).join("\n")}`;
+	}
+
+	private format_entire_description(obj:ApiWithNotes&{description:string; subclasses?:string[]}, view_documentation_link:string, description?:string)
+	{
+		return [
+			description??obj.description,
+			this.format_notes(obj.notes),
+			view_documentation_link,
+			this.format_examples(obj.examples),
+			this.format_subclasses(obj.subclasses),
+			this.format_see_also(obj.see_also),
+			].filter(s=>!!s).join("\n\n");
+	}
+}

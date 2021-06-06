@@ -8,6 +8,7 @@ import { FactorioModDebugSession } from './factorioModDebug';
 import { validateLocale, LocaleColorProvider, LocaleDocumentSymbolProvider, LocaleCodeActionProvider } from './LocaleLangProvider';
 import { ChangelogCodeActionProvider, validateChangelogTxt, ChangelogDocumentSymbolProvider } from './ChangeLogLangProvider';
 import { ModsTreeDataProvider } from './ModPackageProvider';
+import { ApiDocGenerator } from './apidocs/ApiDocGenerator';
 
 let diagnosticCollection: vscode.DiagnosticCollection;
 
@@ -69,6 +70,16 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.languages.registerDocumentSymbolProvider(
 			{scheme:"file", language:"factorio-locale"}, new LocaleDocumentSymbolProvider()));
 
+	context.subscriptions.push(
+		vscode.commands.registerCommand("factorio.makedocs",async () => {
+			const file = await vscode.window.showOpenDialog({filters:{ "JSON Docs":["json"] } });
+			if (!file) {return;}
+			const docjson = Buffer.from(await vscode.workspace.fs.readFile(file[0])).toString("utf8");
+			const gen = new ApiDocGenerator(docjson);
+			const save = await vscode.window.showSaveDialog({filters:{ "EmmyLua Doc File":["lua"] } });
+			if (!save) {return;}
+			vscode.workspace.fs.writeFile(save,gen.generate_emmylua_docs());
+		}));
 	if (vscode.workspace.workspaceFolders) {
 		const treeDataProvider = new ModsTreeDataProvider(context);
 		const view = vscode.window.createTreeView('factoriomods', { treeDataProvider: treeDataProvider });
