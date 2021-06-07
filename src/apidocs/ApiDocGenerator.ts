@@ -27,6 +27,10 @@ function to_lua_ident(str:string) {
 	return escape_lua_keyword(str.replace(/[^a-zA-Z0-9]/g,"_").replace(/^([0-9])/,"_$1"));
 }
 
+function sort_by_order(a:{order:number},b:{order:number}) {
+	return a.order - b.order;
+}
+
 export class ApiDocGenerator {
 	private readonly docs:ApiDocs;
 
@@ -35,6 +39,7 @@ export class ApiDocGenerator {
 	private readonly concepts:Map<string,ApiConcept>;
 	private readonly builtins:Map<string,ApiBuiltin>;
 	private readonly globals:Map<string,ApiGlobalObject>;
+	private readonly table_or_array_types:Map<string,ApiType>;
 
 	private readonly defines:Set<string>;
 
@@ -49,7 +54,18 @@ export class ApiDocGenerator {
 		this.concepts = new Map(this.docs.concepts.map(c => [c.name,c]));
 		this.builtins = new Map(this.docs.builtin_types.map(c => [c.name,c]));
 
-		this.globals = new Map(this.docs.global_objects.map(g => [this.format_type(g.type,()=>{throw "complex global";}),g]));
+		this.table_or_array_types = new Map(
+			(<ApiTableOrArrayConcept[]>this.docs.concepts.filter(c=>c.category==="table_or_array")).map(
+				ta=>[ta.name,ta.parameters.sort(sort_by_order)[0].type]
+			));
+
+		this.globals = new Map(this.docs.global_objects.map(g => [
+				this.format_type(g.type,()=>{
+						throw "complex global";
+					}),
+				g
+			]));
+
 
 		this.defines = new Set<string>();
 		this.defines.add("defines");
@@ -168,7 +184,9 @@ export class ApiDocGenerator {
 		return this.globals.get(doc_type_name)?.name ?? `local ${to_lua_ident(doc_type_name)}`;
 	}
 
-	private add_class(output:WritableMemoryStream,aclass:ApiClass,is_struct?:boolean) {
+	private add_class(output:WritableMemoryStream,aclass:ApiClass):void;
+	private add_class(output:WritableMemoryStream,aclass:ApiStructConcept,is_struct:true):void;
+	private add_class(output:WritableMemoryStream,aclass:ApiClass|ApiStructConcept,is_struct?:boolean):void {
 		const add_attribute = (attribute:ApiAttribute,oper_lua_name?:string,oper_html_name?:string)=>{
 			const aname = oper_lua_name ?? attribute.name;
 			const view_doc_link = this.view_documentation(`${aclass.name}::${oper_html_name ?? aname}`);
@@ -182,10 +200,12 @@ export class ApiDocGenerator {
 			return this.view_documentation(`${aclass.name}::${method_name}`);
 		};
 
-		const add_vararg_annotation = (parameter:ApiParameter, method:ApiMethod)=>{
-			output.write(`---@vararg ${this.format_type(parameter.type,()=>[`${aclass.name}.${method.name}_vararg`, view_documentation_for_method(method.name)])}\n`);
-			if (parameter.description) {
-				output.write(this.convert_description(`\n**vararg**: ${parameter.description.includes("\n")?"\n\n":""}${parameter.description}`));
+		const add_vararg_annotation = (method:ApiMethod)=>{
+			if (method.variadic_type) {
+				output.write(`---@vararg ${this.format_type(method.variadic_type,()=>[`${aclass.name}.${method.name}_vararg`, view_documentation_for_method(method.name)])}\n`);
+				if (method.variadic_description) {
+					output.write(this.convert_description(`\n**vararg**: ${method.variadic_description.includes("\n")?"\n\n":""}${method.variadic_description}`));
+				}
 			}
 		};
 
@@ -209,17 +229,14 @@ export class ApiDocGenerator {
 
 		const add_regular_method = (method:ApiMethod,oper_lua_name?:string,oper_html_name?:string)=>{
 			output.write(convert_description_for_method(method,oper_html_name));
-			const sorted_params = method.parameters.sort((a,b)=>a.order - b.order);
+			const sorted_params = method.parameters.sort(sort_by_order);
 			sorted_params.forEach(p=>{
-				if(p.name === "...") {
-					add_vararg_annotation(p,method);
-				} else {
-					add_param_annotation(p,method);
-				}
+				add_param_annotation(p,method);
 			});
+			add_vararg_annotation(method);
 			add_return_annotation(method);
 
-			output.write(`${oper_lua_name??method.name}=function(${sorted_params.map(p=>escape_lua_keyword(p.name)).join(",")})end,\n`);
+			output.write(`${oper_lua_name??method.name}=function(${sorted_params.map(p=>escape_lua_keyword(p.name)).concat(method.variadic_type?["..."]:[]).join(",")})end,\n`);
 		};
 
 		const add_method_taking_table = (method:ApiMethod)=>{
@@ -244,28 +261,28 @@ export class ApiDocGenerator {
 				fallback: aclass.description,
 			})
 		)));
-		output.write(`---@class ${aclass.name}${this.convert_base_classes(aclass.base_classes)}\n`);
-
-		if (!is_struct) {
-			if(aclass.operators?.find((operator:ApiOperator)=>!["index","length","call"].includes(operator.name))){
+		if (is_struct) {
+			output.write(`---@class ${aclass.name}\n`);
+		} else {
+			output.write(`---@class ${aclass.name}${this.convert_base_classes((<ApiClass>aclass).base_classes)}\n`);
+			if((<ApiClass>aclass).operators.find((operator:ApiOperator)=>!["index","length","call"].includes(operator.name))){
 					throw "Unkown operator";
 			}
 		}
 
-		aclass.attributes?.forEach(a=>add_attribute(a));
+		aclass.attributes.forEach(a=>add_attribute(a));
 
 		if (!is_struct) {
-			(aclass.operators?.filter(op=>["index","length"].includes(op.name)) as ApiAttribute[]).forEach((operator)=>{
-				//TODO: copy?
+			((<ApiClass>aclass).operators.filter(op=>["index","length"].includes(op.name)) as ApiAttribute[]).forEach((operator)=>{
 				const lua_name = operator.name === "index" ? "__index" : "__len";
 				const html_name = `operator%20${ operator.name === "index" ? "[]" : "#"}`;
 				add_attribute(operator,lua_name,html_name);
 			});
 
 			output.write(this.get_local_or_global(aclass.name)+"={\n");
-			aclass.methods?.forEach(add_method);
+			(<ApiClass>aclass).methods.forEach(add_method);
 
-			const callop = aclass.operators?.find(op=>op.name==="call") as ApiMethod;
+			const callop = (<ApiClass>aclass).operators.find(op=>op.name==="call") as ApiMethod;
 			if (callop){
 				add_regular_method(callop, "__call", "operator%20()");
 			}
@@ -275,22 +292,22 @@ export class ApiDocGenerator {
 	}
 
 	private generate_emmylua_concepts(output:WritableMemoryStream) {
-		const add_specification = (specification:ApiSpecificationConcept)=>{
-			const view_documentation_link = this.view_documentation(specification.name);
-			const sorted_options = specification.options.sort((a,b)=>a.order - b.order);
-			const get_table_name_and_view_doc_link = (option:ApiSpecificationConcept["options"][0]):[string,string]=>{
-				return [`${specification.name}.${option.order}`, view_documentation_link];
+		const add_identification = (identification:ApiIdentificationConcept)=>{
+			const view_documentation_link = this.view_documentation(identification.name);
+			const sorted_options = identification.options.sort(sort_by_order);
+			const get_table_name_and_view_doc_link = (option:ApiIdentificationConcept["options"][0]):[string,string]=>{
+				return [`${identification.name}.${option.order}`, view_documentation_link];
 			};
 			output.write(this.convert_description(this.format_entire_description(
-				specification, view_documentation_link,
-				`${extend_string({str:specification.description, post:"\n\n"})
+				identification, view_documentation_link,
+				`${extend_string({str:identification.description, post:"\n\n"})
 				}May be specified in one of the following ways:${
 					sorted_options.map(option=>`\n- ${
 						this.format_type(option.type, ()=>get_table_name_and_view_doc_link(option), true)
 					}${extend_string({pre:": ",str:option.description})}`)
 				}`
 			)));
-			output.write(`---@class ${specification.name}:`);
+			output.write(`---@class ${identification.name}:`);
 			output.write(sorted_options.map(option=>this.format_type(option.type, ()=>get_table_name_and_view_doc_link(option))).join(","));
 			output.write("\n");
 		};
@@ -321,13 +338,17 @@ export class ApiDocGenerator {
 			this.add_table_type(output, table_concept, table_concept.name, this.view_documentation(table_concept.name));
 		};
 
+		const add_table_or_array_concept = (ta_concept:ApiTableOrArrayConcept)=>{
+			this.add_table_type(output, ta_concept, ta_concept.name, this.view_documentation(ta_concept.name));
+		};
+
 		const add_union = (union:ApiUnionConcept)=>{
 			output.write(this.convert_description(this.format_entire_description(
 				union, this.view_documentation(union.name),[
 					union.description, "Possible values are:",
-					union.options.sort((a,b)=>a.order-b.order).map(option=>
+					...union.options.sort(sort_by_order).map(option=>
 						`\n- "${option.name}"${extend_string({pre:" - ",str:option.description})}`)
-				].filter(s=>!!s).join("\n\n")
+				].filter(s=>!!s).join("")
 			)));
 			output.write(`---@class ${union.name}\n`);
 		};
@@ -338,8 +359,8 @@ export class ApiDocGenerator {
 
 		this.docs.concepts.forEach(concept=>{
 			switch (concept.category) {
-				case "specification":
-					return add_specification(concept);
+				case "identification":
+					return add_identification(concept);
 				case "concept":
 					return add_concept(concept);
 				case "struct":
@@ -348,12 +369,14 @@ export class ApiDocGenerator {
 					return add_flag(concept);
 				case "table":
 					return add_table_concept(concept);
+				case "table_or_array":
+					return add_table_or_array_concept(concept);
 				case "union":
 					return add_union(concept);
 				case "filter":
 					return add_filter(concept);
 				default:
-					throw "Unknown concept category";
+					throw `Unknown concept category: ${concept}`;
 			}
 		});
 	}
@@ -397,7 +420,7 @@ export class ApiDocGenerator {
 		const custom_parameter_map = new Map<string, parameter_info>();
 		const custom_parameters:parameter_info[] = [];
 
-		type_data.parameters.sort((a,b)=>a.order-b.order).forEach((parameter,i)=>{
+		type_data.parameters.sort(sort_by_order).forEach((parameter,i)=>{
 			const name = parameter.name;
 			const custom_parameter = {name:name, type:parameter.type, description:parameter.description, optional:parameter.optional};
 			custom_parameter_map.set(name, custom_parameter);
@@ -406,8 +429,8 @@ export class ApiDocGenerator {
 
 		if (type_data.variant_parameter_groups)
 		{
-			type_data.variant_parameter_groups.sort((a,b)=>a.order-b.order).forEach(group=>{
-				group.parameters.sort((a,b)=>a.order-b.order).forEach(parameter => {
+			type_data.variant_parameter_groups.sort(sort_by_order).forEach(group=>{
+				group.parameters.sort(sort_by_order).forEach(parameter => {
 					let custom_description = `${applies_to} **"${group.name}"**: ${parameter.optional?"(optional)":"(required)"}${extend_string({pre:"\n", str:parameter.description})}`;
 
 					let custom_parameter = custom_parameter_map.get(parameter.name);
@@ -501,7 +524,6 @@ export class ApiDocGenerator {
 			return this.resolve_all_links(str.replace(/([^\n])\n([^\n])/g,"$1  \n$2"));
 		};
 
-		//TODO: verify
 		let result = new WritableMemoryStream();
 
 		for (const match of description.matchAll(/((?:(?!```).)*)($|```(?:(?!```).)*```)/gs)) {
@@ -530,7 +552,20 @@ export class ApiDocGenerator {
 		};
 
 		if (!api_type) { return "any"; }
-		if (typeof api_type === "string") { return wrap(api_type); }
+		if (typeof api_type === "string") {
+			const elem_type = this.table_or_array_types.get(api_type);
+			if (elem_type)
+			{
+				// use format_type just in case it's a complex type or another `table_or_array`
+				const value_type = this.format_type(elem_type,()=>[api_type+"_elem",this.view_documentation(api_type)]);
+				return `${wrap(api_type)}<${wrap("int")},${value_type}>`;
+				// this makes sumneko.lua think it's both the `api_type` and
+				// `table<int,value_type>` where `value_type` is the type of the first
+				// "parameter" (field) for the `table_or_array` concept
+				// it's hacks all the way
+			}
+			return wrap(api_type);
+		}
 
 		switch (api_type.complex_type) {
 			case "array":

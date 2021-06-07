@@ -2,7 +2,7 @@ interface ApiDocs {
 	readonly application:"factorio"
 	readonly stage:"runtime"
 	readonly application_version:string
-	readonly api_version:3
+	readonly api_version:1
 
 	readonly classes: ApiClass[]
 	readonly events: ApiEvent[]
@@ -80,6 +80,8 @@ type ApiParameterGroup = ApiBasicMember & {
 
 type ApiMethod = ApiBasicMember & ApiWithNotes & ApiWithParameters &{
 	readonly subclasses?: string[]
+	readonly variadic_type?: ApiType
+	readonly variadic_description?: string
 	readonly takes_table: boolean
 	readonly table_is_optional?: boolean
 	readonly return_type?: ApiType
@@ -96,9 +98,9 @@ type ApiAttribute = ApiBasicMember & ApiWithNotes & {
 type ApiOperator = (ApiMethod&{readonly name:"call"})|(ApiAttribute&{readonly name:"index"|"length"});
 
 type ApiClass = ApiBasicMember & ApiWithNotes & {
-	readonly methods?: ApiMethod[]
-	readonly attributes?: ApiAttribute[]
-	readonly operators?: ApiOperator[]
+	readonly methods: ApiMethod[]
+	readonly attributes: ApiAttribute[]
+	readonly operators: ApiOperator[]
 	readonly base_classes?: string[]
 };
 
@@ -117,6 +119,11 @@ type ApiTableConcept = ApiBasicMember & ApiWithNotes & ApiWithParameters & {
 	readonly category: "table"
 };
 
+type ApiTableOrArrayConcept = ApiBasicMember & ApiWithNotes & {
+	readonly category: "table_or_array"
+	readonly parameters: ApiParameter[]
+};
+
 type ApiUnionConcept = ApiBasicMember & ApiWithNotes & {
 	readonly category: "union"
 	readonly options: ApiBasicMember[]
@@ -127,8 +134,8 @@ type ApiFlagConcept = ApiBasicMember & ApiWithNotes & {
 	readonly options: ApiBasicMember[]
 };
 
-type ApiSpecificationConcept = ApiBasicMember & ApiWithNotes & {
-	readonly category: "specification"
+type ApiIdentificationConcept = ApiBasicMember & ApiWithNotes & {
+	readonly category: "identification"
 	readonly options: {
 		readonly type: ApiType
 		readonly order: number
@@ -149,7 +156,7 @@ type ApiConceptConcept = ApiBasicMember & ApiWithNotes & {
 	readonly category: "concept"
 };
 
-type ApiConcept = ApiTableConcept | ApiUnionConcept | ApiFlagConcept | ApiSpecificationConcept | ApiFilterConcept | ApiStructConcept | ApiConceptConcept;
+type ApiConcept = ApiTableConcept | ApiTableOrArrayConcept | ApiUnionConcept | ApiFlagConcept | ApiIdentificationConcept | ApiFilterConcept | ApiStructConcept | ApiConceptConcept;
 
 type ApiGlobalObject = ApiBasicMember & {
 	readonly type: string
