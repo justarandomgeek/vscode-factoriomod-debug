@@ -124,8 +124,8 @@ type ApiTableOrArrayConcept = ApiBasicMember & ApiWithNotes & {
 	readonly parameters: ApiParameter[]
 };
 
-type ApiUnionConcept = ApiBasicMember & ApiWithNotes & {
-	readonly category: "union"
+type ApiEnumConcept = ApiBasicMember & ApiWithNotes & {
+	readonly category: "enum"
 	readonly options: ApiBasicMember[]
 };
 
@@ -134,8 +134,8 @@ type ApiFlagConcept = ApiBasicMember & ApiWithNotes & {
 	readonly options: ApiBasicMember[]
 };
 
-type ApiIdentificationConcept = ApiBasicMember & ApiWithNotes & {
-	readonly category: "identification"
+type ApiUnionConcept = ApiBasicMember & ApiWithNotes & {
+	readonly category: "union"
 	readonly options: {
 		readonly type: ApiType
 		readonly order: number
@@ -156,7 +156,7 @@ type ApiConceptConcept = ApiBasicMember & ApiWithNotes & {
 	readonly category: "concept"
 };
 
-type ApiConcept = ApiTableConcept | ApiTableOrArrayConcept | ApiUnionConcept | ApiFlagConcept | ApiIdentificationConcept | ApiFilterConcept | ApiStructConcept | ApiConceptConcept;
+type ApiConcept = ApiTableConcept | ApiTableOrArrayConcept | ApiEnumConcept | ApiFlagConcept | ApiUnionConcept | ApiFilterConcept | ApiStructConcept | ApiConceptConcept;
 
 type ApiGlobalObject = ApiBasicMember & {
 	readonly type: string

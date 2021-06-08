@@ -272,22 +272,22 @@ export class ApiDocGenerator {
 	}
 
 	private generate_emmylua_concepts(output:WritableMemoryStream) {
-		const add_identification = (identification:ApiIdentificationConcept)=>{
-			const view_documentation_link = this.view_documentation(identification.name);
-			const sorted_options = identification.options.sort(sort_by_order);
-			const get_table_name_and_view_doc_link = (option:ApiIdentificationConcept["options"][0]):[string,string]=>{
-				return [`${identification.name}.${option.order}`, view_documentation_link];
+		const add_union = (union:ApiUnionConcept)=>{
+			const view_documentation_link = this.view_documentation(union.name);
+			const sorted_options = union.options.sort(sort_by_order);
+			const get_table_name_and_view_doc_link = (option:ApiUnionConcept["options"][0]):[string,string]=>{
+				return [`${union.name}.${option.order}`, view_documentation_link];
 			};
 			output.write(this.convert_description(this.format_entire_description(
-				identification, view_documentation_link,
-				`${extend_string({str:identification.description, post:"\n\n"})
+				union, view_documentation_link,
+				`${extend_string({str:union.description, post:"\n\n"})
 				}May be specified in one of the following ways:${
 					sorted_options.map(option=>`\n- ${
 						this.format_type(option.type, ()=>get_table_name_and_view_doc_link(option), true)
 					}${extend_string({pre:": ",str:option.description})}`)
 				}`
 			)));
-			output.write(`---@class ${identification.name}:`);
+			output.write(`---@class ${union.name}:`);
 			output.write(sorted_options.map(option=>this.format_type(option.type, ()=>get_table_name_and_view_doc_link(option))).join(","));
 			output.write("\n");
 		};
@@ -322,15 +322,15 @@ export class ApiDocGenerator {
 			this.add_table_type(output, ta_concept, ta_concept.name, this.view_documentation(ta_concept.name));
 		};
 
-		const add_union = (union:ApiUnionConcept)=>{
+		const add_enum = (apienum:ApiEnumConcept)=>{
 			output.write(this.convert_description(this.format_entire_description(
-				union, this.view_documentation(union.name),[
-					union.description, "Possible values are:",
-					...union.options.sort(sort_by_order).map(option=>
+				apienum, this.view_documentation(apienum.name),[
+					apienum.description, "Possible values are:",
+					...apienum.options.sort(sort_by_order).map(option=>
 						`\n- "${option.name}"${extend_string({pre:" - ",str:option.description})}`)
 				].filter(s=>!!s).join("")
 			)));
-			output.write(`---@class ${union.name}\n`);
+			output.write(`---@class ${apienum.name}\n`);
 		};
 
 		const add_filter = (filter:ApiFilterConcept)=>{
@@ -339,8 +339,8 @@ export class ApiDocGenerator {
 
 		this.docs.concepts.forEach(concept=>{
 			switch (concept.category) {
-				case "identification":
-					return add_identification(concept);
+				case "union":
+					return add_union(concept);
 				case "concept":
 					return add_concept(concept);
 				case "struct":
@@ -351,8 +351,8 @@ export class ApiDocGenerator {
 					return add_table_concept(concept);
 				case "table_or_array":
 					return add_table_or_array_concept(concept);
-				case "union":
-					return add_union(concept);
+				case "enum":
+					return add_enum(concept);
 				case "filter":
 					return add_filter(concept);
 				default:
