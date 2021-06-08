@@ -159,37 +159,16 @@ export class ApiDocGenerator {
 		});
 	}
 
-	private convert_param_or_return_description(description?:string):string
-	{
-		if (!description) {
-			return "\n";
-		} else if (!description.includes("\n")) {
-			return `@${this.preprocess_description(description)}\n`;
-		} else {
-			return `@\n${this.convert_description(description)}`;
-		}
-	}
-
 	private convert_param_or_return(api_type:ApiType|undefined, description:string|undefined, get_table_name_and_view_doc_link:()=>[string,string]):string
 	{
-		return this.format_type(api_type,get_table_name_and_view_doc_link)+this.convert_param_or_return_description(description);
-	}
-
-	// get the description of a global variable with for the given type if there is one
-	private try_get_global_description(doc_type_name:string): string
-	{
-		return this.globals.get(doc_type_name)?.description ?? "";
-	}
-
-	private convert_base_classes(base_classes?:string[]):string
-	{
-		return base_classes?":"+base_classes.join(","):"";
-	}
-
-	// get either `local <to_id(doc_type_name)>` or `<global_name_for_this_type>` using globals_map
-	private get_local_or_global(doc_type_name:string): string
-	{
-		return this.globals.get(doc_type_name)?.name ?? `local ${to_lua_ident(doc_type_name)}`;
+		const formatted_type = this.format_type(api_type,get_table_name_and_view_doc_link);
+		if (!description) {
+			return `${formatted_type}\n`;
+		} else if (!description.includes("\n")) {
+			return `${formatted_type}@${this.preprocess_description(description)}\n`;
+		} else {
+			return `${formatted_type}@\n${this.convert_description(description)}`;
+		}
 	}
 
 	private add_class(output:WritableMemoryStream,aclass:ApiClass):void;
@@ -208,22 +187,6 @@ export class ApiDocGenerator {
 			return this.view_documentation(`${aclass.name}::${method_name}`);
 		};
 
-		const add_vararg_annotation = (method:ApiMethod)=>{
-			if (method.variadic_type) {
-				output.write(`---@vararg ${this.format_type(method.variadic_type,()=>[`${aclass.name}.${method.name}_vararg`, view_documentation_for_method(method.name)])}\n`);
-				if (method.variadic_description) {
-					output.write(this.convert_description(`\n**vararg**: ${method.variadic_description.includes("\n")?"\n\n":""}${method.variadic_description}`));
-				}
-			}
-		};
-
-		const add_param_annotation = (parameter:ApiParameter,method:ApiMethod)=>{
-			output.write(`---@param ${escape_lua_keyword(parameter.name)}${parameter.optional?"?":" "}`);
-			output.write(this.convert_param_or_return(parameter.type,parameter.description,()=>[
-				`${aclass.name}.${method.name}.${parameter.name}`, view_documentation_for_method(method.name)
-			]));
-		};
-
 		const add_return_annotation = (method:ApiMethod)=>{
 			if (method.return_type) {
 				output.write(`---@return ${this.convert_param_or_return(method.return_type,method.return_description,()=>[
@@ -238,10 +201,18 @@ export class ApiDocGenerator {
 		const add_regular_method = (method:ApiMethod,oper_lua_name?:string,oper_html_name?:string)=>{
 			output.write(convert_description_for_method(method,oper_html_name));
 			const sorted_params = method.parameters.sort(sort_by_order);
-			sorted_params.forEach(p=>{
-				add_param_annotation(p,method);
+			sorted_params.forEach(parameter=>{
+				output.write(`---@param ${escape_lua_keyword(parameter.name)}${parameter.optional?"?":" "}`);
+				output.write(this.convert_param_or_return(parameter.type,parameter.description,()=>[
+					`${aclass.name}.${method.name}.${parameter.name}`, view_documentation_for_method(method.name)
+				]));
 			});
-			add_vararg_annotation(method);
+			if (method.variadic_type) {
+				output.write(`---@vararg ${this.format_type(method.variadic_type,()=>[`${aclass.name}.${method.name}_vararg`, view_documentation_for_method(method.name)])}\n`);
+				if (method.variadic_description) {
+					output.write(this.convert_description(`\n**vararg**: ${method.variadic_description.includes("\n")?"\n\n":""}${method.variadic_description}`));
+				}
+			}
 			add_return_annotation(method);
 
 			output.write(`${oper_lua_name??method.name}=function(${sorted_params.map(p=>escape_lua_keyword(p.name)).concat(method.variadic_type?["..."]:[]).join(",")})end,\n`);
@@ -264,7 +235,7 @@ export class ApiDocGenerator {
 			aclass, this.view_documentation(aclass.name),
 			extend_string({
 				pre: "**Global Description:**\n",
-				str: this.try_get_global_description(aclass.name),
+				str: this.globals.get(aclass.name)?.description ?? "",
 				post: (needs_label?"\n\n**Class Description:**\n":"\n\n")+aclass.description,
 				fallback: aclass.description,
 			})
@@ -272,7 +243,8 @@ export class ApiDocGenerator {
 		if (is_struct) {
 			output.write(`---@class ${aclass.name}\n`);
 		} else {
-			output.write(`---@class ${aclass.name}${this.convert_base_classes((<ApiClass>aclass).base_classes)}\n`);
+			const base_classes = (<ApiClass>aclass).base_classes;
+			output.write(`---@class ${aclass.name}${base_classes?":"+base_classes.join(","):""}\n`);
 			if((<ApiClass>aclass).operators.find((operator:ApiOperator)=>!["index","length","call"].includes(operator.name))){
 					throw "Unkown operator";
 			}
@@ -287,7 +259,7 @@ export class ApiDocGenerator {
 				add_attribute(operator,lua_name,html_name);
 			});
 
-			output.write(this.get_local_or_global(aclass.name)+"={\n");
+			output.write(`${this.globals.get(aclass.name)?.name ?? `local ${to_lua_ident(aclass.name)}`}={\n`);
 			(<ApiClass>aclass).methods.forEach(add_method);
 
 			const callop = (<ApiClass>aclass).operators.find(op=>op.name==="call") as ApiMethod;
@@ -507,19 +479,15 @@ export class ApiDocGenerator {
 		return `[${display_name??reference}](${this.runtime_api_base}${relative_link})`;
 	}
 
-	private resolve_link(link:string,display_name?:string):string {
-		if (link.match(/^http(s?):\/\//)) {
-			return `[${display_name??link}](${link})`;
-		} else if (link.match(/\.html($|#)/)) {
-			return `[${display_name??link}](${this.runtime_api_base}${link})`;
-		} else {
-			return this.resolve_internal_reference(link,display_name);
-		}
-	}
-
 	private resolve_all_links(str:string):string {
-		return str.replace(/\[(.+?)\]\((.+?)\)/g,(match,name,link)=>{
-			return this.resolve_link(link,name);
+		return str.replace(/\[(.+?)\]\((.+?)\)/g,(match,display_name,link)=>{
+			if (link.match(/^http(s?):\/\//)) {
+				return `[${display_name??link}](${link})`;
+			} else if (link.match(/\.html($|#)/)) {
+				return `[${display_name??link}](${this.runtime_api_base}${link})`;
+			} else {
+				return this.resolve_internal_reference(link,display_name);
+			}
 		});
 	}
 
@@ -598,44 +566,20 @@ export class ApiDocGenerator {
 		}
 	}
 
-	private format_notes(notes?:string[]):string
-	{
-		if (!notes) { return ""; }
-		return notes.map(note=>`**Note:** ${note}`).join("\n\n");
-	}
-
-	private format_examples(examples?:string[]):string
-	{
-		if (!examples) { return ""; }
-		return examples.map(example=>`### Example\n${example}`).join("\n\n");
-	}
-
-	private format_subclasses(subclasses?:string[]):string
-	{
-		if (!subclasses) { return ""; }
-		if (subclasses.length === 1)
-		{
-			return `_Can only be used if this is ${subclasses[0]}_`;
-		} else {
-			return `_Can only be used if this is ${subclasses.slice(0,-1).join(", ")} or ${subclasses[subclasses.length-1]}_`;
-		}
-	}
-
-	private format_see_also(see_also?:string[]):string
-	{
-		if (!see_also) { return ""; }
-		return `### See also\n${see_also.map(sa=>`- ${this.resolve_internal_reference(sa)}`).join("\n")}`;
-	}
-
 	private format_entire_description(obj:ApiWithNotes&{description:string; subclasses?:string[]}, view_documentation_link:string, description?:string)
 	{
 		return [
 			description??obj.description,
-			this.format_notes(obj.notes),
+			obj.notes?.map(note=>`**Note:** ${note}`)?.join("\n\n"),
 			view_documentation_link,
-			this.format_examples(obj.examples),
-			this.format_subclasses(obj.subclasses),
-			this.format_see_also(obj.see_also),
+			obj.examples?.map(example=>`### Example\n${example}`)?.join("\n\n"),
+			obj.subclasses && (
+				`_Can only be used if this is ${
+					obj.subclasses.length === 1 ? obj.subclasses[0] :
+					`${obj.subclasses.slice(0,-1).join(", ")} or ${obj.subclasses[obj.subclasses.length-1]}`
+				}_`
+			),
+			obj.see_also && `### See also\n${obj.see_also.map(sa=>`- ${this.resolve_internal_reference(sa)}`).join("\n")}`,
 			].filter(s=>!!s).join("\n\n");
 	}
 }
