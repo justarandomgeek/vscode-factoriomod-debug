@@ -94,6 +94,76 @@ export class ApiDocGenerator {
 		this.docs.defines.forEach(define=>add_define(define,"defines."));
 	}
 
+	public generate_ts_docs() {
+		const ms = new WritableMemoryStream();
+		this.generate_ts_builtin(ms);
+		ms.write(`\n`);
+		this.generate_ts_defines(ms);
+		ms.write(`\n`);
+		this.generate_ts_events(ms);
+		ms.write(`\n`);
+		//this.generate_ts_classes(ms);
+		ms.write(`\n`);
+		//this.generate_ts_concepts(ms);
+		ms.write(`\n`);
+		//this.generate_ts_custom(ms);
+		ms.write(`\n`);
+		//this.generate_ts_table_types(ms);
+		ms.write(`\n`);
+		return ms.toBuffer();
+	}
+
+	private generate_ts_builtin(output:WritableMemoryStream) {
+		this.docs.builtin_types.forEach(builtin=>{
+			if (!(["string","boolean","table"].includes(builtin.name))) {
+				output.write(this.convert_ts_description(
+					extend_string({str:builtin.description, post:"\n\n"}) + this.view_documentation(builtin.name)
+					));
+				output.write(`type ${builtin.name}=number;\n`);
+			}
+		});
+	}
+	private generate_ts_defines(output:WritableMemoryStream) {
+		output.write(this.convert_ts_description(this.view_documentation("defines")));
+		output.write("declare namespace defines {\n");
+
+		const generate = (define:ApiDefine,name_prefix:string) => {
+			output.write(this.convert_ts_description(
+				extend_string({str: define.description, post: "\n\n"})+this.view_documentation(`${name_prefix}${define.name}`)
+			));
+			if (define.values) {
+				output.write(`enum ${define.name} {\n`);
+				define.values.forEach(value=>{
+					output.write(this.convert_ts_description(
+						extend_string({str: value.description, post: "\n\n"})+this.view_documentation(`${name_prefix}${define.name}.${value.name}`)
+						));
+					output.write(`${value.name},\n`);
+				});
+				output.write("}\n");
+			}
+			if (define.subkeys) {
+				output.write(`namespace ${define.name} {\n`);
+				define.subkeys.forEach(d=>generate(d,`${name_prefix}${define.name}.`));
+				output.write("}\n");
+			}
+		};
+
+		this.docs.defines.forEach(d=>generate(d,"defines."));
+		output.write("}\n");
+	}
+	private generate_ts_events(output:WritableMemoryStream) {
+		this.docs.events.forEach(event=>{
+			const view_documentation_link = this.view_documentation(event.name);
+			output.write(this.convert_ts_description(this.format_entire_description(event,view_documentation_link)));
+			output.write(`interface ${event.name} {\n`);
+			event.data.forEach(param=>{
+				output.write(this.convert_ts_description(extend_string({str: param.description, post: "\n\n"}) + view_documentation_link));
+				output.write(`${param.name}${param.optional?"?":""}:${this.format_type(param.type,()=>[`${event.name}.${param.name}`, view_documentation_link])}\n`);
+			});
+			output.write(`}\n`);
+		});
+	}
+
 	public generate_emmylua_docs() {
 		const ms = new WritableMemoryStream();
 		ms.write(`---@meta\n`);
@@ -119,7 +189,7 @@ export class ApiDocGenerator {
 	private generate_emmylua_builtin(output:WritableMemoryStream) {
 		this.docs.builtin_types.forEach(builtin=>{
 			if (!(["string","boolean","table"].includes(builtin.name))) {
-				output.write(this.convert_description(
+				output.write(this.convert_emmylua_description(
 					extend_string({str:builtin.description, post:"\n\n"}) + this.view_documentation(builtin.name)
 					));
 				output.write(`---@class ${builtin.name}:number\n`);
@@ -127,24 +197,23 @@ export class ApiDocGenerator {
 		});
 	}
 	private generate_emmylua_defines(output:WritableMemoryStream) {
-		output.write(this.convert_description(this.view_documentation("defines")));
+		output.write(this.convert_emmylua_description(this.view_documentation("defines")));
 		output.write("---@class defines\n");
 		output.write("defines={}\n");
 
 		const generate = (define:ApiDefine,name_prefix:string) => {
 			const name = `${name_prefix}${define.name}`;
-			output.write(this.convert_description(
+			output.write(this.convert_emmylua_description(
 				extend_string({str: define.description, post: "\n\n"})+this.view_documentation(name)
 			));
 			output.write(`---@class ${name}\n${name}={\n`);
 			const child_prefix = `${name}.`;
 			if (define.values) {
 				define.values.forEach(value=>{
-					output.write(this.convert_description(
+					output.write(this.convert_emmylua_description(
 						extend_string({str: value.description, post: "\n\n"})+this.view_documentation(`${name}.${value.name}`)
 						));
 					output.write(to_lua_ident(value.name)+"=0,\n");
-					this.defines.add(`${child_prefix}${value.name}`);
 				});
 			}
 			output.write("}\n");
@@ -158,10 +227,10 @@ export class ApiDocGenerator {
 	private generate_emmylua_events(output:WritableMemoryStream) {
 		this.docs.events.forEach(event=>{
 			const view_documentation_link = this.view_documentation(event.name);
-			output.write(this.convert_description(this.format_entire_description(event,view_documentation_link)));
+			output.write(this.convert_emmylua_description(this.format_entire_description(event,view_documentation_link)));
 			output.write(`---@class ${event.name}\n`);
 			event.data.forEach(param=>{
-				output.write(this.convert_description(extend_string({str: param.description, post: "\n\n"}) + view_documentation_link));
+				output.write(this.convert_emmylua_description(extend_string({str: param.description, post: "\n\n"}) + view_documentation_link));
 				output.write(`---@field ${param.name} ${this.format_type(param.type,()=>[`${event.name}.${param.name}`, view_documentation_link])}`);
 				output.write(param.optional?"|nil\n":"\n");
 			});
@@ -169,29 +238,17 @@ export class ApiDocGenerator {
 	}
 	private generate_emmylua_classes(output:WritableMemoryStream) {
 		this.docs.classes.forEach(aclass=>{
-			this.add_class(output,aclass);
+			this.add_emmylua_class(output,aclass);
 		});
 	}
 
-	private convert_param_or_return(api_type:ApiType|undefined, description:string|undefined, get_table_name_and_view_doc_link:()=>[string,string]):string
-	{
-		const formatted_type = this.format_type(api_type,get_table_name_and_view_doc_link);
-		if (!description) {
-			return `${formatted_type}\n`;
-		} else if (!description.includes("\n")) {
-			return `${formatted_type}@${this.preprocess_description(description)}\n`;
-		} else {
-			return `${formatted_type}@\n${this.convert_description(description)}`;
-		}
-	}
-
-	private add_class(output:WritableMemoryStream,aclass:ApiClass):void;
-	private add_class(output:WritableMemoryStream,aclass:ApiStructConcept,is_struct:true):void;
-	private add_class(output:WritableMemoryStream,aclass:ApiClass|ApiStructConcept,is_struct?:boolean):void {
+	private add_emmylua_class(output:WritableMemoryStream,aclass:ApiClass):void;
+	private add_emmylua_class(output:WritableMemoryStream,aclass:ApiStructConcept,is_struct:true):void;
+	private add_emmylua_class(output:WritableMemoryStream,aclass:ApiClass|ApiStructConcept,is_struct?:boolean):void {
 		const add_attribute = (attribute:ApiAttribute,oper_lua_name?:string,oper_html_name?:string)=>{
 			const aname = oper_lua_name ?? attribute.name;
 			const view_doc_link = this.view_documentation(`${aclass.name}::${oper_html_name ?? aname}`);
-			output.write(this.convert_description(this.format_entire_description(
+			output.write(this.convert_emmylua_description(this.format_entire_description(
 				attribute, view_doc_link, `[${attribute.read?"R":""}${attribute.write?"W":""}]${extend_string({pre:"\n", str:attribute.description})}`
 			)));
 			output.write(`---@field ${aname} ${this.format_type(attribute.type, ()=>[`${aclass.name}.${aname}`,view_doc_link])}\n`);
@@ -201,30 +258,41 @@ export class ApiDocGenerator {
 			return this.view_documentation(`${aclass.name}::${method_name}`);
 		};
 
+		const convert_param_or_return = (api_type:ApiType|undefined, description:string|undefined, get_table_name_and_view_doc_link:()=>[string,string]):string =>{
+			const formatted_type = this.format_type(api_type,get_table_name_and_view_doc_link);
+			if (!description) {
+				return `${formatted_type}\n`;
+			} else if (!description.includes("\n")) {
+				return `${formatted_type}@${this.preprocess_description(description)}\n`;
+			} else {
+				return `${formatted_type}@\n${this.convert_emmylua_description(description)}`;
+			}
+		};
+
 		const add_return_annotation = (method:ApiMethod)=>{
 			if (method.return_type) {
-				output.write(`---@return ${this.convert_param_or_return(method.return_type,method.return_description,()=>[
+				output.write(`---@return ${convert_param_or_return(method.return_type,method.return_description,()=>[
 					`${aclass.name}.${method.name}_return`, view_documentation_for_method(method.name)
 				])}`);
 			}
 		};
 
 		const convert_description_for_method = (method:ApiMethod,html_name?:string)=>
-			this.convert_description(this.format_entire_description(method,view_documentation_for_method(html_name??method.name)));
+			this.convert_emmylua_description(this.format_entire_description(method,view_documentation_for_method(html_name??method.name)));
 
 		const add_regular_method = (method:ApiMethod,oper_lua_name?:string,oper_html_name?:string)=>{
 			output.write(convert_description_for_method(method,oper_html_name));
 			const sorted_params = method.parameters.sort(sort_by_order);
 			sorted_params.forEach(parameter=>{
 				output.write(`---@param ${escape_lua_keyword(parameter.name)}${parameter.optional?"?":" "}`);
-				output.write(this.convert_param_or_return(parameter.type,parameter.description,()=>[
+				output.write(convert_param_or_return(parameter.type,parameter.description,()=>[
 					`${aclass.name}.${method.name}.${parameter.name}`, view_documentation_for_method(method.name)
 				]));
 			});
 			if (method.variadic_type) {
 				output.write(`---@vararg ${this.format_type(method.variadic_type,()=>[`${aclass.name}.${method.name}_vararg`, view_documentation_for_method(method.name)])}\n`);
 				if (method.variadic_description) {
-					output.write(this.convert_description(`\n**vararg**: ${method.variadic_description.includes("\n")?"\n\n":""}${method.variadic_description}`));
+					output.write(this.convert_emmylua_description(`\n**vararg**: ${method.variadic_description.includes("\n")?"\n\n":""}${method.variadic_description}`));
 				}
 			}
 			add_return_annotation(method);
@@ -245,7 +313,7 @@ export class ApiDocGenerator {
 		const add_method = (method:ApiMethod)=> method.takes_table?add_method_taking_table(method):add_regular_method(method);
 
 		const needs_label = !!(aclass.description || aclass.notes);
-		output.write(this.convert_description(this.format_entire_description(
+		output.write(this.convert_emmylua_description(this.format_entire_description(
 			aclass, this.view_documentation(aclass.name),
 			extend_string({
 				pre: "**Global Description:**\n",
@@ -291,39 +359,39 @@ export class ApiDocGenerator {
 			switch (concept.category) {
 				case "union":
 					const sorted_options = concept.options.sort(sort_by_order);
-			const get_table_name_and_view_doc_link = (option:ApiUnionConcept["options"][0]):[string,string]=>{
+					const get_table_name_and_view_doc_link = (option:ApiUnionConcept["options"][0]):[string,string]=>{
 						return [`${concept.name}.${option.order}`, view_documentation_link];
-			};
-			output.write(this.convert_description(this.format_entire_description(
+					};
+					output.write(this.convert_emmylua_description(this.format_entire_description(
 						concept, view_documentation_link,
 						`${extend_string({str:concept.description, post:"\n\n"})
-				}May be specified in one of the following ways:${
-					sorted_options.map(option=>`\n- ${
-						this.format_type(option.type, ()=>get_table_name_and_view_doc_link(option), true)
-					}${extend_string({pre:": ",str:option.description})}`)
-				}`
-			)));
+						}May be specified in one of the following ways:${
+							sorted_options.map(option=>`\n- ${
+								this.format_type(option.type, ()=>get_table_name_and_view_doc_link(option), true)
+							}${extend_string({pre:": ",str:option.description})}`)
+						}`
+					)));
 					output.write(`---@class ${concept.name}:`);
-			output.write(sorted_options.map(option=>this.format_type(option.type, ()=>get_table_name_and_view_doc_link(option))).join(","));
-			output.write("\n");
+					output.write(sorted_options.map(option=>this.format_type(option.type, ()=>get_table_name_and_view_doc_link(option))).join(","));
+					output.write("\n");
 					break;
 				case "concept":
-			output.write(this.convert_description(this.format_entire_description(concept,this.view_documentation(concept.name))));
-			output.write(`---@class ${concept.name}\n`);
+					output.write(this.convert_emmylua_description(this.format_entire_description(concept,this.view_documentation(concept.name))));
+					output.write(`---@class ${concept.name}\n`);
 					break;
 				case "struct":
-					this.add_class(output, concept, true);
+					this.add_emmylua_class(output, concept, true);
 					break;
 				case "flag":
-					output.write(this.convert_description(this.format_entire_description(concept,view_documentation_link)));
+					output.write(this.convert_emmylua_description(this.format_entire_description(concept,view_documentation_link)));
 					output.write(`---@class ${concept.name}\n`);
 					concept.options.forEach(option=>{
-				output.write(this.convert_description(
-					extend_string({str:option.description, post:"\n\n"})+
-					view_documentation_link
-					));
-				output.write(`---@field ${option.name} boolean|nil\n`);
-			});
+						output.write(this.convert_emmylua_description(
+							extend_string({str:option.description, post:"\n\n"})+
+							view_documentation_link
+							));
+						output.write(`---@field ${option.name} boolean|nil\n`);
+					});
 					break;
 				case "table":
 					this.add_table_type(output, concept, concept.name, this.view_documentation(concept.name));
@@ -332,13 +400,13 @@ export class ApiDocGenerator {
 					this.add_table_type(output, concept, concept.name, this.view_documentation(concept.name));
 					break;
 				case "enum":
-			output.write(this.convert_description(this.format_entire_description(
+					output.write(this.convert_emmylua_description(this.format_entire_description(
 						concept, this.view_documentation(concept.name),[
 							concept.description, "Possible values are:",
 							...concept.options.sort(sort_by_order).map(option=>
-						`\n- "${option.name}"${extend_string({pre:" - ",str:option.description})}`)
-				].filter(s=>!!s).join("")
-			)));
+								`\n- "${option.name}"${extend_string({pre:" - ",str:option.description})}`)
+						].filter(s=>!!s).join("")
+					)));
 					output.write(`---@class ${concept.name}\n`);
 					break;
 				case "filter":
@@ -376,7 +444,7 @@ export class ApiDocGenerator {
 	private add_table_type(output:WritableMemoryStream, type_data:ApiWithParameters, table_class_name:string, view_documentation_link:string, applies_to:string = "Applies to"): string
 	{
 
-		output.write(this.convert_description(view_documentation_link));
+		output.write(this.convert_emmylua_description(view_documentation_link));
 		output.write(`---@class ${table_class_name}\n`);
 
 		interface parameter_info{
@@ -417,7 +485,7 @@ export class ApiDocGenerator {
 		}
 
 		custom_parameters.forEach(custom_parameter=>{
-			output.write(this.convert_description(extend_string({str: custom_parameter.description, post: "\n\n"})+view_documentation_link));
+			output.write(this.convert_emmylua_description(extend_string({str: custom_parameter.description, post: "\n\n"})+view_documentation_link));
 			output.write(`---@field ${custom_parameter.name} ${this.format_type(custom_parameter.type, ()=>
 				[`${table_class_name}.${custom_parameter.name}`, view_documentation_link])}`);
 			output.write((custom_parameter.optional? "|nil\n":"\n"));
@@ -499,7 +567,15 @@ export class ApiDocGenerator {
 		return result.toString();
 	}
 
-	private convert_description(description:string):string {
+
+	private convert_ts_description(description:string):string {
+		if (!description) {
+			return "";
+		}
+		return `/**\n * ${this.preprocess_description(description).replace(/\n/g,"\n * ")}\n */\n`;
+	}
+
+	private convert_emmylua_description(description:string):string {
 		if (!description) {
 			return "";
 		}

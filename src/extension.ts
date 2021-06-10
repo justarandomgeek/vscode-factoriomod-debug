@@ -76,9 +76,14 @@ export function activate(context: vscode.ExtensionContext) {
 			if (!file) {return;}
 			const docjson = Buffer.from(await vscode.workspace.fs.readFile(file[0])).toString("utf8");
 			const gen = new ApiDocGenerator(docjson);
-			const save = await vscode.window.showSaveDialog({filters:{ "EmmyLua Doc File":["lua"] } });
-			if (!save) {return;}
-			vscode.workspace.fs.writeFile(save,gen.generate_emmylua_docs());
+			const savelua = await vscode.window.showSaveDialog({filters:{ "EmmyLua Doc File":["lua"] } });
+			if (savelua) {
+				vscode.workspace.fs.writeFile(savelua,gen.generate_emmylua_docs());
+			}
+			const savets = await vscode.window.showSaveDialog({filters:{ "TypeScript Doc File":["d.ts"] } });
+			if (savets) {
+				vscode.workspace.fs.writeFile(savets,gen.generate_ts_docs());
+			}
 		}));
 	if (vscode.workspace.workspaceFolders) {
 		const treeDataProvider = new ModsTreeDataProvider(context);
