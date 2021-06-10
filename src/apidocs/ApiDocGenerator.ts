@@ -75,9 +75,23 @@ export class ApiDocGenerator {
 			]));
 
 
+		const add_define = (define:ApiDefine,name_prefix:string)=>{
+			const name = `${name_prefix}${define.name}`;
+			this.defines.add(name);
+			const child_prefix = `${name}.`;
+			if (define.values) {
+				define.values.forEach(value=>{
+					this.defines.add(`${child_prefix}${value.name}`);
+				});
+			}
+			if (define.subkeys) {
+				define.subkeys.forEach(subkey=>add_define(subkey,child_prefix));
+			}
+		};
+
 		this.defines = new Set<string>();
 		this.defines.add("defines");
-		this.docs.defines.forEach(define=>this.add_define(define,"defines."));
+		this.docs.defines.forEach(define=>add_define(define,"defines."));
 	}
 
 	public generate_emmylua_docs() {
@@ -230,7 +244,7 @@ export class ApiDocGenerator {
 
 		const add_method = (method:ApiMethod)=> method.takes_table?add_method_taking_table(method):add_regular_method(method);
 
-		const needs_label = !!aclass.description || !!aclass.notes;
+		const needs_label = !!(aclass.description || aclass.notes);
 		output.write(this.convert_description(this.format_entire_description(
 			aclass, this.view_documentation(aclass.name),
 			extend_string({
@@ -272,114 +286,88 @@ export class ApiDocGenerator {
 	}
 
 	private generate_emmylua_concepts(output:WritableMemoryStream) {
-		const add_union = (union:ApiUnionConcept)=>{
-			const view_documentation_link = this.view_documentation(union.name);
-			const sorted_options = union.options.sort(sort_by_order);
+		this.docs.concepts.forEach(concept=>{
+			const view_documentation_link = this.view_documentation(concept.name);
+			switch (concept.category) {
+				case "union":
+					const sorted_options = concept.options.sort(sort_by_order);
 			const get_table_name_and_view_doc_link = (option:ApiUnionConcept["options"][0]):[string,string]=>{
-				return [`${union.name}.${option.order}`, view_documentation_link];
+						return [`${concept.name}.${option.order}`, view_documentation_link];
 			};
 			output.write(this.convert_description(this.format_entire_description(
-				union, view_documentation_link,
-				`${extend_string({str:union.description, post:"\n\n"})
+						concept, view_documentation_link,
+						`${extend_string({str:concept.description, post:"\n\n"})
 				}May be specified in one of the following ways:${
 					sorted_options.map(option=>`\n- ${
 						this.format_type(option.type, ()=>get_table_name_and_view_doc_link(option), true)
 					}${extend_string({pre:": ",str:option.description})}`)
 				}`
 			)));
-			output.write(`---@class ${union.name}:`);
+					output.write(`---@class ${concept.name}:`);
 			output.write(sorted_options.map(option=>this.format_type(option.type, ()=>get_table_name_and_view_doc_link(option))).join(","));
 			output.write("\n");
-		};
-
-		const add_concept = (concept:ApiConceptConcept)=>{
+					break;
+				case "concept":
 			output.write(this.convert_description(this.format_entire_description(concept,this.view_documentation(concept.name))));
 			output.write(`---@class ${concept.name}\n`);
-		};
-
-		const add_struct = (struct:ApiStructConcept)=>{
-			this.add_class(output, struct,true);
-		};
-
-		const add_flag = (flag:ApiFlagConcept)=>{
-			const view_documentation_link = this.view_documentation(flag.name);
-			output.write(this.convert_description(this.format_entire_description(flag,view_documentation_link)));
-			output.write(`---@class ${flag.name}\n`);
-			flag.options.forEach(option=>{
+					break;
+				case "struct":
+					this.add_class(output, concept, true);
+					break;
+				case "flag":
+					output.write(this.convert_description(this.format_entire_description(concept,view_documentation_link)));
+					output.write(`---@class ${concept.name}\n`);
+					concept.options.forEach(option=>{
 				output.write(this.convert_description(
 					extend_string({str:option.description, post:"\n\n"})+
 					view_documentation_link
 					));
 				output.write(`---@field ${option.name} boolean|nil\n`);
 			});
-		};
-
-		const add_table_concept = (table_concept:ApiTableConcept)=>{
-			this.add_table_type(output, table_concept, table_concept.name, this.view_documentation(table_concept.name));
-		};
-
-		const add_table_or_array_concept = (ta_concept:ApiTableOrArrayConcept)=>{
-			this.add_table_type(output, ta_concept, ta_concept.name, this.view_documentation(ta_concept.name));
-		};
-
-		const add_enum = (apienum:ApiEnumConcept)=>{
+					break;
+				case "table":
+					this.add_table_type(output, concept, concept.name, this.view_documentation(concept.name));
+					break;
+				case "table_or_array":
+					this.add_table_type(output, concept, concept.name, this.view_documentation(concept.name));
+					break;
+				case "enum":
 			output.write(this.convert_description(this.format_entire_description(
-				apienum, this.view_documentation(apienum.name),[
-					apienum.description, "Possible values are:",
-					...apienum.options.sort(sort_by_order).map(option=>
+						concept, this.view_documentation(concept.name),[
+							concept.description, "Possible values are:",
+							...concept.options.sort(sort_by_order).map(option=>
 						`\n- "${option.name}"${extend_string({pre:" - ",str:option.description})}`)
 				].filter(s=>!!s).join("")
 			)));
-			output.write(`---@class ${apienum.name}\n`);
-		};
-
-		const add_filter = (filter:ApiFilterConcept)=>{
-			this.add_table_type(output,filter,filter.name,this.view_documentation(filter.name), "Applies to filter");
-		};
-
-		this.docs.concepts.forEach(concept=>{
-			switch (concept.category) {
-				case "union":
-					return add_union(concept);
-				case "concept":
-					return add_concept(concept);
-				case "struct":
-					return add_struct(concept);
-				case "flag":
-					return add_flag(concept);
-				case "table":
-					return add_table_concept(concept);
-				case "table_or_array":
-					return add_table_or_array_concept(concept);
-				case "enum":
-					return add_enum(concept);
+					output.write(`---@class ${concept.name}\n`);
+					break;
 				case "filter":
-					return add_filter(concept);
+					this.add_table_type(output,concept,concept.name,this.view_documentation(concept.name), "Applies to filter");
+					break;
 				default:
 					throw `Unknown concept category: ${concept}`;
 			}
 		});
 	}
 	private generate_emmylua_custom(output:WritableMemoryStream) {
-		//TODO: just copy custom.lua
+		output.write(`
+---LuaGameScript.map_gen_presets
+---@class MapGenPreset
+
+---LuaGuiElement.elem_filters
+---
+---LuaGuiElement.add param field elem_filters
+---@class PrototypeFilter
+
+---BlueprintEntity.connections
+---@class BlueprintCircuitConnection
+
+---BlueprintEntity.control_behavior
+---@class BlueprintControlBehavior
+`);
 	}
 	private generate_emmylua_table_types(output:WritableMemoryStream) {
 		output.write(this.tablebuff.toBuffer());
-	}
-
-
-	private add_define(define:ApiDefine,name_prefix:string):void {
-		const name = `${name_prefix}${define.name}`;
-		this.defines.add(name);
-		const child_prefix = `${name}.`;
-		if (define.values) {
-			define.values.forEach(value=>{
-				this.defines.add(`${child_prefix}${value.name}`);
-			});
-		}
-		if (define.subkeys) {
-			define.subkeys.forEach(subkey=>this.add_define(subkey,child_prefix));
-		}
 	}
 
 	private readonly complex_table_type_name_lut = new Set<string>();
