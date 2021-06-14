@@ -76,13 +76,27 @@ export function activate(context: vscode.ExtensionContext) {
 			if (!file) {return;}
 			const docjson = Buffer.from(await vscode.workspace.fs.readFile(file[0])).toString("utf8");
 			const gen = new ApiDocGenerator(docjson);
-			const savelua = await vscode.window.showSaveDialog({filters:{ "EmmyLua Doc File":["lua"] } });
-			if (savelua) {
-				vscode.workspace.fs.writeFile(savelua,gen.generate_emmylua_docs());
-			}
-			const savets = await vscode.window.showSaveDialog({filters:{ "TypeScript Doc File":["d.ts"] } });
-			if (savets) {
-				vscode.workspace.fs.writeFile(savets,gen.generate_ts_docs());
+			const save = await vscode.window.showSaveDialog({filters:{ "EmmyLua Doc File":["lua"], "TypeScriptToLua Doc File":["d.ts"] } });
+			if (save) {
+				if (save.path.endsWith(".lua")) {
+					vscode.workspace.fs.writeFile(save,gen.generate_emmylua_docs());
+					const add_to_lib = <"Workspace"|"Global"|"No"|undefined> await vscode.window.showInformationMessage("Add generated file to library setting?",
+						{}, "Workspace", "Global", "No");
+					if (add_to_lib && add_to_lib !== "No")
+					{
+						const config = vscode.workspace.getConfiguration("Lua");
+						const library: string[] = config.get("workspace.library") ?? [];
+						if (!library.includes(save.fsPath)) {
+							library.push(save.fsPath);
+							config.update("workspace.library", library, add_to_lib==="Global");
+							if (config.get("workspace.preloadFileSize")??0 < 10000) {
+								config.update("workspace.preloadFileSize",10000, add_to_lib==="Global");
+							}
+						}
+					}
+				} else if (save.path.endsWith(".d.ts")) {
+					vscode.workspace.fs.writeFile(save,gen.generate_ts_docs());
+				}
 			}
 		}));
 	if (vscode.workspace.workspaceFolders) {
