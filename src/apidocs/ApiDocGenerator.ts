@@ -337,19 +337,18 @@ export class ApiDocGenerator {
 		/**
 		 * ({parameters:type}&(format_ts_interface(object.variant_parameter_groups)|))
 		 */
-		const maintable = `{\n${type_property??""}${object.parameters.map(p=> [
-				this.convert_ts_description(p.description),
-				`"${p.name}"${p.optional?"?":""}:${this.format_ts_type(p.type,()=>{throw "nested tables";})}`,
-			].filter(s=>!!s).join("")).join(",\n")}\n}\n`;
+		const maintable = `{\n${type_property??""}${object.parameters.map(p=>
+				`"${p.name}"${p.optional?"?":""}:${this.format_ts_type(p.type,()=>{throw "nested tables";})}`
+			).join(",\n")}\n}`;
 		if (!object.variant_parameter_groups) {
 			return maintable;
 		} else {
 			const type_field_matches = object.variant_parameter_description?.match(/depending on `(.+)`:/);
 			const type_field = type_field_matches && type_field_matches[1];
-			return `(${maintable}&(\n${
+			return `(${maintable}&(${
 				object.variant_parameter_description?this.convert_ts_description(object.variant_parameter_description):""
 			}${
-				object.variant_parameter_groups.map(group=>this.format_ts_interface(group,type_field && `${type_field}:"${group.name}"\n`)).join("|\n")
+				object.variant_parameter_groups.map(group=>this.format_ts_interface(group,type_field && `${type_field}:"${group.name}"\n`)).join("|")
 			}))`;
 		}
 	}
