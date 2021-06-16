@@ -76,10 +76,13 @@ export function activate(context: vscode.ExtensionContext) {
 			if (!file) {return;}
 			const docjson = Buffer.from(await vscode.workspace.fs.readFile(file[0])).toString("utf8");
 			const gen = new ApiDocGenerator(docjson);
-			const save = await vscode.window.showSaveDialog({filters:{
-				"EmmyLua Doc File":["lua"],
-				//"TypeScriptToLua Doc File":["d.ts"],
-			}});
+			const save = await vscode.window.showSaveDialog({
+				filters:{
+					"EmmyLua Doc File":["lua"],
+					//"TypeScriptToLua Doc File":["d.ts"],
+				},
+				defaultUri: file[0].with({path: file[0].path.replace(/.json$/,".lua")}),
+			});
 			if (save) {
 				if (save.path.endsWith(".lua")) {
 					const buff = gen.generate_emmylua_docs();
@@ -114,6 +117,7 @@ export function activate(context: vscode.ExtensionContext) {
 							"bit32", "util", "localised_print",
 							//TODO: more data stage ones?
 							"circuit_connector_definitions", "universal_connector_template",
+							"__DebugAdapter", "__Profiler",
 						].forEach(s=>{
 							if (!globals.includes(s))
 							{
