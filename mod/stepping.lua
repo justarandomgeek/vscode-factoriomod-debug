@@ -53,7 +53,7 @@ local type = type
 local variables = require("__debugadapter__/variables.lua")
 local luaObjectInfo = require("__debugadapter__/luaobjectinfo.lua")
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
-local json = require("__debugadapter__/json.lua")
+local json_encode = require("__debugadapter__/json.lua").encode
 local datastring = require("__debugadapter__/datastring.lua")
 local ReadBreakpoints = datastring.ReadBreakpoints
 
@@ -153,7 +153,7 @@ do
                   filePath = s,
                   line = line,
                 }
-                print("DBGlogpoint: " .. json.encode(logpoint))
+                print("DBGlogpoint: " .. json_encode(logpoint))
               else
                 stepdepth = nil
                 print("DBG: breakpoint")

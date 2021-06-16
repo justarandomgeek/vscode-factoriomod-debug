@@ -13,7 +13,6 @@ __DebugAdapter = __DebugAdapter or {
 
 local datastring = require("__debugadapter__/datastring.lua")
 local ReadBreakpoints = datastring.ReadBreakpoints
-local json = require("__debugadapter__/json.lua")
 local script = script
 local remote = remote
 remote = rawget(remote,"__raw") or remote

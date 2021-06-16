@@ -1,5 +1,5 @@
 local variables = require("__debugadapter__/variables.lua")
-local json = require("__debugadapter__/json.lua")
+local json_encode = require("__debugadapter__/json.lua").encode
 local __DebugAdapter = __DebugAdapter
 local debug = debug
 local string = string
@@ -378,7 +378,7 @@ function __DebugAdapter.evaluate(frameId,context,expression,seq,formod)
       if __DebugAdapter.canRemoteCall() and remote.interfaces["__debugadapter_"..modname] then
         return remote.call("__debugadapter_"..modname,"evaluate",frameId,context,expression,seq,modname)
       else
-        print("DBGeval: " .. json.encode({result = "`"..modname.."` not available for eval", type="error", variablesReference=0, seq=seq}))
+        print("DBGeval: " .. json_encode({result = "`"..modname.."` not available for eval", type="error", variablesReference=0, seq=seq}))
         return
       end
     end
@@ -405,7 +405,7 @@ function __DebugAdapter.evaluate(frameId,context,expression,seq,formod)
           __DebugAdapter.stepIgnore(err)
           success,result = xpcall(mtresult.__debugvisualize,err,result)
         end
-        evalresult.result = json.encode(result)
+        evalresult.result = json_encode(result)
       end
       evalresult.value = nil
       evalresult.seq = seq
@@ -425,5 +425,5 @@ function __DebugAdapter.evaluate(frameId,context,expression,seq,formod)
   else
     evalresult = {result = "Cannot Evaluate in Remote Frame", type="error", variablesReference=0, seq=seq}
   end
-  print("DBGeval: " .. json.encode(evalresult))
+  print("DBGeval: " .. json_encode(evalresult))
 end
