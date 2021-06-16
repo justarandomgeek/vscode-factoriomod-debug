@@ -10,6 +10,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as semver from 'semver';
 import * as vscode from 'vscode';
+import { Uri } from 'vscode';
 import { encodeBreakpoints, luaBlockQuote } from './EncodingUtil';
 import { Profile } from './Profile';
 import { FactorioProcess } from './FactorioProcess';
@@ -21,7 +22,7 @@ import { LuaFunction } from './LuaDisassembler';
 import { BufferStream } from './BufferStream';
 
 interface ModPaths{
-	uri: vscode.Uri
+	uri: Uri
 	name: string
 	version: string
 	info: ModInfo
@@ -227,7 +228,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				if (mesg.filename && mesg.line)
 				{
 					vscode.window.showTextDocument(
-						vscode.Uri.parse(this.convertDebuggerPathToClient(mesg.filename)),
+						Uri.parse(this.convertDebuggerPathToClient(mesg.filename)),
 						{
 							selection: new vscode.Range(mesg.line,0,mesg.line,0),
 							viewColumn: vscode.ViewColumn.One
@@ -646,7 +647,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			const thismodule = this._modules.get(matches[1]);
 			if (thismodule?.symbolFilePath)
 			{
-				return vscode.Uri.joinPath(vscode.Uri.parse(thismodule.symbolFilePath),matches[2]).toString();
+				return Uri.joinPath(Uri.parse(thismodule.symbolFilePath),matches[2]).toString();
 			}
 		}
 
@@ -654,18 +655,18 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 
 	protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
-		let bpuri:vscode.Uri;
+		let bpuri:Uri;
 		let bppath:string;
 		if (args.source.path)
 		{
 			const inpath = <string>args.source.path;
 			if (inpath.match(/^[a-zA-Z]:/)) // matches c:\... or c:/... style windows paths, single drive letter
 			{
-				bpuri = vscode.Uri.file(inpath.replace(/\\/g,"/"));
+				bpuri = Uri.file(inpath.replace(/\\/g,"/"));
 			}
 			else // everything else is already a URI
 			{
-				bpuri = vscode.Uri.parse(inpath);
+				bpuri = Uri.parse(inpath);
 			}
 			bppath = this.convertClientPathToDebugger(bpuri.toString());
 		} else {
@@ -979,7 +980,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		});
 	}
 
-	private updateInfoJson(uri:vscode.Uri)
+	private updateInfoJson(uri:Uri)
 	{
 		try {
 			let jsonpath = uri.path;
@@ -1185,7 +1186,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.inPrompt = false;
 	}
 
-	private async trydir(dir:vscode.Uri,module:DebugProtocol.Module): Promise<boolean>
+	private async trydir(dir:Uri,module:DebugProtocol.Module): Promise<boolean>
 	{
 		try
 		{
@@ -1195,7 +1196,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			{
 
 				const modinfo:ModInfo = JSON.parse(Buffer.from(
-					await vscode.workspace.fs.readFile(vscode.Uri.joinPath(dir,"info.json"))).toString("utf8"));
+					await vscode.workspace.fs.readFile(Uri.joinPath(dir,"info.json"))).toString("utf8"));
 				if (modinfo.name===module.name && semver.eq(modinfo.version,module.version!,{"loose":true}))
 				{
 					module.symbolFilePath = dir.toString();
@@ -1237,7 +1238,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				if (module.name === "core" || module.name === "base")
 				{
 					// find `core` and `base` in data
-					module.symbolFilePath = vscode.Uri.joinPath(vscode.Uri.file(this.launchArgs.dataPath),module.name).toString();
+					module.symbolFilePath = Uri.joinPath(Uri.file(this.launchArgs.dataPath),module.name).toString();
 					module.symbolStatus = "Loaded Data Directory";
 					this.sendEvent(new OutputEvent(`loaded ${module.name} from data ${module.symbolFilePath}\n`,"stdout"));
 					continue;
@@ -1267,17 +1268,17 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				{
 					// find it in mods dir:
 					// 1) unversioned folder
-					let dir = vscode.Uri.joinPath(vscode.Uri.file(this.launchArgs.modsPath),module.name);
+					let dir = Uri.joinPath(Uri.file(this.launchArgs.modsPath),module.name);
 					if(await this.trydir(dir,module)){continue;};
 
 					// 2) versioned folder
-					dir = vscode.Uri.joinPath(vscode.Uri.file(this.launchArgs.modsPath),module.name+"_"+module.version);
+					dir = Uri.joinPath(Uri.file(this.launchArgs.modsPath),module.name+"_"+module.version);
 					if(await this.trydir(dir,module)){continue;};
 
 					// 3) versioned zip
 					if (zipext)
 					{
-						const zipuri = vscode.Uri.joinPath(vscode.Uri.file(this.launchArgs.modsPath),module.name+"_"+module.version+".zip");
+						const zipuri = Uri.joinPath(Uri.file(this.launchArgs.modsPath),module.name+"_"+module.version+".zip");
 						let stat:vscode.FileStat|undefined;
 						try
 						{
@@ -1300,7 +1301,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 								//TODO: can i actually read dirname inside? doesn't seem to be registered as an fs handler
 								await vscode.commands.executeCommand("zipexplorer.exploreZipFile", zipuri);
 
-								const zipinside = vscode.Uri.joinPath(zipuri,module.name+"_"+module.version).with({scheme: "zip"});
+								const zipinside = Uri.joinPath(zipuri,module.name+"_"+module.version).with({scheme: "zip"});
 								module.symbolFilePath = zipinside.toString();
 								module.symbolStatus = "Loaded Zip";
 								this.sendEvent(new OutputEvent(`loaded ${module.name} ${module.version} from mod zip ${zipuri.toString()}\n`,"stdout"));
