@@ -5,6 +5,7 @@
 ## 1.1.10
 
 * Correctly capture raw `remote` for debugger internal use before replacing it with wrapper
+* New Command "Generate Typedefs" to convert json docs to EmmyLua docs (and configure general workspace settings)
 
 ## 1.1.9
 
