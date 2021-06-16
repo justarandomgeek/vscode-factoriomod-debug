@@ -429,6 +429,7 @@ export class ApiDocGenerator {
 		this.docs.classes.forEach(aclass=>{
 			this.add_emmylua_class(output,aclass);
 		});
+		output.write(`\n\n---@alias LuaObject ${this.docs.classes.map(aclass=>aclass.name).join("|")}\n\n`);
 	}
 
 	private add_emmylua_class(output:WritableMemoryStream,aclass:ApiClass):void;
