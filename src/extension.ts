@@ -76,7 +76,10 @@ export function activate(context: vscode.ExtensionContext) {
 			if (!file) {return;}
 			const docjson = Buffer.from(await vscode.workspace.fs.readFile(file[0])).toString("utf8");
 			const gen = new ApiDocGenerator(docjson);
-			const save = await vscode.window.showSaveDialog({filters:{ "EmmyLua Doc File":["lua"], "TypeScriptToLua Doc File":["d.ts"] } });
+			const save = await vscode.window.showSaveDialog({filters:{
+				"EmmyLua Doc File":["lua"],
+				//"TypeScriptToLua Doc File":["d.ts"],
+			}});
 			if (save) {
 				if (save.path.endsWith(".lua")) {
 					const buff = gen.generate_emmylua_docs();
@@ -90,12 +93,12 @@ export function activate(context: vscode.ExtensionContext) {
 						if (!library.includes(save.fsPath)) {
 							library.push(save.fsPath);
 							config.update("workspace.library", library, add_to_lib==="Global");
-							const preloadFileSize = config.get<number>("workspace.preloadFileSize",0);
-							const docFileSize = Math.trunc(buff.length/1024)+1;
-							if (preloadFileSize < docFileSize) {
-								if ((await vscode.window.showWarningMessage(`workspace.preloadFileSize value ${preloadFileSize}kb is too small to load the generated definitions file (${docFileSize}kb). Increase workspace.preloadFileSize?`,"Yes","No")) === "Yes") {
-									config.update("workspace.preloadFileSize",docFileSize, add_to_lib==="Global");
-								}
+						}
+						const preloadFileSize = config.get<number>("workspace.preloadFileSize",0);
+						const docFileSize = Math.trunc(buff.length/1000)+1;
+						if (preloadFileSize < docFileSize) {
+							if ((await vscode.window.showWarningMessage(`workspace.preloadFileSize value ${preloadFileSize}kb is too small to load the generated definitions file (${docFileSize}kb). Increase workspace.preloadFileSize?`,"Yes","No")) === "Yes") {
+								config.update("workspace.preloadFileSize",docFileSize, add_to_lib==="Global");
 							}
 						}
 					}
