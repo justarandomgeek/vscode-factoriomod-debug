@@ -102,6 +102,59 @@ export function activate(context: vscode.ExtensionContext) {
 							}
 						}
 					}
+					const config_for_sumneko = <"Workspace"|"Global"|"No"|undefined> await vscode.window.showInformationMessage("Configure `sumneko.lua` environment for factorio?",
+						{}, "Workspace", "Global", "No");
+					if (config_for_sumneko && config_for_sumneko !== "No")
+					{
+						const config = vscode.workspace.getConfiguration("Lua");
+						const globals= config.get<string[]>("diagnostics.globals") ?? [];
+						[
+							"game", "script", "remote", "commands", "settings", "rcon", "rendering",
+							"global", "log", "defines", "data", "mods", "serpent", "table_size",
+							"bit32", "util", "localised_print",
+							//TODO: more data stage ones?
+							"circuit_connector_definitions", "universal_connector_template",
+						].forEach(s=>{
+							if (!globals.includes(s))
+							{
+								globals.push(s);
+							}
+						});
+						config.update("diagnostics.globals", globals, config_for_sumneko==="Global");
+
+						config.update("runtime.version", "Lua 5.2", config_for_sumneko==="Global");
+
+						const diagdisable= config.get<string[]>("diagnostics.disable") ?? [];
+						if (!diagdisable.includes("lowercase-global")) {
+							diagdisable.push("lowercase-global");
+						}
+						config.update("diagnostics.disable", diagdisable, config_for_sumneko==="Global");
+
+						const path_is_regular = file[0].path.match(/^(.*)[\/\\]doc-html[\/\\]runtime-api.json$/);
+						if (path_is_regular) {
+							const library: string[] = config.get("workspace.library") ?? [];
+							const rootpath = file[0].with({path:path_is_regular[1]});
+							const datapath = vscode.Uri.joinPath(rootpath,"data");
+							const lualibpath = vscode.Uri.joinPath(datapath,"core","lualib");
+							try {
+								if (!library.includes(datapath.fsPath) &&
+									// eslint-disable-next-line no-bitwise
+									((await vscode.workspace.fs.stat(datapath)).type & vscode.FileType.Directory)) {
+									library.push(datapath.fsPath);
+								}
+							} catch {}
+							try {
+								if (!library.includes(lualibpath.fsPath) &&
+									// eslint-disable-next-line no-bitwise
+									((await vscode.workspace.fs.stat(lualibpath)).type & vscode.FileType.Directory)) {
+									library.push(lualibpath.fsPath);
+								}
+							} catch {}
+
+							config.update("workspace.library", library, config_for_sumneko==="Global");
+
+						}
+					}
 				} else if (save.path.endsWith(".d.ts")) {
 					vscode.workspace.fs.writeFile(save,gen.generate_ts_docs());
 				}

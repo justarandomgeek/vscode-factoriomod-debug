@@ -26,53 +26,19 @@ I open the Factorio `mods` directory as the root of my workspace in VSCode, and 
 I use VScode (imagine that!), but it needs a few extensions to really shine in this context:
 
  * [Factorio Mod Debugger](https://marketplace.visualstudio.com/items?itemName=justarandomgeek.factoriomod-debug) - You are here
- * [Factorio Lua API autocomplete](https://marketplace.visualstudio.com/items?itemName=svizzini.factorio-lua-api-autocomplete)
+ * ~~[Factorio Lua API autocomplete](https://marketplace.visualstudio.com/items?itemName=svizzini.factorio-lua-api-autocomplete)~~ This has not been updated in some time and is no longer needed.
  * A Lua Language server. There's like 30 of these, but the one I like is [sumneko.lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua)
  * [Zip File Explorer](https://marketplace.visualstudio.com/items?itemName=slevesque.vscode-zipexplorer). Enables viewing files inside zips, which allows breakpoints/stepping inside them as well.
  * Optional: [Bracket Pair Colorizer 2](https://marketplace.visualstudio.com/items?itemName=CoenraadS.bracket-pair-colorizer-2). Useful for deeply nested tables/function calls.
  * Optional: [indent-rainbow](https://marketplace.visualstudio.com/items?itemName=oderwat.indent-rainbow)
  * Optional: [Git Graph](https://marketplace.visualstudio.com/items?itemName=mhutchie.git-graph). I happen to like the graph git log view this extension gives as a place to do manual git operations more complicated than the builtin SCM view provides for.
 
+To generate EmmyLua docs for the Factorio API from the JSON docs press `Ctrl-Shift-P` to open the command palette and run the `Factorio: Generate Typedefs` command. Open `factorio/doc-html/runtime-api.json`, and save the generated lua file wherever you like. This will also offer to add it to the library and adjust other configuration for [sumneko.lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua).
 
-In addition to these, you'll want a little configuration to tell your Lua Language Server about Factorio's APIs. If you use [sumneko.lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua), add this to your (user or workspace) `settings.json`:
 
-```jsonc
-  "Lua.diagnostics.globals": [
-    "game",
-    "script",
-    "remote",
-    "commands",
-    "settings",
-    "rcon",
-    "rendering",
-    "global",
-    "log",
-    "localised_print",
-    "defines",
-    "data", /* data */
-    "mods", /* data */
-    "serpent",
-    "table_size",
-    "bit32",
-    "util",
-    /* data stage has a *lot* of globals,
-     * you may need to add more if you use them
-     */
-    "circuit_connector_definitions", /* data */
-    "universal_connector_template", /* data */
-  ],
-  "Lua.runtime.version": "Lua 5.2",
-  "Lua.diagnostics.disable": [
-    "lowercase-global"
-  ],
-  "Lua.workspace.library": [
-    /* Adjust these to match your Factorio install path */
-    "C:/path/to/factorio/data/", /* for __base__ and __core__ */
-    "C:/path/to/factorio/data/core/lualib", /* some basic libs can be required directly*/
-  ],
-```
+Install [the Factorio Sumneko Lua Plugin](https://github.com/JanSharp/FactorioSumnekoLuaPlugin) into `.vscode/lua` to improve handling of `require`s, `global`, and `remote.call`.
 
-Clone [the Factorio Sumneko Lua Plugin](https://github.com/JanSharp/FactorioSumnekoLuaPlugin) into `.vscode/lua` to improve handling of `require`s, `global`, and `remote.call`.
+
 
 If using tasks, you may want to use git-bash as your automation shell:
 
