@@ -54,7 +54,9 @@ export class FactorioProcess extends EventEmitter {
 	{
 		if (this.hasNativeDebug)
 		{
-			treekill(this.factorio.pid);
+			if (this.factorio.pid){
+				treekill(this.factorio.pid);
+			}
 		}
 		else
 		{
