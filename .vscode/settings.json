@@ -4,4 +4,39 @@
 	"typescript.tsdk": "node_modules/typescript/lib",
 	"files.trimTrailingWhitespace": true,
 	"editor.insertSpaces": false,
+	"Lua.workspace.ignoreDir": [
+        ".vscode"
+    ],
+    "Lua.workspace.library": [
+        "d:\\factorio\\factoriogit\\doc-html\\runtime-api.lua",
+        "d:\\factorio\\factoriogit\\data",
+        "d:\\factorio\\factoriogit\\data\\core\\lualib"
+    ],
+    "Lua.workspace.preloadFileSize": 1390,
+    "Lua.diagnostics.globals": [
+        "game",
+        "script",
+        "remote",
+        "commands",
+        "settings",
+        "rcon",
+        "rendering",
+        "global",
+        "log",
+        "defines",
+        "data",
+        "mods",
+        "serpent",
+        "table_size",
+        "bit32",
+        "util",
+        "localised_print",
+        "circuit_connector_definitions",
+        "universal_connector_template",
+		"on_error"
+    ],
+    "Lua.runtime.version": "Lua 5.2",
+    "Lua.diagnostics.disable": [
+        "lowercase-global"
+    ],
 }
