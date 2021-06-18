@@ -19,6 +19,8 @@ git clone --single-branch --branch master https://github.com/JanSharp/FactorioSu
 ```
 This will clone the master branch of this repository into the `lua` folder from the current directory, which is the `.vscode` directory.
 
+After installing make sure to reload vscode.
+
 ## How to update
 
 To update the plugin simply use `git pull`. The master branch should always be in a functional state.
@@ -29,6 +31,8 @@ To update the plugin simply use `git pull`. The master branch should always be i
 git pull
 ```
 Or use any other method of using git you're comfortable with.
+
+After updating make sure to reload vscode.
 
 ## But i'm different
 
@@ -234,10 +238,12 @@ Would look something similar to this to the language server
 ---@param value any
 local function foo(value)
   if type(value) == "string" then
-    value = value ---@type string
+    value = (function() end)() ---@type string
     -- now value is a string, not any
   end
 end
 ```
 
 It specifically looks for `---@narrow` followed by space and an identifier, then does the replacement so that the type is actually used in place, exactly how/where you wrote it.
+
+It's using a function that gets called immediately because it's an experssion the language server cannot evaluate the type for and it would default to `any` which creates the best looking errors/warnings when you forgot to add the type. Previously it was `value = value` which caused name duplication if `value` got renamed.
