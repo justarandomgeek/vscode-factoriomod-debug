@@ -1,4 +1,7 @@
 
+### 2021-06-18
+- Fix "__all_remote_interfaces" `undefiend-field` warnings for `remote.add_interface` and `remote.call` when `remote` has a specific type defined
+
 ### 2021-05-08
 - Add ---@narrow to change the type of a variable
 
