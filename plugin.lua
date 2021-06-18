@@ -34,6 +34,7 @@ local global = require("factorio-plugin.global")
 local narrow = require("factorio-plugin.narrow")
 local remote = require("factorio-plugin.remote")
 local type_list = require("factorio-plugin.type-list")
+local on_event = require("factorio-plugin.on-event")
 
 ---@class Diff
 ---@field start integer @ The number of bytes at the beginning of the replacement
@@ -53,6 +54,7 @@ function OnSetText(uri, text)
   narrow.replace(uri, text, diffs)
   remote.replace(uri, text, diffs)
   type_list.replace(uri, text, diffs)
+  on_event.replace(uri, text, diffs)
 
   return diffs
 end
