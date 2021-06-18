@@ -1,5 +1,6 @@
 
 ### 2021-06-18
+- Add Event Handler Parameter Annotating. See readme for explanation and exact behavior, though the latter may not be the most useful
 - Fix "__all_remote_interfaces" `undefiend-field` warnings for `remote.add_interface` and `remote.call` when `remote` has a specific type defined
 
 ### 2021-05-08

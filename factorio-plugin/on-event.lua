@@ -26,7 +26,8 @@ local function replace(uri, text, diffs)
       local class_name = class_name_getter()
       if class_name then
         util.add_diff(diffs, s_func_param, s_func,
-          "\n---@diagnostic disable-next-line\n---@param "..param_name.." "..class_name.."\n")
+          "\n---@diagnostic disable-next-line:undefined-doc-name\n---@param "
+          ..param_name.." "..class_name.."\n")
       end
     end
   end
