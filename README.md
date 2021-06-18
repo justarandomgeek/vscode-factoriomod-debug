@@ -247,7 +247,7 @@ remote.__all_remote_interfaces.foo.bar("arg 1", "arg 2")
 
 Then when you for example hover over the string `"bar"` in the `remote.call` call you should get intelisense showing the signature of the function bar as defined above.
 
-It also disables `undefined-field` diagnostics specifically for `__all_remote_interfaces` and does nothing if it finds `--` in the line before `remote`.
+It also disables `undefined-field` diagnostics specifically for `__all_remote_interfaces` and does nothing if it finds `--` before `remote` on the same line.
 
 ### More about remote.add_interface
 
