@@ -63,7 +63,7 @@ export enum LuaOpcode {
 export enum LuaConstType {
 	Nil = 0,
 	Boolean = 1,
-	Number = 2,
+	Number = 3,
 	String = 4,
 }
 
@@ -414,21 +414,22 @@ export class LuaFunction {
 	}
 
 	getRegisterLabel(pc:number,idx:number) : string {
-		const names = [];
+		let stack = 0;
 		for (let i = 0; i < this.locals.length; i++) {
 			const loc = this.locals[i];
-			if (loc.start < pc)
+			if (loc.start <= pc+1)
 			{
-				if (loc.end < pc) {
-					names.pop();
-				} else {
-					names.push(loc.name);
+				if (loc.end >= pc+1) {
+					if (stack === idx ) {
+						return `R(${loc.name})`;
+					}
+					stack++;
 				}
 			} else {
 				break;
 			}
 		}
-		return `R(${names[idx] ?? idx})`;
+		return `R(${idx})`;
 	}
 
 }
