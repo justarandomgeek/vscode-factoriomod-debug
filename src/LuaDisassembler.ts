@@ -283,7 +283,7 @@ export class LuaFunction {
 		}
 	}
 
-	getDisassembledFile() {
+	getDisassembledSingleFunction():string {
 		const instructions = this.instructions.map((i,pc)=>this.getInstructionLabel(pc));
 		return [
 			`function at ${this.source}:${this.firstline}-${this.lastline}`,
@@ -291,6 +291,11 @@ export class LuaFunction {
 			`${this.instructions.length} instructions ${this.constants.length} constants ${this.inner_functions.length} functions`,
 			...instructions,
 		].join("\n");
+	}
+
+	getDisassembledWholeFile():string {
+		return this.getDisassembledSingleFunction() + "\n\n" +
+			this.inner_functions.map(f=>f.getDisassembledWholeFile()).join("\n\n");
 	}
 
 	getInstructionLabel(pc:number) {

@@ -2,7 +2,7 @@ import {
 	Logger, logger,
 	LoggingDebugSession,
 	StoppedEvent, OutputEvent,
-	Thread, Source, Module, ModuleEvent, InitializedEvent, Scope, Variable, Event, TerminatedEvent
+	Thread, Source, Module, ModuleEvent, InitializedEvent, Scope, Variable, Event, TerminatedEvent, LoadedSourceEvent
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import * as path from 'path';
@@ -135,7 +135,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	public constructor() {
 		super();
 
-		// this debugger uses zero-based lines and columns
 		this.setDebuggerLinesStartAt1(true);
 		this.setDebuggerColumnsStartAt1(true);
 		this.setDebuggerPathFormat("uri");
@@ -181,6 +180,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		response.body.supportsModulesRequest = true;
 		response.body.supportsLogPoints = true;
 		response.body.supportsConfigurationDoneRequest = true;
+		response.body.supportsLoadedSourcesRequest = true;
 
 		this.sendResponse(response);
 	}
@@ -566,6 +566,9 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 				// and finally send the initialize event to get breakpoints and such...
 				this.sendEvent(new InitializedEvent());
+			} else if (mesg.startsWith("EVTsource: ")) {
+				if (this.launchArgs.trace){this.sendEvent(new OutputEvent(`> EVTsource\n`, "console"));}
+				await this.loadedSourceEvent(JSON.parse(mesg.substring(11).trim()));
 			} else if (mesg.startsWith("DBGscopes: ")) {
 				const scopes = JSON.parse(mesg.substring(11).trim());
 				this._scopes.get(scopes.frameId)!(scopes.scopes);
@@ -915,6 +918,26 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.sendResponse(response);
 	}
 
+	private dumps = new Map<number|string,LuaFunction>();
+	private loadedSources:(Source&DebugProtocol.Source)[] = [];
+	protected async loadedSourceEvent(loaded:{ source:Source&DebugProtocol.Source; dump:string }) {
+		if (loaded.source.path){
+			loaded.source.path = this.convertDebuggerPathToClient(loaded.source.path);
+		}
+
+		const dumpid = loaded.source.path ?? loaded.source.sourceReference;
+		const buff = Buffer.from(loaded.dump,"base64");
+		const stream = new BufferStream(buff);
+		const dump = new LuaFunction(stream,true);
+		this.dumps.set(dumpid,dump);
+		this.sendEvent(new LoadedSourceEvent("new",loaded.source));
+	}
+
+	protected async loadedSourcesRequest(response: DebugProtocol.LoadedSourcesResponse, args: DebugProtocol.LoadedSourcesArguments, request?: DebugProtocol.Request) {
+		response.body = {sources: this.loadedSources};
+		this.sendResponse(response);
+	}
+
 	protected async sourceRequest(response: DebugProtocol.SourceResponse, args: DebugProtocol.SourceArguments): Promise<void> {
 		const ref = args.source?.sourceReference;
 		if (ref) {
@@ -952,7 +975,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		let source:string;
 		if (dump.dump) {
 			const func = new LuaFunction(new BufferStream(Buffer.from(dump.dump,"base64")),true);
-			source = func.getDisassembledFile();
+			source = func.getDisassembledSingleFunction();
 		} else if (dump.source) {
 			source = dump.source;
 		} else {

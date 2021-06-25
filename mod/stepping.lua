@@ -1,3 +1,5 @@
+local enc = require("__debugadapter__/base64.lua")
+
 --this has to be defined before requiring other files so they can mark functions as ignored
 local stepIgnoreFuncs = {}
 -- make it weak keys so it doesn't keep an otherwise-dead function around
@@ -170,7 +172,30 @@ do
     --ignore "tail call" since it's just one of each
     elseif event == "call" then
       local info = getinfo(2,"Slf")
-      local s = info.source
+      if info.what == "main" then
+        local s = normalizeLuaSource(info.source)
+        local dasource = { name = s, path = s }
+        --[[if s == "=(dostring)" then
+          local sourceid = variables.sourceRef(info.source)
+          if sourceid then
+            dasource = {
+              name = "=(dostring) "..sourceid..".lua",
+              sourceReference = sourceid,
+              origin = "dostring",
+            }
+          end
+          print("EVTsource: "..json_encode{
+            source = dasource,
+            dump = enc(string.dump(info.func))
+          })
+        else]]
+        if s:sub(1,1) == "@" then
+          print("EVTsource: "..json_encode{
+            source = dasource,
+            dump = enc(string.dump(info.func))
+          })
+        end
+      end
 
       local success,classname,member,v = luaObjectInfo.check_eventlike(3,event)
       local parent =  getinfo(3,"f")
