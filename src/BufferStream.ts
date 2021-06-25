@@ -34,6 +34,7 @@ export class BufferStream extends Readable {
 	}
 
 	readString(size:number) {
+		if (size===0) { return ""; }
 		const b:Buffer = this.read(size);
 		return b.toString("utf8");
 	}
