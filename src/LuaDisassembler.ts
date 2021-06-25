@@ -321,7 +321,7 @@ export class LuaFunction {
 			case LuaOpcode.OP_SETUPVAL:
 				return `SETUPVAL  [${current.line}]\t${this.getUpvalLabel(current.B)} := ${this.getRegisterLabel(pc,current.B)}`;
 			case LuaOpcode.OP_SETTABLE:
-				return `SETTABUP  [${current.line}]\t${this.getRegisterLabel(pc,current.A)}[${this.getRegisterOrConstantLabel(pc,current.B)}] := ${this.getRegisterOrConstantLabel(pc,current.C)}`;
+				return `SETTABLE  [${current.line}]\t${this.getRegisterLabel(pc,current.A)}[${this.getRegisterOrConstantLabel(pc,current.B)}] := ${this.getRegisterOrConstantLabel(pc,current.C)}`;
 			case LuaOpcode.OP_NEWTABLE:
 				return `NEWTABLE  [${current.line}]\t${this.getRegisterLabel(pc,current.A)} := {} size(${current.B},${current.C})`;
 			case LuaOpcode.OP_SELF:
