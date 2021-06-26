@@ -4,6 +4,11 @@
 
 ## 1.1.11
 
+* Don't offer ! and version in depencency snippets
+* Add overlay for tweaks to generated typedefs
+* Various disassembler fixes
+* Support "Loaded Sources" view
+
 ## 1.1.10
 
 * Correctly capture raw `remote` for debugger internal use before replacing it with wrapper
