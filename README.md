@@ -19,6 +19,9 @@ git clone --single-branch --branch master https://github.com/JanSharp/FactorioSu
 ```
 This will clone the master branch of this repository into the `lua` folder from the current directory, which is the `.vscode` directory.
 
+Since `sumneko.lua` 2.0.0 `Lua.runtime.plugin` defaults to `""` instead of `".vscode/lua/plugin.lua"`
+so you'll have to configure this setting to `".vscode/lua/plugin.lua"` yourself. Best would be to do this per workspace for security.
+
 After installing make sure to reload vscode.
 
 ## How to update
@@ -36,7 +39,7 @@ After updating make sure to reload vscode.
 
 ## But i'm different
 
-If you happen to have a different setup and cannot put the repository in it's default location clone it to wherever you want (the folder does not have to be called `lua` anymore at that point) and then configure the `Lua.runtime.plugin` setting. The file name of the plugin entrypoint is `plugin.lua`. It can be a relative path from the root of the workspace directory.
+If you happen to have a different setup and cannot put the repository in it's default location clone it to wherever you want (the folder does not have to be called `lua` anymore at that point) and then configure the `Lua.runtime.plugin` setting. The file name of the plugin entrypoint is `plugin.lua`. It can be a relative path from the root of the workspace directory. (Best would be to do this per workspace for security.)
 
 ### But i'm also very new
 
