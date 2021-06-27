@@ -137,13 +137,9 @@ if __DebugAdapter.checkGlobals ~= false then
           path = source,
         }
         if source == "=(dostring)" then
-          local sourceid = variables.sourceRef(info.source)
-          if sourceid then
-            dasource = {
-              name = "=(dostring) "..sourceid..".lua",
-              sourceReference = sourceid,
-              origin = "dostring",
-            }
+          local sourceref = variables.sourceRef(info.source)
+          if sourceref then
+            dasource = sourceref
           end
         end
         body.source = dasource
@@ -316,15 +312,19 @@ function variables.kvRef(key,value)
   return id,name
 end
 
---- Generate a variablesReference for a source string
+--- Generate a variablesReference for a source string and prepare a Source
 ---@param source string
----@return number variablesReference
+---@return Source
 function variables.sourceRef(source,checkonly)
   local refs = variables.longrefs
 
   for id,varRef in pairs(refs) do
     if varRef.type == "Source" and varRef.source == source then
-      return id
+      return {
+        name = "=(dostring) "..id..".lua",
+        sourceReference = id,
+        origin = "dostring",
+      }
     end
   end
   if checkonly then return end
@@ -333,7 +333,11 @@ function variables.sourceRef(source,checkonly)
     type = "Source",
     source = source,
   }
-  return id
+  return {
+    name = "=(dostring) "..id..".lua",
+    sourceReference = id,
+    origin = "dostring",
+  }
 end
 
 --- Generate a variablesReference for a function
@@ -353,14 +357,6 @@ function variables.funcRef(func)
     func = func,
   }
   return id
-end
-
-
-function variables.funcDisassemble(func)
-  local info = debug.getinfo(func,"S")
-  if info.source:sub(1,1) == "@" then return end
-  if isUnsafeLong(func) then return end
-  return variables.funcRef(func)
 end
 
 

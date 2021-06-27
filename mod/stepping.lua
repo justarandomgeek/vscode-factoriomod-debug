@@ -108,9 +108,9 @@ do
         local filebreaks = breakpoints[s]
         if not filebreaks then
           if s == "=(dostring)" then
-            local sourceid = variables.sourceRef(rawsource,true)
-            if sourceid then
-              filebreaks = breakpoints["&ref "..sourceid]
+            local sourceref = variables.sourceRef(rawsource,true)
+            if sourceref then
+              filebreaks = breakpoints["&ref "..sourceref.sourceReference]
             end
           end
         end
@@ -176,13 +176,9 @@ do
         local s = normalizeLuaSource(info.source)
         local dasource = { name = s, path = s }
         --[[if s == "=(dostring)" then
-          local sourceid = variables.sourceRef(info.source)
-          if sourceid then
-            dasource = {
-              name = "=(dostring) "..sourceid..".lua",
-              sourceReference = sourceid,
-              origin = "dostring",
-            }
+          local sourceref = variables.sourceRef(info.source)
+          if sourceref then
+            dasource = sourceref
           end
           print("EVTsource: "..json_encode{
             source = dasource,

@@ -92,11 +92,12 @@ function __DebugAdapter.stackTrace(startFrame, forRemote, seq)
     end
     local isC = info.what == "C"
     if isC then
-      if info.name == "__index" or info.name == "__newindex" then
-        local t = __DebugAdapter.describe(select(2,debug.getlocal(i,1)),true)
-        local k = __DebugAdapter.describe(select(2,debug.getlocal(i,2)),true)
-        if info.name == "__newindex" then
-          local v = __DebugAdapter.describe(select(2,debug.getlocal(i,3)),true)
+      if framename == "__index" or framename == "__newindex" then
+        local describe = __DebugAdapter.describe
+        local t = describe(select(2,debug.getlocal(i,1)),true)
+        local k = describe(select(2,debug.getlocal(i,2)),true)
+        if framename == "__newindex" then
+          local v = describe(select(2,debug.getlocal(i,3)),true)
           framename = ("__newindex(%s,%s,%s)"):format(t,k,v)
         else
           framename = ("__index(%s,%s)"):format(t,k)
@@ -130,27 +131,14 @@ function __DebugAdapter.stackTrace(startFrame, forRemote, seq)
         dasource.presentationHint = "deemphasize"
       end
 
-      if noLuaSource then
-        if __DebugAdapter.hascurrentpc then
-          local disid = variables.funcDisassemble(info.func)
-          if disid then
-            stackFrame.line = debug.getinfo(i,"p").currentpc + 4
-            stackFrame.column = 1
-            dasource = {
-              name = source.." "..disid..".luadis",
-              sourceReference = disid,
-              origin = "disassembly",
-            }
-          end
-        end
-      elseif sourceIsCode then
-        local sourceid = variables.sourceRef(info.source)
-        if sourceid then
-          dasource = {
-            name = "=(dostring) "..sourceid..".lua",
-            sourceReference = sourceid,
-            origin = "dostring",
-          }
+      if __DebugAdapter.hascurrentpc then
+        stackFrame.instructionPointerReference = "+"..debug.getinfo(i,"p").currentpc
+      end
+
+      if sourceIsCode then
+        local sourceref = variables.sourceRef(info.source)
+        if sourceref then
+          dasource = sourceref
         end
       end
       stackFrame.source = dasource

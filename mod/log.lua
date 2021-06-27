@@ -40,13 +40,9 @@ local function newlog(mesg)
       path = source,
     }
     if source == "=(dostring)" then
-      local sourceid = variables.sourceRef(info.source)
-      if sourceid then
-        dasource = {
-          name = "=(dostring) "..sourceid..".lua",
-          sourceReference = sourceid,
-          origin = "dostring",
-        }
+      local sourceref = variables.sourceRef(info.source)
+      if sourceref then
+        dasource = sourceref
       end
     end
     body.source = dasource
