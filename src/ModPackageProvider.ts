@@ -54,7 +54,7 @@ interface AdjustModsDefinition extends vscode.TaskDefinition {
 }
 
 export class ModTaskProvider implements vscode.TaskProvider{
-	constructor(context: vscode.ExtensionContext, private readonly modPackages: Map<string, ModPackage>) {}
+	constructor(private readonly modPackages: Map<string, ModPackage>) {}
 
 
 	provideTasks(token?: vscode.CancellationToken | undefined): vscode.ProviderResult<vscode.Task[]> {
@@ -799,25 +799,24 @@ export class ModPackage extends vscode.TreeItem {
 		});
 	}
 }
-export class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
+export class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>, vscode.Disposable {
 	private readonly _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | undefined> = new vscode.EventEmitter<vscode.TreeItem | undefined>();
 	readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | undefined> = this._onDidChangeTreeData.event;
 
 	private readonly modPackages: Map<string, ModPackage>;
-	constructor(context: vscode.ExtensionContext) {
-		const subscriptions = context.subscriptions;
-
+	private readonly subscriptions:{dispose():void}[] = [this._onDidChangeTreeData];
+	constructor() {
 		this.modPackages = new Map<string, ModPackage>();
 		vscode.workspace.findFiles('**/info.json').then(infos => { infos.forEach(this.updateInfoJson, this); });
 		const infoWatcher = vscode.workspace.createFileSystemWatcher('**/info.json');
-		infoWatcher.onDidChange(this.updateInfoJson, this);
-		infoWatcher.onDidCreate(this.updateInfoJson, this);
-		infoWatcher.onDidDelete(this.removeInfoJson, this);
-		subscriptions.push(infoWatcher);
+		this.subscriptions.push(infoWatcher.onDidChange(this.updateInfoJson, this));
+		this.subscriptions.push(infoWatcher.onDidCreate(this.updateInfoJson, this));
+		this.subscriptions.push(infoWatcher.onDidDelete(this.removeInfoJson, this));
+		this.subscriptions.push(infoWatcher);
 
-		context.subscriptions.push(vscode.tasks.registerTaskProvider("factorio",new ModTaskProvider(context, this.modPackages)));
+		this.subscriptions.push(vscode.tasks.registerTaskProvider("factorio",new ModTaskProvider(this.modPackages)));
 
-		context.subscriptions.push(
+		this.subscriptions.push(
 			vscode.commands.registerCommand("factorio.openchangelog",async (mp:ModPackage) => {
 				try {
 					vscode.window.showTextDocument(vscode.Uri.joinPath(mp.resourceUri,"../changelog.txt"));
@@ -826,42 +825,42 @@ export class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.Tree
 				}
 			}));
 
-		context.subscriptions.push(
+		this.subscriptions.push(
 			vscode.commands.registerCommand("factorio.compile",async (mp:ModPackage) => {
 				const compiletask = (await vscode.tasks.fetchTasks({type:"factorio"})).find(t=>
 					t.definition.command = "compile" && t.definition.modname === mp.label)!;
 				await vscode.tasks.executeTask(compiletask);
 			}));
 
-		context.subscriptions.push(
+		this.subscriptions.push(
 			vscode.commands.registerCommand("factorio.datestamp",async (mp:ModPackage) => {
 				const datestamptask = (await vscode.tasks.fetchTasks({type:"factorio"})).find(t=>
 					t.definition.command = "datestamp" && t.definition.modname === mp.label)!;
 				await vscode.tasks.executeTask(datestamptask);
 			}));
 
-		context.subscriptions.push(
+		this.subscriptions.push(
 			vscode.commands.registerCommand("factorio.package",async (mp:ModPackage) => {
 				const packagetask = (await vscode.tasks.fetchTasks({type:"factorio"})).find(t=>
 					t.definition.command === "package" && t.definition.modname === mp.label)!;
 				await vscode.tasks.executeTask(packagetask);
 			}));
 
-		context.subscriptions.push(
+		this.subscriptions.push(
 			vscode.commands.registerCommand("factorio.version",async (mp:ModPackage) => {
 				const versiontask = (await vscode.tasks.fetchTasks({type:"factorio"})).find(t=>
 					t.definition.command === "version" && t.definition.modname === mp.label)!;
 				await vscode.tasks.executeTask(versiontask);
 			}));
 
-		context.subscriptions.push(
+		this.subscriptions.push(
 			vscode.commands.registerCommand("factorio.upload",async (mp:ModPackage) => {
 				const uploadtask = (await vscode.tasks.fetchTasks({type:"factorio"})).find(t=>
 					t.definition.command === "upload" && t.definition.modname === mp.label)!;
 				await vscode.tasks.executeTask(uploadtask);
 			}));
 
-		context.subscriptions.push(
+		this.subscriptions.push(
 			vscode.commands.registerCommand("factorio.publish",async (mp:ModPackage) => {
 				const publishtask = (await vscode.tasks.fetchTasks({type:"factorio"})).find(t=>
 					t.definition.command === "publish" && t.definition.modname === mp.label)!;
@@ -869,6 +868,11 @@ export class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.Tree
 
 			}));
 	}
+
+	dispose() {
+		this.subscriptions.forEach(d=>d.dispose());
+	}
+
 	private async updateInfoJson(uri: vscode.Uri) {
 		if(uri.scheme === "file")
 		{

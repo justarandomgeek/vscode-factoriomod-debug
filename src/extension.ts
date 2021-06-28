@@ -165,10 +165,13 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		}));
 	if (vscode.workspace.workspaceFolders) {
-		const treeDataProvider = new ModsTreeDataProvider(context);
+		const treeDataProvider = new ModsTreeDataProvider();
+		context.subscriptions.push(treeDataProvider);
 		const view = vscode.window.createTreeView('factoriomods', { treeDataProvider: treeDataProvider });
 		context.subscriptions.push(view);
 	}
+
+
 }
 
 export function deactivate() {
