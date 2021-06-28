@@ -27,19 +27,12 @@ interface ModPaths{
 	version: string
 	info: ModInfo
 }
-interface EvaluateResponseBody {
-	result: string
-	type?: string
-	presentationHint?: DebugProtocol.VariablePresentationHint
-	variablesReference: number
-	namedVariables?: number
-	indexedVariables?: number
-
+type EvaluateResponseBody = DebugProtocol.EvaluateResponse['body'] & {
 	// sequence number of this eval
 	seq: number
 	// translation ID for time this eval ran
 	timer?: number
-}
+};
 
 type resolver<T> = (value?: T | PromiseLike<T> | undefined)=>void;
 
