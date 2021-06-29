@@ -81,7 +81,6 @@ local hook
 local pending = {}
 do
   local getinfo = debug.getinfo
-  local sub = string.sub
   local format = string.format
   local debugprompt = debug.debug
 
