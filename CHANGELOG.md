@@ -8,6 +8,7 @@
 * Add overlay for tweaks to generated typedefs
 * Various disassembler fixes
 * Support "Loaded Sources" view
+* Significant (~2x) speedup in profiling, noise reduction on line timers
 
 ## 1.1.10
 
