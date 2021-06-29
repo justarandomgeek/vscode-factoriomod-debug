@@ -815,8 +815,8 @@
               },
               "profileSlowStart": {
                 "type": "integer",
-                "description": "Number of events to dump profilers after every Lua stack at startup (to allow for saving for migration). Increase this if you're getting errors at startup while profiling.",
-                "default": 20,
+                "description": "Number of events to dump profilers after every Lua stack at startup (to allow for saving for migration). Use this if you're trying to profile migrations or other early load behavior.",
+                "default": 0,
                 "minimum": 0
               },
               "profileUpdateRate": {

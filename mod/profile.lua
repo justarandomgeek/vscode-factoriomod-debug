@@ -19,11 +19,19 @@ local linedata = {}
 local funcdata = {}
 
 if not __Profiler.slowStart then
-  __Profiler.slowStart = 20
+  __Profiler.slowStart = 0
 end
 if not __Profiler.updateRate then
   __Profiler.updateRate = 500
 end
+
+---@return LuaProfiler
+local function getaccumulator()
+  -- start stopped, prefetch add to skip __index while accumulating in hook
+  local t = game.create_profiler(true)
+  return rawset(t, "add", t.add)
+end
+
 
 ---@param file string
 ---@param line number
@@ -39,10 +47,7 @@ local function getlinetimer(file,line)
   if not ld then
     ld = {count=0}
     f[line] = ld
-    -- start stopped
-    local t = game.create_profiler(true)
-    ld.timer = t
-
+    ld.timer = getaccumulator()
   end
   ld.count = ld.count + 1
   return ld.timer
@@ -65,10 +70,7 @@ local function getfunctimer(file,line)
   if not fd then
     fd = {count=0}
     f[line] = fd
-    -- start stopped
-    local t = game.create_profiler(true)
-    fd.timer = t
-
+    fd.timer = getaccumulator()
   end
   fd.count = fd.count + 1
   return fd.timer
@@ -133,7 +135,7 @@ local function getstackbranch(treenode,source,linedefined,name)
     child = {
       name = childindex,
       funcname = fname, filename = source, line = linedefined,
-      timer = game.create_profiler(true),
+      timer = getaccumulator(),
       children = {}
     }
     treenode.children[childindex] = child
@@ -144,7 +146,7 @@ end
 local function accumulate_hook_time()
   if hooktimer then
     if not luatotal then
-      luatotal = game.create_profiler(true)
+      luatotal = getaccumulator()
     end
     luatotal.add(hooktimer)
     if activeline then
@@ -171,17 +173,28 @@ end
 local function dump()
   local t = game.create_profiler()
   print("***DebugAdapterBlockPrint***\nPROFILE:")
-  localised_print{"","PMN:",mod_name,":",luatotal}
+  -- reuse one table lots to be nice to GC
+  local tag = {"","PMN:",mod_name,":",luatotal}
+  localised_print(tag)
   luatotal = nil
   for file,f in pairs(linedata) do
     print("PFN:"..file)
+    tag[2] = "PLN:"
+    tag[6] = ":"
     for line,ld in pairs(f) do
-      localised_print{"","PLN:",line,":",ld.timer,":",ld.count}
+      tag[3] = line
+      tag[5] = ld.timer
+      tag[7] = ld.count
+      localised_print(tag)
     end
     local fd = funcdata[file]
     if fd then
+      tag[2] = "PFT:"
       for line,ft in pairs(fd) do
-        localised_print{"","PFT:",line,":",ft.timer,":",ft.count}
+        tag[3] = line
+        tag[5] = ft.timer
+        tag[7] = ft.count
+        localised_print(tag)
       end
     end
   end
@@ -214,7 +227,10 @@ do
     if hooktimer then
       hooktimer.stop()
     elseif game then
+      -- prefetch these to skip __index for the hook later
       hooktimer = game.create_profiler(true)
+      rawset(hooktimer, "stop", hooktimer.stop)
+      rawset(hooktimer, "reset", hooktimer.reset)
     else
       return
     end
