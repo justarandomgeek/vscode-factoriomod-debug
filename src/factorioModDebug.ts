@@ -121,6 +121,8 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	private workspaceModInfoReady:Promise<void>;
 	private readonly workspaceModInfo = new Array<ModPaths>();
 
+	private editorWatcher?:vscode.Disposable;
+
 	/**
 	 * Creates a new debug adapter that is used for one debug session.
 	 * We configure the default implementation of a debug adapter here.
@@ -137,7 +139,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			infos.forEach(this.updateInfoJson,this);
 			resolve();
 		});
-		vscode.window.onDidChangeActiveTextEditor(editor =>{
+		this.editorWatcher = vscode.window.onDidChangeActiveTextEditor(editor =>{
 			if (editor && this.profile && (editor.document.uri.scheme==="file"||editor.document.uri.scheme==="zip"))
 			{
 				const profname = this.convertClientPathToDebugger(editor.document.uri.toString());
@@ -791,6 +793,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			response.success = false;
 			response.message = vars[0].value;
 		}
+		cts.dispose();
 		this.sendResponse(response);
 	}
 
@@ -863,6 +866,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 								`{Missing Translation ID ${body.timer}}`;
 					body.result += "\n⏱️ " + time;
 				}
+		cts.dispose();
 		this.sendResponse(response);
 	}
 
@@ -961,6 +965,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			]);
 			consume!();
 			response.body = { content: body };
+			cts.dispose();
 		}
 		this.sendResponse(response);
 	}
@@ -1367,6 +1372,12 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		{
 			this.profile.dispose();
 			this.profile = undefined;
+		}
+
+		if (this.editorWatcher)
+		{
+			this.editorWatcher.dispose();
+			this.editorWatcher = undefined;
 		}
 
 		this.factorio.kill();
