@@ -12,3 +12,5 @@ use vscode auth system to keep one portal session
 map __#user__ to write-data tree for scenarios/campaigns
 fake rcon for debugging rcon tools
 plain TCP socket (for use with netcat or directly) for stdio
+fake raise events
+lua call to terminate debug session
