@@ -6,6 +6,37 @@ local print = print
 local localised_print = localised_print
 local debug = debug
 local mod_name = script.mod_name
+local pairs = pairs
+local rawset = rawset
+
+local game, find_game
+do
+  local reg = debug.getregistry()
+  local getmetatable = getmetatable
+  local rawget = rawget
+  local type = type
+  function find_game()
+    do
+      local egame = _ENV.game
+      if egame then -- everywhere but main chunk or on_load
+        rawset(egame, "create_profiler", egame.create_profiler)
+        game = egame
+        return true
+      end
+    end
+
+    -- it's in the registery for on_load, but with whatever ref id was free
+    -- DON'T DO THIS! THIS IS A HORRIBLE HACK!
+    for _,t in pairs(reg) do
+      if type(t)=="table" and type(rawget(t,"__self"))=="userdata" and
+          getmetatable(t)=="private" and t.object_name == "LuaGameScript" then
+        rawset(t, "create_profiler", t.create_profiler)
+        game = t
+        return true
+      end
+    end
+  end
+end
 
 ---@class TimeAndCount
 ---@field count number
@@ -101,7 +132,6 @@ local calltree = {
 ---@field line number the line this function is defined at
 ---@field timer LuaProfiler the time in this function
 ---@field children table<string,flamenode> nodes for functions called by this function
-
 
 ---@param tree flamenode
 local function dumptree(tree)
@@ -226,7 +256,7 @@ do
   function hook(event,line)
     if hooktimer then
       hooktimer.stop()
-    elseif game then
+    elseif game or find_game() then
       -- prefetch these to skip __index for the hook later
       hooktimer = game.create_profiler(true)
       rawset(hooktimer, "stop", hooktimer.stop)

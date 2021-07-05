@@ -9,6 +9,7 @@
 * Various disassembler fixes
 * Support "Loaded Sources" view
 * Significant (~2x) speedup in profiling, noise reduction on line timers
+* Profiler can now measure `on_load`
 
 ## 1.1.10
 
