@@ -23,7 +23,7 @@ I open the Factorio `mods` directory as the root of my workspace in VSCode, and 
 
 ## Editor & Extensions
 
-I use VScode (imagine that!), but it needs a few extensions to really shine in this context:
+I use [VScode](https://code.visualstudio.com/) (imagine that!), but it needs a few extensions to really shine in this context:
 
  * [Factorio Mod Debugger](https://marketplace.visualstudio.com/items?itemName=justarandomgeek.factoriomod-debug) - You are here
  * ~~[Factorio Lua API autocomplete](https://marketplace.visualstudio.com/items?itemName=svizzini.factorio-lua-api-autocomplete)~~ This has not been updated in some time and is no longer needed.
