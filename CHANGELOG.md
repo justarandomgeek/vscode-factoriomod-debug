@@ -4,7 +4,7 @@
 
 ## 1.1.12
 
-
+* __DebugAdapter.terminate() to end session from script
 
 ## 1.1.11
 

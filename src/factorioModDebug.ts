@@ -426,6 +426,8 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 						this.continue();
 						this.inPrompt = wasInPrompt;
 					}
+				} else if (event === "terminate") {
+					this.terminate();
 				} else if (event.startsWith("step")) {
 					// notify stoponstep
 					await this.runQueuedStdin();

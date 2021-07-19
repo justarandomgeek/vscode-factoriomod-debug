@@ -118,6 +118,10 @@ The function `__DebugAdapter.print(expr,alsoLookIn)` can be used to print messag
 
 If normal breakpoints are unusable for some reason, you can call `__DebugAdapter.breakpoint(mesg:LocalisedString)` to break. If `mesg` is specified, it is displayed in the editor like an exception.
 
+## Terminate Session
+
+`__DebugAdatper.terminate()` can be used to terminate a debug session from mod code.
+
 ## Custom Debug Views
 
 When displaying tables in the Variables window, the debugger will check for metatables, and display them as a special member `<metatable>`. The default lineitem for a table can be overridden by the metamethod `__debugline`, which can be either a string (with expressions in `{}` interpolated) or a function which takes the table as an argument and returns a string. The typename for a table can be overridden by a string in the metatable field `__debugtype`. The contents of the table can be overridden by the `__debugchildren` metamethod, which can be `false` to disable expanding children or a function which takes the table as an argument and returns `DebugAdapter.Variable[]`.

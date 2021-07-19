@@ -33,6 +33,14 @@ function __DebugAdapter.breakpoint(mesg)
   return __DebugAdapter.attach()
 end
 
+
+---Terminate a debug session from mod code
+function __DebugAdapter.terminate()
+  debug.sethook()
+  print("DBG: terminate")
+  debug.debug()
+end
+
 -- don't need the rest in data stage...
 if not script then return end
 
