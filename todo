@@ -14,3 +14,4 @@ fake rcon for debugging rcon tools
 plain TCP socket (for use with netcat or directly) for stdio
 fake raise events
 lua call to terminate debug session
+break out object info & pretty printing as a library
