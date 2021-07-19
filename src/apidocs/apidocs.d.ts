@@ -18,11 +18,11 @@ interface ApiBasicMember {
 	readonly description: string
 }
 
-interface ApiWithNotes {
+type ApiWithNotes = ApiBasicMember & {
 	readonly notes?: string[]
 	readonly examples?: string[]
 	readonly see_also?: string[]
-}
+};
 
 interface ApiWithParameters {
 	readonly parameters: ApiParameter[]
@@ -78,7 +78,7 @@ type ApiParameterGroup = ApiBasicMember & {
 	readonly parameters: ApiParameter[]
 };
 
-type ApiMethod = ApiBasicMember & ApiWithNotes & ApiWithParameters &{
+type ApiMethod = ApiWithNotes & ApiWithParameters &{
 	readonly subclasses?: string[]
 	readonly variadic_type?: ApiType
 	readonly variadic_description?: string
@@ -88,7 +88,7 @@ type ApiMethod = ApiBasicMember & ApiWithNotes & ApiWithParameters &{
 	readonly return_description?: string
 };
 
-type ApiAttribute = ApiBasicMember & ApiWithNotes & {
+type ApiAttribute = ApiWithNotes & {
 	readonly subclasses?: string[]
 	readonly type: ApiType
 	readonly read: boolean
@@ -97,14 +97,14 @@ type ApiAttribute = ApiBasicMember & ApiWithNotes & {
 
 type ApiOperator = (ApiMethod&{readonly name:"call"})|(ApiAttribute&{readonly name:"index"|"length"});
 
-type ApiClass = ApiBasicMember & ApiWithNotes & {
+type ApiClass = ApiWithNotes & {
 	readonly methods: ApiMethod[]
 	readonly attributes: ApiAttribute[]
 	readonly operators: ApiOperator[]
 	readonly base_classes?: string[]
 };
 
-type ApiEvent = ApiBasicMember & ApiWithNotes & {
+type ApiEvent = ApiWithNotes & {
 	readonly data: ApiParameter[]
 };
 
@@ -115,26 +115,26 @@ type ApiDefine = ApiBasicMember & {
 
 type ApiBuiltin = ApiBasicMember;
 
-type ApiTableConcept = ApiBasicMember & ApiWithNotes & ApiWithParameters & {
+type ApiTableConcept = ApiWithNotes & ApiWithParameters & {
 	readonly category: "table"
 };
 
-type ApiTableOrArrayConcept = ApiBasicMember & ApiWithNotes & {
+type ApiTableOrArrayConcept = ApiWithNotes & {
 	readonly category: "table_or_array"
 	readonly parameters: ApiParameter[]
 };
 
-type ApiEnumConcept = ApiBasicMember & ApiWithNotes & {
+type ApiEnumConcept = ApiWithNotes & {
 	readonly category: "enum"
 	readonly options: ApiBasicMember[]
 };
 
-type ApiFlagConcept = ApiBasicMember & ApiWithNotes & {
+type ApiFlagConcept = ApiWithNotes & {
 	readonly category: "flag"
 	readonly options: ApiBasicMember[]
 };
 
-type ApiUnionConcept = ApiBasicMember & ApiWithNotes & {
+type ApiUnionConcept = ApiWithNotes & {
 	readonly category: "union"
 	readonly options: {
 		readonly type: ApiType
@@ -143,16 +143,16 @@ type ApiUnionConcept = ApiBasicMember & ApiWithNotes & {
 	}[]
 };
 
-type ApiFilterConcept = ApiBasicMember & ApiWithNotes & ApiWithParameters & {
+type ApiFilterConcept = ApiWithNotes & ApiWithParameters & {
 	readonly category: "filter"
 };
 
-type ApiStructConcept = ApiBasicMember & ApiWithNotes & {
+type ApiStructConcept = ApiWithNotes & {
 	readonly category: "struct"
 	readonly attributes: ApiAttribute[]
 };
 
-type ApiConceptConcept = ApiBasicMember & ApiWithNotes & {
+type ApiConceptConcept = ApiWithNotes & {
 	readonly category: "concept"
 };
 
