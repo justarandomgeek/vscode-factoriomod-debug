@@ -1,4 +1,8 @@
 
+### 2021-07-21
+- Update for `sumneko.lua` `2.2.0` internal changes
+- Improve readme grammer. I think.
+
 ### 2021-06-27
 - Update readme to note to configure the `Lua.runtime.plugin` setting since that defaults to `""` instead of `".vscode/lua/plugin.lua"` since `sumneko.lua` 2.0.0
 

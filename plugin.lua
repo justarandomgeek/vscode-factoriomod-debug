@@ -17,10 +17,7 @@ if not _G.__factorio_plugin_initialized then
   local workspace = require("workspace")
 
   ---@type userdata
-  local plugin_path = fs.path(config.config.runtime.plugin)
-  if plugin_path:is_relative() then
-    plugin_path = fs.path(workspace.path) / plugin_path
-  end
+  local plugin_path = fs.path(workspace.getAbsolutePath(config.get('Lua.runtime.plugin')))
 
   ---@type string
   local new_path = (plugin_path:parent_path() / "?.lua"):string()
