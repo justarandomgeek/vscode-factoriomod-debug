@@ -39,7 +39,7 @@ After updating make sure to reload vscode.
 
 ## But i'm different
 
-If you happen to have a different setup and cannot put the repository in it's default location clone it to wherever you want (the folder does not have to be called `lua` anymore at that point) and then configure the `Lua.runtime.plugin` setting. The file name of the plugin entrypoint is `plugin.lua`. It can be a relative path from the root of the workspace directory. (Best would be to do this per workspace for security.)
+If you happen to have a different setup and cannot put the repository in its default location, clone it to wherever you want (the folder does not have to be called `lua` anymore at that point) and then configure the `Lua.runtime.plugin` setting. The file name of the plugin entrypoint is `plugin.lua`. It can be a relative path from the root of the workspace directory. (Best would be to do this per workspace for security.)
 
 ### But i'm also very new
 
@@ -103,7 +103,7 @@ require("folder.baz")
 
 ## Factorio global
 
-If the language server sees multiple mods it can happen that it thinks your `global` contains keys/data it really doesn't because some other mod stores said data in global. For that reason the plugin tries it's best to make `global` look like `__modname__global` to the language server.
+If the language server sees multiple mods it can happen that it thinks your `global` contains keys/data it really doesn't because some other mod stores said data in global. For that reason the plugin tries its best to make `global` look like `__modname__global` to the language server.
 
 ### Note
 
@@ -254,7 +254,7 @@ It also disables `undefined-field` diagnostics specifically for `__all_remote_in
 
 ### More about remote.add_interface
 
-If you payed close attention to the previous example you may notice that the `remote.add_interface` replacement has to remove the closing `)` (parenthesis) of the call. In order to find this parethesis it's using `%b()` in a pattern, which means it can fail to find the right parenthesis if there are unbalanced or escaped parenthesis inside strings or comments. You can either manually add parenthesis inside comments to balance them out again, or if it's just not worth it you can add `--##` somewhere within or after the `remote.add_interface` call, but the earlier the better, because it will only search for it until the end of the line where it found it's closing parenthesis.
+If you payed close attention to the previous example you may notice that the `remote.add_interface` replacement has to remove the closing `)` (parenthesis) of the call. In order to find this parethesis it's using `%b()` in a pattern, which means it can fail to find the right parenthesis if there are unbalanced or escaped parenthesis inside strings or comments. You can either manually add parenthesis inside comments to balance them out again, or if it's just not worth it you can add `--##` somewhere within or after the `remote.add_interface` call, but the earlier the better, because it will only search for it until the end of the line where it found its closing parenthesis.
 
 Here are some examples
 ```lua
