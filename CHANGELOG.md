@@ -5,6 +5,7 @@
 ## 1.1.12
 
 * __DebugAdapter.terminate() to end session from script
+* __DebugAdapter.raise_event(event,data,modname) to call event handlers directly for testing
 
 ## 1.1.11
 

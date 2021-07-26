@@ -331,6 +331,7 @@ do
       evaluate = __DebugAdapter.evaluate,
       dump = __DebugAdapter.dump,
       source = __DebugAdapter.source,
+      raise_event = __DebugAdapter.raise_event,
     })
 
     __DebugAdapter.attach()

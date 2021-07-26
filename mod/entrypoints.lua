@@ -47,7 +47,17 @@ if not script then return end
 ---@type table<function,string>
 local handlernames = setmetatable({},{__mode="k"})
 ---@type table<string,function>
-local handlers = {}
+local hashandler = {}
+
+---@type table<defines.events|number|string,function>
+local event_handler = {}
+---@param id number|string
+---@param f function
+---@return function
+local function save_event_handler(id,f)
+  event_handler[id] = f
+  return f
+end
 
 ---@type table<string,table<string,function>>
 local myRemotes = {}
@@ -85,13 +95,13 @@ local function labelhandler(func,entryname)
       handlernames[func] = entryname
     end
     do
-      local oldhandler = handlers[entryname]
+      local oldhandler = hashandler[entryname]
       if oldhandler and oldhandler ~= func then
         __DebugAdapter.print("Replacing existing {entryname} {oldhandler} with {func}",nil,3,"console",true)
       end
     end
   end
-  handlers[entryname] = func
+  hashandler[entryname] = func
   return func
 end
 __DebugAdapter.stepIgnore(labelhandler)
@@ -147,6 +157,26 @@ local newscript = {
   __raw = oldscript
 }
 
+---Simulate an event being raised in the target mod ("level" for the scenario).
+---Event data is not validated in any way.
+---@param event defines.events|number|string
+---@param data EventData
+---@param modname string
+function __DebugAdapter.raise_event(event,data,modname)
+  if modname and modname ~= oldscript.mod_name then
+    if game and remote.interfaces["__debugadapter_"..modname] then
+      return remote.call("__debugadapter_"..modname,"raise_event",event,data)
+    else
+      error("cannot raise events here")
+    end
+  else
+    local f = event_handler[event]
+    if f then
+      return f(data)
+    end
+  end
+end
+
 ---@param f function
 function newscript.on_init(f)
   oldscript.on_init(labelhandler(f,"on_init handler"))
@@ -196,12 +226,12 @@ function newscript.on_event(event,f,filters)
         break
       end
     end
-    return oldscript.on_event(event,labelhandler(f, ("%s handler"):format(evtname)),filters)
+    return oldscript.on_event(event,labelhandler(save_event_handler(event,f), ("%s handler"):format(evtname)),filters)
   elseif etype == "string" then
     if filters then
       error("Filters can only be used when registering single events.",2)
     end
-    return oldscript.on_event(event,labelhandler(f, ("%s handler"):format(event)))
+    return oldscript.on_event(event,labelhandler(save_event_handler(event,f), ("%s handler"):format(event)))
   elseif etype == "table" then
     if filters then
       error("Filters can only be used when registering single events.",2)

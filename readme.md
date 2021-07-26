@@ -122,6 +122,10 @@ If normal breakpoints are unusable for some reason, you can call `__DebugAdapter
 
 `__DebugAdatper.terminate()` can be used to terminate a debug session from mod code.
 
+## Simulate Events
+
+`__DebugAdapter.raise_event(event:defines.events|number|string,data:EventData,modname:string)` can be used to call event handlers directly for testing. `data` is not validated, so you must ensure it is a well-formed event payload for `event` yourself. All event and custom-input handlers are raisable, even those not raisable through `script`.
+
 ## Custom Debug Views
 
 When displaying tables in the Variables window, the debugger will check for metatables, and display them as a special member `<metatable>`. The default lineitem for a table can be overridden by the metamethod `__debugline`, which can be either a string (with expressions in `{}` interpolated) or a function which takes the table as an argument and returns a string. The typename for a table can be overridden by a string in the metatable field `__debugtype`. The contents of the table can be overridden by the `__debugchildren` metamethod, which can be `false` to disable expanding children or a function which takes the table as an argument and returns `DebugAdapter.Variable[]`.
