@@ -283,6 +283,38 @@ export class LuaFunction {
 		}
 	}
 
+	private _baseAddr?:number;
+	public get baseAddr() : number|undefined {
+		return this._baseAddr;
+	}
+	public rebase(base:number) : number {
+		let nextbase = base;
+		this._baseAddr = nextbase;
+		nextbase += this.instructions.length;
+		this.inner_functions.forEach(f => {
+			nextbase = f.rebase(nextbase);
+		});
+		return nextbase;
+	}
+
+
+	public getFunctionAtStartLine(startline:number) : LuaFunction|undefined {
+		if (this.firstline === startline) {
+			return this;
+		}
+		if ( this.firstline < startline &&
+			(this.lastline===0 || this.lastline > startline) &&
+			this.inner_functions) {
+			for (let i = 0; i < this.inner_functions.length; i++) {
+				const f = this.inner_functions[i].getFunctionAtStartLine(startline);
+				if (f) {
+					return f;
+				}
+			}
+		}
+		return;
+	}
+
 	getDisassembledSingleFunction():string {
 		const instructions = this.instructions.map((i,pc)=>this.getInstructionLabel(pc));
 		return [

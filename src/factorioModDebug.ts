@@ -177,6 +177,10 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		response.body.supportsConfigurationDoneRequest = true;
 		response.body.supportsLoadedSourcesRequest = true;
 
+		response.body.supportsDisassembleRequest = true;
+		response.body.supportsSteppingGranularity = true;
+		response.body.supportsInstructionBreakpoints = true;
+
 		this.sendResponse(response);
 	}
 
@@ -713,10 +717,24 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		const response = <DebugProtocol.StackTraceResponse>this._responses.get(seq);
 		this._responses.delete(seq);
 		response.body = { stackFrames: (stack||[]).map(
-			(frame) =>{
-				if (frame && frame.source && frame.source.path)
+			(frame:DebugProtocol.StackFrame&{linedefined:number; currentpc:number}) =>{
+				if (frame && frame.source)
 				{
-					frame.source.path = this.convertDebuggerPathToClient(frame.source.path);
+					if (frame.source.path)
+					{
+						frame.source.path = this.convertDebuggerPathToClient(frame.source.path);
+					}
+					const sourceid = frame.source.path ?? frame.source.sourceReference;
+					if (sourceid) {
+						const dump = this.dumps.get(sourceid);
+						if (dump) {
+							const f = dump.getFunctionAtStartLine(frame.linedefined);
+							if (f?.baseAddr) {
+								frame.instructionPointerReference = "0x"+(f.baseAddr + frame.currentpc).toString(16);
+							}
+						}
+
+					}
 				}
 				return frame;
 			}
@@ -917,6 +935,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.sendResponse(response);
 	}
 
+	private nextdump = 0;
 	private dumps = new Map<number|string,LuaFunction>();
 	private loadedSources:(Source&DebugProtocol.Source)[] = [];
 	protected async loadedSourceEvent(loaded:{ source:Source&DebugProtocol.Source; dump:string }) {
@@ -928,11 +947,17 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		const buff = Buffer.from(loaded.dump,"base64");
 		const stream = new BufferStream(buff);
 		const dump = new LuaFunction(stream,true);
+		this.nextdump = dump.rebase(this.nextdump);
 		this.dumps.set(dumpid,dump);
 		this.sendEvent(new LoadedSourceEvent("new",loaded.source));
 	}
 
-	protected async loadedSourcesRequest(response: DebugProtocol.LoadedSourcesResponse, args: DebugProtocol.LoadedSourcesArguments, request?: DebugProtocol.Request) {
+	protected async disassembleRequest(response: DebugProtocol.DisassembleResponse, args: DebugProtocol.DisassembleArguments, request: DebugProtocol.DisassembleRequest) {
+
+		this.sendResponse(response);
+	}
+
+	protected async loadedSourcesRequest(response: DebugProtocol.LoadedSourcesResponse, args: DebugProtocol.LoadedSourcesArguments, request: DebugProtocol.LoadedSourcesRequest) {
 		response.body = {sources: this.loadedSources};
 		this.sendResponse(response);
 	}

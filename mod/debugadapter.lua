@@ -132,7 +132,8 @@ function __DebugAdapter.stackTrace(startFrame, forRemote, seq)
       end
 
       if __DebugAdapter.hascurrentpc then
-        stackFrame.instructionPointerReference = "+"..debug.getinfo(i,"p").currentpc
+        stackFrame.currentpc = debug.getinfo(i,"p").currentpc
+        stackFrame.linedefined = info.linedefined
       end
 
       if sourceIsCode then
