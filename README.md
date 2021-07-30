@@ -356,3 +356,5 @@ end
 ```
 
 It specifically looks for `---@narrow` followed by space and an identifier, then does the replacement so that the type is actually used in place, exactly how/where you wrote it.
+
+Unfortunately since it is using `nil` as a placeholder assignment the language server will think the variable can be `nil` even though it might never be.
