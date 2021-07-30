@@ -15,8 +15,7 @@ local function replace(uri, text, diffs)
     -- which effectively removes the highligt of it being replaced with
     -- a variable (like when you position your curosr on the identifier)
     util.add_diff(diffs, s, s_id, string.rep(" ", 11))
-    util.add_diff(diffs, f_id, f_id, "=(function()end)()---@type")
-    -- TODO: somehow prevent this from duplicating the name if the variable gets renamed
+    util.add_diff(diffs, f_id, f_id, "=nil---@type")
   end
 end
 

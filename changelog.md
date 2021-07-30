@@ -1,4 +1,7 @@
 
+### 2021-07-30
+- Fix `---@narrow` making the target variable look like a function
+
 ### 2021-07-21
 - Update for `sumneko.lua` `2.2.0` internal changes
 - Improve readme grammer. I think.
