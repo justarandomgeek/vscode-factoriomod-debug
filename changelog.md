@@ -1,6 +1,7 @@
 
 ### 2021-07-30
-- Fix `---@narrow` making the target variable look like a function
+- Fix `---@narrow` making the target variable look like a function. It makes it potentially `nil` instead
+- Update readme to better reflect the current state of the plugin
 
 ### 2021-07-21
 - Update for `sumneko.lua` `2.2.0` internal changes

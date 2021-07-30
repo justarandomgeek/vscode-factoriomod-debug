@@ -3,7 +3,7 @@
 
 This is a plugin for the [sumneko.lua](https://github.com/sumneko/lua-language-server) vscode extension to help with factorio related syntax and intelisense.
 
-Since this is still in development there might be some changes you may want to keep an eye out for. Chances are there will be some form of a change log as well as a per workspace configuration file if it turns out to be desirable.
+Too keep up with this project check the [changelog](changelog.md).
 
 # Installing and updating
 
@@ -60,7 +60,7 @@ And if the workspace is at `C:/dev/factorio/modding` the `Lua.runtime.plugin` wo
 
 # Help, it broke!
 
-If the plugin is causing the language server to report syntax errors when there really aren't any and you need a temporary "solution" before reporting the issue and waiting for a fix simply put `--##` at the very very start of the file. **This method of telling the plugin to ignore a file might be changed in the future. This process has not been thought all the way through**.
+If the plugin is causing the language server to report syntax errors when there really aren't any and you need a temporary "solution" before reporting the issue and waiting for a fix simply put `--##` at the very very start of the file. If it is a problem that it has to be at the very start of the file please create an issue with a reason/an example for it.
 
 # Features
 
@@ -357,4 +357,4 @@ end
 
 It specifically looks for `---@narrow` followed by space and an identifier, then does the replacement so that the type is actually used in place, exactly how/where you wrote it.
 
-Unfortunately since it is using `nil` as a placeholder assignment the language server will think the variable can be `nil` even though it might never be.
+Unfortunately since it is using `nil` as a placeholder assignment the language server will think the variable can be `nil` even though it might never be. An expression the language server resolves to `any` would be better, but i don't know of one right now.
