@@ -217,33 +217,6 @@ function __DebugAdapter.stackTrace(startFrame, forRemote, seq)
   return stackFrames
 end
 
-do
-  local enc = require("__debugadapter__/base64.lua")
-  function __DebugAdapter.dump(id,internal)
-    local ref = variables.longrefs[id]
-    if ref and ref.type == "Function" then
-      print("DBGdump: " .. json.encode{dump=enc(string.dump(ref.func)),ref=id})
-      return true
-    end
-    if internal then return false end
-    -- or remote lookup to find a long ref in another lua...
-    if __DebugAdapter.canRemoteCall() then
-      local call = remote.call
-      for remotename,_ in pairs(remote.interfaces) do
-        local modname = remotename:match("^__debugadapter_(.+)$")
-        if modname then
-          if call(remotename,"dump",id,true) then
-            return true
-          end
-        end
-      end
-    end
-
-    print("DBGdump: " .. json.encode{ref=id})
-    return false
-  end
-end
-
 function __DebugAdapter.source(id,internal)
   local ref = variables.longrefs[id]
   if ref and ref.type == "Source" then
@@ -330,7 +303,6 @@ do
       setBreakpoints = __DebugAdapter.setBreakpoints,
       longVariables = __DebugAdapter.variables,
       evaluate = __DebugAdapter.evaluate,
-      dump = __DebugAdapter.dump,
       source = __DebugAdapter.source,
       raise_event = __DebugAdapter.raise_event,
     })

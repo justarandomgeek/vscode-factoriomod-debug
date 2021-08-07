@@ -6,13 +6,13 @@
 
 ---@type cross_stack[]
 local stacks = {}
----@type string
+---@type number
 local cross_stepping
 
 local remote = remote and rawget(remote,"__raw") or remote
 
 ---@param stack cross_stack
----@param stepping string
+---@param stepping number
 function __DebugAdapter.pushStack(stack,stepping)
   if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
     remote.call("debugadapter", "pushStack", stack,stepping)

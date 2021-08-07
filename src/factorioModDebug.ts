@@ -179,7 +179,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 		response.body.supportsDisassembleRequest = true;
 		response.body.supportsSteppingGranularity = true;
-		response.body.supportsInstructionBreakpoints = true;
+		response.body.supportsInstructionBreakpoints = false;
 
 		this.sendResponse(response);
 	}
@@ -900,7 +900,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.sendResponse(response);
 	}
 
-	private step(event:'in'|'out'|'over' = 'in') {
+	private step(event:'in'|'out'|'over' = 'in', granularity:DebugProtocol.SteppingGranularity = "statement") {
 		const stepdepth = {
 			in: -1,
 			over: 0,
@@ -910,22 +910,22 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		{
 			this.updateBreakpoints();
 		}
-		this.writeStdin(`__DebugAdapter.step(${stepdepth[event]})`);
+		this.writeStdin(`__DebugAdapter.step(${stepdepth[event]},${granularity==="instruction"})`);
 		this.writeStdin("cont");
 	}
 
 	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
-		this.step("over");
+		this.step("over", args.granularity);
 		this.sendResponse(response);
 	}
 
 	protected stepInRequest(response: DebugProtocol.StepInResponse, args: DebugProtocol.StepInArguments): void {
-		this.step("in");
+		this.step("in", args.granularity);
 		this.sendResponse(response);
 	}
 
 	protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments): void {
-		this.step("out");
+		this.step("out", args.granularity);
 		this.sendResponse(response);
 	}
 
@@ -935,7 +935,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.sendResponse(response);
 	}
 
-	private nextdump = 0;
+	private nextdump = 1;
 	private dumps = new Map<number|string,LuaFunction>();
 	private loadedSources:(Source&DebugProtocol.Source)[] = [];
 	protected async loadedSourceEvent(loaded:{ source:Source&DebugProtocol.Source; dump:string }) {
@@ -944,15 +944,53 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		}
 
 		const dumpid = loaded.source.path ?? loaded.source.sourceReference;
-		const buff = Buffer.from(loaded.dump,"base64");
-		const stream = new BufferStream(buff);
-		const dump = new LuaFunction(stream,true);
+		const dump = new LuaFunction(new BufferStream(Buffer.from(loaded.dump,"base64")),true);
 		this.nextdump = dump.rebase(this.nextdump);
 		this.dumps.set(dumpid,dump);
 		this.sendEvent(new LoadedSourceEvent("new",loaded.source));
 	}
 
 	protected async disassembleRequest(response: DebugProtocol.DisassembleResponse, args: DebugProtocol.DisassembleArguments, request: DebugProtocol.DisassembleRequest) {
+		const ref = parseInt(args.memoryReference);
+
+		const instrs:DebugProtocol.DisassembledInstruction[] = [];
+		response.body = { instructions:instrs };
+		let start = ref + (args.instructionOffset??0);
+		let len = args.instructionCount;
+
+		//fill in invalid instruction at <= 0
+		while (start < 1) {
+			instrs.push({
+				address: "0x"+start.toString(16),
+				instruction: "<no instruction>",
+			});
+			start++;
+			len--;
+		}
+
+		do {
+			this.dumps.forEach(f=>{
+				const ins = f.getInstructionsAtBase(start,len);
+				if (ins) {
+					instrs.push(...ins);
+					len -= ins.length;
+					start += ins.length;
+				}
+			});
+
+		} while (len > 0 && start < this.nextdump);
+
+		//fill in invalid instruction at >= last loaded
+		while (len > 0)
+		{
+			instrs.push({
+				address: "0x"+start.toString(16),
+				instruction: "<no instruction>",
+			});
+			len--;
+		}
+		// and push next ahead in case more functions get loaded later...
+		this.nextdump += len;
 
 		this.sendResponse(response);
 	}
@@ -972,7 +1010,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				new Promise<string>(async (resolve)=>{
 					this._dumps.set(ref, resolve);
 					if (!await this.writeOrQueueStdin(
-							`__DebugAdapter.${args.source?.origin==="dostring"?"source":"dump"}(${ref})\n`,
+							`__DebugAdapter.source(${ref})\n`,
 							consumed,
 							cts.token))
 					{

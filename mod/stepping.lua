@@ -206,11 +206,11 @@ do
             mod_name = script.mod_name,
             stack = __DebugAdapter.stackTrace(-1, true),
           }, __DebugAdapter.currentStep())
-          __DebugAdapter.step(nil,true)
+          __DebugAdapter.step(nil)
           pending[info.func] = (pending[info.func] or 0) + 1
       elseif (not parent) or pending[parent.func] then
         -- if parent is nil or eventlike do inner stepping pass in
-        __DebugAdapter.step(__DebugAdapter.peekStepping(),true)
+        __DebugAdapter.step(__DebugAdapter.peekStepping())
         if stepdepth and stepdepth >= 0 then
           stepdepth = stepdepth + 1
         end
@@ -240,7 +240,7 @@ do
       local p = pending[info.func]
       if p then
         -- if current is eventlike pop stack, do outer stepping pass in
-        __DebugAdapter.step(__DebugAdapter.popStack(),true)
+        __DebugAdapter.step(__DebugAdapter.popStack())
         if stepdepth and stepdepth >= 0 then
           stepdepth = stepdepth - 1
         end
@@ -256,7 +256,7 @@ do
           stepdepth = stepdepth - 1
         end
         __DebugAdapter.crossStepping(__DebugAdapter.currentStep())
-        __DebugAdapter.step(nil,true)
+        __DebugAdapter.step(nil)
       else
         if stepdepth and stepdepth >= 0 then
           stepdepth = stepdepth - 1
@@ -334,6 +334,7 @@ if __DebugAdapter.instrument then
   -- shared for stack trace to know to skip one extra
   __DebugAdapter.on_exception = on_exception
 end
+
 function __DebugAdapter.attach()
   debug.sethook(hook,"clr")
   -- on_error is api for instrument mods to catch errors
@@ -407,7 +408,7 @@ function __DebugAdapter.step(depth)
   stepdepth = depth
 end
 
----@return number
+---@return number stepdepth
 function __DebugAdapter.currentStep()
   return stepdepth
 end
