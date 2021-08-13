@@ -376,7 +376,7 @@ export class LuaFunction {
 			case LuaOpcode.OP_SETTABUP:
 				return `SETTABUP  ${this.getUpvalLabel(current.A)}[${this.getRegisterOrConstantLabel(pc,current.B)}] := ${this.getRegisterOrConstantLabel(pc,current.C)}`;
 			case LuaOpcode.OP_SETUPVAL:
-				return `SETUPVAL  ${this.getUpvalLabel(current.B)} := ${this.getRegisterLabel(pc,current.B)}`;
+				return `SETUPVAL  ${this.getUpvalLabel(current.B)} := ${this.getRegisterLabel(pc,current.A)}`;
 			case LuaOpcode.OP_SETTABLE:
 				return `SETTABLE  ${this.getRegisterLabel(pc,current.A)}[${this.getRegisterOrConstantLabel(pc,current.B)}] := ${this.getRegisterOrConstantLabel(pc,current.C)}`;
 			case LuaOpcode.OP_NEWTABLE:
@@ -400,7 +400,7 @@ export class LuaFunction {
 			case LuaOpcode.OP_MOVE:
 				return `MOVE      ${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterLabel(pc,current.B)}`;
 			case LuaOpcode.OP_UNM:
-				return `UNM       ${this.getRegisterLabel(pc,current.A)}:= -${this.getRegisterLabel(pc,current.B)}`;
+				return `UNM       ${this.getRegisterLabel(pc,current.A)} := -${this.getRegisterLabel(pc,current.B)}`;
 			case LuaOpcode.OP_NOT:
 				return `NOT       ${this.getRegisterLabel(pc,current.A)} := not ${this.getRegisterLabel(pc,current.B)}`;
 			case LuaOpcode.OP_LEN:
@@ -410,19 +410,19 @@ export class LuaFunction {
 				return `CONCAT    ${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterLabel(pc,current.B)}.. ... ..${this.getRegisterLabel(pc,current.C)}`;
 
 			case LuaOpcode.OP_JMP:
-				return `JMP       pc+=${current.sBx}${current.A?`; close >= ${current.A+1}`:""}`;
+				return `JMP       pc+=${current.sBx}${current.A?`; close >= ${current.A-1}`:""}`;
 
 			case LuaOpcode.OP_EQ:
-				return `EQ        if(${this.getRegisterOrConstantLabel(pc,current.B)} ${current.A?"==":"~="} ${this.getRegisterOrConstantLabel(pc,current.B)}) then pc++`;
+				return `EQ        if(${this.getRegisterOrConstantLabel(pc,current.B)} ${current.A?"~=":"=="} ${this.getRegisterOrConstantLabel(pc,current.B)}) then pc++`;
 			case LuaOpcode.OP_LT:
-				return `LT        if(${this.getRegisterOrConstantLabel(pc,current.B)} ${current.A?"<":">="} ${this.getRegisterOrConstantLabel(pc,current.B)}) then pc++`;
+				return `LT        if(${this.getRegisterOrConstantLabel(pc,current.B)} ${current.A?">=":"<"} ${this.getRegisterOrConstantLabel(pc,current.B)}) then pc++`;
 			case LuaOpcode.OP_LE:
-				return `LE        if(${this.getRegisterOrConstantLabel(pc,current.B)} ${current.A?"<=":">"} ${this.getRegisterOrConstantLabel(pc,current.B)}) then pc++`;
+				return `LE        if(${this.getRegisterOrConstantLabel(pc,current.B)} ${current.A?">":"<="} ${this.getRegisterOrConstantLabel(pc,current.B)}) then pc++`;
 
 			case LuaOpcode.OP_TEST:
-				return `TEST      if ${current.C?"":"not "}${this.getRegisterLabel(pc,current.A)} then pc++`;
+				return `TEST      if ${current.C?"not ":""}${this.getRegisterLabel(pc,current.A)} then pc++`;
 			case LuaOpcode.OP_TESTSET:
-				return `TESTSET   if ${current.C?"not ":""}${this.getRegisterLabel(pc,current.A)} then ${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterLabel(pc,current.B)} else pc++`;
+				return `TESTSET   if ${current.C?"":"not "}${this.getRegisterLabel(pc,current.A)} then ${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterLabel(pc,current.B)} else pc++`;
 
 			case LuaOpcode.OP_CALL:
 				return `CALL      ${this.getRegisterLabel(pc,current.A)}(${current.B?current.B-1:"var"} args ${current.C?current.C-1:"var"} returns)`;
@@ -444,9 +444,9 @@ export class LuaFunction {
 				return `TFORLOOP  if ${this.getRegisterLabel(pc,current.A+1)} ~= nil then { ${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterLabel(pc,current.A+1)}; pc += ${current.sBx} }`;
 
 			case LuaOpcode.OP_SETLIST:
-				const C = current.C ? current.C - 1 : next.Ax;
+				const C = (current.C ? current.C : next.Ax) - 1;
 				const FPF = 50;
-				return `SETLIST   ${this.getRegisterLabel(pc,current.A)}[${(C*FPF)+1}...${(C*FPF)+current.B}] := ${this.getRegisterLabel(pc,current.A+1)}...${this.getRegisterLabel(pc,current.A+current.B)}`;
+				return `SETLIST   ${this.getRegisterLabel(pc,current.A)}[${(C*FPF)+1}...${(current.B?(C*FPF)+current.B:"")}] := ${this.getRegisterLabel(pc,current.A+1)}...${current.B?this.getRegisterLabel(pc,current.A+current.B):"top"}`;
 
 			case LuaOpcode.OP_CLOSURE:
 				const func = this.inner_functions[current.Bx];
