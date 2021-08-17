@@ -380,7 +380,15 @@ export class LuaFunction {
 			case LuaOpcode.OP_SETTABLE:
 				return `SETTABLE  ${this.getRegisterLabel(pc,current.A)}[${this.getRegisterOrConstantLabel(pc,current.B)}] := ${this.getRegisterOrConstantLabel(pc,current.C)}`;
 			case LuaOpcode.OP_NEWTABLE:
-				return `NEWTABLE  ${this.getRegisterLabel(pc,current.A)} := {} size(${current.B},${current.C})`;
+				{
+					const rawb = current.B;
+					const b = this.fb2int(rawb);
+					const rawc = current.C;
+					const c = this.fb2int(rawc);
+					const asize = rawb===b?`${b}`:`${rawb}->${b}`;
+					const hsize = rawc===c?`${c}`:`${rawc}->${c}`;
+					return `NEWTABLE  ${this.getRegisterLabel(pc,current.A)} := {} size(${asize},${hsize})`;
+				}
 			case LuaOpcode.OP_SELF:
 				return `SELF      ${this.getRegisterLabel(pc,current.A+1)} := ${this.getRegisterLabel(pc,current.B)}; ${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterLabel(pc,current.B)}[${this.getRegisterOrConstantLabel(pc,current.C)}]`;
 
@@ -462,7 +470,17 @@ export class LuaFunction {
 		}
 	}
 
-	getRegisterOrConstantLabel(pc:number, idx:number) {
+	// sizes in newtable are packed into a "float byte" type for expanded range:
+	// (eeeeexxx), where the real value is (1xxx) * 2^(eeeee - 1) if
+	// eeeee != 0 and (xxx) otherwise.
+	private fb2int(x:number):number
+	{
+		const e = (x>>3)&0x1f;
+		return e===0?x:(((x&7)+8)<<(e-1));
+	}
+
+
+	private getRegisterOrConstantLabel(pc:number, idx:number) {
 		if (idx & 0x100)
 		{
 			return this.constants[idx & 0xff].label;
@@ -471,11 +489,11 @@ export class LuaFunction {
 		}
 	}
 
-	getUpvalLabel(idx:number) : string {
+	private getUpvalLabel(idx:number) : string {
 		return `Up(${this.upvals[idx]?.name ?? idx})`;
 	}
 
-	getRegisterLabel(pc:number,idx:number) : string {
+	private getRegisterLabel(pc:number,idx:number) : string {
 		let stack = 0;
 		for (let i = 0; i < this.locals.length; i++) {
 			const loc = this.locals[i];
