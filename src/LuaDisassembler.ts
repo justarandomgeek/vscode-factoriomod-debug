@@ -297,6 +297,12 @@ export class LuaFunction {
 		return nextbase;
 	}
 
+	public walk_functions(fn:(f:LuaFunction)=>void)
+	{
+		fn(this);
+		this.inner_functions.forEach(lf=>lf.walk_functions(fn));
+	}
+
 
 	public getFunctionAtStartLine(startline:number) : LuaFunction|undefined {
 		if (this.firstline === startline) {
@@ -333,14 +339,6 @@ export class LuaFunction {
 				});
 			}
 			return instrs;
-		}
-		if ( this.inner_functions) {
-			for (let i = 0; i < this.inner_functions.length; i++) {
-				const instrs = this.inner_functions[i].getInstructionsAtBase(base,count);
-				if (instrs) {
-					return instrs;
-				}
-			}
 		}
 		return;
 	}

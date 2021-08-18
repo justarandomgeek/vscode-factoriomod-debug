@@ -176,6 +176,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		response.body.supportsLogPoints = true;
 		response.body.supportsConfigurationDoneRequest = true;
 		response.body.supportsLoadedSourcesRequest = true;
+		response.body.supportsBreakpointLocationsRequest = true;
 
 		response.body.supportsDisassembleRequest = true;
 		response.body.supportsSteppingGranularity = true;
@@ -726,14 +727,12 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					}
 					const sourceid = frame.source.path ?? frame.source.sourceReference;
 					if (sourceid) {
-						const dump = this.dumps.get(sourceid);
+						const dump = this.dumps_by_source.get(sourceid)?.get(frame.linedefined);
 						if (dump) {
-							const f = dump.getFunctionAtStartLine(frame.linedefined);
-							if (f?.baseAddr) {
-								frame.instructionPointerReference = "0x"+(f.baseAddr + frame.currentpc).toString(16);
+							if (dump.baseAddr) {
+								frame.instructionPointerReference = "0x"+(dump.baseAddr + frame.currentpc).toString(16);
 							}
 						}
-
 					}
 				}
 				return frame;
@@ -936,8 +935,17 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 
 	private nextdump = 1;
-	private dumps = new Map<number|string,LuaFunction>();
+
+
+	// dumps by souce,line
+	private dumps_by_source = new Map<number|string,Map<number,LuaFunction>>();
+	// dumps sorted by base address
+	private dumps_by_address:LuaFunction[] = [];
+
+	private lines_by_source = new Map<number|string,Set<number>>();
+
 	private loadedSources:(Source&DebugProtocol.Source)[] = [];
+
 	protected async loadedSourceEvent(loaded:{ source:Source&DebugProtocol.Source; dump:string }) {
 		if (loaded.source.path){
 			loaded.source.path = this.convertDebuggerPathToClient(loaded.source.path);
@@ -946,7 +954,32 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		const dumpid = loaded.source.path ?? loaded.source.sourceReference;
 		const dump = new LuaFunction(new BufferStream(Buffer.from(loaded.dump,"base64")),true);
 		this.nextdump = dump.rebase(this.nextdump);
-		this.dumps.set(dumpid,dump);
+
+		const lines = new Set<number>();
+
+		const by_line = new Map<number,LuaFunction>();
+
+		dump.walk_functions(lf=>{
+			if (lf.baseAddr) {
+				const idx = this.dumps_by_address.findIndex(
+					other=>lf.baseAddr!<other.baseAddr!);
+
+				if (idx === -1)
+				{
+					this.dumps_by_address.push(lf);
+				} else {
+					this.dumps_by_address.splice(idx,0,lf);
+				}
+			}
+
+
+			by_line.set(lf.firstline,lf);
+			lf.instructions.forEach(i=>lines.add(i.line));
+		});
+
+		this.dumps_by_source.set(dumpid,by_line);
+		this.lines_by_source.set(dumpid,lines);
+		this.loadedSources.push(loaded.source);
 		this.sendEvent(new LoadedSourceEvent("new",loaded.source));
 	}
 
@@ -968,17 +1001,22 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			len--;
 		}
 
+		let idx = this.dumps_by_address.findIndex(
+			lf=>
+				lf.baseAddr &&
+				lf.baseAddr<start &&
+				lf.baseAddr + lf.instructions.length >= start
+			);
 		do {
-			this.dumps.forEach(f=>{
-				const ins = f.getInstructionsAtBase(start,len);
-				if (ins) {
-					instrs.push(...ins);
-					len -= ins.length;
-					start += ins.length;
-				}
-			});
-
-		} while (len > 0 && start < this.nextdump);
+			const f = this.dumps_by_address[idx];
+			const ins = f.getInstructionsAtBase(start,len);
+			if (ins) {
+				instrs.push(...ins);
+				len -= ins.length;
+				start += ins.length;
+			}
+			idx++;
+		} while (len > 0 && start < this.nextdump && idx < this.dumps_by_address.length);
 
 		//fill in invalid instruction at >= last loaded
 		while (len > 0)
@@ -992,6 +1030,24 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		// and push next ahead in case more functions get loaded later...
 		this.nextdump += len;
 
+		this.sendResponse(response);
+	}
+
+	protected async breakpointLocationsRequest(response: DebugProtocol.BreakpointLocationsResponse, args: DebugProtocol.BreakpointLocationsArguments, request: DebugProtocol.BreakpointLocationsRequest) {
+		let sourceid = args.source.sourceReference ?? args.source.name;
+		if (sourceid)
+		{
+			if (typeof sourceid === "string") {
+				sourceid = this.convertDebuggerPathToClient(sourceid);
+			}
+			const lines = this.lines_by_source.get(sourceid);
+			if (lines)
+			{
+				response.body = {
+					breakpoints: Array.from(lines.values()).map(l=>{return {line:l};})
+				};
+			}
+		}
 		this.sendResponse(response);
 	}
 
