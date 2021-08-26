@@ -107,7 +107,7 @@ local function parse(args, config, start_index)
       values[value_count] = consume_args_and_convert_for_type(type_id, context, err_level + 1)
     end
     if value_count < min then
-      error("Expected "..min..(max and (max ~= min and (" to "..max) or " or more") or "")
+      error("Expected "..min..(max and (max ~= min and (" to "..max) or "") or " or more")
         .." parameters of the type '"..type_id.."', got "..value_count.." "..context..".",
         err_level
       )
@@ -181,7 +181,7 @@ local function parse(args, config, start_index)
         elseif option_config.single_param then
           result[option_config.field] = consume_args_and_convert_for_type(
             option_config.type,
-            "for the option "..get_option_descriptor(option_config),
+            "for the option '"..get_option_descriptor(option_config).."'",
             err_level + 1
           )
         else
@@ -189,7 +189,7 @@ local function parse(args, config, start_index)
             option_config.type,
             option_config.min_params or option_config.params,
             option_config.max_params or option_config.params,
-            "for the option"..get_option_descriptor(option_config),
+            "for the option '"..get_option_descriptor(option_config).."'",
             err_level + 1
           )
         end
