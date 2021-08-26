@@ -229,7 +229,7 @@ local function parse(args, config, start_index)
       if option.flag then
         result[option.field] = false
       elseif option.single_param then
-        if option.default_value ~= nil then
+        if option.optional or option.default_value ~= nil then
           result[option.field] = option.default_value
         else
           error("Missing option '"..get_option_descriptor(option).."'.", err_level)
@@ -245,7 +245,9 @@ local function parse(args, config, start_index)
 
   while next_positional() do
     if current_positional.single then
-      error("Missing #"..positional_index.." positional arg '"..current_positional.name.."'.", err_level)
+      if not current_positional.optional then
+        error("Missing #"..positional_index.." positional arg '"..current_positional.name.."'.", err_level)
+      end
     else
       if (not current_positional.optional) and  current_positional.min_amount ~= 0 then
         error("Missing #"..positional_index.." positional arg group '"..current_positional.name.."'.", err_level)
