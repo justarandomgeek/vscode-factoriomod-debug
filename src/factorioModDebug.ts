@@ -593,7 +593,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				const id = Number.parseInt(sub.substr(0,split).trim());
 				const translation = sub.substr(split+1);
 				this.translations.set(id,translation);
-			} else if (mesg === "DBGuntranslate") {
+			} else if (mesg.startsWith("DBGuntranslate: ")) {
 				this.translations.clear();
 			} else if (mesg.startsWith("PROFILE:")) {
 				if (this.profile)

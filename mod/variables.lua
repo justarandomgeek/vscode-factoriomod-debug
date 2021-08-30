@@ -176,9 +176,11 @@ end
 
 local function isUnsafeLong(t,seen)
   if not seen then
-    seen = {}
+    seen = {[_ENV]=true}
   else
-    if seen[t] or seen == t or isUnsafeLong == t then
+    if seen[t] == false then
+      return true -- this has been seen and deemed unsafe already!
+    elseif seen[t] or seen == t or isUnsafeLong == t then
       return false -- circular isn't inherently unsafe, unless something *else* in the table is
     end
   end
@@ -190,6 +192,7 @@ local function isUnsafeLong(t,seen)
       local name,value = debug.getupvalue(t,i)
       if not name then return false end
       if isUnsafeLong(value,seen) then
+        seen[t] = false
         return true
       end
       i = i + 1
@@ -201,6 +204,7 @@ local function isUnsafeLong(t,seen)
     seen[t] = true
     for k,v in pairs(t) do
       if isUnsafeLong(k,seen) or isUnsafeLong(v,seen) then
+        seen[t] = false
         return true
       end
     end
@@ -229,21 +233,30 @@ do
   --- Clear all existing variable references, when stepping invalidates them
   function variables.clear(longonly)
     --clean any LuaObjects from long refs that must not be long
+
+    ---@type LuaProfiler
+    local timer = game and game.create_profiler()
+    local count = 0
+    -- share `seen` among all calls to isUnsafeLong() to prevent checking the
+    -- same tables/functions repeatedly if they are reachable multiple ways
+    -- _ENV is presumed safe since it's not *my* fault stuff ends up there...
+    local seen = {[_ENV]=true}
     for id,varRef in pairs(variables.longrefs) do
+      count = count + 1
       if varRef.type == "Table" then
-        if isUnsafeLong(varRef.table) then
+        if isUnsafeLong(varRef.table,seen) then
           variables.longrefs[id]=nil
         end
       elseif varRef.type == "LuaObject" then
-        if isUnsafeLong(varRef.object) then
+        if isUnsafeLong(varRef.object,seen) then
           variables.longrefs[id]=nil
         end
       elseif varRef.type == "kvPair" then
-        if isUnsafeLong(varRef.key) or isUnsafeLong(varRef.value) then
+        if isUnsafeLong(varRef.key,seen) or isUnsafeLong(varRef.value,seen) then
           variables.longrefs[id]=nil
         end
       elseif varRef.type == "Function" then
-        if isUnsafeLong(varRef.func) then
+        if isUnsafeLong(varRef.func,seen) then
           variables.longrefs[id]=nil
         end
       elseif varRef.type == "Source" then
@@ -252,9 +265,12 @@ do
         variables.longrefs[id]=nil
       end
     end
+    if timer then
+      timer.stop()
+    end
     if not longonly then
       variables.refs = setmetatable({},refsmeta)
-      print("DBGuntranslate")
+      localised_print{"","DBGuntranslate: ",script.mod_name," ",count," ",timer or "untimed"}
     end
   end
 end
