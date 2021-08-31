@@ -882,6 +882,18 @@
             }
           },
           {
+            "label": "Factorio Mod Debug: Debug (Settings & Data)",
+            "description": "A new configuration for debugging Factorio mods in Settings & Data stages.",
+            "body": {
+              "type": "factoriomod",
+              "request": "launch",
+              "name": "Factorio Mod Debug",
+              "factorioPath": "$0",
+              "hookSettings": true,
+              "hookData": true
+            }
+          },
+          {
             "label": "Factorio Mod Debug: Profile",
             "description": "A new configuration for profiling Factorio mods.",
             "body": {
