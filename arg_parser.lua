@@ -168,7 +168,7 @@ local function parse(args, config, start_index)
         end
 
         if not option_config then
-          error("Invalid option '"..get_option_descriptor(option_config).."'.", err_level)
+          error("Invalid option '"..current.."'.", err_level)
         end
 
         if found_options[option_config] then
@@ -229,7 +229,7 @@ local function parse(args, config, start_index)
       if option.flag then
         result[option.field] = false
       elseif option.single_param then
-        if option.optional or option.default_value ~= nil then
+        if option.optional or (option.default_value ~= nil) then
           result[option.field] = option.default_value
         else
           error("Missing option '"..get_option_descriptor(option).."'.", err_level)
