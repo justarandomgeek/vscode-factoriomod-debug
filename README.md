@@ -1,5 +1,5 @@
 
--- TODO: write a proper readme
+<!-- cSpell:ignore sumneko -->
 
 It is on you to detect that the `help` flag has been set and then (probably) print `get_help_string`.\
 You can modify the help option using the `help_option` field in the return value of the file.
@@ -65,3 +65,29 @@ local result = parse(arg, {
   },
 })
 ```
+
+And here's an example for how i use it in general at the moment
+```lua
+local arg_parser = require("arg_parser")
+local args_config = {
+  -- configure options and positional args here
+}
+
+local args
+do
+  local err
+  args, err = arg_parser.parse({...}, args_config)
+  if (not args) or args.help then
+    if not args then
+      print(err)
+      print()
+    end
+    print(arg_parser.get_help_string(args_config))
+    return
+  end
+end
+```
+
+There are `sumneko.lua` EmmyLua docs at the bottom of the arg_parser.lua file, read those to understand how to configure options.
+
+-- TODO: spend some time making the readme better.
