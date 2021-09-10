@@ -270,7 +270,8 @@ do
     end
     if not longonly then
       variables.refs = setmetatable({},refsmeta)
-      localised_print{"","DBGuntranslate: ",script.mod_name," ",count," ",timer or "untimed"}
+      local context = script and script.mod_name or "#data"
+      localised_print{"","DBGuntranslate: ",context," ",count," ",timer or "untimed"}
     end
   end
 end
