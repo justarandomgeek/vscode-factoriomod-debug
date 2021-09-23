@@ -92,6 +92,10 @@
     "prefix": ["__CONTROL__", "CONTROL"],
     "body": "__CONTROL__${1:build}__"
   },
+  "CONTROL_MODIFIER": {
+    "prefix": ["__CONTROL_MODIFIER__", "CONTROL_MODIFIER"],
+    "body": "__CONTROL_MODIFIER__${1:build}__"
+  },
   "CONTROL_MOVE": {
     "prefix": ["__CONTROL_MOVE__", "CONTROL_MOVE"],
     "body": "__CONTROL_MOVE__"

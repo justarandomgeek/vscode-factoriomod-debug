@@ -80,7 +80,7 @@
 				},
 				{ "include": "#parameter" },
 				{
-					"match": "(__)(CONTROL|ENTITY|ITEM|TILE)(__)(.+?)(__)",
+					"match": "(__)(CONTROL(?:_MODIFIER)?|ENTITY|ITEM|TILE)(__)(.+?)(__)",
 					"captures": {
 						"1":{"name": "punctuation.definition.tag.begin.factorio-locale"},
 						"2":{"name": "entity.name.namespace.factorio-locale"},
