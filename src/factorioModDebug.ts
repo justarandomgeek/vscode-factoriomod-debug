@@ -118,7 +118,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	private profile?: Profile;
 
-	private workspaceModInfoReady:Promise<void>;
 	private readonly workspaceModInfo = new Array<ModPaths>();
 
 	private editorWatcher?:vscode.Disposable;
@@ -134,11 +133,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.setDebuggerColumnsStartAt1(true);
 		this.setDebuggerPathFormat("uri");
 
-		this.workspaceModInfoReady = new Promise(async (resolve)=>{
-			const infos = await vscode.workspace.findFiles('**/info.json');
-			infos.forEach(this.updateInfoJson,this);
-			resolve();
-		});
 		this.editorWatcher = vscode.window.onDidChangeActiveTextEditor(editor =>{
 			if (editor && this.profile && (editor.document.uri.scheme==="file"||editor.document.uri.scheme==="zip"))
 			{
@@ -317,7 +311,8 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		args.dataPath = args.dataPath.replace(/\\/g,"/");
 		this.sendEvent(new OutputEvent(`using dataPath ${args.dataPath}\n`,"stdout"));
 
-		await this.workspaceModInfoReady;
+		const infos = await vscode.workspace.findFiles('**/info.json');
+		infos.forEach(this.updateInfoJson,this);
 
 		args.factorioArgs = args.factorioArgs||[];
 		if(!args.noDebug)
