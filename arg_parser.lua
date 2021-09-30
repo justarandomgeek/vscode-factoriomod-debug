@@ -336,6 +336,20 @@ local function get_help_string(config, help_config)
   return table.concat(help)
 end
 
+---@return table|nil @ returns `nil` if there was an error or request for help
+local function parse_and_print_on_error_or_help(args, config)
+  local result, err = parse(args, config)
+  if (not result) or result.help then
+    if not result then
+      print(err)
+      print()
+    end
+    print(get_help_string(config))
+    return nil
+  end
+  return result
+end
+
 ---@class ArgsConfigOption
 ---@field field string
 ---@field short string|nil @ short option name, defined without leading `-`. used when an option with a single leading `-` is encountered
@@ -369,6 +383,7 @@ end
 return {
   register_type = register_type,
   parse = parse,
+  parse_and_print_on_error_or_help = parse_and_print_on_error_or_help,
   get_help_string = get_help_string,
   help_option = help_option, -- one can modify this table by reference
 }
