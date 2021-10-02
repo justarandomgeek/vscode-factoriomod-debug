@@ -46,8 +46,6 @@ local function replace(uri, text, diffs)
 
     if param then
       process_func_param(s_func_param, function()
-        ---@type string
-        local class_name
         if is_table then
           local classes = {}
           local f = 1
@@ -57,11 +55,10 @@ local function replace(uri, text, diffs)
             classes[#classes+1] = get_class_name(match)
           end
           classes[#classes+1] = get_class_name(param:match("^%{?%s*(.-)%s*%}$", f))
-          class_name = table.concat(classes, "|")
+          return classes[1] and table.concat(classes, "|")
         else
-          class_name = get_class_name(param)
+          return get_class_name(param)
         end
-        return class_name
       end)
     end
   end

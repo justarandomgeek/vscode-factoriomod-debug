@@ -1,4 +1,7 @@
 
+### 2021-10-03
+- Fix Event Handler Parameter Annotating causing `luadoc-miss-type-name` errors when the event "name" list contains no "valid" event class names
+
 ### 2021-07-30
 - Fix `---@narrow` making the target variable look like a function. It makes it potentially `nil` instead
 - Update readme to better reflect the current state of the plugin
