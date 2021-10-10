@@ -349,14 +349,14 @@ local function get_help_string(config, help_config)
 end
 
 ---@return table|nil @ returns `nil` if there was an error or request for help
-local function parse_and_print_on_error_or_help(args, config)
+local function parse_and_print_on_error_or_help(args, config, help_config)
   local result, err = parse(args, config)
   if (not result) or result.help then
     if not result then
       print(err)
       print()
     end
-    print(get_help_string(config))
+    print(get_help_string(config, help_config))
     return nil
   end
   return result
