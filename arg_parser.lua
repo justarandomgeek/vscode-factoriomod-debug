@@ -57,7 +57,7 @@ local help_option = {
   field = "help",
   long = "help",
   short = "h",
-  description = "Show help message",
+  description = "Show help message.",
   flag = true,
 }
 
@@ -308,7 +308,7 @@ local function get_help_string(config, help_config)
     help[#help+1] = "\n"
   end
 
-  for _, option in ipairs(config.options or {}) do
+  local function add_option(option)
     help[#help+1] = indent
     local label
     if option.flag or option.optional or option.default_value ~= nil then
@@ -323,6 +323,12 @@ local function get_help_string(config, help_config)
     end
     add_entry(label, option.description)
   end
+
+  for _, option in ipairs(config.options or {}) do
+    add_option(option)
+  end
+
+  add_option(help_option)
 
   if next(config.options or {}) or next(config.positional or {}) then
     help[#help+1] = "\n"
