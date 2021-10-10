@@ -18,6 +18,7 @@ register_type{
   compare = function(left, right)
     return left == right
   end,
+  tostring = function(str) return str end,
 }
 
 register_type{
@@ -311,7 +312,12 @@ local function get_help_string(config, help_config)
     help[#help+1] = indent
     local label
     if option.flag or option.optional or option.default_value ~= nil then
-      label = "["..get_option_descriptor(option)..get_type(option).."]"
+      label = "["..get_option_descriptor(option)..get_type(option)
+      ..(
+        option.default_value ~= nil
+        and (" | default: "..(type_defs[option.type].tostring or tostring)(option.default_value))
+        or ""
+      ).."]"
     else
       label = get_option_descriptor(option)..get_type(option)
     end
