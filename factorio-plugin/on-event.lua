@@ -10,6 +10,9 @@ local function get_class_name(event_id_param)
   if id and (id:find("^on_") or id:find("^script_")) then
     return id
   end
+  if event_id_param:find("^['\"%[]") then
+    return "CustomInputEvent"
+  end
   return nil
 end
 

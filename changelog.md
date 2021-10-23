@@ -1,4 +1,7 @@
 
+### 2021-10-23
+- Use `CustomInputEvent` to the on_event param if it finds a string literal in the event names
+
 ### 2021-10-03
 - Fix Event Handler Parameter Annotating causing `luadoc-miss-type-name` errors when the event "name" list contains no "valid" event class names
 
