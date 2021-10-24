@@ -60,8 +60,9 @@ local function replace(uri, text, diffs)
         then
           util.extend_chain_diff_elem_text(chain_diff[3], "=")
           chain_diff[4] = {i = s_param_2}
+          util.add_diff(diffs, s_add - 1, s_add, text:sub(s_add - 1, s_add - 1).."--\n")
           util.add_diff(diffs, s_add, f_add,
-            "--\n__all_remote_interfaces---@diagnostic disable-line:undefined-field\n")
+            "__all_remote_interfaces---@diagnostic disable-line:undefined-field\n")
           util.add_chain_diff(chain_diff, diffs)
           util.add_diff(diffs, p_closing_parenth - 1, p_closing_parenth, "")
         end
@@ -83,8 +84,9 @@ local function replace(uri, text, diffs)
     text:gmatch("([^\n]-)remote%s*%.%s*()call()%s*()%(()")
   do
     if not preceding_text:find("--", 1, true) then
+      util.add_diff(diffs, s_call - 1, s_call, text:sub(s_call - 1, s_call - 1).."--\n")
       util.add_diff(diffs, s_call, f_call,
-        "--\n__all_remote_interfaces---@diagnostic disable-line:undefined-field\n")
+        "__all_remote_interfaces---@diagnostic disable-line:undefined-field\n")
 
       ---@type ChainDiffElem[]
       local chain_diff = {}

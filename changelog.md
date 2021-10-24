@@ -1,4 +1,7 @@
 
+### 2021-20-25
+- Improve hack for `remote.add_interface` and `remote.call` for `sumneko.lua` `2.4.0` (to align identifiers/keys properly)
+
 ### 2021-10-23
 - Use `CustomInputEvent` to the on_event param if it finds a string literal in the event names
 

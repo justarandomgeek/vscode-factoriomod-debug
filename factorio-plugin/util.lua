@@ -60,12 +60,13 @@ end
 ---@param i_in_chain_diff number @ index of the elem in `chain_diff` that represents the source
 ---@param source string
 ---@param is_literal_contents? boolean @ is 'source' the contents of a literal string already
-local function use_source_to_index(chain_diff, i_in_chain_diff, source, is_literal_contents)
+---@param do_not_pad_with_white_space? boolean @ when using literal identifiers they get padded with a blank space to acuminate for replacing the quotes. If `true`, that padding is not added
+local function use_source_to_index(chain_diff, i_in_chain_diff, source, is_literal_contents, do_not_pad_with_white_space)
   local contents = is_literal_contents and source or try_parse_string_literal(source)
   if contents and contents:match("^[a-zA-Z_][a-zA-Z0-9_]*$") then
     -- source is a literal string and a valid identifier
     extend_chain_diff_elem_text(chain_diff[i_in_chain_diff - 1], ".")
-    chain_diff[i_in_chain_diff].text = contents
+    chain_diff[i_in_chain_diff].text = (do_not_pad_with_white_space and "" or " ")..contents
   else
     -- source is a variable, expression or literal string which is an invalid identifier
     extend_chain_diff_elem_text(chain_diff[i_in_chain_diff - 1], "[")
