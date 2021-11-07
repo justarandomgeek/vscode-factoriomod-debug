@@ -328,9 +328,11 @@ local foo,
 bar = string.match("Hello world!", "()(l+)")
 ```
 
-It only supports `---@typelist` being on one line and it only affects the next line. And it uses `,` (commas) as separators. (commas inside `< >` or `( )` are ignored on the `---@typelist` line.)
+It only supports `---@typelist` (with spaces allowed between `---` and `@typelist`) being on one line and it only affects the next line. And it uses `,` (commas) as separators. (commas inside `< >` or `( )` are ignored on the `---@typelist` line.)
 
 ## ---@narrow
+
+**Important:** Does not work in `sumneko.lua` `2.4.0` or later and there is currently no other known workaround
 
 Another thing the annotations are lacking currently is a way to change the type of a variable, which is usually something you want to narrow down the type of that variable.
 
@@ -355,6 +357,6 @@ local function foo(value)
 end
 ```
 
-It specifically looks for `---@narrow` followed by space and an identifier, then does the replacement so that the type is actually used in place, exactly how/where you wrote it.
+It specifically looks for `---@narrow` (with spaces allowed between `---` and `@narrow`) followed by space and an identifier, then does the replacement so that the type is actually used in place, exactly how/where you wrote it.
 
 Unfortunately since it is using `nil` as a placeholder assignment the language server will think the variable can be `nil` even though it might never be. An expression the language server resolves to `any` would be better, but i don't know of one right now.

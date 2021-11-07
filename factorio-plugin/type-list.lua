@@ -21,7 +21,7 @@ local function replace(uri, text, diffs)
   ---@type string|number
   for s_typelist_str, typelist_str, s_next_line, next_line
   in
-    text:gmatch("()%-%-%-@typelist([^\n]*)\n()([^\n]*)")
+    text:gmatch("()%-%-%-[^%S\n]*@typelist([^\n]*)\n()([^\n]*)")
   do
 
     if next_line:match("^%s*%-%-") then
@@ -55,7 +55,7 @@ local function replace(uri, text, diffs)
       end
     end
 
-    util.add_diff(diffs, s_typelist_str, s_next_line, "--") -- to prevent the wanring of a line with only spaces
+    util.add_diff(diffs, s_typelist_str, s_next_line, "--") -- to prevent the warning of a line with only spaces
 
     local i = 0
     ---@type number

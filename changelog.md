@@ -1,5 +1,9 @@
 
-### 2021-20-25
+### 2021-11-07
+- Allow spaces between `---` and `@typelist` or `@narrow`
+- Add note in readme that `---@narrow` does no longer work since `sumneko.lua` `2.4.0` and there is currently no other known workaround
+
+### 2021-10-25
 - Improve hack for `remote.add_interface` and `remote.call` for `sumneko.lua` `2.4.0` (to align identifiers/keys properly)
 
 ### 2021-10-23
