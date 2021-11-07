@@ -14,7 +14,7 @@ local function replace(uri, text, diffs)
       name = name:gsub("%.lua$",""):gsub("[\\/]",".")
     end
 
-    -- then convert the modname prefix, if any...
+    -- then convert the mod_name prefix, if any...
     ---@param match string
     ---@return string
     name = name:gsub("^__(.-)__", function(match)
