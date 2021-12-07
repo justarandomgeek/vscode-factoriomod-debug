@@ -3,6 +3,16 @@
 ---it's string.gmatch, but anchored at the start of a line
 ---it is not supported to capture the entire match by not defining any captures
 ---in that case explicitly define the capture. (Because a newline might be added at the start)
+---
+---**important** note: if the given pattern contains `\n` and the second line
+---could be a match for the first lien of the pattern (like if you have `foo()\nfoo`)
+---then the second match returned by the returned iterator would actually start at the
+---`foo` that was already included in the first match.
+---(so `foo()\nfoo` with the input `foo\nfoo\nfoo` would result in 2 matches instead of 1)
+---this _could_ be fixed, however it is not worth the complexity and performance.
+---not as long as there is no use for it
+---
+---the same goes for the first oddity about matching the whole pattern. it could be fixed, but is not worth it
 ---@param s string
 ---@param pattern string
 ---@param init? integer
@@ -15,7 +25,7 @@ local function gmatch_at_start_of_line(s, pattern, init)
   return function()
     if first then
       first = false
-      local result = {s:match("^"..pattern)}
+      local result = {s:match("^"..pattern, init)}
       if result[1] then
         return unpack(result)
       end
