@@ -36,7 +36,7 @@ local function replace(uri, text, diffs)
   ---@type string|number
   for preceding_text, s_entire_thing, s_add, f_add, p_open_paren, p_param_1
   in
-    text:gmatch("([^\n]-)()remote%s*%.%s*()add_interface()%s*()%(()")
+    util.gmatch_at_start_of_line(text, "([^\n]-)()remote%s*%.%s*()add_interface()%s*()%(()")
   do
     if not preceding_text:find("--", 1, true) then
 
@@ -81,7 +81,7 @@ local function replace(uri, text, diffs)
   ---@type string|number
   for preceding_text, s_call, f_call, p_open_paren, s_param_1
   in
-    text:gmatch("([^\n]-)remote%s*%.%s*()call()%s*()%(()")
+    util.gmatch_at_start_of_line(text, "([^\n]-)remote%s*%.%s*()call()%s*()%(()")
   do
     if not preceding_text:find("--", 1, true) then
       util.add_diff(diffs, s_call - 1, s_call, text:sub(s_call - 1, s_call - 1).."--\n")

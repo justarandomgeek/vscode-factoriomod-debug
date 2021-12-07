@@ -1,4 +1,7 @@
 
+### 2021-12-07
+- Significantly improve performance on files with incredibly long lines (tens of thousands of characters)
+
 ### 2021-11-07
 - Allow spaces between `---` and `@typelist` or `@narrow`
 - Add note in readme that `---@narrow` does no longer work since `sumneko.lua` `2.4.0` and there is currently no other known workaround
