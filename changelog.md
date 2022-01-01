@@ -1,4 +1,7 @@
 
+### 2022-01-01
+- Fix `settings.global` (or other indexing with `global` as the key) being replaced with `__modname__global`
+
 ### 2021-12-07
 - Significantly improve performance on files with incredibly long lines (tens of thousands of characters)
 
