@@ -1,5 +1,5 @@
 --##
----cSpell:ignore userdata
+---cSpell:ignore userdata, nups, nparams
 
 -- (this should probably be in some better location, maybe the readme? i'm not sure)
 -- what do the different prefixes for gmatch results mean:
@@ -17,8 +17,30 @@ if not __plugin_dev and not _G.__factorio_plugin_initialized then
   ---@type table
   local workspace = require("workspace")
 
+  -- now it's getting incredibly hacky, I should look into making a PR
+  local info = debug.getinfo(3, "uf")
+  local scp
+  for i = 1, info.nups do
+    local name, value = debug.getupvalue(info.func, i)
+    if name == "scp" then
+      scp = value
+    end
+  end
+  if not scp then
+    for i = 1, info.nparams do
+      local name, value = debug.getlocal(3, i)
+      if name == "scp" then
+        scp = value
+      end
+    end
+  end
+  assert(scp, "Unable to get currently used scope/folder. Either you are using a \z
+    sumneko.lua version < 2.6.0 or there were internal changes of the language server \z
+    in which case the plugin needs to be changed/updated."
+  )
+
   ---@type userdata
-  local plugin_path = fs.path(workspace.getAbsolutePath(config.get('Lua.runtime.plugin')))
+  local plugin_path = fs.path(workspace.getAbsolutePath(scp.uri, config.get(scp.uri, 'Lua.runtime.plugin')))
 
   ---@type string
   local new_path = (plugin_path:parent_path() / "?.lua"):string()

@@ -1,4 +1,7 @@
 
+### 2022-01-20
+- Update for internal changes in `sumneko.lua` `2.6.0`, this version of the plugin is not compatible with `< 2.6.0`
+
 ### 2022-01-01
 - Fix `settings.global` (or other indexing with `global` as the key) being replaced with `__modname__global`
 
@@ -27,7 +30,7 @@
 - Improve readme grammar. I think.
 
 ### 2021-06-27
-- Update readme to note to configure the `Lua.runtime.plugin` setting since that defaults to `""` instead of `".vscode/lua/plugin.lua"` since `sumneko.lua` 2.0.0
+- Update readme to note to configure the `Lua.runtime.plugin` setting since that defaults to `""` instead of `".vscode/lua/plugin.lua"` since `sumneko.lua` `2.0.0`
 
 ### 2021-06-18
 - Add Event Handler Parameter Annotating. See readme for explanation and exact behavior, though the latter may not be the most useful
