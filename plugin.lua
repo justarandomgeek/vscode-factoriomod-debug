@@ -45,7 +45,7 @@ local on_event = require("factorio-plugin.on-event")
 function OnSetText(uri, text)
   if text:sub(1, 4) == "--##" then return end
 
-  local diffs = {}
+  local diffs = {count = 0}
 
   require_module.replace(uri, text, diffs)
   global.replace(uri, text, diffs)
@@ -54,5 +54,6 @@ function OnSetText(uri, text)
   type_list.replace(uri, text, diffs)
   on_event.replace(uri, text, diffs)
 
+  diffs.count = nil
   return diffs
 end

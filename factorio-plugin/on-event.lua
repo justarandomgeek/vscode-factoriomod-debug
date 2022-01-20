@@ -7,10 +7,10 @@ local util = require("factorio-plugin.util")
 local function get_class_name(event_id_param)
   ---@type string
   local id = event_id_param:match("[a-zA-Z_][a-zA-Z0-9_]*$")
-  if id and (id:find("^on_") or id:find("^script_")) then
+  if id and (id:match("^on_()") or id:match("^script_()")) then
     return id
   end
-  if event_id_param:find("^['\"%[]") then
+  if event_id_param:match("^['\"%[]()") then
     return "CustomInputEvent"
   end
   return nil
@@ -25,7 +25,7 @@ local function replace(uri, text, diffs)
   local function process_func_param(s_func_param, class_name_getter)
     ---@type string|number
     local s_func, param_name, f_func = text:match("^%s*()function%s*%(%s*([^)%s]+)()", s_func_param)
-    if s_func and not text:find("^[^\n]-%-%-##", f_func) then
+    if s_func and not text:match("^[^\n]-%-%-##()", f_func) then
       local class_name = class_name_getter()
       if class_name then
         util.add_diff(diffs, s_func_param, s_func,

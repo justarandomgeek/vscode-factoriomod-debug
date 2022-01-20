@@ -50,7 +50,10 @@ end
 ---@param finish number
 ---@param replacement string
 local function add_diff(diffs, start, finish, replacement)
-  diffs[#diffs+1] = {
+  local count = diffs.count
+  count = count + 1
+  diffs.count = count
+  diffs[count] = {
     start = start,
     finish = finish - 1,
     text = replacement,
@@ -99,7 +102,10 @@ local function add_chain_diff(chain_diff, diffs)
   for i = 2, #chain_diff do
     local chain_diff_elem = chain_diff[i]
     if prev_chain_diff_elem.text then
-      diffs[#diffs+1] = {
+      local count = diffs.count
+      count = count + 1
+      diffs.count = count
+      diffs[count] = {
         start = prev_chain_diff_elem.i,
         finish = chain_diff_elem.i - 1, -- finish is treated as including, which we don't want
         text = prev_chain_diff_elem.text,
@@ -108,7 +114,10 @@ local function add_chain_diff(chain_diff, diffs)
     prev_chain_diff_elem = chain_diff_elem
   end
   if prev_chain_diff_elem.text then
-    diffs[#diffs+1] = {
+    local count = diffs.count
+    count = count + 1
+    diffs.count = count
+    diffs[count] = {
       start = prev_chain_diff_elem.i,
       finish = prev_chain_diff_elem.i - 1,
       text = prev_chain_diff_elem.text,
