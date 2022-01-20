@@ -1,4 +1,5 @@
 --##
+---cSpell:ignore typelist
 
 local util = require("factorio-plugin.util")
 

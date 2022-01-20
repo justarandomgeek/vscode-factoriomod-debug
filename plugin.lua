@@ -1,4 +1,5 @@
 --##
+---cSpell:ignore userdata
 
 -- (this should probably be in some better location, maybe the readme? i'm not sure)
 -- what do the different prefixes for gmatch results mean:
@@ -6,7 +7,7 @@
 
 -- allow for require to search relative to this plugin file
 -- open for improvements!
-if not _G.__factorio_plugin_initialized then
+if not __plugin_dev and not _G.__factorio_plugin_initialized then
   _G.__factorio_plugin_initialized = true
 
   ---@type table
