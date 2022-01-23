@@ -10,7 +10,8 @@ warn on no changelog in publish?
 build changelog from formatted commit messages
 use vscode auth system to keep one portal session
 map __#user__ to write-data tree for scenarios/campaigns
-fake rcon for debugging rcon tools
 plain TCP socket (for use with netcat or directly) for stdio
 break out object info & pretty printing as a library
-generate fake git history for data.raw through data stage
+disassembler/sourcemap
+new LuaObject format
+new json docs format

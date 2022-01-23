@@ -45,25 +45,26 @@
     "ini": "^1.3.8",
     "memory-streams": "^0.1.3",
     "semver": "^7.3.5",
+    "source-map": "^0.7.3",
     "tree-kill": "^1.2.2",
-    "vscode-debugadapter": "^1.47.0",
+    "@vscode/debugadapter": "^1.51.0",
     "web-request": "^1.0.7"
   },
   "devDependencies": {
     "@types/archiver": "^3.1.1",
     "@types/buffers": "^0.1.31",
-    "@types/ini": "^1.3.30",
+    "@types/ini": "^1.3.31",
     "@types/memorystream": "^0.3.0",
-    "@types/node": "^16.4.3",
-    "@types/request": "^2.48.6",
-    "@types/semver": "^7.3.8",
-    "@types/vscode": "^1.58.1",
-    "@typescript-eslint/eslint-plugin": "^4.28.4",
-    "@typescript-eslint/parser": "^4.28.4",
-    "eslint": "^7.31.0",
-    "typescript": "^4.3.5",
-    "vsce": "^1.96.1",
-    "vscode-debugadapter-testsupport": "^1.47.0"
+    "@types/node": "^17.0.10",
+    "@types/request": "^2.48.8",
+    "@types/semver": "^7.3.9",
+    "@types/vscode": "^1.63.1",
+    "@typescript-eslint/eslint-plugin": "^4.33.0",
+    "@typescript-eslint/parser": "^4.33.0",
+    "@vscode/debugadapter-testsupport": "^1.51.0",
+    "eslint": "^7.32.0",
+    "typescript": "^4.5.5",
+    "vsce": "^1.103.1"
   },
   "main": "./out/extension",
   "activationEvents": [
@@ -627,7 +628,11 @@
         "label": "Factorio Mod Debug",
         "program": "./out/debugAdapter.js",
         "runtime": "node",
-        "languages": ["lua"],
+        "languages": [
+          "lua",
+          "phobos",
+          "typescript"
+        ],
         "configurationAttributes": {
           "launch": {
             "properties": {

@@ -12,6 +12,7 @@ module.exports = {
     "plugins": [
         "@typescript-eslint"
     ],
+    "ignorePatterns": ["git.d.ts"],
     "rules": {
         "@typescript-eslint/member-delimiter-style": [
             "error",

@@ -3,8 +3,8 @@ import {
 	LoggingDebugSession,
 	StoppedEvent, OutputEvent,
 	Thread, Source, Module, ModuleEvent, InitializedEvent, Scope, Variable, Event, TerminatedEvent, LoadedSourceEvent
-} from 'vscode-debugadapter';
-import { DebugProtocol } from 'vscode-debugprotocol';
+} from '@vscode/debugadapter';
+import { DebugProtocol } from '@vscode/debugprotocol';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -639,6 +639,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.sendEvent(new OutputEvent(`unable to translate path ${clientPath}\n`,"stderr"));
 		return clientPath;
 	}
+
 	protected convertDebuggerPathToClient(debuggerPath: string): string
 	{
 		const matches = debuggerPath.match(/^@__(.*?)__\/(.*)$/);
@@ -942,13 +943,17 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	private loadedSources:(Source&DebugProtocol.Source)[] = [];
 
 	protected async loadedSourceEvent(loaded:{ source:Source&DebugProtocol.Source; dump:string }) {
-		if (loaded.source.path){
-			loaded.source.path = this.convertDebuggerPathToClient(loaded.source.path);
+		const source = loaded.source;
+		if (source.path){
+			source.path = this.convertDebuggerPathToClient(source.path);
 		}
 
-		const dumpid = loaded.source.path ?? loaded.source.sourceReference;
+		const dumpid = source.path ?? source.sourceReference;
 		const dump = new LuaFunction(new BufferStream(Buffer.from(loaded.dump,"base64")),true);
 		this.nextdump = dump.rebase(this.nextdump);
+		//TODO load .map files for file sources named in debug symbols (recursively?)
+		// into this.sourceMaps
+
 
 		const lines = new Set<number>();
 
@@ -974,8 +979,8 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 		this.dumps_by_source.set(dumpid,by_line);
 		this.lines_by_source.set(dumpid,lines);
-		this.loadedSources.push(loaded.source);
-		this.sendEvent(new LoadedSourceEvent("new",loaded.source));
+		this.loadedSources.push(source);
+		this.sendEvent(new LoadedSourceEvent("new",source));
 	}
 
 	protected async disassembleRequest(response: DebugProtocol.DisassembleResponse, args: DebugProtocol.DisassembleArguments, request: DebugProtocol.DisassembleRequest) {

@@ -1,4 +1,5 @@
-import { DebugProtocol } from 'vscode-debugprotocol';
+import { Mapping, SourceMapConsumer, SourceMapGenerator } from 'source-map';
+import { DebugProtocol } from '@vscode/debugprotocol';
 import { BufferStream } from "./BufferStream";
 
 /* eslint-disable no-bitwise */
@@ -68,35 +69,38 @@ export enum LuaConstType {
 	String = 4,
 }
 
-const header = [
-	0x1b, 0x4c, 0x75, 0x61, // LUA_SIGNATURE
+const lua_header = [
+	0x1b, 0x4c, 0x75, 0x61, // LUA_SIGNATURE "\x1bLua"
 	0x52, 0x00, // lua version
 	0x01, 0x04, 0x08, 0x04, 0x08, 0x00, // lua config parameters: LE, 4 byte int, 8 byte size_t, 4 byte instruction, 8 byte LuaNumber, number is double
 	0x19, 0x93, 0x0d, 0x0a, 0x1a, 0x0a, // magic
 ];
 
-function readHeader(b:BufferStream)
+const phobos_header = [
+	0x1b, 0x50, 0x68, 0x6f, // "\x1bPho"
+	0x10, 0x42, 0xf5, // magic
+	0x00, // version
+];
+
+function readHeader(b:BufferStream,header:number[])
 {
 	for (let i = 0; i < header.length; i++) {
 		const n = b.readUInt8();
 		if (n !== header[i])
 		{
-			throw new Error(`Invalid Lua Header at offset ${i}, expected ${header[i]} got ${n}`);
+			throw new Error(`Invalid Header at offset ${i}, expected ${header[i]} got ${n}`);
 		}
 	}
 }
 
-function readLuaString(b:BufferStream)
+function readLuaStringBuffer(b:BufferStream):Buffer
 {
 	const size = b.readBigUInt64LE();
-	if (size > 0)
-	{
-		const s = b.readString(Number(size)-1);
+	const bb = (size > 1) ? b.read(Number(size)-1) : Buffer.alloc(0,0);
+	if (size > 0) {
 		b.readUInt8();
-		return s;
-	} else {
-		return "";
 	}
+	return bb;
 }
 
 /*
@@ -131,7 +135,45 @@ export class LuaInstruction {
 		return this.Bx - 0x1ffff;
 	}
 
-	line:number;
+	private _line?:number;
+	private _column?:number;
+	private _source_idx?:number;
+
+	public get line() {
+		return this._line ?? 1;
+	}
+	public set line(value:number)
+	{
+		if (this._line === undefined) {
+			this._line = value;
+		} else {
+			throw new Error("LuaInstruction.line can only be set once");
+		}
+	}
+
+	public get column() {
+		return this._column ?? 0;
+	}
+	public set column(value:number)
+	{
+		if (this._column === undefined) {
+			this._column = value;
+		} else {
+			throw new Error("LuaInstruction.column can only be set once");
+		}
+	}
+
+	public get source_idx() {
+		return this._source_idx ?? 0;
+	}
+	public set source_idx(value:number)
+	{
+		if (this._source_idx === undefined) {
+			this._source_idx = value;
+		} else {
+			throw new Error("LuaInstruction.source_idx can only be set once");
+		}
+	}
 }
 
 class LuaUpval {
@@ -153,7 +195,7 @@ export class LuaLocal {
 
 	constructor(b:BufferStream)
 	{
-		this.name = readLuaString(b);
+		this.name = readLuaStringBuffer(b).toString("utf8");
 		this.start = b.readUInt32LE();
 		this.end = b.readUInt32LE();
 	}
@@ -163,10 +205,10 @@ export class LuaConstant {
 	public constructor(type:LuaConstType.Nil);
 	public constructor(type:LuaConstType.Boolean,value:boolean);
 	public constructor(type:LuaConstType.Number,value:number);
-	public constructor(type:LuaConstType.String,value:string);
+	public constructor(type:LuaConstType.String,value:Buffer);
 	public constructor(
 		public readonly type:LuaConstType,
-		public readonly value?:boolean|number|string
+		public readonly value?:boolean|number|Buffer
 	) {
 		switch (type) {
 			case LuaConstType.Nil:
@@ -179,7 +221,7 @@ export class LuaConstant {
 				if (typeof value !== "number") {throw new Error(`Invalid Lua Constant: ${type} ${value}`);}
 				break;
 			case LuaConstType.String:
-				if (typeof value !== "string") {throw new Error(`Invalid Lua Constant: ${type} ${value}`);}
+				if (!(value instanceof Buffer)) {throw new Error(`Invalid Lua Constant: ${type} ${value}`);}
 				break;
 			default:
 				throw new Error(`Invalid Lua Constant Type: ${type}`);
@@ -195,7 +237,7 @@ export class LuaConstant {
 			case LuaConstType.Number:
 				return this.value!.toString();
 			case LuaConstType.String:
-				return `"${(<string>this.value)}"`; //TODO: escape strings
+				return `"${(<Buffer>this.value).toString("utf8")}"`; //TODO: escape strings
 			default:
 				throw new Error(`Invalid Lua Constant Type: ${this.type} ${this.value}`);
 		}
@@ -204,7 +246,7 @@ export class LuaConstant {
 }
 
 export class LuaFunction {
-	readonly source:string;
+	readonly sources:string[];
 	readonly nparam:number;
 	readonly is_vararg:boolean;
 	readonly maxstack:number;
@@ -216,10 +258,14 @@ export class LuaFunction {
 	readonly firstline:number;
 	readonly lastline:number;
 
+	//phobos debug symbol extensions
+	readonly firstcolumn?:number;
+	readonly lastcolumn?:number;
+
 	constructor(b:BufferStream, withheader?:boolean) {
 		if (withheader)
 		{
-			readHeader(b);
+			readHeader(b,lua_header);
 		}
 		this.firstline = b.readUInt32LE();
 		this.lastline = b.readUInt32LE();
@@ -248,7 +294,7 @@ export class LuaFunction {
 					this.constants.push(new LuaConstant(LuaConstType.Number, b.readDoubleLE()));
 					break;
 				case LuaConstType.String:
-					this.constants.push(new LuaConstant(LuaConstType.String, readLuaString(b)));
+					this.constants.push(new LuaConstant(LuaConstType.String, readLuaStringBuffer(b)));
 					break;
 				default:
 					throw new Error(`Invalid Lua Constant Type: ${type}`);
@@ -265,7 +311,7 @@ export class LuaFunction {
 			this.upvals.push(new LuaUpval(b));
 		}
 
-		this.source = readLuaString(b);
+		this.sources = [readLuaStringBuffer(b).toString("utf8")];
 
 		const num_lineinfo = b.readUInt32LE();
 		for (let i = 0; i < num_lineinfo; i++) {
@@ -279,7 +325,60 @@ export class LuaFunction {
 
 		const num_upval_names = b.readUInt32LE();
 		for (let i = 0; i < num_upval_names; i++) {
-			this.upvals[i].name = readLuaString(b);
+			this.upvals[i].name = readLuaStringBuffer(b).toString("utf8");
+		}
+
+		// Check for Phobos extended debug info in last const
+		if (this.constants.length > 1)
+		{
+			try {
+				const phoconst = this.constants[this.constants.length-1];
+				if (phoconst.type === LuaConstType.String)
+				{
+					const phobuff = new BufferStream(<Buffer>phoconst.value);
+					readHeader(phobuff,phobos_header);
+					const firstcolumn = phobuff.readUInt32LE();
+					const lastcolumn = phobuff.readUInt32LE();
+
+					const num_cols = phobuff.readUInt32LE();
+					const columns = [];
+					for (let i = 0; i < num_cols; i++) {
+						columns[i] = b.readUInt32LE();
+					}
+
+					const num_extra_sources = phobuff.readUInt32LE();
+					const extra_sources = [];
+					for (let i = 0; i < num_extra_sources; i++) {
+						extra_sources.push(readLuaStringBuffer(phobuff).toString("utf8"));
+					}
+
+					const num_sections = phobuff.readUInt32LE();
+					let active_source_idx = 0;
+					let inst_idx = 0;
+					for (let i = 0; i < num_sections; i++) {
+						const start = phobuff.readUInt32LE();
+						for (; inst_idx < start; inst_idx++) {
+							this.instructions[inst_idx].source_idx = active_source_idx;
+						}
+						active_source_idx = phobuff.readUInt32LE();
+					}
+
+					for (; inst_idx < this.instructions.length; inst_idx++) {
+						this.instructions[inst_idx].source_idx = active_source_idx;
+					}
+
+					// all read okay, save it for use later
+					this.firstcolumn = firstcolumn;
+					this.lastcolumn = lastcolumn;
+					for (let i = 0; i < num_cols; i++) {
+						this.instructions[i].column = columns[i];
+					}
+					this.sources.push(...extra_sources);
+
+				}
+			} catch (error) {
+
+			}
 		}
 	}
 
@@ -301,6 +400,28 @@ export class LuaFunction {
 	{
 		fn(this);
 		this.inner_functions.forEach(lf=>lf.walk_functions(fn));
+	}
+
+	private _sourcemap:Promise<SourceMapConsumer>;
+	public async getSourceMap(filename:string)
+	{
+		if (!this._sourcemap) {
+
+			const map = new SourceMapGenerator({file:filename});
+			for (let i = 0; i < this.instructions.length; i++) {
+				const mapping:Mapping = {
+					source: this.sources[this.instructions[i].source_idx],
+					original: {line: this.instructions[i].line, column:this.instructions[i].column},
+					generated: {line: i+1, column:0}
+				};
+				map.addMapping(mapping);
+			}
+
+			this._sourcemap = new SourceMapConsumer(map.toJSON());
+		}
+
+		return this._sourcemap;
+
 	}
 
 
@@ -335,7 +456,7 @@ export class LuaFunction {
 					instruction: this.getInstructionLabel(i+offset),
 					line: this.instructions[i+offset].line,
 					instructionBytes: this.instructions[i+offset].raw.toString(16),
-					symbol: i+offset===0 ? this.source+":"+this.firstline : undefined
+					symbol: i+offset===0 ? this.sources[this.instructions[i+offset].source_idx??0] +":"+this.firstline : undefined
 				});
 			}
 			return instrs;
@@ -346,7 +467,7 @@ export class LuaFunction {
 	getDisassembledSingleFunction():string {
 		const instructions = this.instructions.map((i,pc)=>this.getInstructionLabel(pc));
 		return [
-			`function at ${this.source}:${this.firstline}-${this.lastline}`,
+			`function at ${this.sources[0]}:${this.firstline}-${this.lastline}`,
 			`${this.is_vararg?"vararg":`${this.nparam} params`} ${this.upvals.length} upvals ${this.maxstack} maxstack`,
 			`${this.instructions.length} instructions ${this.constants.length} constants ${this.inner_functions.length} functions`,
 			...instructions,
@@ -456,7 +577,7 @@ export class LuaFunction {
 
 			case LuaOpcode.OP_CLOSURE:
 				const func = this.inner_functions[current.Bx];
-				return `CLOSURE   ${this.getRegisterLabel(pc,current.A)} := closure(${func.source}:${func.firstline}-${func.lastline})`;
+				return `CLOSURE   ${this.getRegisterLabel(pc,current.A)} := closure(${func.sources[0]}:${func.firstline}-${func.lastline})`;
 
 			case LuaOpcode.OP_VARARG:
 				return `VARARG    ${this.getRegisterLabel(pc,current.A)}...${current.B?this.getRegisterLabel(pc,current.A+current.B-2):"top"}`;
