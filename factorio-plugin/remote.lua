@@ -95,14 +95,14 @@ local function replace(uri, text, diffs)
 
       local name, name_comma_or_paren, s_param_2 = process_param(chain_diff, s_param_1)
       if not name then
-        diffs[#diffs] = nil
+        util.remove_diff(diffs)
         goto continue
       end
 
       if name_comma_or_paren == "," then
         local func, func_comma_or_paren, p_finish = process_param(chain_diff, s_param_2)
         if not func then
-          diffs[#diffs] = nil
+          util.remove_diff(diffs)
           goto continue
         end
 

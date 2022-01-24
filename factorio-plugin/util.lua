@@ -60,6 +60,12 @@ local function add_diff(diffs, start, finish, replacement)
   }
 end
 
+local function remove_diff(diffs)
+  local count = diffs.count
+  diffs[count] = nil
+  diffs.count = count - 1
+end
+
 ---if 'source' is a string wrapped in "" or '' get the string inside those quotes
 ---otherwise returns nil
 ---@param source string
@@ -128,6 +134,7 @@ end
 return {
   gmatch_at_start_of_line = gmatch_at_start_of_line,
   add_diff = add_diff,
+  remove_diff = remove_diff,
   add_chain_diff = add_chain_diff,
   extend_chain_diff_elem_text = extend_chain_diff_elem_text,
   try_parse_string_literal = try_parse_string_literal,

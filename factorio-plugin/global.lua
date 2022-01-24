@@ -1,5 +1,7 @@
 --##
 
+local util = require("factorio-plugin.util")
+
 ---@param uri string @ The uri of file
 ---@param text string @ The content of file
 ---@param diffs Diff[] @ The diffs to add more diffs to
@@ -32,24 +34,13 @@ local function replace(uri, text, diffs)
     --   global_matches[start] = finish
     -- end
 
-    local diffs_count = #diffs
     for start, finish in pairs(global_matches) do
-      diffs_count = diffs_count + 1
-      diffs[diffs_count] = {
-        start  = start,
-        finish = finish - 1,
-        text = global_name,
-      }
+      util.add_diff(diffs, start, finish, global_name)
     end
 
     -- and "define" it at the start of any file that used it
     if next(global_matches) then
-      diffs_count = diffs_count + 1
-      diffs[diffs_count] = {
-        start  = 1,
-        finish = 0,
-        text = global_name.."={}\n",
-      }
+      util.add_diff(diffs, 1, 1, global_name.."={}\n")
     end
   end
 end
