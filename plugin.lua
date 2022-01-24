@@ -18,29 +18,35 @@ if not __plugin_dev and not _G.__factorio_plugin_initialized then
   local workspace = require("workspace")
 
   -- now it's getting incredibly hacky, I should look into making a PR
-  local info = debug.getinfo(3, "uf")
-  local scp
-  for i = 1, info.nups do
-    local name, value = debug.getupvalue(info.func, i)
-    if name == "scp" then
-      scp = value
-    end
-  end
-  if not scp then
-    for i = 1, info.nparams do
-      local name, value = debug.getlocal(3, i)
+  local is_2_6_0_or_later = debug.getinfo(config.get, "u").nparams > 1
+  ---@type userdata
+  local plugin_path
+  if is_2_6_0_or_later then
+    local info = debug.getinfo(3, "uf")
+    local scp
+    for i = 1, info.nups do
+      local name, value = debug.getupvalue(info.func, i)
       if name == "scp" then
         scp = value
       end
     end
-  end
-  assert(scp, "Unable to get currently used scope/folder. Either you are using a \z
-    sumneko.lua version < 2.6.0 or there were internal changes of the language server \z
-    in which case the plugin needs to be changed/updated."
-  )
+    if not scp then
+      for i = 1, info.nparams do
+        local name, value = debug.getlocal(3, i)
+        if name == "scp" then
+          scp = value
+        end
+      end
+    end
+    assert(scp, "Unable to get currently used scope/folder. Either you are using a \z
+      sumneko.lua version < 2.6.0 or there were internal changes of the language server \z
+      in which case the plugin needs to be changed/updated."
+    )
 
-  ---@type userdata
-  local plugin_path = fs.path(workspace.getAbsolutePath(scp.uri, config.get(scp.uri, 'Lua.runtime.plugin')))
+    plugin_path = fs.path(workspace.getAbsolutePath(scp.uri, config.get(scp.uri, 'Lua.runtime.plugin')))
+  else -- sumneko.lua < 2.6.0
+    plugin_path = fs.path(workspace.getAbsolutePath(config.get('Lua.runtime.plugin')))
+  end
 
   ---@type string
   local new_path = (plugin_path:parent_path() / "?.lua"):string()

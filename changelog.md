@@ -1,6 +1,7 @@
 
 ### 2022-01-24
 - Fix broken `require`, `global` and potentially even `remote`, cause by an incomplete performance improvement. Sorry, my bad
+- Add support for `sumneko.lua` `< 2.6.0`, since I broke the plugin pre `2.6.0`
 
 ### 2022-01-20
 - Update for internal changes in `sumneko.lua` `2.6.0`, this version of the plugin is not compatible with `< 2.6.0`
