@@ -38,8 +38,8 @@ if not __plugin_dev and not _G.__factorio_plugin_initialized then
         end
       end
     end
-    assert(scp, "Unable to get currently used scope/folder. Either you are using a \z
-      sumneko.lua version < 2.6.0 or there were internal changes of the language server \z
+    assert(scp, "Unable to get currently used scope/folder. This is very most likely \z
+      caused by internal changes of the language server \z
       in which case the plugin needs to be changed/updated."
     )
 
