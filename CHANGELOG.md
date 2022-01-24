@@ -6,6 +6,7 @@
 
 * __DebugAdapter.terminate() to end session from script
 * __DebugAdapter.raise_event(event,data,modname) to call event handlers directly for testing
+* Updated LuaObject recongition for debug views to reflect implementation detail changes in Factorio's API (no longer uses `__self`)
 
 ## 1.1.11
 

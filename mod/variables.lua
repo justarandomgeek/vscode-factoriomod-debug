@@ -198,8 +198,9 @@ local function isUnsafeLong(t,seen)
       i = i + 1
     end
   elseif ttype == "table" then
-    if type(rawget(t,"__self"))=="userdata" and getmetatable(t)=="private" then
-      return luaObjectInfo.noLongRefs[t.object_name:match("^([^.]+)%.?")]
+    local tclass = luaObjectInfo.try_object_name(t)
+    if tclass then
+      return luaObjectInfo.noLongRefs[tclass:match("^([^.]+)%.?")]
     end
     seen[t] = true
     for k,v in pairs(t) do
@@ -447,9 +448,9 @@ function variables.describe(value,short)
   local lineitem
   local vtype = type(value)
   if vtype == "table" then
-    -- only check __self and metatable, since top level objects (game, script, etc) don't have the magic string in .isluaobject
-    if type(rawget(value,"__self")) == "userdata" and getmetatable(value) == "private" then
-      vtype = value.object_name
+    local apitype = luaObjectInfo.try_object_name(value)
+    if apitype then
+      vtype = apitype
       if vtype == "LuaCustomTable" then
           lineitem = ("%d item%s"):format(#value, #value~=1 and "s" or "" )
       else
@@ -808,8 +809,15 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
           local debugpairs = itermode[varRef.mode]
           if debugpairs then
             local f,t,firstk = debugpairs(varRef.table)
-            local mtlen = mt and mt.__len
-            local maxindex = ((mtlen and type(rawget(varRef.table,"__self"))=="userdata") and mtlen or rawlen)(varRef.table)
+            local len = mt and mt.__len
+            if len then
+              if not luaObjectInfo.try_object_name(varRef.table) then
+                len = rawlen
+              end
+            else
+              len = rawlen
+            end
+            local maxindex = len(varRef.table)
             if filter == "indexed" then
               if not start or start == 0 then
                 start = 1

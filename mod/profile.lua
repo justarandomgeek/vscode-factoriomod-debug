@@ -12,8 +12,7 @@ local rawset = rawset
 local game, find_game
 do
   local reg = debug.getregistry()
-  local getmetatable = getmetatable
-  local rawget = rawget
+  local dgetmetatable = debug.getmetatable
   local type = type
   function find_game()
     do
@@ -26,13 +25,16 @@ do
     end
 
     -- it's in the registery for on_load, but with whatever ref id was free
+    -- find it by its metatable, since that has a name on it at least...
     -- DON'T DO THIS! THIS IS A HORRIBLE HACK!
-    for _,t in pairs(reg) do
-      if type(t)=="table" and type(rawget(t,"__self"))=="userdata" and
-          getmetatable(t)=="private" and t.object_name == "LuaGameScript" then
-        rawset(t, "create_profiler", t.create_profiler)
-        game = t
-        return true
+    local gmt = reg["LuaGameScript"]
+    if gmt then -- but it's not there when instruments first run
+      for _,t in pairs(reg) do
+        if type(t)=="table" and dgetmetatable(t)==gmt then
+          rawset(t, "create_profiler", t.create_profiler)
+          game = t
+          return true
+        end
       end
     end
   end

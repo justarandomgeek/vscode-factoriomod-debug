@@ -25,12 +25,31 @@ local luaObjectLines = {
 }
 __DebugAdapter.stepIgnoreAll(luaObjectLines)
 
--- some API functions can raise events, so we want to record the stack somewhere
--- and indicate that it needs to be requested if something stops in the lower stack
--- API functions (including metas) have two upval:
--- userdata(pointer to object), userdata(pointer to member function)
--- all functions from one object will have the same value in the first
--- all instances of the same class::function will have the same value in the second
+--[[
+some API functions can raise events, so we want to record the stack somewhere
+and indicate that it needs to be requested if something stops in the lower stack
+
+LuaObjects since 1.1.49 share metatables per class, and the metatables are held
+in the registry by class name once an object of that class has been created.
+
+Most meta funcs have single upval,
+  userdata(pointer to member function)
+  object pointers are retrieved from the LuaObject passed in param 1 when calling
+
+`__eq` is shared by all, and has two (also in registry as `luaobject__eq`)
+  userdata(pointer to object (`game`))
+  userdata(pointer to member function(`__eq`))
+
+Normal API functions have three upvals:
+  userdata(pointer to object),
+  userdata(pointer to member function),
+  LuaObject(parent object)
+
+all functions from one object will have the same value in the first
+all instances of the same class::function will have the same value in the second
+third is the parent LuaObject of the specific api closure, to keep it from being disposed
+
+]]
 local eventlike = {
   members = {
     -- userdata => {class="",member=""}
@@ -139,19 +158,26 @@ local eventlike = {
 ---@return any value if api access was a `__newindex` call
 local function check_eventlike(level,hooktype)
   if not script then return end
+
   local info = debug.getinfo(level,"nSf")
   if not info then return end
+
   if info.what ~= "C" then return end
+
   local fname = info.name
   local classes = eventlike.classes[fname]
-  if classes then
+  if classes then -- __index or __newindex
+
     local _,t = debug.getlocal(level,1)
     if type(t) ~= "table" or getmetatable(t) ~= "private" then return end
+
     ---@type string
     local tname = t.object_name
     if not tname then return end
+
     local class = classes[tname]
     if not class then return end
+
     local _,k = debug.getlocal(level,2)
     local member = class[k]
     if member then
@@ -173,12 +199,15 @@ local function check_eventlike(level,hooktype)
         end
         -- this call is not eventlike itself, but the returned func will be
         return --false,tname,k
+
       else -- __newindex
         -- do the thing
         return true,tname,k,(select(2,debug.getlocal(level,3)))
       end
     end
-  else
+
+  else -- other cfunctions, not __index or __newindex
+
     local f = info.func
     local _,memberptr = debug.getupvalue(f,2)
     if memberptr then
@@ -188,10 +217,30 @@ local function check_eventlike(level,hooktype)
         return true,member.class,member.member
       end
     end
+
   end
 end
 __DebugAdapter.stepIgnore(check_eventlike)
 
+
+local function try_object_name(obj)
+  -- basic checks for LuaObject-like things: is table, has masked meta
+  if type(obj) ~= "table" then return end
+
+  local mt = debug.getmetatable(obj)
+  if not mt then return end
+  if mt.__metatable ~= "private" then return end
+
+  -- don't check for __self=userdata becuase that is planned to be removed in the future
+
+  -- LuaBindableObjects don't have `isluaobject`, so use `object_name` instead
+  -- pcall in case it's still not a real LuaObject...
+  local success,object_name = pcall(mt.__index,obj,"object_name")
+  if success then
+    return object_name
+  end
+end
+__DebugAdapter.stepIgnore(try_object_name)
 
 
 -- class data last updated factorio 1.1.12
@@ -218,6 +267,7 @@ return {
   lineItem = luaObjectLines,
   eventlike = eventlike,
   check_eventlike = check_eventlike,
+  try_object_name = try_object_name,
   expandKeys = {
     LuaAISettings = {
       allow_destroy_when_commands_fail = {},
