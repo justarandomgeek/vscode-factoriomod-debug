@@ -31,6 +31,8 @@ and indicate that it needs to be requested if something stops in the lower stack
 
 LuaObjects since 1.1.49 share metatables per class, and the metatables are held
 in the registry by class name once an object of that class has been created.
+The LuaObject table has an extra object pointer in its header replacing what
+was previously in the `__self` userdata (which is now empty).
 
 Most meta funcs have single upval,
   userdata(pointer to member function)
