@@ -53,8 +53,8 @@ export class ApiDocGenerator {
 			throw "Unknown JSON Format";
 		}
 
-		if (this.docs.api_version !== 1) {
-			throw `Unsupported JSON Version ${this.docs.api_version}`;
+		if (!(this.docs.api_version===1 || this.docs.api_version===2)) {
+			throw `Unsupported JSON Version ${(<ApiDocs>this.docs).api_version}`;
 		}
 
 		this.classes = new Map(this.docs.classes.map(c => [c.name,c]));
@@ -170,13 +170,13 @@ export class ApiDocGenerator {
 	}
 
 
-	private add_ts_class(output:WritableMemoryStream,aclass:ApiClass):void;
+	private add_ts_class(output:WritableMemoryStream,aclass:ApiClassV1):void;
 	private add_ts_class(output:WritableMemoryStream,aclass:ApiStructConcept,is_struct:true):void;
-	private add_ts_class(output:WritableMemoryStream,aclass:ApiClass|ApiStructConcept,is_struct?:boolean):void {
+	private add_ts_class(output:WritableMemoryStream,aclass:ApiClassV1|ApiStructConcept,is_struct?:boolean):void {
 
 
 
-		const add_attribute = (attribute:ApiAttribute,oper_ts_name?:string,oper_html_name?:string)=>{
+		const add_attribute = (attribute:ApiAttributeV1,oper_ts_name?:string,oper_html_name?:string)=>{
 			const aname = oper_ts_name ?? attribute.name;
 			const view_doc_link = this.view_documentation(`${aclass.name}::${oper_html_name ?? aname}`);
 			output.write(this.convert_ts_description(this.format_entire_description(
@@ -187,7 +187,7 @@ export class ApiDocGenerator {
 
 		const view_documentation_for_method = (method_name:string)=>this.view_documentation(`${aclass.name}::${method_name}`);
 
-		const convert_description_for_method = (method:ApiMethod,html_name?:string)=>
+		const convert_description_for_method = (method:ApiMethodV1,html_name?:string)=>
 			this.convert_ts_description(
 				[
 					this.format_entire_description(method,view_documentation_for_method(html_name??method.name)),
@@ -195,7 +195,7 @@ export class ApiDocGenerator {
 				].filter(s=>!!s).join("\n\n")
 				);
 
-		const add_method = (method:ApiMethod,oper_ts_name?:string,oper_html_name?:string)=>{
+		const add_method = (method:ApiMethodV1,oper_ts_name?:string,oper_html_name?:string)=>{
 			output.write(convert_description_for_method(method,oper_html_name));
 			output.write(`${oper_ts_name??method.name}(\n`);
 			if (method.takes_table) {
@@ -233,9 +233,9 @@ export class ApiDocGenerator {
 		if (is_struct) {
 			output.write(`interface ${aclass.name} {\n`);
 		} else {
-			const base_classes = (<ApiClass>aclass).base_classes;
+			const base_classes = (<ApiClassV1>aclass).base_classes;
 			output.write(`interface ${aclass.name}${base_classes?" extends "+base_classes.join(","):""} {\n`);
-			if((<ApiClass>aclass).operators.find((operator:ApiOperator)=>!["index","length","call"].includes(operator.name))){
+			if((<ApiClassV1>aclass).operators.find((operator:ApiOperatorV1)=>!["index","length","call"].includes(operator.name))){
 					throw `Unkown operator`;
 			}
 		}
@@ -243,15 +243,15 @@ export class ApiDocGenerator {
 		aclass.attributes.forEach(a=>add_attribute(a));
 
 		if (!is_struct) {
-			((<ApiClass>aclass).operators.filter(op=>["index","length"].includes(op.name)) as ApiAttribute[]).forEach((operator)=>{
+			((<ApiClassV1>aclass).operators.filter(op=>["index","length"].includes(op.name)) as ApiAttributeV1[]).forEach((operator)=>{
 				const ts_name = operator.name === "index" ? "__index" : "__len";
 				const html_name = `operator%20${ operator.name === "index" ? "[]" : "#"}`;
 				add_attribute(operator,ts_name,html_name);
 			});
 
-			(<ApiClass>aclass).methods.forEach(m=>add_method(m));
+			(<ApiClassV1>aclass).methods.forEach(m=>add_method(m));
 
-			const callop = (<ApiClass>aclass).operators.find(op=>op.name==="call") as ApiMethod;
+			const callop = (<ApiClassV1>aclass).operators.find(op=>op.name==="call") as ApiMethodV1;
 			if (callop){
 				add_method(callop, "__call", "operator%20()");
 			}
@@ -435,10 +435,11 @@ export class ApiDocGenerator {
 		output.write(`\n\n---@alias LuaObject ${this.docs.classes.map(aclass=>aclass.name).join("|")}\n\n`);
 	}
 
-	private add_emmylua_class(output:WritableMemoryStream,aclass:ApiClass):void;
+	private add_emmylua_class(output:WritableMemoryStream,aclass:ApiClassV1):void;
+	private add_emmylua_class(output:WritableMemoryStream,aclass:ApiClassV2):void;
 	private add_emmylua_class(output:WritableMemoryStream,aclass:ApiStructConcept,is_struct:true):void;
 	private add_emmylua_class(output:WritableMemoryStream,aclass:ApiClass|ApiStructConcept,is_struct?:boolean):void {
-		const add_attribute = (attribute:ApiAttribute,oper_lua_name?:string,oper_html_name?:string)=>{
+		const add_attribute = (attribute:ApiAttributeV1,oper_lua_name?:string,oper_html_name?:string)=>{
 			const aname = oper_lua_name ?? attribute.name;
 			const view_doc_link = this.view_documentation(`${aclass.name}::${oper_html_name ?? aname}`);
 			output.write(this.convert_emmylua_description(this.format_entire_description(
@@ -463,10 +464,19 @@ export class ApiDocGenerator {
 		};
 
 		const add_return_annotation = (method:ApiMethod)=>{
-			if (method.return_type) {
-				output.write(`---@return ${convert_param_or_return(method.return_type,method.return_description,()=>[
+			if ((<ApiMethodV1>method).return_type) {
+				const v1m:ApiMethodV1 = method;
+				output.write(`---@return ${convert_param_or_return(v1m.return_type,v1m.return_description,()=>[
 					`${aclass.name}.${method.name}_return`, view_documentation_for_method(method.name)
 				])}`);
+			}
+			if ((<ApiMethodV2>method).return_values) {
+				const v2m = <ApiMethodV2>method;
+				v2m.return_values.forEach((rv)=>{
+					output.write(`---@return ${convert_param_or_return(rv.type,rv.description,()=>[
+						`${aclass.name}.${method.name}_return`, view_documentation_for_method(method.name)
+					])}`);
+				});
 			}
 		};
 
@@ -520,7 +530,7 @@ export class ApiDocGenerator {
 		} else {
 			const base_classes = (<ApiClass>aclass).base_classes;
 			output.write(`---@class ${aclass.name}${base_classes?":"+base_classes.join(","):""}\n`);
-			if((<ApiClass>aclass).operators.find((operator:ApiOperator)=>!["index","length","call"].includes(operator.name))){
+			if((<ApiOperator[]>(<ApiClass>aclass).operators).find((operator:ApiOperator)=>!["index","length","call"].includes(operator.name))){
 					throw "Unkown operator";
 			}
 		}
@@ -528,7 +538,8 @@ export class ApiDocGenerator {
 		aclass.attributes.forEach(a=>add_attribute(a));
 
 		if (!is_struct) {
-			((<ApiClass>aclass).operators.filter(op=>["index","length"].includes(op.name)) as ApiAttribute[]).forEach((operator)=>{
+			const operators = <ApiOperator[]>(<ApiClass>aclass).operators;
+			(operators.filter(op=>["index","length"].includes(op.name)) as ApiAttribute[]).forEach((operator)=>{
 				const lua_name = operator.name === "index" ? "__index" : "__len";
 				const html_name = `operator%20${ operator.name === "index" ? "[]" : "#"}`;
 				add_attribute(operator,lua_name,html_name);
@@ -537,7 +548,7 @@ export class ApiDocGenerator {
 			output.write(`${this.globals.get(aclass.name)?.name ?? `local ${to_lua_ident(aclass.name)}`}={\n`);
 			(<ApiClass>aclass).methods.forEach(add_method);
 
-			const callop = (<ApiClass>aclass).operators.find(op=>op.name==="call") as ApiMethod;
+			const callop = operators.find(op=>op.name==="call") as ApiMethod;
 			if (callop){
 				add_regular_method(callop, "__call", "operator%20()");
 			}
