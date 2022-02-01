@@ -435,11 +435,10 @@ export class ApiDocGenerator {
 		output.write(`\n\n---@alias LuaObject ${this.docs.classes.map(aclass=>aclass.name).join("|")}\n\n`);
 	}
 
-	private add_emmylua_class(output:WritableMemoryStream,aclass:ApiClassV1):void;
-	private add_emmylua_class(output:WritableMemoryStream,aclass:ApiClassV2):void;
+	private add_emmylua_class(output:WritableMemoryStream,aclass:ApiClass):void;
 	private add_emmylua_class(output:WritableMemoryStream,aclass:ApiStructConcept,is_struct:true):void;
 	private add_emmylua_class(output:WritableMemoryStream,aclass:ApiClass|ApiStructConcept,is_struct?:boolean):void {
-		const add_attribute = (attribute:ApiAttributeV1,oper_lua_name?:string,oper_html_name?:string)=>{
+		const add_attribute = (attribute:ApiAttribute,oper_lua_name?:string,oper_html_name?:string)=>{
 			const aname = oper_lua_name ?? attribute.name;
 			const view_doc_link = this.view_documentation(`${aclass.name}::${oper_html_name ?? aname}`);
 			output.write(this.convert_emmylua_description(this.format_entire_description(
@@ -853,11 +852,15 @@ export class ApiDocGenerator {
 		}
 	}
 
-	private format_entire_description(obj:ApiWithNotes&{readonly description:string; readonly subclasses?:string[]; readonly return_description?:string}, view_documentation_link:string, description?:string)
+	private format_entire_description(obj:ApiWithNotes&{readonly description:string; readonly subclasses?:string[]; readonly raises?: ApiEventRaised[]}, view_documentation_link:string, description?:string)
 	{
 		return [
 			description??obj.description,
 			obj.notes?.map(note=>`**Note:** ${note}`)?.join("\n\n"),
+			obj.raises && (
+				`**Events:**\n${
+					obj.raises?.map(raised=>` * ${raised.optional?"May":"Will"} raise ${this.resolve_internal_reference(raised.name)} ${{instantly:"instantly", current_tick:"later in the current tick", future_tick:"in a future tick"}[raised.timeframe]}.${raised.description?"\n"+raised.description:""}`,)?.join("\n\n") }`
+			),
 			view_documentation_link,
 			obj.examples?.map(example=>`### Example\n${example}`)?.join("\n\n"),
 			obj.subclasses && (
