@@ -213,10 +213,14 @@ end
 
 ---@param event number|string|table
 ---@param f function
----@param filters table
-function newscript.on_event(event,f,filters)
+---@vararg table
+---@overload fun(event:number,f:function, filters:table)
+---@overload fun(event:string,f:function)
+---@overload fun(events:table,f:function)
+function newscript.on_event(event,f,...)
   -- on_event checks arg count and throws if event is table and filters is present, even if filters is nil
   local etype = type(event)
+  local has_filters = select("#",...) > 0
   if etype == "number" then
     local evtname = ("event %d"):format(event)
     for k,v in pairs(defines.events) do
@@ -226,14 +230,14 @@ function newscript.on_event(event,f,filters)
         break
       end
     end
-    return oldscript.on_event(event,labelhandler(save_event_handler(event,f), ("%s handler"):format(evtname)),filters)
+    return oldscript.on_event(event,labelhandler(save_event_handler(event,f), ("%s handler"):format(evtname)),...)
   elseif etype == "string" then
-    if filters then
+    if has_filters then
       error("Filters can only be used when registering single events.",2)
     end
     return oldscript.on_event(event,labelhandler(save_event_handler(event,f), ("%s handler"):format(event)))
   elseif etype == "table" then
-    if filters then
+    if has_filters then
       error("Filters can only be used when registering single events.",2)
     end
     for _,e in pairs(event) do
