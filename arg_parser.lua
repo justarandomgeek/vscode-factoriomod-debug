@@ -67,6 +67,9 @@ local function get_option_descriptor(option)
     ..(option.long and ("--"..option.long) or "")
 end
 
+---@param args string[]
+---@param config ArgsConfig
+---@param start_index? integer @ 1 based including
 local function parse(args, config, start_index)
   local err
   local i = (start_index and (start_index - 1)) or 0
@@ -348,6 +351,9 @@ local function get_help_string(config, help_config)
   return table.concat(help)
 end
 
+---@param args string[]
+---@param config ArgsConfig
+---@param help_config? ArgsHelpConfig
 ---@return table|nil @ returns `nil` if there was an error or request for help
 local function parse_and_print_on_error_or_help(args, config, help_config)
   local result, err = parse(args, config)
