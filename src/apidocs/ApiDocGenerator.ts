@@ -569,7 +569,7 @@ export class ApiDocGenerator {
 					break;
 				case "concept":
 					output.write(this.convert_emmylua_description(this.format_entire_description(concept,this.view_documentation(concept.name))));
-					output.write(`---@class ${concept.name}\n\n`);
+					output.write(`---@alias ${concept.name} any\n\n`);
 					break;
 				case "struct":
 					this.add_emmylua_class(output, concept, true);
