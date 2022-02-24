@@ -372,6 +372,7 @@ end
 ---@field field string
 ---@field short string|nil @ short option name, defined without leading `-`. used when an option with a single leading `-` is encountered
 ---@field long string|nil @ long option name, defined without leading `--`. used when an option with leading `-` is encountered
+---@field description string|nil @ description used in the help message
 ---@field flag boolean|nil @ is this option a flag?
 ---@field single_param boolean|nil @ does this option take a single parameter?
 ---@field min_params integer|nil @ when not a flag or single_param, how many params does the array have to have minimum? Default 0
