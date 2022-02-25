@@ -13,5 +13,3 @@ map __#user__ to write-data tree for scenarios/campaigns
 plain TCP socket (for use with netcat or directly) for stdio
 break out object info & pretty printing as a library
 disassembler/sourcemap
-new json docs format
-fix line stepping
