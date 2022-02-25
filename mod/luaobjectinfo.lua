@@ -26,9 +26,6 @@ local luaObjectLines = {
 __DebugAdapter.stepIgnoreAll(luaObjectLines)
 
 --[[
-some API functions can raise events, so we want to record the stack somewhere
-and indicate that it needs to be requested if something stops in the lower stack
-
 LuaObjects since 1.1.49 share metatables per class, and the metatables are held
 in the registry by class name once an object of that class has been created.
 The LuaObject table has an extra object pointer in its header replacing what
@@ -51,97 +48,135 @@ all functions from one object will have the same value in the first
 all instances of the same class::function will have the same value in the second
 third is the parent LuaObject of the specific api closure, to keep it from being disposed
 
+some API functions can raise events (or otherwise re-enter lua) before returning,
+so we want to recognize them to record the stack somewhere and indicate that it
+needs to be requested if something stops in the lower stack.
+
 ]]
 local eventlike = {
   members = {
     -- userdata => {class="",member=""}
   },
   classes = {
-    __index = {
-      LuaRemote = {
-        call = true,
+    __index = { -- methods
+      LuaBootstrap = invert{
+        "raise_event", -- not from json!
+        "raise_biter_base_built",
+        "raise_console_chat",
+        "raise_market_item_purchased",
+        "raise_player_crafted_item",
+        "raise_player_fast_transferred",
+        "raise_script_built",
+        "raise_script_destroy",
+        "raise_script_revive",
+        "raise_script_set_tiles",
       },
-      LuaBootstrap = {
-        raise_event = true,
-        raise_console_chat = true,
-        raise_player_crafted_item = true,
-        raise_player_fast_transferred = true,
-        raise_biter_base_built = true,
-        raise_market_item_purchased = true,
-        raise_script_built = true,
-        raise_script_destroy = true,
-        raise_script_revive = true,
-        raise_script_set_tiles = true,
+
+      LuaEntity = invert{
+        "cancel_deconstruction",
+        "cancel_upgrade",
+        "clone",
+        "damage",
+        "deplete",
+        "destroy",
+        "die",
+        "launch_rocket",
+        "mine",
+        "order_deconstruction",
+        "order_upgrade",
+        "revive",
+        "rotate",
+        "silent_revive",
+
+        --LuaControl
+        "begin_crafting",
+        "cancel_crafting",
+        "clear_personal_logistic_slot",
+        "clear_selected_entity",
+        "clear_vehicle_logistic_slot",
+        "mine_entity",
+        "mine_tile",
+        "set_personal_logistic_slot",
+        "set_vehicle_logistic_slot",
+        "teleport",
+        "update_selected_entity",
       },
-      LuaGameScript = {
-        create_surface = true,
-        remove_offline_players = true,
-        create_force = true,
-        merge_forces = true,
+
+      LuaForce = invert{
+        "add_chart_tag",
+        "add_research",
+        "research_all_technologies",
+        "reset",
+        "reset_technology_effects",
+        "set_cease_fire",
+        "set_friend",
       },
-      LuaItemStack = {
-        build_blueprint = true,
-        set_stack = true,
+
+      LuaGameScript = invert{
+        "ban_player",
+        "create_force",
+        "create_surface",
+        "kick_player",
+        "mute_player",
+        "purge_player",
+        "remove_offline_players",
+        "unban_player",
+        "unmute_player",
       },
-      LuaSurface = {
-        create_entity = true,
-        set_tiles = true,
-        clone_area = true,
-        clone_entities = true,
-        close_brush = true,
-        teleport = true,
+
+      LuaInventory = invert{
+        "resize",
       },
-      LuaEntity = {
-        destroy = true,
-        die = true,
-        revive = true,
-        silent_revive = true,
-        clone = true,
-        mine = true,
-        connect_rolling_stock = true,
-        disconnect_rolling_stock = true,
-        set_driver = true,
-        set_passenger = true, --TODO: verify
+
+      LuaPlayer = invert{
+        "can_build_from_cursor",
+        "pipette_entity",
+        "toggle_map_editor",
+
+        --LuaControl
+        "begin_crafting",
+        "cancel_crafting",
+        "clear_personal_logistic_slot",
+        "clear_selected_entity",
+        "clear_vehicle_logistic_slot",
+        "mine_entity",
+        "mine_tile",
+        "set_personal_logistic_slot",
+        "set_vehicle_logistic_slot",
+        "teleport",
+        "update_selected_entity",
       },
-      LuaPlayer = {
-        toggle_map_editor = true,
-        mine_entity = true,
-        mine_tile = true,
+
+
+      LuaRemote = invert{
+        "call", -- not in json, non-event re-entry to other lua
       },
-      LuaForce = {
-        set_friend = true,
-        set_cease_fire = true,
-        reset = true,
+
+      LuaSurface = invert{
+        "cancel_deconstruct_area",
+        "cancel_upgrade_area",
+        "clone_area",
+        "clone_entities",
+        "create_entity",
+        "create_unit_group",
+        "deconstruct_area",
+        "set_tiles",
+        "upgrade_area",
       },
-      LuaEquipmentGrid = {
-        put = true,
-        take = true,
-        clear = true,
-      },
-      LuaInventory = {
-        resize = true,
-      },
-      LuaCustomChartTag = {
-        destroy = true,
+
+      LuaTile = invert{
+        "cancel_deconstruct",
+        "order_deconstruction",
       }
     },
-    __newindex = {
+    __newindex = { -- properties
       LuaEntity = {
-        driving = true,
+        opened = true,
+        selected = true,
       },
       LuaPlayer = {
         opened = true,
-        driving = true,
-      },
-      LuaCustomChartTag = {
-        text = true, --TODO: verify
-      },
-      LuaSurface = {
-        name = true,
-      },
-      LuaTrain = {
-        schedule = true,
-        manual_mode = true,
+        selected = true,
       },
       --just catch any write to a LuaCustomTable, to cover mod settings
       --all LuaCustomTable::__newindex use the same pointer-to-member userdata
