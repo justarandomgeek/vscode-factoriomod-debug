@@ -77,6 +77,16 @@ do
   end
 end
 
+local step_instr = false
+local function hook_rate()
+  if step_instr then
+    return "cr", 1
+  else
+    return "clr"
+  end
+end
+
+
 local hook
 local pending = {}
 do
@@ -299,7 +309,7 @@ if __DebugAdapter.instrument then
     debug.sethook()
     if not stack_has_location() then
       __DebugAdapter.popStack()
-      debug.sethook(hook,"cr",1)
+      debug.sethook(hook,hook_rate())
       return
     end
     local mtype = type(mesg)
@@ -309,7 +319,7 @@ if __DebugAdapter.instrument then
         mesg:match("^The mod [a-zA-Z0-9 _-]+ %([0-9.]+%) caused a non%-recoverable error")
         )then
       __DebugAdapter.popStack()
-      debug.sethook(hook,"cr",1)
+      debug.sethook(hook,hook_rate())
       return
     end
 
@@ -329,7 +339,7 @@ if __DebugAdapter.instrument then
     if not popped then
       __DebugAdapter.popStack()
     end
-    debug.sethook(hook,"cr",1)
+    debug.sethook(hook,hook_rate())
     return
   end
   -- shared for stack trace to know to skip one extra
@@ -337,7 +347,7 @@ if __DebugAdapter.instrument then
 end
 
 function __DebugAdapter.attach()
-  debug.sethook(hook,"cr",1)
+  debug.sethook(hook,hook_rate())
   -- on_error is api for instrument mods to catch errors
   if on_error then
     on_error(on_exception)
@@ -402,16 +412,23 @@ function __DebugAdapter.dumpBreakpoints(source)
 end
 
 ---@param depth number
-function __DebugAdapter.step(depth)
+---@param instruction boolean
+function __DebugAdapter.step(depth,instruction)
   if depth and stepdepth then
     print(("step %d with existing depth! %d"):format(depth,stepdepth))
   end
+  local rehook = instruction~=step_instr
   stepdepth = depth
+  step_instr = instruction
+  if rehook then
+    debug.sethook(hook,hook_rate())
+  end
 end
 
 ---@return number stepdepth
+---@return boolean step_instr
 function __DebugAdapter.currentStep()
-  return stepdepth
+  return stepdepth, step_instr
 end
 
 local vcreate = variables.create
