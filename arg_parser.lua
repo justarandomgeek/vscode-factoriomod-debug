@@ -239,21 +239,10 @@ local function parse(args, config, start_index)
     if not found_options[option] then
       if option.flag then
         result[option.field] = false
-      elseif option.single_param then
-        if option.optional or (option.default_value ~= nil) then
-          result[option.field] = option.default_value
-        else
-          if not result.help then
-            return nil, "Missing option '"..get_option_descriptor(option).."'."
-          end
-        end
-      else
-        if (not option.optional) and option.min_amount ~= 0 then
-          if not result.help then
-            return nil, "Missing option '"..get_option_descriptor(option).."'."
-          end
-        end
-        result[option.field] = {}
+      elseif option.optional or (option.default_value ~= nil) then
+        result[option.field] = option.default_value
+      elseif not result.help then
+        return nil, "Missing option '"..get_option_descriptor(option).."'."
       end
     end
   end
@@ -311,16 +300,29 @@ local function get_help_string(config, help_config)
     help[#help+1] = "\n"
   end
 
+  local function default_value_tostring(option)
+    local tostring = (type_defs[option.type].tostring or tostring)
+    if option.single_param then
+      return tostring(option.default_value)
+    else
+      local values = {}
+      for i, value in ipairs(option.default_value) do
+        values[i] = tostring(value)
+      end
+      return table.concat(values, ", ")
+    end
+  end
+
   local function add_option(option)
     help[#help+1] = indent
     local label
     if option.flag or option.optional or option.default_value ~= nil then
       label = "["..get_option_descriptor(option)..get_type(option)
-      ..(
-        option.default_value ~= nil
-        and (" | default: "..(type_defs[option.type].tostring or tostring)(option.default_value))
-        or ""
-      ).."]"
+        ..(
+          option.default_value ~= nil
+          and (" | default: "..default_value_tostring(option))
+          or ""
+        ).."]"
     else
       label = get_option_descriptor(option)..get_type(option)
     end
@@ -380,7 +382,7 @@ end
 ---@field params integer|nil @ fallback for both min_params and max_params
 ---@field type string|nil @ (required) id of the type the single_param or array entries have to be. Not used for flags
 ---@field optional boolean|nil @ is the option optional? implied to be true for flags
----@field default_value any @ the default value to use for optional single_param options. When set, optional is implied to be `true`
+---@field default_value any @ the default value to use for optional options. When set, optional is implied to be `true`
 
 ---@class ArgsConfigPositional
 ---@field single boolean|nil @ is this positional a single value?
