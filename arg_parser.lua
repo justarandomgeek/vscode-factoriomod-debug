@@ -343,7 +343,7 @@ local function get_help_string(config, help_config)
 
   add_option(help_option)
 
-  if next(config.options or {}) or next(config.positional or {}) then
+  if next(config.options or {}) and next(config.positional or {}) then
     help[#help+1] = "\n"
   end
 
@@ -358,6 +358,7 @@ local function get_help_string(config, help_config)
     add_entry(label, positional.description)
   end
 
+  help[#help] = nil -- remove last newline
   return table.concat(help)
 end
 
