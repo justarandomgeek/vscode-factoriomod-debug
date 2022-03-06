@@ -70,6 +70,8 @@ end
 ---@param args string[]
 ---@param config ArgsConfig
 ---@param start_index? integer @ 1 based including
+---@return table|nil args @ returns `nil` if there was an error
+---@return integer|string last_consumed_index_or_message @ If there was an error this is the error message
 local function parse(args, config, start_index)
   local err
   local i = (start_index and (start_index - 1)) or 0
@@ -329,6 +331,12 @@ local function get_help_string(config, help_config)
     add_entry(label, option.description)
   end
 
+  if help_config.usage then
+    help[#help+1] = "Usage: "
+    help[#help+1] = help_config.usage
+    help[#help+1] = "\n"
+  end
+
   for _, option in ipairs(config.options or {}) do
     add_option(option)
   end
@@ -356,18 +364,21 @@ end
 ---@param args string[]
 ---@param config ArgsConfig
 ---@param help_config? ArgsHelpConfig
----@return table|nil @ returns `nil` if there was an error or request for help
+---@return table|nil args @ returns `nil` if there was an error, `{help = true}` if it was help
+---@return integer|nil last_consumed_index @ returns `nil` under the same condition.
 local function parse_and_print_on_error_or_help(args, config, help_config)
-  local result, err = parse(args, config)
+  local result, err_or_index = parse(args, config)
   if (not result) or result.help then
     if not result then
-      print(err)
+      print(err_or_index)
       print()
+      err_or_index = nil
+    else
+      result = {help = true}
     end
     print(get_help_string(config, help_config))
-    return nil
   end
-  return result
+  return result, err_or_index
 end
 
 ---@class ArgsConfigOption
@@ -397,6 +408,7 @@ end
 ---@field positional ArgsConfigPositional[]|nil
 
 ---@class ArgsHelpConfig
+---@field usage string|nil @ When provided a `"Usage: "..usage` line will be added before the help message
 ---@field indent_length integer|nil @ Default 4. Indent for the option/positional labels
 ---@field label_length integer|nil @ Default 32. Labels will get padded with blank space up to this length. If exceeding the length, the description is put on the next line
 ---@field spacing_length integer|nil @ Default 2. Space between label and description
