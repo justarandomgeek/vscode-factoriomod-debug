@@ -385,7 +385,7 @@ end
 ---@class ArgsConfigOption
 ---@field field string
 ---@field short string|nil @ short option name, defined without leading `-`. used when an option with a single leading `-` is encountered
----@field long string|nil @ long option name, defined without leading `--`. used when an option with leading `-` is encountered
+---@field long string|nil @ long option name, defined without leading `--`. used when an option with leading `--` is encountered
 ---@field description string|nil @ description used in the help message
 ---@field flag boolean|nil @ is this option a flag?
 ---@field single_param boolean|nil @ does this option take a single parameter?
