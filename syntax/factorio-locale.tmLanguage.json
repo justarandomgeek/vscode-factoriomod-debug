@@ -110,6 +110,14 @@
 					}
 				},
 				{
+					"match": "(__)(REMARK_COLOR_(?:BEGIN|END))(__)",
+					"captures": {
+						"1":{"name": "punctuation.definition.tag.begin.factorio-locale"},
+						"2":{"name": "entity.name.namespace.factorio-locale"},
+						"3":{"name": "punctuation.definition.tag.end.factorio-locale"}
+					}
+				},
+				{
 					"begin": "(\\[)(font)(=)([^\\]]*)(\\])",
 					"beginCaptures": {
 						"1":{"name": "punctuation.definition.tag.begin.factorio-locale"},

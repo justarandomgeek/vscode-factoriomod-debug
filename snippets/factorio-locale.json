@@ -119,5 +119,9 @@
   "CONTROL_STYLE": {
     "prefix": ["__CONTROL_STYLE__", "CONTROL_STYLE"],
     "body": "__CONTROL_STYLE_${1|BEGIN,END|}__"
+  },
+  "REMARK_COLOR": {
+    "prefix": ["__REMARK_COLOR__", "REMARK_COLOR"],
+    "body": "__REMARK_COLOR_${1|BEGIN,END|}__"
   }
 }
