@@ -40,7 +40,7 @@ local function replace(uri, text, diffs)
 
     -- and "define" it at the start of any file that used it
     if next(global_matches) then
-      util.add_diff(diffs, 1, 1, global_name.."={}\n")
+      util.add_diff(diffs, 1, 1, global_name.."={}---@diagnostic disable-line:lowercase-global\n")
     end
   end
 end

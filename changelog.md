@@ -1,4 +1,7 @@
 
+### 2022-04-17
+- Fix the usage of `global` causing a `lowercase-global` diagnostic warning on the first line if the current mod name is lowercase
+
 ### 2022-01-24
 - Fix broken `require`, `global` and potentially even `remote`, cause by an incomplete performance improvement. Sorry, my bad
 - Add support for `sumneko.lua` `< 2.6.0`, since I broke the plugin pre `2.6.0`
