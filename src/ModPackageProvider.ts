@@ -3,14 +3,13 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as Git from './git';
-import * as WebRequest from 'web-request';
 import * as semver from 'semver';
 import * as archiver from 'archiver';
-import { jar } from 'request';
 import { spawn } from 'child_process';
 import { BufferSplitter } from './BufferSplitter';
 import { ModManager } from './ModManager';
-
+import * as FormData from 'form-data';
+import fetch, { Headers } from 'node-fetch';
 interface ModPackageScripts {
 	compile?: string
 	datestamp?: string
@@ -51,6 +50,11 @@ interface AdjustModsDefinition extends vscode.TaskDefinition {
 	modsPath: string
 	disableExtraMods?:boolean
 	allowDisableBaseMod?:boolean
+}
+
+interface PortalError {
+	error:"InvalidApiKey"|"InvalidRequest"|"InternalError"|"Forbidden"|"Unknown"|"InvalidModRelease"|"InvalidModUpload"|"UnknownMod"
+	message:string
 }
 
 export class ModTaskProvider implements vscode.TaskProvider{
@@ -529,101 +533,63 @@ export class ModPackage extends vscode.TreeItem {
 
 	private async PostToPortal(packagepath: string, packageversion:string, term:ModTaskTerminal): Promise<boolean>
 	{
-		// upload to portal
-		// TS says this type doesn't work, but it really does...
-		const cookiejar = <WebRequest.CookieJar><unknown>jar();
 		try {
-			const loginform = await WebRequest.get("https://factorio.com/login?mods=1&next=%2Ftrending",{jar:cookiejar});
-			const logintoken = ((loginform.content.match(/<input [^>]+"csrf_token"[^>]+>/)||[])[0]?.match(/value="([^"]*)"/)||[])[1];
 			const config = vscode.workspace.getConfiguration(undefined,this.resourceUri);
+			const APIKey = config.get<string>("factorio.portal.apikey")
+				|| process.env["FACTORIO_PORTAL_APIKEY"]
+				|| await vscode.window.showInputBox({prompt: "Mod Portal API Key:", ignoreFocusOut: true });
+			if(!APIKey) {return false;}
 
-			const username = config.get("factorio.portal.username")
-				|| process.env["FACTORIO_PORTAL_USERNAME"]
-				|| await vscode.window.showInputBox({prompt: "Mod Portal Username:", ignoreFocusOut: true });
-			if(!username) {return false;}
-
-			term.write(`Logging in to Mod Portal as '${username}'\r\n`);
-
-			const password = config.get("factorio.portal.password")
-				|| process.env["FACTORIO_PORTAL_PASSWORD"]
-				|| await vscode.window.showInputBox({prompt: "Mod Portal Password:", password: true, ignoreFocusOut: true });
-			if (!password) {return false;}
-
-			const loginresult = await WebRequest.post("https://factorio.com/login",{jar:cookiejar, throwResponseError: true,
-				headers:{
-					referer: "https://factorio.com/login?mods=1&next=%2Ftrending"
-				},
-				form:{
-					csrf_token: logintoken,
-					username_or_email: username,
-					password: password,
-					next_url: "/trending",
-					next_mods: false
-				}
+			const headers = new Headers({
+				"Authorization": `Bearer ${APIKey}`,
 			});
-
-			const loginerr = loginresult.content.match(/<ul class="flashes">[\s\n]*<li>(.*)<\/li>/);
-			if (loginerr) {throw new Error(loginerr[1]);}
-
-		} catch (error) {
-			term.write(`Failed to log in to Mod Portal: \r\n${error.toString()}\r\n`);
-			return false;
-		}
-
-		let uploadtoken;
-		try {
-			const uploadform = await WebRequest.get(`https://mods.factorio.com/mod/${this.label}/downloads/edit`,{jar:cookiejar, throwResponseError: true});
-			uploadtoken = uploadform.content.match(/\n\s*token:\s*'([^']*)'/)![1];
-		} catch (error) {
-			term.write("Failed to get upload token from Mod Portal: " + error.toString());
-			return false;
-		}
-
-		let uploadresult;
-		try {
-			uploadresult = await WebRequest.post(`https://direct.mods-data.factorio.com/upload/mod/${uploadtoken}`, {jar:cookiejar, throwResponseError: true,
-			formData:{
-				file:{
-					value:  fs.createReadStream(packagepath),
-					options: {
-						filename: `${this.label}_${packageversion}.zip`,
-						contentType: 'application/x-zip-compressed'
-					}
-				}
-			}});
-		} catch (error) {
-			term.write("Failed to upload zip to Mod Portal: " + error.toString());
-			return false;
-		}
-
-		const uploadresultjson = JSON.parse(uploadresult.content);
-
-		try {
-			const postresult = await WebRequest.post(`https://mods.factorio.com/mod/${this.label}/downloads/edit`, {
-				jar:cookiejar, throwResponseError: true,
-				form:{
-					file:undefined,
-					info_json:uploadresultjson.info,
-					changelog:uploadresultjson.changelog,
-					filename:uploadresultjson.filename,
-					file_size: fs.statSync(packagepath).size ,
-					thumbnail:uploadresultjson.thumbnail
-				}
+			term.write(`Uploading to mod portal...\r\n`);
+			const init_form = new FormData();
+			init_form.append("mod",this.label);
+			const init_result = await fetch("https://mods.factorio.com/api/v2/mods/releases/init_upload", {
+				method: "POST",
+				body: init_form,
+				headers: headers,
 			});
-			if (postresult.statusCode === 302) {
-				term.write(`Published ${this.label} version ${packageversion}`);
+			if (!init_result.ok) {
+				term.write(`init_upload failed: ${init_result.status} ${init_result.statusText}'\r\n`);
+				return false;
 			}
-			else
-			{
-				const message = postresult.content.match(/category:\s*'error',\s*\n\s*message:\s*'([^']*)'/)![1];
-				throw message;
+			const init_json = <{upload_url:string}|PortalError>await init_result.json();
+
+			if ('error' in init_json) {
+				term.write(`init_upload failed: ${init_json.error} ${init_json.message}'\r\n`);
+				return false;
 			}
+
+			const finish_form = new FormData();
+			finish_form.append(
+				"file",
+				fs.createReadStream(packagepath),
+				{
+					filename: `${this.label}_${packageversion}.zip`,
+					contentType: 'application/x-zip-compressed'
+				});
+			const finish_result = await fetch(init_json.upload_url, {
+				method: "POST",
+				body: finish_form,
+				headers: headers,
+			});
+			if (!finish_result.ok) {
+				term.write(`finish_upload failed: ${finish_result.status} ${finish_result.statusText}'\r\n`);
+				return false;
+			}
+			const finish_json = <{success:true}|PortalError>await finish_result.json();
+			if ('error' in finish_json) {
+				term.write(`finish_upload failed: ${finish_json.error} ${finish_json.message}'\r\n`);
+				return false;
+			}
+			term.write(`Published ${this.label} version ${packageversion}`);
+			return true;
 		} catch (error) {
-			term.write("Failed to post update to Mod Portal: " + error.toString());
+			term.write(`Error while uploading mod: ${error}'\r\n`);
 			return false;
 		}
-
-		return true;
 	}
 
 	public PostToPortalTask(): vscode.CustomExecution

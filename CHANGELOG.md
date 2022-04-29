@@ -5,6 +5,8 @@
 ## 1.1.13
 
 * Added `__REMARK_COLOR_BEGIN__` and `__REMARK_COLOR_END__` to locale highlighter
+* Publishing mods now uses the new Mod Portal Upload API.
+
 ## 1.1.12
 
 * __DebugAdapter.terminate() to end session from script

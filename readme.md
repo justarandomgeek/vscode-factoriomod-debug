@@ -46,7 +46,7 @@ The profiler also provides a remote inteface `profiler` with the following funct
 
 ## Automatic Mod Packaging and Publishing
 
-Mods can be automatically Packaged and Published from the "Factorio Mod Packages" panel (in SCM view by default, View->Open View...-> "Factorio Mod Packages" if you can't find it). These tasks can also be accessed in VSCode's Tasks system. Custom scripts will run inside the mod directory and have the environment variables `FACTORIO_MODNAME` and `FACTORIO_MODVERSION` provided.
+Mods can be automatically Packaged and Published from the "Factorio Mod Packages" panel (in SCM view by default, View->Open View...-> "Factorio Mod Packages" if you can't find it). These tasks can also be accessed in VSCode's Tasks system. Custom scripts will run inside the mod directory and have the environment variables `FACTORIO_MODNAME` and `FACTORIO_MODVERSION` provided. Uploading to the mod portal requires an API key with the `ModPortal: Upload Mods` usage, which can be created on https://factorio.com/profile.
 
 ### Datestamp
   * if changelog.txt present and has a section for the current version, update its date to today
