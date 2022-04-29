@@ -1,6 +1,6 @@
 # VS Code Factorio Mod Debug
 
-This is a debug adapter for developing Factorio mods. It supports breakpoints, stepping, variable access, and the debug console.
+This is a debug adapter for developing Factorio mods. It supports breakpoints, stepping, variable access, and the debug console. TODO Bilka: mention packaging and emmylua stuff here?
 
 ## Using Factorio Mod Debug
 
@@ -43,6 +43,12 @@ The profiler also provides a remote inteface `profiler` with the following funct
   * `dump()` - dump all timers immediately
   * `slow()` - return to slow-start mode (dumping on return from every event temporarily)
   * `save(name)` - return to slow-start mode and trigger an autosave with the given name. Defaults to "profiler" if unspecified.
+
+## Factorio API autocompletion
+
+You can generate EmmyLua docs for the Factorio API with the `Factorio: Generate Typedefs` command. Together with the [sumneko.lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua) language server, this enables autocompletion and other language server features for the Factorio API.
+
+To use `Factorio: Generate Typedefs`, press `Ctrl-Shift-P` to open the command palette and run the `Factorio: Generate Typedefs` command from there. In the file picker, open `factorio/doc-html/runtime-api.json`, and save the generated Lua file wherever you like. This will also offer to add it to the sumneko library files and adjust other configuration for [sumneko.lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua).
 
 ## Automatic Mod Packaging and Publishing
 
