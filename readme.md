@@ -1,6 +1,6 @@
 # VS Code Factorio Mod Debug
 
-This is a debug adapter for developing Factorio mods. It supports breakpoints, stepping, variable access, and the debug console. TODO Bilka: mention packaging and emmylua stuff here?
+This is a debug adapter for developing Factorio mods. It supports breakpoints, stepping, variable access, and the debug console. Furthermore, this extension offers profiling, packaging and publishing supports for Factorio mods. It also enhances/implements language server features for various Factorio mod file formats, including Factorio API Typedefs for [sumneko.lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua).
 
 ## Using Factorio Mod Debug
 
