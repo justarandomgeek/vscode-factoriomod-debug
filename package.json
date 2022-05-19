@@ -643,7 +643,7 @@
               },
               "factorioPath": {
                 "type": "string",
-                "description": "Path to Factorio binary.",
+                "description": "Path to Factorio binary file.",
                 "examples": [
                   "C:/Program Files (x86)/Steam/steamapps/common/Factorio/bin/x64/factorio.exe",
                   "C:/Program Files/Factorio/bin/x64/factorio.exe",
