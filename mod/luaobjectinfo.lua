@@ -260,9 +260,10 @@ end
 __DebugAdapter.stepIgnore(check_eventlike)
 
 
+local validTypes = {table=true,userdata=true}
 local function try_object_name(obj)
-  -- basic checks for LuaObject-like things: is table, has masked meta
-  if type(obj) ~= "table" then return end
+  -- basic checks for LuaObject-like things: is table(<=1.1) or usedata(>=1.2), has masked meta
+  if not validTypes[type(obj)] then return end
 
   local mt = debug.getmetatable(obj)
   if not mt then return end
