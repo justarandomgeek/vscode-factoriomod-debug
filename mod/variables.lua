@@ -28,7 +28,7 @@ local print = print
 local pcall = pcall -- capture pcall early before entrypoints wraps it
 local type = type
 
-local remote = remote and rawget(remote,"__raw") or remote
+local remote = remote and (type(remote)=="table" and rawget(remote,"__raw")) or remote
 
 -- Trying to expand the refs table causes some problems, so just hide it...
 local refsmeta = {
@@ -438,6 +438,30 @@ function variables.luaObjectRef(luaObject,classname,evalName,long)
   return id
 end
 
+local function describeLuaObject(apitype,value,short)
+  local lineitem
+  local vtype = apitype
+  if vtype == "LuaCustomTable" then
+      lineitem = ("%d item%s"):format(#value, #value~=1 and "s" or "" )
+  else
+    if luaObjectInfo.alwaysValid[vtype:match("^([^.]+)%.?")] or value.valid then
+      local lineitemfmt = luaObjectInfo.lineItem[vtype]
+      lineitem = ("<%s>"):format(vtype)
+      local litype = type(lineitemfmt)
+      if litype == "function" then
+        -- don't crash a debug session for a bad formatter...
+        local success,result = pcall(lineitemfmt,value,short)
+        if success then lineitem = result end
+      elseif litype == "string" and not short then
+        lineitem = __DebugAdapter.stringInterp(lineitemfmt,nil,value,"luaobjectline")
+      end
+    else
+      lineitem = ("<Invalid %s>"):format(vtype)
+    end
+  end
+  return lineitem,vtype
+end
+
 --- Generates a description for `value`.
 --- Also returns data type as second return.
 ---@param value any
@@ -450,25 +474,7 @@ function variables.describe(value,short)
   if vtype == "table" then
     local apitype = luaObjectInfo.try_object_name(value)
     if apitype then
-      vtype = apitype
-      if vtype == "LuaCustomTable" then
-          lineitem = ("%d item%s"):format(#value, #value~=1 and "s" or "" )
-      else
-        if luaObjectInfo.alwaysValid[vtype:match("^([^.]+)%.?")] or value.valid then
-          local lineitemfmt = luaObjectInfo.lineItem[vtype]
-          lineitem = ("<%s>"):format(vtype)
-          local litype = type(lineitemfmt)
-          if litype == "function" then
-            -- don't crash a debug session for a bad formatter...
-            local success,result = pcall(lineitemfmt,value,short)
-            if success then lineitem = result end
-          elseif litype == "string" and not short then
-            lineitem = __DebugAdapter.stringInterp(lineitemfmt,nil,value,"luaobjectline")
-          end
-        else
-          lineitem = ("<Invalid %s>"):format(vtype)
-        end
-      end
+      lineitem,vtype = describeLuaObject(apitype,value,short)
     else -- non-LuaObject tables
       local mt = debug.getmetatable(value)
       if mt and mt.__debugline then -- it knows how to make a line for itself...
@@ -541,7 +547,12 @@ function variables.describe(value,short)
       end
     end
   elseif vtype == "userdata" then
-    lineitem = "<userdata>"
+    local apitype = luaObjectInfo.try_object_name(value)
+    if apitype then
+      lineitem,vtype = describeLuaObject(apitype,value,short)
+    else -- non LuaObject userdata?!?!
+      lineitem = "<userdata>"
+    end
   elseif vtype == "string" then
     lineitem = ("%q"):format(value)
   else -- boolean, number, nil

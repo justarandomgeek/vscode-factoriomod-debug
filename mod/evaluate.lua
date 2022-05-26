@@ -10,7 +10,7 @@ local setmetatable = setmetatable
 local load = load
 
 -- capture the raw object
-local remote = remote and rawget(remote,"__raw") or remote
+local remote = remote and (type(remote)=="table" and rawget(remote,"__raw")) or remote
 
 ---Timed version of `pcall`. If `game.create_profiler()` is available, it will
 ---be used to measure the execution time of `f`. The timer or nil is added as an

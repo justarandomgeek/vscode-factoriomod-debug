@@ -14,8 +14,7 @@ __DebugAdapter = __DebugAdapter or {
 local datastring = require("__debugadapter__/datastring.lua")
 local ReadBreakpoints = datastring.ReadBreakpoints
 local script = script
-local remote = remote
-remote = rawget(remote,"__raw") or remote
+local remote = remote and (type(remote)=="table" and rawget(remote,"__raw")) or remote
 local debug = debug
 local print = print
 local pairs = pairs

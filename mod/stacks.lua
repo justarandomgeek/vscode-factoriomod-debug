@@ -11,7 +11,7 @@ local cross_stepping
 ---@type boolean
 local cross_step_instr
 
-local remote = remote and rawget(remote,"__raw") or remote
+local remote = remote and (type(remote)=="table" and rawget(remote,"__raw")) or remote
 
 ---@param stack cross_stack
 ---@param stepping number

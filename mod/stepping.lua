@@ -43,7 +43,7 @@ end
 stepIgnore(__DebugAdapter.isStepIgnore)
 
 -- capture the raw object
-local remote = remote and rawget(remote,"__raw") or remote
+local remote = remote and (type(remote)=="table" and rawget(remote,"__raw")) or remote
 
 local debug = debug
 local string = string
