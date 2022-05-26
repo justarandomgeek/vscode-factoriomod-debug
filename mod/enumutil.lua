@@ -5,6 +5,7 @@
 ---@param filter? fun(key:string,val:T):boolean
 ---@return table<T,string>
 local function invert(t,prefix,filter)
+  if not t then return end
   local tt = {}
   ---@type string
   for k,v in pairs(t) do
