@@ -2,6 +2,7 @@ local invert = require("__debugadapter__/enumutil.lua").invert
 local __DebugAdapter = __DebugAdapter
 local script = script
 local pcall = pcall
+local validLuaObjectTypes = {table=true,userdata=true}
 local luaObjectLines = {
   ---@param stack LuaItemStack
   ---@param short boolean | nil
@@ -206,7 +207,7 @@ local function check_eventlike(level,hooktype)
   if classes then -- __index or __newindex
 
     local _,t = debug.getlocal(level,1)
-    if type(t) ~= "table" or getmetatable(t) ~= "private" then return end
+    if (not validLuaObjectTypes[type(t)]) or getmetatable(t) ~= "private" then return end
 
     ---@type string
     local tname = t.object_name
@@ -260,10 +261,10 @@ end
 __DebugAdapter.stepIgnore(check_eventlike)
 
 
-local validTypes = {table=true,userdata=true}
+
 local function try_object_name(obj)
   -- basic checks for LuaObject-like things: is table(<=1.1) or usedata(>=1.2), has masked meta
-  if not validTypes[type(obj)] then return end
+  if not validLuaObjectTypes[type(obj)] then return end
 
   local mt = debug.getmetatable(obj)
   if not mt then return end
