@@ -49,12 +49,16 @@ export class ApiDocGenerator {
 	constructor(readonly docjson:string) {
 		this.docs = JSON.parse(docjson);
 
-		if (this.docs.application !== "factorio" || this.docs.stage !== "runtime") {
-			throw "Unknown JSON Format";
+		if (this.docs.application !== "factorio") {
+			throw `Unknown application: ${this.docs.application}`;
 		}
 
 		if (!(this.docs.api_version===1 || this.docs.api_version===2)) {
 			throw `Unsupported JSON Version ${(<ApiDocs>this.docs).api_version}`;
+		}
+
+		if (this.docs.stage !== "runtime") {
+			throw `Unknown stage: ${this.docs.stage}`;
 		}
 
 		this.classes = new Map(this.docs.classes.map(c => [c.name,c]));
