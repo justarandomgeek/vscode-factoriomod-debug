@@ -98,6 +98,119 @@ export class ApiDocGenerator {
 		this.docs.defines.forEach(define=>add_define(define,"defines."));
 	}
 
+
+	private with_base_classes<T>(c:ApiClass, getter:(c:ApiClass)=>T) {
+		const own = getter(c);
+		const bases = c.base_classes
+			?.map(b=>this.classes.get(b))
+			.filter(b=>!!b)
+			.map(getter) ?? [];
+
+		return [own, ...bases].flat();
+	}
+
+	public generate_debuginfo() {
+		const debuginfo = {
+			eventlike: {
+				__index: {} as {[classname:string]:{[methodname:string]:true}},
+				__newindex: {} as {[classname:string]:{[propname:string]:true}},
+			},
+			alwaysValid:{} as {[classname:string]:true},
+			expandKeys: {
+			} as {[classname:string]:{[propname:string]:{
+				readOnly?:boolean
+				enumFrom?:string
+				thisTranslated?:boolean
+				thisAsTable?:boolean
+				iterMode?: "count"|"pairs"|"ipairs"
+				countLine?: boolean
+				fetchable?: boolean
+			}}},
+		};
+
+		this.classes.forEach(c=>{
+			if (["LuaCustomTable"].includes(c.name)) { return; }
+			const cc:typeof debuginfo.expandKeys[string] = {};
+			let hasValid = false;
+			debuginfo.expandKeys[c.name] = cc;
+			for (const attribute of this.with_base_classes(c, (c)=>c.attributes)) {
+				if (attribute.name === "valid") {
+					// I don't list `valid` directly in object listings,
+					// but whether classes have it at all is useful to index
+					hasValid = true;
+				} else if (attribute.name === "object_name") {
+					// I don't list `object_name` at all, only for looking up the right types...
+				} else {
+					if (attribute.read)
+					{
+						cc[attribute.name] = {};
+						if (!attribute.write) {
+							cc[attribute.name].readOnly = true;
+						}
+						if (typeof attribute.type === "string" && attribute.type.startsWith("defines.")) {
+							cc[attribute.name].enumFrom = attribute.type;
+						}
+					}
+
+					if ("raises" in attribute && attribute?.raises?.find(r=>r.timeframe==="instantly")) {
+						debuginfo.eventlike.__newindex[c.name] = debuginfo.eventlike.__newindex[c.name] ?? {};
+						debuginfo.eventlike.__newindex[c.name][attribute.name] = true;
+					}
+				}
+			}
+
+			if (!hasValid) {
+				debuginfo.alwaysValid[c.name] = true;
+			}
+
+			for (const operator of c.operators) {
+				switch (operator.name) {
+					case "index":
+						cc["[]"] = {
+							readOnly: !operator.write,
+							thisAsTable: true,
+							iterMode: "count",
+						};
+						break;
+
+					case "length":
+					default:
+						break;
+				}
+			}
+
+			for (const method of this.with_base_classes(c, (c)=>c.methods)) {
+				if ("raises" in method && method.raises?.find(r=>r.timeframe==="instantly")) {
+					debuginfo.eventlike.__index[c.name] = debuginfo.eventlike.__index[c.name] ?? {};
+					debuginfo.eventlike.__index[c.name][method.name] = true;
+				}
+
+				if (["help", 'generate_event_name'].includes(method.name)) { continue; }
+				if (method.parameters.length > 0) { continue; }
+				switch (this.docs.api_version) {
+					case 1:
+						const m1 = method as ApiMethodV1;
+						break;
+
+					case 2:
+						const m2 = method as ApiMethodV2;
+						if (m2.return_values.length === 0) { continue; }
+						if (m2.raises) { continue; }
+						cc[m2.name] = {
+							readOnly: true,
+							fetchable: true,
+						};
+						break;
+					default:
+						break;
+				}
+			}
+
+		});
+
+		return debuginfo;
+	}
+
 	public generate_emmylua_docs() {
 		const ms = new WritableMemoryStream();
 		ms.write(`---@meta\n`);

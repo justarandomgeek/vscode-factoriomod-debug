@@ -11,7 +11,7 @@ import * as os from 'os';
 import * as semver from 'semver';
 import * as vscode from 'vscode';
 import { Uri } from 'vscode';
-import { encodeBreakpoints, luaBlockQuote } from './EncodingUtil';
+import { bufferChunks, encodeBreakpoints, luaBlockQuote, objectToLua } from './EncodingUtil';
 import { Profile } from './Profile';
 import { FactorioProcess } from './FactorioProcess';
 import { ModInfo } from './ModPackageProvider';
@@ -20,6 +20,7 @@ import { ModManager } from './ModManager';
 import { ModSettings } from './ModSettings';
 import { LuaFunction } from './LuaDisassembler';
 import { BufferStream } from './BufferStream';
+import { ApiDocGenerator } from './apidocs/ApiDocGenerator';
 
 interface ModPaths{
 	uri: Uri
@@ -87,6 +88,8 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	private _configurationDone: resolver<void>;
 	private configDone: Promise<void>;
+
+	private objectInfoChunks: Buffer[]=[];
 
 	private readonly breakPoints = new Map<string, DebugProtocol.SourceBreakpoint[]>();
 	private readonly breakPointsChanged = new Set<string>();
@@ -352,6 +355,8 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			fs.writeFileSync(path.join(args.modsPath,"mod-settings.dat"),settings.save());
 		}
 
+		this.loadClassData(args.factorioPath);
+
 		this.factorio = new FactorioProcess(args.factorioPath,args.factorioArgs,args.nativeDebugger);
 
 		this.factorio.on("exit", (code:number|null, signal:string) => {
@@ -407,6 +412,11 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				} else if (event === "getref") {
 					//pass in nextref
 					this.allocateRefBlock();
+					this.continue();
+					this.inPrompt = wasInPrompt;
+				} else if (event === "object_info") {
+					//pass in nextref
+					this.sendClassData();
 					this.continue();
 					this.inPrompt = wasInPrompt;
 				} else if (event === "leaving" || event === "running") {
@@ -1169,6 +1179,25 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				this.sendEvent(new OutputEvent(`failed to write ${appidPath}: ${error}\n`,"stderr"));
 			}
 		}
+	}
+
+	private loadClassData(factorioPath:string)
+	{
+		const docpath = path.resolve(factorioPath, "../../../doc-html/runtime-api.json");
+		const docs = new ApiDocGenerator(fs.readFileSync(docpath,"utf8"));
+		this.objectInfoChunks = bufferChunks(objectToLua(docs.generate_debuginfo()),3500);
+	}
+
+	private sendClassData()
+	{
+		for (const chunk of this.objectInfoChunks) {
+			this.writeStdin(Buffer.concat([
+				Buffer.from("__DebugAdapter.loadObjectInfo("),
+				luaBlockQuote(chunk),
+				Buffer.from(")"),
+			]));
+		}
+		this.writeStdin("__DebugAdapter.loadObjectInfo()");
 	}
 
 	private writeStdin(s:string|Buffer,fromQueue?:boolean):void
