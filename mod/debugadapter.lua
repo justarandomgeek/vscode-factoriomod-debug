@@ -31,7 +31,7 @@ local remote = remote
 pcall(function()
   -- see if we have debug.getinfo(,"p") to get currentpc
   -- if not, this will throw and exit the pcall immediately before setting flag
-  debug.getinfo(1,"p")
+  local _ = debug.getinfo(1,"p")
   __DebugAdapter.hascurrentpc = true
 end)
 
@@ -280,7 +280,7 @@ function __DebugAdapter.scopes(frameId)
   end
 end
 
-__DebugAdapter.stepIgnoreAll(__DebugAdapter)
+__DebugAdapter.stepIgnore(__DebugAdapter)
 do
   local ininstrument = ""
   if __DebugAdapter.instrument then

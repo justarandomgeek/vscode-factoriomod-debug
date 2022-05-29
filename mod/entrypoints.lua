@@ -258,9 +258,10 @@ local newscriptmeta = {
   __debugline = "<LuaBootstrap Debug Proxy>",
   __debugtype = "DebugAdapter.LuaBootstrap",
 }
-__DebugAdapter.stepIgnoreAll(newscript)
-__DebugAdapter.stepIgnoreAll(newscriptmeta)
-setmetatable(newscript,newscriptmeta)
+setmetatable(
+  __DebugAdapter.stepIgnore(newscript),
+  __DebugAdapter.stepIgnore(newscriptmeta)
+)
 
 local oldcommands = commands
 local newcommands = {
@@ -288,9 +289,10 @@ local newcommandsmeta = {
   __debugline = "<LuaCommandProcessor Debug Proxy>",
   __debugtype = "DebugAdapter.LuaCommandProcessor",
 }
-__DebugAdapter.stepIgnoreAll(newcommands)
-__DebugAdapter.stepIgnoreAll(newcommandsmeta)
-setmetatable(newcommands,newcommandsmeta)
+setmetatable(
+  __DebugAdapter.stepIgnore(newcommands),
+  __DebugAdapter.stepIgnore(newcommandsmeta)
+)
 
 local oldremote = remote
 local newremote = {
@@ -331,9 +333,10 @@ local remotemeta = {
     }
   end,
 }
-__DebugAdapter.stepIgnoreAll(newremote)
-__DebugAdapter.stepIgnoreAll(remotemeta)
-setmetatable(newremote,remotemeta)
+setmetatable(
+  __DebugAdapter.stepIgnore(newremote),
+  __DebugAdapter.stepIgnore(remotemeta)
+)
 
 script = newscript
 commands = newcommands

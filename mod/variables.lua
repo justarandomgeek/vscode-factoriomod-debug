@@ -73,7 +73,7 @@ local globalbuiltins={
 }
 gmeta.__debugline = "<Global Self Reference>"
 gmeta.__debugtype = "_ENV"
-gmeta.__debugchildren = function(t,extra)
+gmeta.__debugchildren = __DebugAdapter.stepIgnore(function(t,extra)
   local vars = {}
   if not extra then
     vars[#vars + 1] =  {
@@ -101,8 +101,7 @@ gmeta.__debugchildren = function(t,extra)
     end
   end
   return vars
-end
-__DebugAdapter.stepIgnore(gmeta.__debugchildren)
+end)
 
 if __DebugAdapter.checkGlobals ~= false then
   local definedGlobals = {_=true}
@@ -118,7 +117,7 @@ if __DebugAdapter.checkGlobals ~= false then
   end
   __DebugAdapter.stepIgnore(ignore_global)
 
-  function gmeta.__newindex(t,k,v)
+  gmeta.__newindex = __DebugAdapter.stepIgnore(function(t,k,v)
     local info = debug.getinfo(2,"lS")
     if not ignore_global(k,info) then
       local body = {
@@ -147,8 +146,7 @@ if __DebugAdapter.checkGlobals ~= false then
       print("DBGprint: " .. json_encode(body))
     end
     rawset(t,k,v)
-  end
-  __DebugAdapter.stepIgnore(gmeta.__newindex)
+  end)
 end
 
 -- variable id refs
@@ -1171,10 +1169,9 @@ function __DebugAdapter.setVariable(variablesReference, name, value, seq)
   end
 end
 
-__DebugAdapter.stepIgnoreAll(variables)
 if data then
   -- data stage clears package.loaded between files, so we stash a copy in Lua registry too
   local reg = debug.getregistry()
   reg.__DAVariables = variables
 end
-return variables
+return __DebugAdapter.stepIgnore(variables)

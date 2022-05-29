@@ -172,7 +172,7 @@ Additionally, if using [hediet.debug-visualizer](https://marketplace.visualstudi
 
 ## Ignore Functions in Stepping
 
-Functions can be excluded from stepping with `__DebugAdapter.stepIgnore(func)` or `__DebugAdapter.stepIgnoreAll(table)`.
+Functions can be excluded from stepping with `__DebugAdapter.stepIgnore(funcOrTable)`.
 
 ## Support the Debugger
 

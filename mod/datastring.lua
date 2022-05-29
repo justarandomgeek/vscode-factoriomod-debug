@@ -57,7 +57,6 @@ local function ReadVarInt(str,index)
         return val,index+seq
     end
 end
-stepIgnore(ReadVarInt)
 
 --- convert an int to a string containing the encoded value
 ---@param val number
@@ -135,7 +134,6 @@ local function ReadString(strdata,i)
     local strout = ssub(strdata,i,val-1)
     return strout,val
 end
-stepIgnore(ReadString)
 
 ---@param strdata string
 ---@param i number
@@ -162,7 +160,6 @@ local function ReadSourceBreakpoint(strdata,i)
 
     return bp,i
 end
-stepIgnore(ReadSourceBreakpoint)
 
 ---@param strdata string
 ---@return string filename
@@ -205,9 +202,8 @@ local function ReadBreakpoints(strdata)
 
     return filename,bps
 end
-stepIgnore(ReadBreakpoints)
 
-return {
+return stepIgnore{
     ReadVarInt = ReadVarInt,
     WriteVarInt = WriteVarInt,
     ReadString = ReadString,

@@ -42,7 +42,6 @@ luaObjectInfo.lineItem = {
   LuaStyle = [[<LuaStyle>{[}name={name}{]}]],
   LuaEntity = [[<LuaEntity>{[}name={name}, type={type}, unit_number={unit_number}{]}]],
 }
-__DebugAdapter.stepIgnoreAll(luaObjectInfo.lineItem)
 
 --[[
 LuaObjects since 1.1.49 share metatables per class, and the metatables are held
@@ -170,9 +169,7 @@ local function check_eventlike(level,hooktype)
 
   end
 end
-__DebugAdapter.stepIgnore(check_eventlike)
-
-
+luaObjectInfo.check_eventlike = check_eventlike
 
 local function try_object_name(obj)
   -- basic checks for LuaObject-like things: is table(<=1.1) or usedata(>=1.2), has masked meta
@@ -191,7 +188,7 @@ local function try_object_name(obj)
     return object_name
   end
 end
-__DebugAdapter.stepIgnore(try_object_name)
+luaObjectInfo.try_object_name = try_object_name
 
 luaObjectInfo.alwaysValid.LuaMapSettings = true
 luaObjectInfo.alwaysValid.LuaDifficultySettings = true
@@ -204,10 +201,6 @@ luaObjectInfo.noLongRefs = {
   LuaGameViewSettings = true,
   LuaDifficultySettings = true,
 }
-
-luaObjectInfo.check_eventlike = check_eventlike
-luaObjectInfo.try_object_name = try_object_name
-
 
 local enumSpecial = {
   ["defines.circuit_connector_id"] = function() --1.1
@@ -524,4 +517,4 @@ for classname, class in pairs(extraKeys) do
   end
 end
 
-return luaObjectInfo
+return __DebugAdapter.stepIgnore(luaObjectInfo)

@@ -18,7 +18,6 @@ local stepIgnore = __DebugAdapter and __DebugAdapter.stepIgnore or function(f) r
 local function encode_nil()
   return "null"
 end
-stepIgnore(encode_nil)
 
 local escape_char_map = {
   [ "\\" ] = "\\\\", [ "\"" ] = "\\\"", [ "\b" ] = "\\b",
@@ -40,7 +39,6 @@ stepIgnore(escape_char)
 local function encode_string(val)
   return '"' .. val:gsub('[%z\1-\31\\"]', escape_char) .. '"'
 end
-stepIgnore(encode_string)
 
 ---Output a number formatted as a JSON number
 ---@param val number
@@ -57,7 +55,6 @@ local function encode_number(val)
     return sformat("%.14g", val)
   end
 end
-stepIgnore(encode_number)
 
 local encode;
 
@@ -104,15 +101,14 @@ local function encode_table(val, stack)
     return "{" .. tconcat(res, ",") .. "}"
   end
 end
-stepIgnore(encode_table)
 
-local type_encode = {
+local type_encode = stepIgnore({
   ["nil"] = encode_nil,
   ["string"] = encode_string,
   ["table"] = encode_table,
   ["boolean"] = tostring,
   ["number"] = encode_number,
-}
+})
 
 ---Output a value formatted as JSON
 ---@param value table|string|number|boolean|nil

@@ -1,3 +1,7 @@
+local require = require
+local pairs = pairs
+local type = type
+
 local enc = require("__debugadapter__/base64.lua")
 
 --this has to be defined before requiring other files so they can mark functions as ignored
@@ -7,32 +11,27 @@ setmetatable(stepIgnoreFuncs,{__mode="k"})
 ---@param f function
 local __DebugAdapter = __DebugAdapter
 
----Mark a function to be ignored by the stepping hook
----@param f function
----@return function f
+---Mark a function or table of functions (keys and values, deep) to be ignored by the stepping hook
+---@generic T:function|table
+---@param f T
+---@return T
 local function stepIgnore(f)
-  stepIgnoreFuncs[f] = true
+  local tf = type(f)
+  if tf == "function" then
+    stepIgnoreFuncs[f] = true
+  elseif tf == "table" then
+    for k,v in pairs(f) do
+      stepIgnore(k)
+      stepIgnore(v)
+    end
+  end
   return f
 end
 stepIgnore(stepIgnore)
 __DebugAdapter.stepIgnore = stepIgnore
 
----Mark all functions in a table (keys and values) to be ignored by the stepping hook
----@param t table
----@return table
-local function stepIgnoreAll(t)
-  for k,v in pairs(t) do
-    if type(k) == "function" then
-      stepIgnore(k)
-    end
-    if type(v) == "function" then
-      stepIgnore(v)
-    end
-  end
-  return t
-end
-stepIgnore(stepIgnoreAll)
-__DebugAdapter.stepIgnoreAll = stepIgnoreAll
+---Legacy alias for stepIgnore
+__DebugAdapter.stepIgnoreAll = stepIgnore
 
 ---Check if a function is ignored
 ---@param f function
@@ -47,10 +46,8 @@ local remote = remote and (type(remote)=="table" and rawget(remote,"__raw")) or 
 
 local debug = debug
 local string = string
-local require = require
+
 local print = print
-local pairs = pairs
-local type = type
 
 local variables = require("__debugadapter__/variables.lua")
 local luaObjectInfo = require("__debugadapter__/luaobjectinfo.lua")
@@ -440,5 +437,5 @@ local vmeta = {
     vcreate("<stepdepth>",stepdepth),
   } end,
 }
-stepIgnoreAll(vmeta)
+stepIgnore(vmeta)
 return setmetatable({},vmeta)

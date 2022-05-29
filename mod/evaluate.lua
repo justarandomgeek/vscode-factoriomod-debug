@@ -210,7 +210,7 @@ local function evalmeta(env,frameId,alsoLookIn)
       env[k] = v
     end
   }
-  return __DebugAdapter.stepIgnoreAll(em)
+  return __DebugAdapter.stepIgnore(em)
 end
 __DebugAdapter.stepIgnore(evalmeta)
 

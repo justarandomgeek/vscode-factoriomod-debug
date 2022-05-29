@@ -48,6 +48,7 @@ local function updateBreakpoints(change)
   local source,changedbreaks = ReadBreakpoints(change)
   callAll("setBreakpoints",source,changedbreaks)
 end
+__DebugAdapter.stepIgnore(updateBreakpoints)
 __DebugAdapter.updateBreakpoints = updateBreakpoints
 
 local variables = require("__debugadapter__/variables.lua")
@@ -91,7 +92,7 @@ script.on_event(defines.events.on_tick,__DebugAdapter.stepIgnore(function(e)
   if sharedevents.on_tick then return sharedevents.on_tick(e) end
 end))
 
-remote.add_interface("debugadapter",__DebugAdapter.stepIgnoreAll{
+remote.add_interface("debugadapter",__DebugAdapter.stepIgnore{
   updateBreakpoints = updateBreakpoints,
 
   pushStack = __DebugAdapter.pushStack,
