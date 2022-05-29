@@ -377,6 +377,25 @@ function variables.funcRef(func)
   return id
 end
 
+--- Generate a variablesReference for a fetchable property
+---@param func function
+---@return number variablesReference
+function variables.fetchRef(func)
+  local refs = variables.longrefs
+
+  for id,varRef in pairs(refs) do
+    if varRef.type == "Fetch" and varRef.func == func then
+      return id
+    end
+  end
+  local id = nextID()
+  refs[id] = {
+    type = "Fetch",
+    func = func,
+  }
+  return id
+end
+
 
 --- Generate a variablesReference for a table-like object
 ---@param table table
@@ -946,14 +965,17 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
                   end
                 end
 
-                if keyprops.countLine then
-                  var.value = ("%d item%s"):format(#value, #value~=1 and "s" or "")
-                end
                 var.presentationHint = var.presentationHint or {}
                 var.presentationHint.kind = "property"
                 if keyprops.readOnly then
                   var.presentationHint.attributes = var.presentationHint.attributes or {}
                   var.presentationHint.attributes[#var.presentationHint.attributes + 1] = "readOnly"
+                end
+                if keyprops.fetchable then
+                  var.name = key.."()"
+                  var.presentationHint.kind = "method"
+                  var.presentationHint.lazy = true
+                  var.variablesReference = variables.fetchRef(value)
                 end
                 vars[#vars + 1] = var
               end
@@ -981,6 +1003,23 @@ function __DebugAdapter.variables(variablesReference,seq,filter,start,count,long
         if name == "" then name = "<"..i..">" end
         vars[#vars + 1] = variables.create(name,value,name)
         i = i + 1
+      end
+    elseif varRef.type == "Fetch" then
+      local func = varRef.func
+      local success,results = pcall(function() return table.pack(func()) end)
+      if success then
+        for i = 1, results.n do
+          vars[#vars + 1] = variables.create(i,results[i])
+        end
+      else
+        vars[#vars + 1] = {
+          name = "<Fetch error>",
+          -- describe in case it's a LocalisedString or other non-string error object
+          value = variables.describe(results),
+          type = "fetcherror",
+          variablesReference = 0,
+          presentationHint = { kind="virtual"},
+        }
       end
     end
     if #vars == 0 then
