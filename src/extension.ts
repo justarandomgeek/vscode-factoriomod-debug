@@ -79,7 +79,6 @@ export function activate(context: vscode.ExtensionContext) {
 			const save = await vscode.window.showSaveDialog({
 				filters:{
 					"EmmyLua Doc File":["lua"],
-					//"TypeScriptToLua Doc File":["d.ts"],
 				},
 				defaultUri: file[0].with({path: file[0].path.replace(/.json$/,".lua")}),
 			});
@@ -159,8 +158,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 						}
 					}
-				} else if (save.path.endsWith(".d.ts")) {
-					vscode.workspace.fs.writeFile(save,gen.generate_ts_docs());
 				}
 			}
 		}));
