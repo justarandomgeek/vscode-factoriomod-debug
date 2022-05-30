@@ -321,15 +321,13 @@ export class ApiDocGenerator {
 		};
 
 		const add_return_annotation = (method:ApiMethod)=>{
-			if ((<ApiMethodV1>method).return_type) {
-				const v1m:ApiMethodV1 = method;
-				output.write(`---@return ${convert_param_or_return(v1m.return_type,v1m.return_description,()=>[
+			if ("return_type" in method) { // v1
+				output.write(`---@return ${convert_param_or_return(method.return_type,method.return_description,()=>[
 					`${aclass.name}.${method.name}_return`, view_documentation_for_method(method.name)
 				])}`);
 			}
-			if ((<ApiMethodV2>method).return_values) {
-				const v2m = <ApiMethodV2>method;
-				v2m.return_values.forEach((rv)=>{
+			if ("return_values" in method) { // v2
+				method.return_values.forEach((rv)=>{
 					output.write(`---@return ${convert_param_or_return(rv.type,rv.description,()=>[
 						`${aclass.name}.${method.name}_return`, view_documentation_for_method(method.name)
 					])}`);
