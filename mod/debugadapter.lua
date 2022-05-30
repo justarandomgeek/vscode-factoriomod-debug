@@ -32,7 +32,6 @@ __DebugAdapter = __DebugAdapter or {} -- but might have been defined already for
 local __DebugAdapter = __DebugAdapter
 local function DAMerge(t)
   for k, v in pairs(t) do
-    print("DAMerge "..k.."="..type(v))
     __DebugAdapter[k] = v
   end
 end
