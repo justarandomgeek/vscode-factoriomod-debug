@@ -6,7 +6,7 @@
 
 * Load LuaObject type data from Factorio's JSON docs for listing properties when debugging
 * List some function properties on LuaObjects as fetchable properties
-* `__DebugAdapter.stepIgnore()` now handles both tables and functions. `__DebugAdapter.stepIgnoreAll()` is deprecated and will be removed in a future version
+* `__DebugAdapter.stepIgnore()` now handles both tables and functions. `__DebugAdapter.stepIgnoreAll()` has been removed.
 
 
 ## 1.1.13

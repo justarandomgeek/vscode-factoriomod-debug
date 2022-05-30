@@ -14,9 +14,10 @@ local __DebugAdapter = __DebugAdapter
 local DAstep = {}
 
 ---Mark a function or table of functions (keys and values, deep) to be ignored by the stepping hook
----@generic T:function|table
----@param f T
----@return T
+---@param f function|table
+---@return function|table
+---@overload fun(f:function):function
+---@overload fun(f:table):table
 local function stepIgnore(f)
   local tf = type(f)
   if tf == "function" then
@@ -32,8 +33,6 @@ end
 stepIgnore(stepIgnore)
 
 DAstep.stepIgnore = stepIgnore
--- Legacy alias for stepIgnore
-DAstep.stepIgnoreAll = stepIgnore
 -- and a direct assignment early for other modules...
 __DebugAdapter.stepIgnore = DAstep.stepIgnore
 
