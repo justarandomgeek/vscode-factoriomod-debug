@@ -58,6 +58,7 @@ end
 __DebugAdapter.stepIgnore(updateBreakpoints)
 __DebugAdapter.updateBreakpoints = updateBreakpoints
 
+---@type DAvarslib
 local variables = require("__debugadapter__/variables.lua")
 if __DebugAdapter.nohook then
   -- if hooks are not installed, we need to set up enough of the libraries for
@@ -96,7 +97,7 @@ end))
 script.on_event(defines.events.on_tick,__DebugAdapter.stepIgnore(function(e)
   print("DBG: on_tick")
   debug.debug()
-  variables.clear(true)
+  variables.clear()
   if sharedevents.on_tick then return sharedevents.on_tick(e) end
 end))
 

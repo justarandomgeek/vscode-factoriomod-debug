@@ -177,46 +177,6 @@ do
   __DebugAdapter.stepIgnore(nextID)
 end
 
-local function isUnsafeLong(t,seen)
-  if not seen then
-    seen = {[_ENV]=true}
-  else
-    if seen[t] == false then
-      return true -- this has been seen and deemed unsafe already!
-    elseif seen[t] or seen == t or isUnsafeLong == t then
-      return false -- circular isn't inherently unsafe, unless something *else* in the table is
-    end
-  end
-  local ttype = type(t)
-  if ttype == "function" then
-    seen[t] = true
-    local i = 1
-    while true do
-      local name,value = debug.getupvalue(t,i)
-      if not name then return false end
-      if isUnsafeLong(value,seen) then
-        seen[t] = false
-        return true
-      end
-      i = i + 1
-    end
-  elseif ttype == "table" then
-    local tclass = luaObjectInfo.try_object_name(t)
-    if tclass then
-      return luaObjectInfo.noLongRefs[tclass:match("^([^.]+)%.?")]
-    end
-    seen[t] = true
-    for k,v in pairs(t) do
-      if isUnsafeLong(k,seen) or isUnsafeLong(v,seen) then
-        seen[t] = false
-        return true
-      end
-    end
-  end
-  return false
-end
-__DebugAdapter.stepIgnore(isUnsafeLong)
-
 do
   local localised_print = localised_print
   function variables.translate(mesg)
@@ -234,57 +194,21 @@ do
     end
   end
 
-  --- Clear all existing variable references, when stepping invalidates them
-  function variables.clear(longonly)
-    --clean any LuaObjects from long refs that must not be long
-
-    ---@type LuaProfiler
-    local timer = game and game.create_profiler()
-    local count = 0
-    -- share `seen` among all calls to isUnsafeLong() to prevent checking the
-    -- same tables/functions repeatedly if they are reachable multiple ways
-    -- _ENV is presumed safe since it's not *my* fault stuff ends up there...
-    local seen = {[_ENV]=true}
-    for id,varRef in pairs(variables.longrefs) do
-      count = count + 1
-      if varRef.type == "Table" then
-        if isUnsafeLong(varRef.table,seen) then
-          variables.longrefs[id]=nil
-        end
-      elseif varRef.type == "LuaObject" then
-        if isUnsafeLong(varRef.object,seen) then
-          variables.longrefs[id]=nil
-        end
-      elseif varRef.type == "kvPair" then
-        if isUnsafeLong(varRef.key,seen) or isUnsafeLong(varRef.value,seen) then
-          variables.longrefs[id]=nil
-        end
-      elseif varRef.type == "Function" then
-        if isUnsafeLong(varRef.func,seen) then
-          variables.longrefs[id]=nil
-        end
-      elseif varRef.type == "Source" then
-        -- Source strings are always safe
-      else
-        variables.longrefs[id]=nil
-      end
-    end
-    if timer then
-      timer.stop()
-    end
-    if not longonly then
-      variables.refs = setmetatable({},refsmeta)
-      local context = script and script.mod_name or "#data"
-      localised_print{"","DBGuntranslate: ",context," ",count," ",timer or "untimed"}
-    end
+  --- Clear all references for short-lived things (scopes, stacks)
+  function variables.clear()
+    variables.refs = setmetatable({},refsmeta)
+    local context = script and script.mod_name or "#data"
+    localised_print{"","DBGuntranslate: ",context}
   end
 end
 
 --- Generate a variablesReference for `name` at frame `frameId`
 ---@param frameId number
 ---@param name string = "Locals" | "Upvalues"
----@param mode string|nil = "temps" | "varargs"
+---@param mode? string = "temps" | "varargs"
 ---@return number variablesReference
+---@overload fun(frameId:number, name:"Upvalues")
+---@overload fun(frameId:number, name:"Locals", mode?:"temps"|"varargs")
 function variables.scopeRef(frameId,name,mode)
   for id,varRef in pairs(variables.refs) do
     if varRef.type == name and varRef.frameId == frameId and varRef.mode == mode then
@@ -318,7 +242,7 @@ function variables.kvRef(key,value)
   local keytype = type(key)
   local name = "<"..keytype.." "..id..">"
   if keytype == "table" then
-    name = "{<table "..variables.tableRef(key,nil,nil,nil,nil,true)..">}"
+    name = "{<table "..variables.tableRef(key)..">}"
   elseif keytype == "function" then
     name = "<function "..variables.funcRef(key)..">"
   end
@@ -335,6 +259,7 @@ end
 
 --- Generate a variablesReference for a source string and prepare a Source
 ---@param source string
+---@param checkonly? boolean
 ---@return Source
 function variables.sourceRef(source,checkonly)
   local refs = variables.longrefs
@@ -402,19 +327,14 @@ end
 
 --- Generate a variablesReference for a table-like object
 ---@param table table
----@param mode string "pairs"|"ipairs"|"count"
----@param showMeta nil | boolean
----@param extra any
----@param evalName string | nil
----@param long boolean | nil
+---@param mode? string "pairs"|"ipairs"|"count"
+---@param showMeta? boolean true
+---@param extra? any
+---@param evalName? string
 ---@return number variablesReference
-function variables.tableRef(table, mode, showMeta, extra, evalName,long)
+function variables.tableRef(table, mode, showMeta, extra, evalName)
   mode = mode or "pairs"
-  local refs = variables.refs
-  if long then
-    refs = variables.longrefs
-    evalName = nil
-  end
+  local refs = variables.longrefs
   for id,varRef in pairs(refs) do
     if varRef.type == "Table" and varRef.table == table and varRef.mode == mode and varRef.showMeta == showMeta and varRef.extra == extra then
       return id
@@ -428,7 +348,6 @@ function variables.tableRef(table, mode, showMeta, extra, evalName,long)
     showMeta = showMeta,
     extra = extra,
     evalName = evalName,
-    long = long,
   }
   return id
 end
@@ -436,16 +355,11 @@ end
 --- Generate a variablesReference for a LuaObject
 ---@param luaObject LuaObject
 ---@param classname string
----@param evalName string | nil
----@param long boolean | nil
+---@param evalName? string
 ---@return number variablesReference
-function variables.luaObjectRef(luaObject,classname,evalName,long)
+function variables.luaObjectRef(luaObject,classname,evalName)
   if not luaObjectInfo.expandKeys[classname] then return 0 end
-  local refs = variables.refs
-  if long then
-    refs = variables.longrefs
-    evalName = nil
-  end
+  local refs = variables.longrefs
   for id,varRef in pairs(refs) do
     if varRef.type == "LuaObject" and varRef.object == luaObject then return id end
   end
@@ -454,8 +368,7 @@ function variables.luaObjectRef(luaObject,classname,evalName,long)
     type = "LuaObject",
     object = luaObject,
     classname = classname,
-    evalName = evalName,
-    long = long,
+    evalName = evalName
   }
   return id
 end
@@ -588,30 +501,29 @@ DAvars.describe = variables.describe
 ---@param name string | nil
 ---@param value any
 ---@param evalName string | nil
----@param long boolean | nil
 ---@return Variable
-function variables.create(name,value,evalName,long)
+function variables.create(name,value,evalName)
   local lineitem,vtype = variables.describe(value)
   local variablesReference = 0
   local namedVariables
   local indexedVariables
   if vtype == "LuaCustomTable" then
-    variablesReference = variables.tableRef(value,"pairs",false,nil,nil,long)
+    variablesReference = variables.tableRef(value,"pairs",false)
     -- get the "first" one to see which kind of index they are
     -- some LuaCustomTable use integer keys, some use string keys.
     -- some allow mixed for lookup, but the iterator gives ints for those.
-    local k,v = pairs(value)(value,nil,nil)
+    local k,v = pairs(value)(value,nil)
     if k == 1 then
       indexedVariables = #value + 1 --vscode assumes indexes start at 0, so pad one extra
     else
       namedVariables = #value
     end
   elseif vtype:sub(1,3) == "Lua" then
-    variablesReference = variables.luaObjectRef(value,vtype,evalName,long)
+    variablesReference = variables.luaObjectRef(value,vtype,evalName)
   elseif vtype == "table" then
     local mt = debug.getmetatable(value)
     if not mt or mt.__debugchildren == nil then
-      variablesReference = variables.tableRef(value,nil,nil,nil,evalName,long)
+      variablesReference = variables.tableRef(value,nil,nil,nil,evalName)
       namedVariables = 0
       indexedVariables = rawlen(value)
       local namesStartAfter = indexedVariables
@@ -628,7 +540,7 @@ function variables.create(name,value,evalName,long)
         namedVariables = 1
       end
     elseif mt.__debugchildren then -- mt and ...
-      variablesReference = variables.tableRef(value,nil,nil,nil,evalName,long)
+      variablesReference = variables.tableRef(value,nil,nil,nil,evalName)
       -- children counts for mt children?
     end
     if mt and type(mt.__debugtype) == "string" then
@@ -765,7 +677,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
             name = "<metatable>",
             value = "metatable",
             type = "metatable",
-            variablesReference = variables.tableRef(mt,nil,nil,nil,nil,long),
+            variablesReference = variables.tableRef(mt),
             evaluateName = evalName,
             presentationHint = {kind="virtual"},
           }
@@ -788,7 +700,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
           if varRef.evalName then
             evalName = varRef.evalName .. "[" .. tostring(i) .. "]"
           end
-          vars[#vars + 1] = variables.create(tostring(i),varRef.table[i], evalName, long)
+          vars[#vars + 1] = variables.create(tostring(i),varRef.table[i], evalName)
         end
       else
         if mt and type(mt.__debugchildren) == "function" then
@@ -819,7 +731,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
               name = "<metatable>",
               value = "metatable",
               type = "metatable",
-              variablesReference = variables.tableRef(mt,nil,nil,nil,nil,long),
+              variablesReference = variables.tableRef(mt),
               evaluateName = evalName,
               presentationHint = {kind="virtual"},
             }
@@ -874,7 +786,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
                 evalName = varRef.evalName .. "[" .. variables.describe(k,true) .. "]"
               end
               local kline,ktype = variables.describe(k,true)
-              local newvar = variables.create(kline,v, evalName,long)
+              local newvar = variables.create(kline,v, evalName)
               if ktype == "table" or ktype == "function" then
                 newvar.variablesReference,newvar.name = variables.kvRef(k,v)
               end
@@ -922,7 +834,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
                 name = "[]",
                 value = ("%d item%s"):format(#object, #object~=1 and "s" or ""),
                 type = varRef.classname .. "[]",
-                variablesReference = variables.tableRef(object, keyprops.iterMode, false,nil,varRef.evalName,long),
+                variablesReference = variables.tableRef(object, keyprops.iterMode, false,nil,varRef.evalName),
                 indexedVariables = #object + 1,
                 presentationHint = { kind = "virtual", attributes = { "readOnly" } },
               }
@@ -952,7 +864,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
                 if varRef.evalName then
                   evalName = varRef.evalName .. "[" .. variables.describe(key,true) .. "]"
                 end
-                local var = variables.create(variables.describe(key,true),value,evalName,long)
+                local var = variables.create(variables.describe(key,true),value,evalName)
 
                 local enum = keyprops.enum
                 local tenum = type(enum)
@@ -995,7 +907,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
         }
       end
     elseif varRef.type == "kvPair" then
-      vars[#vars + 1] = variables.create("<key>",varRef.key, nil, true)
+      vars[#vars + 1] = variables.create("<key>",varRef.key)
       vars[#vars + 1] = variables.create("<value>",varRef.value)
     elseif varRef.type == "Function" then
       local func = varRef.func

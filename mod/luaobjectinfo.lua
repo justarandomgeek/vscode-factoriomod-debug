@@ -203,14 +203,6 @@ luaObjectInfo.alwaysValid.LuaMapSettings = true
 luaObjectInfo.alwaysValid.LuaDifficultySettings = true
 luaObjectInfo.alwaysValid.LuaGameViewSettings = true
 
-luaObjectInfo.noLongRefs = {
-  LuaCustomTable = true,
-  LuaLazyLoadedValue = true,
-  LuaMapSettings = true,
-  LuaGameViewSettings = true,
-  LuaDifficultySettings = true,
-}
-
 local enumSpecial = {
   ["defines.circuit_connector_id"] = function() --1.1
     local combinator = invert(defines.circuit_connector_id,"defines.circuit_connector_id.",function(k,v) return (not not string.match(k,"^combinator")) end)
