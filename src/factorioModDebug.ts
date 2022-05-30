@@ -417,8 +417,10 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				} else if (event === "object_info") {
 					//pass in nextref
 					this.sendClassData();
-					this.continue();
-					this.inPrompt = wasInPrompt;
+					// continue without trying to write breakpoints,
+					// we're not ready for them yet...
+					this.writeStdin("cont");
+					this.inPrompt = false;
 				} else if (event === "leaving" || event === "running") {
 					//run queued commands
 					await this.runQueuedStdin();
