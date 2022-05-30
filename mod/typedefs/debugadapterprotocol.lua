@@ -46,3 +46,8 @@
 ---@field public kind string | nil
 ---@field public attributes string[] | nil
 ---@field public visibility string | nil
+
+---@class Module
+---@field public id number|string
+---@field public name string
+---@field public version? string
