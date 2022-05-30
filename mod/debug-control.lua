@@ -10,6 +10,11 @@ __DebugAdapter = __DebugAdapter or {
   -- evaluate needs this, but without hooks we can only end up in this lua state when remote.call is legal
   canRemoteCall = function() return true end,
 }
+local function DAMerge(t)
+  for k, v in pairs(t) do
+    __DebugAdapter[k] = v
+  end
+end
 
 local datastring = require("__debugadapter__/datastring.lua")
 local ReadBreakpoints = datastring.ReadBreakpoints
@@ -19,7 +24,9 @@ local debug = debug
 local print = print
 local pairs = pairs
 
-require("__debugadapter__/stacks.lua") -- might have already been run, but load it now if not
+if __DebugAdapter.nohook then
+  DAMerge(require("__debugadapter__/stacks.lua")) -- might have already been run, but load it now if not
+end
 
 --- call a remote function in all registered mods
 ---@param funcname string Name of remote function to call
@@ -56,8 +63,9 @@ if __DebugAdapter.nohook then
   -- if hooks are not installed, we need to set up enough of the libraries for
   -- calls that come in here (mostly on_tick) to be able to run appropriately,
   -- and enough to track long refs logged from DA's lua state correctly still
-  require("__debugadapter__/evaluate.lua")
-  require("__debugadapter__/print.lua")
+  DAMerge(variables.__)
+  DAMerge(require("__debugadapter__/evaluate.lua"))
+  DAMerge(require("__debugadapter__/print.lua"))
 
   -- and a minimal version of the __da_da remote so other lua can print vars
   remote.add_interface("__debugadapter_" .. script.mod_name ,{

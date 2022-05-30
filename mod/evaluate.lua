@@ -12,6 +12,9 @@ local load = load
 -- capture the raw object
 local remote = remote and (type(remote)=="table" and rawget(remote,"__raw")) or remote
 
+---@class DebugAdapter.Evaluate
+local DAEval = {}
+
 ---Timed version of `pcall`. If `game.create_profiler()` is available, it will
 ---be used to measure the execution time of `f`. The timer or nil is added as an
 ---additional first return value, followed by `pcall`'s normal returns
@@ -84,7 +87,7 @@ local function evalmeta(env,frameId,alsoLookIn)
           local info = getinfo(i,"f")
           if info then
             local func = info.func
-            if func == __DebugAdapter.evaluateInternal or func == timedpcall then
+            if func == DAEval.evaluateInternal or func == timedpcall then
               offset = i - 1
               break
             end
@@ -157,7 +160,7 @@ local function evalmeta(env,frameId,alsoLookIn)
           local info = getinfo(i,"f")
           if info then
             local func = info.func
-            if func == __DebugAdapter.evaluateInternal or func == timedpcall then
+            if func == DAEval.evaluateInternal or func == timedpcall then
               offset = i - 1
               break
             end
@@ -224,7 +227,7 @@ __DebugAdapter.stepIgnore(evalmeta)
 ---@overload fun(frameId:number|nil,alsoLookIn:table|nil,context:string,expression:string,timed:boolean): LuaProfiler,boolean,...
 ---@overload fun(frameId:number|nil,alsoLookIn:table|nil,context:string,expression:string,timed:boolean|nil): boolean,...
 ---@overload fun(frameId:number|nil,alsoLookIn:table|nil,context:string,expression:string): boolean,...
-function __DebugAdapter.evaluateInternal(frameId,alsoLookIn,context,expression,timed)
+function DAEval.evaluateInternal(frameId,alsoLookIn,context,expression,timed)
   local env = _ENV
 
   if frameId then
@@ -281,11 +284,11 @@ function __DebugAdapter.evaluateInternal(frameId,alsoLookIn,context,expression,t
 end
 
 ---@param str string
----@param frameId number | nil
----@param alsoLookIn table | nil
----@param context string
+---@param frameId? number
+---@param alsoLookIn? table
+---@param context? string
 ---@return string
-function __DebugAdapter.stringInterp(str,frameId,alsoLookIn,context)
+function DAEval.stringInterp(str,frameId,alsoLookIn,context)
   local sub = string.sub
   local evals = {}
   local evalidx = 1
@@ -339,7 +342,7 @@ function __DebugAdapter.stringInterp(str,frameId,alsoLookIn,context)
         end
       end
       expr = sub(expr,2,-2)
-      local success,result = __DebugAdapter.evaluateInternal(frameId and frameId+3,alsoLookIn,context or "interp",expr)
+      local success,result = DAEval.evaluateInternal(frameId and frameId+3,alsoLookIn,context or "interp",expr)
       if success then
         evals[evalidx] = result
         evalidx = evalidx+1
@@ -361,7 +364,7 @@ end
 ---@param context string
 ---@param expression string
 ---@param seq number
-function __DebugAdapter.evaluate(frameId,context,expression,seq,formod)
+function DAEval.evaluate(frameId,context,expression,seq,formod)
   -- if you manage to do one of these fast enough for data, go for it...
   if not data and formod~=script.mod_name then
     local modname,rest = expression:match("^__(.-)__ (.+)$")
@@ -390,10 +393,10 @@ function __DebugAdapter.evaluate(frameId,context,expression,seq,formod)
     local timer,success,result
     if context == "repl" then
       ---@typelist LuaProfiler,boolean,Any
-      timer,success,result = __DebugAdapter.evaluateInternal(frameId and frameId+1,nil,context,expression,true)
+      timer,success,result = DAEval.evaluateInternal(frameId and frameId+1,nil,context,expression,true)
     else
       ---@typelist boolean,Any
-      success,result = __DebugAdapter.evaluateInternal(frameId and frameId+1,nil,context,expression)
+      success,result = DAEval.evaluateInternal(frameId and frameId+1,nil,context,expression)
     end
     if success then
       evalresult = variables.create(nil,result,nil,true)
@@ -427,3 +430,5 @@ function __DebugAdapter.evaluate(frameId,context,expression,seq,formod)
   end
   print("DBGeval: " .. json_encode(evalresult))
 end
+
+return DAEval

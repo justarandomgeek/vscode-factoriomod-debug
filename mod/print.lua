@@ -6,12 +6,15 @@ require("__debugadapter__/evaluate.lua") -- uses pcall
 local json = require('__debugadapter__/json.lua')
 local print = print
 
+---@class DebugAdapter.Print
+local DAprint = {}
+
 ---@param expr any
 ---@param alsoLookIn table
 ---@param upStack number
 ---@param category string "console"|"stdout"|"stderr"
 ---@param noexprs boolean
-function __DebugAdapter.print(expr,alsoLookIn,upStack,category,noexprs)
+function DAprint.print(expr,alsoLookIn,upStack,category,noexprs)
   local texpr = type(expr)
   local result,ref
   if texpr == "string" then
@@ -81,3 +84,4 @@ function __DebugAdapter.print(expr,alsoLookIn,upStack,category,noexprs)
   end
   print("DBGprint: " .. json.encode(body))
 end
+return DAprint

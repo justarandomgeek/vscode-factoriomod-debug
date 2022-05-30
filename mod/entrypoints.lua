@@ -6,6 +6,9 @@ local __DebugAdapter = __DebugAdapter
 local setmetatable = setmetatable
 local variables = require("__debugadapter__/variables.lua")
 
+---@class DebugAdapter.Entrypoints
+local DAEntrypoints = {}
+
 ---Print an exception to the editor
 ---@param type string
 ---@param mesg string|LocalisedString|nil
@@ -18,11 +21,11 @@ local function print_exception(type,mesg)
   "***EndDebugAdapterBlockPrint***"
   })
 end
-__DebugAdapter.print_exception = print_exception
+DAEntrypoints.print_exception = print_exception
 
 ---Generate a breakpoint or exception from mod code
 ---@param mesg string|LocalisedString|nil
-function __DebugAdapter.breakpoint(mesg)
+function DAEntrypoints.breakpoint(mesg)
   debug.sethook()
   if mesg then
     print_exception("manual",mesg)
@@ -35,14 +38,14 @@ end
 
 
 ---Terminate a debug session from mod code
-function __DebugAdapter.terminate()
+function DAEntrypoints.terminate()
   debug.sethook()
   print("DBG: terminate")
   debug.debug()
 end
 
 -- don't need the rest in data stage...
-if not script then return end
+if not script then return DAEntrypoints end
 
 ---@type table<function,string>
 local handlernames = setmetatable({},{__mode="k"})
@@ -65,7 +68,7 @@ local myRemotes = {}
 ---Look up the label for an entrypoint function
 ---@param func function
 ---@return string label
-function __DebugAdapter.getEntryLabel(func)
+function DAEntrypoints.getEntryLabel(func)
   do
     local handler = handlernames[func]
     if handler then
@@ -109,7 +112,7 @@ __DebugAdapter.stepIgnore(labelhandler)
 
 ---Generate handlers for pcall/xpcall wrappers
 ---@param filter string Where the exception was intercepted
----@param user_handler function When used as xpcall, the exception will pass to this handler after continuing
+---@param user_handler? function When used as xpcall, the exception will pass to this handler after continuing
 ---@return function
 local function caught(filter, user_handler)
   ---xpcall handler for intercepting pcall/xpcall
@@ -162,7 +165,7 @@ local newscript = {
 ---@param event defines.events|number|string
 ---@param data EventData
 ---@param modname string
-function __DebugAdapter.raise_event(event,data,modname)
+function DAEntrypoints.raise_event(event,data,modname)
   if modname and modname ~= oldscript.mod_name then
     if game and remote.interfaces["__debugadapter_"..modname] then
       return remote.call("__debugadapter_"..modname,"raise_event",event,data)
@@ -177,19 +180,19 @@ function __DebugAdapter.raise_event(event,data,modname)
   end
 end
 
----@param f function
+---@param f? function
 function newscript.on_init(f)
   oldscript.on_init(labelhandler(f,"on_init handler"))
 end
 newscript.on_init()
 
----@param f function
+---@param f? function
 function newscript.on_load(f)
   oldscript.on_load(labelhandler(f,"on_load handler"))
 end
 newscript.on_load()
 
----@param f function
+---@param f? function
 function newscript.on_configuration_changed(f)
   return oldscript.on_configuration_changed(labelhandler(f,"on_configuration_changed handler"))
 end
@@ -198,6 +201,7 @@ end
 ---@param f function
 function newscript.on_nth_tick(tick,f)
   if not tick then
+    ---@diagnostic disable-next-line: missing-parameter
     return oldscript.on_nth_tick(nil)
   else
     local ttype = type(tick)
@@ -341,3 +345,5 @@ setmetatable(
 script = newscript
 commands = newcommands
 remote = newremote
+
+return DAEntrypoints

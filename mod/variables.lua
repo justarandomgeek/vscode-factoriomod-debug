@@ -43,6 +43,9 @@ local longrefsmeta = {
   __debugchildren = false,
 }
 
+---@class DebugAdapter.Variables
+local DAvars = {}
+
 --- Debug Adapter variables module
 ---@class DAvarslib
 local variables = {
@@ -50,6 +53,8 @@ local variables = {
   refs = setmetatable({},refsmeta),
   -- long refs live forever, except objects that must not be kept for saving
   longrefs = setmetatable({},longrefsmeta),
+  -- objects to pass up to the parent __DebugAdapter
+  __ = DAvars,
 }
 
 
@@ -105,7 +110,7 @@ end)
 
 if __DebugAdapter.checkGlobals ~= false then
   local definedGlobals = {_=true}
-  function __DebugAdapter.defineGlobal(name)
+  function DAvars.defineGlobal(name)
     definedGlobals[name] = true
   end
 
@@ -154,7 +159,7 @@ local nextID
 do
   local nextRefID
   local nextEnd
-  function __DebugAdapter.transferRef(ref)
+  function DAvars.transferRef(ref)
     nextRefID = ref
     nextEnd = ref+65535
   end
@@ -577,7 +582,7 @@ function variables.describe(value,short)
   end
   return lineitem,vtype
 end
-__DebugAdapter.describe = variables.describe
+DAvars.describe = variables.describe
 
 --- Generate a default debug view for `value` named `name`
 ---@param name string | nil
@@ -656,7 +661,7 @@ local itermode = {
 ---@param count nil | number
 ---@param longonly nil | boolean
 ---@return Variable[]
-function __DebugAdapter.variables(variablesReference,seq,filter,start,count,longonly)
+function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
   local varRef
   if longonly then
     varRef = variables.longrefs[variablesReference]
@@ -1049,7 +1054,7 @@ end
 ---@param name string
 ---@param value string
 ---@param seq number
-function __DebugAdapter.setVariable(variablesReference, name, value, seq)
+function DAvars.setVariable(variablesReference, name, value, seq)
   local varRef = variables.refs[variablesReference]
   if varRef then
     if varRef.type == "Locals" then

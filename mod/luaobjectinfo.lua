@@ -5,7 +5,11 @@ local pcall = pcall
 local validLuaObjectTypes = {table=true,userdata=true}
 
 
-local luaObjectInfo = {}
+local luaObjectInfo = {
+  alwaysValid = {},
+  eventlike = {},
+  expandKeys = {},
+}
 do
   local objectChunks = {"return "}
 
@@ -27,7 +31,12 @@ luaObjectInfo.lineItem = {
   LuaItemStack = function(stack,short)
     if stack.valid_for_read then
       if not short then
-        return __DebugAdapter.stringInterp([[<LuaItemStack>{[}name={name}, count={count}{]}]],nil,stack)
+        return __DebugAdapter.stringInterp(
+          [[<LuaItemStack>{[}name={name}, count={count}{]}]],
+          nil,
+          stack,
+          "luaobjectline"
+        )
       else
         return [[<LuaItemStack>]]
       end
@@ -320,10 +329,12 @@ local enumSpecial = {
   ["defines.transport_line"] = function() end,
   ["defines.circuit_condition_index"] = function() end, --1.2
   ["defines.wire_connector_id"] = function () --1.2
-    local default = invert(defines.wire_connector_id,"defines.wire_connector_id.",function(k,v) return (not not string.match(k,"^circuit")) end)
-    local combinator = invert(defines.wire_connector_id,"defines.wire_connector_id.",function(k,v) return (not not string.match(k,"^combinator")) end)
-    local pole = invert(defines.wire_connector_id,"defines.wire_connector_id.",function(k,v) return (not not string.match(k,"^pole")) end)
-    local switch = invert(defines.wire_connector_id,"defines.wire_connector_id.",function(k,v) return (not not string.match(k,"^power_switch")) end)
+    ---@diagnostic disable-next-line: undefined-field
+    local wire_connector_id = defines.wire_connector_id
+    local default = invert(wire_connector_id,"defines.wire_connector_id.",function(k,v) return (not not string.match(k,"^circuit")) end)
+    local combinator = invert(wire_connector_id,"defines.wire_connector_id.",function(k,v) return (not not string.match(k,"^combinator")) end)
+    local pole = invert(wire_connector_id,"defines.wire_connector_id.",function(k,v) return (not not string.match(k,"^pole")) end)
+    local switch = invert(wire_connector_id,"defines.wire_connector_id.",function(k,v) return (not not string.match(k,"^power_switch")) end)
     local entity = {
       ["electric-pole"] = pole,
       ["power-switch"] = switch,

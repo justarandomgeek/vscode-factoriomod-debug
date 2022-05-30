@@ -8,8 +8,10 @@ local enc = require("__debugadapter__/base64.lua")
 local stepIgnoreFuncs = {}
 -- make it weak keys so it doesn't keep an otherwise-dead function around
 setmetatable(stepIgnoreFuncs,{__mode="k"})
----@param f function
 local __DebugAdapter = __DebugAdapter
+
+---@class DebugAdapter.Stepping
+local DAstep = {}
 
 ---Mark a function or table of functions (keys and values, deep) to be ignored by the stepping hook
 ---@generic T:function|table
@@ -28,18 +30,20 @@ local function stepIgnore(f)
   return f
 end
 stepIgnore(stepIgnore)
-__DebugAdapter.stepIgnore = stepIgnore
 
----Legacy alias for stepIgnore
-__DebugAdapter.stepIgnoreAll = stepIgnore
+DAstep.stepIgnore = stepIgnore
+-- Legacy alias for stepIgnore
+DAstep.stepIgnoreAll = stepIgnore
+-- and a direct assignment early for other modules...
+__DebugAdapter.stepIgnore = DAstep.stepIgnore
 
 ---Check if a function is ignored
 ---@param f function
 ---@return boolean
-function __DebugAdapter.isStepIgnore(f)
+function DAstep.isStepIgnore(f)
   return stepIgnoreFuncs[f]
 end
-stepIgnore(__DebugAdapter.isStepIgnore)
+stepIgnore(DAstep.isStepIgnore)
 
 -- capture the raw object
 local remote = remote and (type(remote)=="table" and rawget(remote,"__raw")) or remote
@@ -300,7 +304,7 @@ if __DebugAdapter.instrument then
     until not info
     return false
   end
-  __DebugAdapter.stepIgnore(stack_has_location)
+  stepIgnore(stack_has_location)
 
   function on_exception (mesg)
     debug.sethook()
@@ -337,13 +341,12 @@ if __DebugAdapter.instrument then
       __DebugAdapter.popStack()
     end
     debug.sethook(hook,hook_rate())
-    return
   end
   -- shared for stack trace to know to skip one extra
-  __DebugAdapter.on_exception = on_exception
+  DAstep.on_exception = on_exception
 end
 
-function __DebugAdapter.attach()
+function DAstep.attach()
   debug.sethook(hook,hook_rate())
   -- on_error is api for instrument mods to catch errors
   if on_error then
@@ -352,7 +355,7 @@ function __DebugAdapter.attach()
 end
 ---@param source string
 ---@param breaks SourceBreakpoint[]
-function __DebugAdapter.setBreakpoints(source,breaks)
+function DAstep.setBreakpoints(source,breaks)
   if breaks then
     local filebreaks = {}
     breakpoints[source] = filebreaks
@@ -381,26 +384,26 @@ local function isMainChunk()
 end
 stepIgnore(isMainChunk)
 
-function __DebugAdapter.canRemoteCall()
+function DAstep.canRemoteCall()
   -- remote.call is only legal from within events, game catches all but on_load
   -- during on_load, script exists and the root of the stack is no longer the main chunk
   return game or script and not isMainChunk()
 end
 
 ---@param change string
-function __DebugAdapter.updateBreakpoints(change)
+function DAstep.updateBreakpoints(change)
   -- pass it around to everyone if possible, else just set it here...
-  if __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
+  if DAstep.canRemoteCall() and remote.interfaces["debugadapter"] then
     remote.call("debugadapter", "updateBreakpoints", change)
   else
     local source,changedbreaks = ReadBreakpoints(change)
-    __DebugAdapter.setBreakpoints(source,changedbreaks)
+    DAstep.setBreakpoints(source,changedbreaks)
   end
 end
 
 ---@param source string
 ---@return Breakpoint[] | Breakpoint
-function __DebugAdapter.dumpBreakpoints(source)
+function DAstep.dumpBreakpoints(source)
   if source then
     return breakpoints[source]
   else
@@ -409,8 +412,8 @@ function __DebugAdapter.dumpBreakpoints(source)
 end
 
 ---@param depth number
----@param instruction boolean
-function __DebugAdapter.step(depth,instruction)
+---@param instruction? boolean
+function DAstep.step(depth,instruction)
   if depth and stepdepth then
     print(("step %d with existing depth! %d"):format(depth,stepdepth))
   end
@@ -424,7 +427,7 @@ end
 
 ---@return number stepdepth
 ---@return boolean step_instr
-function __DebugAdapter.currentStep()
+function DAstep.currentStep()
   return stepdepth, step_instr
 end
 
@@ -438,4 +441,4 @@ local vmeta = {
   } end,
 }
 stepIgnore(vmeta)
-return setmetatable({},vmeta)
+return setmetatable(DAstep,vmeta)
