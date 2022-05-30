@@ -207,8 +207,8 @@ end
 ---@param name string = "Locals" | "Upvalues"
 ---@param mode? string = "temps" | "varargs"
 ---@return number variablesReference
----@overload fun(frameId:number, name:"Upvalues")
----@overload fun(frameId:number, name:"Locals", mode?:"temps"|"varargs")
+---@overload fun(frameId:number, name:"Upvalues"):number
+---@overload fun(frameId:number, name:"Locals", mode?:"temps"|"varargs"):number
 function variables.scopeRef(frameId,name,mode)
   for id,varRef in pairs(variables.refs) do
     if varRef.type == name and varRef.frameId == frameId and varRef.mode == mode then
