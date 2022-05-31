@@ -189,7 +189,8 @@ export class ApiDocGenerator {
 				if (method.parameters.length > 0) { continue; }
 				switch (this.docs.api_version) {
 					case 1:
-						const m1 = method as ApiMethodV1;
+						//const m1 = method as ApiMethodV1;
+						// no fetchable props with v1 json, can't check for raises
 						break;
 
 					case 2:
