@@ -201,7 +201,6 @@ end
 ---@param f function
 function newscript.on_nth_tick(tick,f)
   if not tick then
-    ---@diagnostic disable-next-line: missing-parameter
     return oldscript.on_nth_tick(nil)
   else
     local ttype = type(tick)

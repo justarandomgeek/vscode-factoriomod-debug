@@ -205,24 +205,26 @@ luaObjectInfo.alwaysValid.LuaGameViewSettings = true
 
 local enumSpecial = {
   ["defines.circuit_connector_id"] = function() --1.1
-    local combinator = invert(defines.circuit_connector_id,"defines.circuit_connector_id.",function(k,v) return (not not string.match(k,"^combinator")) end)
+---@diagnostic disable-next-line: undefined-field
+    local circuit_connector_id = defines.circuit_connector_id
+    local combinator = invert(circuit_connector_id,"defines.circuit_connector_id.",function(k,v) return (not not string.match(k,"^combinator")) end)
     local netnames = {
-      ["accumulator"] = {[defines.circuit_connector_id.accumulator] = "defines.circuit_connector_id.accumulator"},
-      ["container"] = {[defines.circuit_connector_id.container] = "defines.circuit_connector_id.container"},
-      ["logistic-container"] = {[defines.circuit_connector_id.container] = "defines.circuit_connector_id.container"},
-      ["programmable-speaker"] = {[defines.circuit_connector_id.programmable_speaker] = "defines.circuit_connector_id.programmable_speaker"},
-      ["rail-signal"] = {[defines.circuit_connector_id.rail_signal] = "defines.circuit_connector_id.rail_signal"},
-      ["rail-chain-signal"] = {[defines.circuit_connector_id.rail_chain_signal] = "defines.circuit_connector_id.rail_chain_signal"},
-      ["roboport"] = {[defines.circuit_connector_id.roboport] = "defines.circuit_connector_id.roboport"},
-      ["storage-tank"] = {[defines.circuit_connector_id.storage_tank] = "defines.circuit_connector_id.storage_tank"},
-      ["wall"] = {[defines.circuit_connector_id.wall] = "defines.circuit_connector_id.wall"},
-      ["electric-pole"] = {[defines.circuit_connector_id.electric_pole] = "defines.circuit_connector_id.electric_pole"},
-      ["inserter"] = {[defines.circuit_connector_id.inserter] = "defines.circuit_connector_id.inserter"},
-      ["lamp"] = {[defines.circuit_connector_id.lamp] = "defines.circuit_connector_id.lamp"},
-      ["pump"] = {[defines.circuit_connector_id.pump] = "defines.circuit_connector_id.pump"},
-      ["ofshore-pump"] = {[defines.circuit_connector_id.offshore_pump] = "defines.circuit_connector_id.ofshore_pump"},
+      ["accumulator"] = {[circuit_connector_id.accumulator] = "defines.circuit_connector_id.accumulator"},
+      ["container"] = {[circuit_connector_id.container] = "defines.circuit_connector_id.container"},
+      ["logistic-container"] = {[circuit_connector_id.container] = "defines.circuit_connector_id.container"},
+      ["programmable-speaker"] = {[circuit_connector_id.programmable_speaker] = "defines.circuit_connector_id.programmable_speaker"},
+      ["rail-signal"] = {[circuit_connector_id.rail_signal] = "defines.circuit_connector_id.rail_signal"},
+      ["rail-chain-signal"] = {[circuit_connector_id.rail_chain_signal] = "defines.circuit_connector_id.rail_chain_signal"},
+      ["roboport"] = {[circuit_connector_id.roboport] = "defines.circuit_connector_id.roboport"},
+      ["storage-tank"] = {[circuit_connector_id.storage_tank] = "defines.circuit_connector_id.storage_tank"},
+      ["wall"] = {[circuit_connector_id.wall] = "defines.circuit_connector_id.wall"},
+      ["electric-pole"] = {[circuit_connector_id.electric_pole] = "defines.circuit_connector_id.electric_pole"},
+      ["inserter"] = {[circuit_connector_id.inserter] = "defines.circuit_connector_id.inserter"},
+      ["lamp"] = {[circuit_connector_id.lamp] = "defines.circuit_connector_id.lamp"},
+      ["pump"] = {[circuit_connector_id.pump] = "defines.circuit_connector_id.pump"},
+      ["ofshore-pump"] = {[circuit_connector_id.offshore_pump] = "defines.circuit_connector_id.ofshore_pump"},
 
-      ["constant-combinator"] = {[defines.circuit_connector_id.constant_combinator] = "defines.circuit_connector_id.constant_combinator"},
+      ["constant-combinator"] = {[circuit_connector_id.constant_combinator] = "defines.circuit_connector_id.constant_combinator"},
 
       ["decider-combinator"] = combinator,
       ["arithmetic-combinator"] = combinator,
