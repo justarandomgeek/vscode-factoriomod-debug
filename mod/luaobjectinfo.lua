@@ -205,7 +205,7 @@ luaObjectInfo.alwaysValid.LuaGameViewSettings = true
 
 local enumSpecial = {
   ["defines.circuit_connector_id"] = function() --1.1
----@diagnostic disable-next-line: undefined-field
+    ---@diagnostic disable-next-line: undefined-field
     local circuit_connector_id = defines.circuit_connector_id
     local combinator = invert(circuit_connector_id,"defines.circuit_connector_id.",function(k,v) return (not not string.match(k,"^combinator")) end)
     local netnames = {
