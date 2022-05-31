@@ -78,13 +78,13 @@ export function activate(context: vscode.ExtensionContext) {
 			const gen = new ApiDocGenerator(docjson);
 			const save = await vscode.window.showSaveDialog({
 				filters:{
-					"EmmyLua Doc File":["lua"],
+					"Sumneko EmmyLua Doc File":["lua"],
 				},
 				defaultUri: file[0].with({path: file[0].path.replace(/.json$/,".lua")}),
 			});
 			if (save) {
 				if (save.path.endsWith(".lua")) {
-					const buff = gen.generate_emmylua_docs();
+					const buff = gen.generate_sumneko_docs();
 					vscode.workspace.fs.writeFile(save,buff);
 					const add_to_lib = <"Workspace"|"Global"|"No"|undefined> await vscode.window.showInformationMessage("Add generated file to library setting?",
 						{}, "Workspace", "Global", "No");
