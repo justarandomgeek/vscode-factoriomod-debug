@@ -1,24 +1,28 @@
 let i = 100000;
 
 export const overlay:{
-	version:"1"
+	version: number
 	custom: (ApiWithParameters&{name:string})[]
 	adjust: {
 		table: { [classname:string]: ApiWithParameters }
+		class: { [classname:string]: {
+			generic_params?: string[]
+			generic_methods?: {
+				name:string
+				return_values:(string|undefined)[]
+			}[]
+			indexed?: {
+				key: ApiType
+				value?: ApiType
+			}
+		} }
 	}
 
 } = {
-	version: "1",
+	version: 2,
+
 	// whole classes not preset in json
 	custom: [
-		{
-			name: "MapGenPreset",
-			parameters: [],
-		},
-		{
-			name: "PrototypeFilter",
-			parameters: [],
-		},
 		{
 			name: "BlueprintCircuitConnection",
 			parameters: [],
@@ -331,7 +335,6 @@ export const overlay:{
 										value: "InventoryFilter"
 									},
 								},
-
 							]
 						},
 					},
@@ -456,7 +459,50 @@ export const overlay:{
 					},
 				],
 			},
+		},
+		class: {
+			"LuaLazyLoadedValue":{
+				generic_params:["T"],
+				generic_methods: [
+					{
+						name: "get",
+						return_values: ["T"],
+					}
+				]
+			},
+			"LuaCustomTable":{
+				generic_params:["K","V"],
+				indexed: {
+					key: "K",
+					value: "V",
+				},
+			},
+			"LuaFluidBox":{
+				indexed: {
+					key: "uint"
+				}
+			},
+			"LuaGuiElement":{
+				indexed: {
+					key: {
+						complex_type: "variant",
+						options: [
+							"string",
+							"uint"
+						]
+					}
+				}
+			},
+			"LuaInventory":{
+				indexed: {
+					key: "uint"
+				}
+			},
+			"LuaTransportLine":{
+				indexed: {
+					key: "uint"
+				}
+			},
 		}
-
 	},
 };

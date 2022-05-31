@@ -39,7 +39,6 @@ export class ApiDocGenerator {
 	private readonly concepts:Map<string,ApiConcept>;
 	private readonly builtins:Map<string,ApiBuiltin>;
 	private readonly globals:Map<string,ApiGlobalObject>;
-	private readonly table_or_array_types:Map<string,ApiType>;
 
 	private readonly defines:Set<string>;
 
@@ -65,11 +64,6 @@ export class ApiDocGenerator {
 		this.events = new Map(this.docs.events.map(c => [c.name,c]));
 		this.concepts = new Map(this.docs.concepts.map(c => [c.name,c]));
 		this.builtins = new Map(this.docs.builtin_types.map(c => [c.name,c]));
-
-		this.table_or_array_types = new Map(
-			(<ApiTableOrArrayConcept[]>this.docs.concepts.filter(c=>c.category==="table_or_array")).map(
-				ta=>[ta.name,ta.parameters.sort(sort_by_order)[0].type]
-			));
 
 		this.globals = new Map(this.docs.global_objects.map(g => [
 				this.format_emmylua_type(g.type,()=>{
@@ -295,8 +289,8 @@ export class ApiDocGenerator {
 	}
 
 	private add_emmylua_class(output:WritableMemoryStream,aclass:ApiClass):void;
-	private add_emmylua_class(output:WritableMemoryStream,aclass:ApiStructConcept,is_struct:true):void;
-	private add_emmylua_class(output:WritableMemoryStream,aclass:ApiClass|ApiStructConcept,is_struct?:boolean):void {
+	private add_emmylua_class(output:WritableMemoryStream,aclass:ApiStructConcept):void;
+	private add_emmylua_class(output:WritableMemoryStream,aclass:ApiClass|ApiStructConcept):void {
 		const add_attribute = (attribute:ApiAttribute,oper_lua_name?:string,oper_html_name?:string)=>{
 			const aname = oper_lua_name ?? attribute.name;
 			const view_doc_link = this.view_documentation(`${aclass.name}::${oper_html_name ?? aname}`);
@@ -381,28 +375,47 @@ export class ApiDocGenerator {
 				fallback: aclass.description,
 			})
 		)));
-		if (is_struct) {
+		if ('category' in aclass) {
 			output.write(`---@class ${aclass.name}\n`);
 		} else {
-			const base_classes = (<ApiClass>aclass).base_classes;
-			output.write(`---@class ${aclass.name}${base_classes?":"+base_classes.join(","):""}\n`);
-			if((<ApiOperator[]>(<ApiClass>aclass).operators).find((operator:ApiOperator)=>!["index","length","call"].includes(operator.name))){
+			const base_classes = aclass.base_classes;
+			const generic_params = overlay.adjust.class[aclass.name]?.generic_params;
+			const operators = aclass.operators as ApiOperator[];
+			const indexop = operators?.find?.(op=>op.name==="index") as ApiAttribute|undefined;
+			const indexed = overlay.adjust.class[aclass.name]?.indexed;
+
+			const generic_tag = generic_params? `<${generic_params.join(',')}>`:'';
+
+			const indexed_table = indexed || indexop ?
+				`{[${this.format_emmylua_type(indexed?.key??'AnyBasic', ()=>[`${aclass.name}.__indexkey`, ''])}]:${this.format_emmylua_type(indexed?.value??indexop?.type, ()=>[`${aclass.name}.__index`, ''])}}`:
+				'';
+
+			const generic_methods = overlay.adjust.class[aclass.name]?.generic_methods;
+			const generic_bases = generic_methods?.map(m=>`{${m.name}:fun():${m.return_values.join(",")}}`);
+
+			const bases = [indexed_table, ...generic_bases??[], ...base_classes??[]].filter(s=>!!s);
+
+			const bases_tag = bases.length>0 ? `:${bases.join(',')}` :'';
+
+			output.write(`---@class ${aclass.name}${generic_tag}${bases_tag}\n`);
+			if(operators.find((operator)=>!["index","length","call"].includes(operator.name))){
 					throw "Unkown operator";
 			}
 		}
 
 		aclass.attributes.forEach(a=>add_attribute(a));
 
-		if (!is_struct) {
-			const operators = <ApiOperator[]>(<ApiClass>aclass).operators;
-			(operators.filter(op=>["index","length"].includes(op.name)) as ApiAttribute[]).forEach((operator)=>{
-				const lua_name = operator.name === "index" ? "__index" : "__len";
-				const html_name = `operator%20${ operator.name === "index" ? "[]" : "#"}`;
-				add_attribute(operator,lua_name,html_name);
-			});
+		if (!('category' in aclass)) {
+			const operators = <ApiOperator[]>aclass.operators;
+			const lenop = operators.find(op=>op.name==="length") as ApiAttribute|undefined;
+			if (lenop) {
+				add_attribute(lenop,"__len","operator%20#");
+			};
 
 			output.write(`${this.globals.get(aclass.name)?.name ?? `local ${to_lua_ident(aclass.name)}`}={\n`);
-			(<ApiClass>aclass).methods.forEach(add_method);
+			aclass.methods.forEach(method=>{
+				return add_method(method);
+			});
 
 			const callop = operators.find(op=>op.name==="call") as ApiMethod;
 			if (callop){
@@ -439,7 +452,7 @@ export class ApiDocGenerator {
 					output.write(`---@alias ${concept.name} any\n\n`);
 					break;
 				case "struct":
-					this.add_emmylua_class(output, concept, true);
+					this.add_emmylua_class(output, concept);
 					break;
 				case "flag":
 					output.write(this.convert_emmylua_description(this.format_entire_description(concept,view_documentation_link)));
@@ -496,6 +509,7 @@ export class ApiDocGenerator {
 		interface parameter_info{
 			readonly name:string
 			readonly type:ApiType
+			readonly order:number
 			description:string
 			readonly optional?:boolean
 		}
@@ -504,7 +518,7 @@ export class ApiDocGenerator {
 
 		type_data.parameters.concat(overlay.adjust.table[table_class_name]?.parameters??[]).sort(sort_by_order).forEach((parameter,i)=>{
 			const name = parameter.name;
-			const custom_parameter = {name:name, type:parameter.type, description:parameter.description, optional:parameter.optional};
+			const custom_parameter = {name:name, type:parameter.type, order:parameter.order, description:parameter.description, optional:parameter.optional};
 			custom_parameter_map.set(name, custom_parameter);
 			custom_parameters.push(custom_parameter);
 		});
@@ -522,7 +536,7 @@ export class ApiDocGenerator {
 						str: custom_parameter.description, post: "\n\n"
 						})+custom_description;
 					} else {
-						custom_parameter = {name:parameter.name, type:parameter.type, description:custom_description, optional:parameter.optional};
+						custom_parameter = {name:parameter.name, type:parameter.type, order:parameter.order, description:custom_description, optional:parameter.optional};
 						custom_parameter_map.set(parameter.name, custom_parameter);
 						custom_parameters.push(custom_parameter);
 					}
@@ -536,6 +550,16 @@ export class ApiDocGenerator {
 				[`${table_class_name}.${custom_parameter.name}`, view_documentation_link])}`);
 			output.write((custom_parameter.optional? "|nil\n":"\n"));
 		});
+
+		if ('category' in type_data && (type_data as ApiConcept).category === "table_or_array") {
+			let i = 1;
+			output.write(`${`local ${to_lua_ident(table_class_name)}`}={\n`);
+			custom_parameters.forEach(param=>{
+				output.write(`[${i++}]=nil, ---@type ${this.format_emmylua_type(param.type, ()=>
+					[`${table_class_name}.${param.name}`, view_documentation_link])}${param.optional?'|nil':''}\n`);
+			});
+			output.write("}\n\n");
+		}
 
 		output.write("\n");
 
@@ -632,30 +656,17 @@ export class ApiDocGenerator {
 		};
 
 		if (!api_type) { return "any"; }
-		if (typeof api_type === "string") {
-			const elem_type = this.table_or_array_types.get(api_type);
-			if (elem_type)
-			{
-				// use format_type just in case it's a complex type or another `table_or_array`
-				const value_type = this.format_emmylua_type(elem_type,()=>[api_type+"_elem",this.view_documentation(api_type)]);
-				return `${wrap(api_type)}<${wrap("int")},${value_type}>`;
-				// this makes sumneko.lua think it's both the `api_type` and
-				// `table<int,value_type>` where `value_type` is the type of the first
-				// "parameter" (field) for the `table_or_array` concept
-				// it's hacks all the way
-			}
-			return wrap(api_type);
-		}
+		if (typeof api_type === "string") { return wrap(api_type); }
 
 		switch (api_type.complex_type) {
 			case "array":
 				return this.format_emmylua_type(api_type.value, get_table_name_and_view_doc_link)+"[]";
 			case "dictionary":
-				return `${wrap("table")}<${this.format_emmylua_type(api_type.key, modify_getter("_key"))},${this.format_emmylua_type(api_type.value, modify_getter("_value"))}>`;
+				return `{[${this.format_emmylua_type(api_type.key, modify_getter("_key"))}]: ${this.format_emmylua_type(api_type.value, modify_getter("_value"))}}`;
 			case "variant":
 				return api_type.options.map((o,i)=> this.format_emmylua_type(o,modify_getter("."+i))).join("|");
 			case "LuaLazyLoadedValue":
-				return `${wrap("LuaLazyLoadedValue")}<${this.format_emmylua_type(api_type.value, get_table_name_and_view_doc_link)},nil>`;
+				return `${wrap("LuaLazyLoadedValue")}<${this.format_emmylua_type(api_type.value, get_table_name_and_view_doc_link)}>`;
 			case "LuaCustomTable":
 				return `${wrap("LuaCustomTable")}<${this.format_emmylua_type(api_type.key, modify_getter("_key"))},${this.format_emmylua_type(api_type.value, modify_getter("_value"))}>`;
 			case "table":
