@@ -594,7 +594,6 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
   end
   local vars = {}
   if varRef then
-    local long = varRef.long
     if varRef.type == "Locals" then
       local mode = varRef.mode
       local hasTemps =  false
