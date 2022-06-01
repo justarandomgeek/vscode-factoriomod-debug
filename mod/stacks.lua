@@ -85,6 +85,7 @@ function DAStacks.stackTrace(startFrame, forRemote, seq)
       end
 
       if __DebugAdapter.hascurrentpc then
+        -- "p"->currentpc is provided by a custom extension in factorio
         ---@diagnostic disable-next-line: undefined-field
         stackFrame.currentpc = debug.getinfo(i,"p").currentpc
         stackFrame.linedefined = info.linedefined
