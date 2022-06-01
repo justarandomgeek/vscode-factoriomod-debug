@@ -921,16 +921,14 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
       end
     elseif varRef.type == "Fetch" then
       local func = varRef.func
-      local success,results = pcall(function() return table.pack(func()) end)
+      local success,result = pcall(func)
       if success then
-        for i = 1, results.n do
-          vars[#vars + 1] = variables.create(i,results[i])
-        end
+        vars[#vars + 1] = variables.create("<Fetch Result>",result)
       else
         vars[#vars + 1] = {
           name = "<Fetch error>",
           -- describe in case it's a LocalisedString or other non-string error object
-          value = variables.describe(results),
+          value = variables.describe(result),
           type = "fetcherror",
           variablesReference = 0,
           presentationHint = { kind="virtual"},
