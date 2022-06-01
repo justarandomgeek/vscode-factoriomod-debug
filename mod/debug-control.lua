@@ -19,6 +19,7 @@ end
 local datastring = require("__debugadapter__/datastring.lua")
 local ReadBreakpoints = datastring.ReadBreakpoints
 local script = script
+---@type LuaRemote
 local remote = remote and (type(remote)=="table" and rawget(remote,"__raw")) or remote
 local debug = debug
 local print = print

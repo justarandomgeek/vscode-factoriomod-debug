@@ -23,11 +23,11 @@
 ---@field public source Source | nil
 ---@field public line number
 ---@field public moduleId number | string | nil
----@field public presentationHint string "normal" | "label" | "subtle"
+---@field public presentationHint "normal" | "label" | "subtle"
 
 ---@class Scope
 ---@field public name string
----@field public presentationHint string "arguments" | "locals" | "registers"
+---@field public presentationHint "arguments" | "locals" | "registers"
 ---@field public variablesReference integer
 ---@field public namedVariables number | nil
 ---@field public indexedVariables number | nil

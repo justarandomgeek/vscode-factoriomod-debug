@@ -128,6 +128,7 @@ breakpoints = {
 ---@return string strout
 ---@return number nextIndex
 local function ReadString(strdata,i)
+    ---@type number
     local val
     val,i = ReadVarInt(strdata,i)
     val = i+val
@@ -167,9 +168,11 @@ end
 local function ReadBreakpoints(strdata)
     local i = 1
     local bytecount = #strdata
+    ---@type number
     local val
 
     if bytecount == 0 then return nil end
+    ---@type string
     local filename
     filename,i = ReadString(strdata,i)
 
@@ -194,6 +197,7 @@ local function ReadBreakpoints(strdata)
     if val == 0xfe then val = 10 end
     if val ~= 0xff then
         for j = 1,val,1 do
+            ---@type SourceBreakpoint
             local bp
             bp,i = ReadSourceBreakpoint(strdata,i)
             bps[#bps+1] = bp
