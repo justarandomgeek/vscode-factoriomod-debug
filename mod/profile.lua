@@ -7,20 +7,19 @@ local localised_print = localised_print
 local debug = debug
 local mod_name = script.mod_name
 local pairs = pairs
-local rawset = rawset
 
-local game, find_game
+local create_profiler
 do
+  local validLuaObjectTypes = {table=true,userdata=true}
   local reg = debug.getregistry()
   local dgetmetatable = debug.getmetatable
   local type = type
-  function find_game()
+  function create_profiler(stopped)
     do
-      local egame = _ENV.game
-      if egame then -- everywhere but main chunk or on_load
-        rawset(egame, "create_profiler", egame.create_profiler)
-        game = egame
-        return true
+      local game = game
+      if game then -- everywhere but main chunk or on_load
+        create_profiler = game.create_profiler
+        return create_profiler(stopped)
       end
     end
 
@@ -30,10 +29,9 @@ do
     local gmt = reg["LuaGameScript"]
     if gmt then -- but it's not there when instruments first run
       for _,t in pairs(reg) do
-        if type(t)=="table" and dgetmetatable(t)==gmt then
-          rawset(t, "create_profiler", t.create_profiler)
-          game = t
-          return true
+        if validLuaObjectTypes[type(t)] and dgetmetatable(t)==gmt then
+          create_profiler = t.create_profiler
+          return create_profiler(stopped)
         end
       end
     end
@@ -42,9 +40,9 @@ end
 
 ---@class TimeAndCount
 ---@field count number
----@field timer LuaProfiler
+---@field timer Accumulator
 
----@type LuaProfiler Total time accumulated in this lua state
+---@type Accumulator Total time accumulated in this lua state
 local luatotal
 ---@type table<string,table<number,TimeAndCount>> Time accumulated per line
 local linedata = {}
@@ -58,17 +56,25 @@ if not __Profiler.updateRate then
   __Profiler.updateRate = 500
 end
 
----@return LuaProfiler
+---@class Accumulator
+---@field timer LuaProfiler
+---@field add fun(LuaProfiler)
+
+---@return Accumulator
 local function getaccumulator()
   -- start stopped, prefetch add to skip __index while accumulating in hook
-  local t = game.create_profiler(true)
-  return rawset(t, "add", t.add)
+  local timer = create_profiler(true)
+  -- prefetch these to skip __index for the hook later
+  return {
+    timer = timer,
+    add = timer.add,
+  }
 end
 
 
 ---@param file string
 ---@param line number
----@return LuaProfiler
+---@return Accumulator
 local function getlinetimer(file,line)
   local f = linedata[file]
   if not f then
@@ -88,7 +94,7 @@ end
 
 ---@param file string
 ---@param line number
----@return LuaProfiler
+---@return Accumulator
 local function getfunctimer(file,line)
   -- line data needs file for dumps to work
   if not linedata[file] then linedata[file] = {} end
@@ -113,9 +119,13 @@ end
 local dumpcount = 0
 ---@type boolean
 local dumpnow
----@type LuaProfiler time not yet accumulated to specific line/function timer(s)
+
+---@class HookTimer time not yet accumulated to specific line/function timer(s)
+---@field stop fun()
+---@field reset fun()
+---@field timer LuaProfiler
 local hooktimer
----@type LuaProfiler the timer for the current line, if any
+---@type Accumulator the timer for the current line, if any
 local activeline
 -- the timers for lines higher up the callstack, if any
 local callstack = {}
@@ -132,7 +142,7 @@ local calltree = {
 ---@field funcnames table<string,string> any names this fun is called by, as both key and value
 ---@field filename string the file this function is defined in
 ---@field line number the line this function is defined at
----@field timer LuaProfiler the time in this function
+---@field timer Accumulator the time in this function
 ---@field children table<string,flamenode> nodes for functions called by this function
 
 ---@param tree flamenode
@@ -140,7 +150,7 @@ local function dumptree(tree)
   if tree.root then
     print("PROOT:")
   else
-    localised_print{"","PTREE:",tree.funcname,":",tree.filename,":",tree.line,":",tree.timer}
+    localised_print{"","PTREE:",tree.funcname,":",tree.filename,":",tree.line,":",tree.timer.timer}
   end
   ---@type flamenode
   for _,node in pairs(tree.children) do
@@ -176,37 +186,40 @@ local function getstackbranch(treenode,source,linedefined,name)
 end
 
 local function accumulate_hook_time()
-  if hooktimer then
-    if not luatotal then
-      luatotal = getaccumulator()
+  if not hooktimer then
+    return
+  end
+  local ht = hooktimer.timer
+
+  if not luatotal then
+    luatotal = getaccumulator()
+  end
+  luatotal.add(ht)
+  if activeline then
+    activeline.add(ht)
+  end
+  for _,stackframe in pairs(callstack) do
+    local linetimer = stackframe.linetimer
+    if linetimer then
+      linetimer.add(ht)
     end
-    luatotal.add(hooktimer)
-    if activeline then
-      activeline.add(hooktimer)
+    local functimer = stackframe.functimer
+    if functimer then
+      functimer.add(ht)
     end
-    for _,stackframe in pairs(callstack) do
-      local linetimer = stackframe.linetimer
-      if linetimer then
-        linetimer.add(hooktimer)
-      end
-      local functimer = stackframe.functimer
-      if functimer then
-        functimer.add(hooktimer)
-      end
-      --stack timers
-      local stacknode = stackframe.node
-      if stacknode then
-        stacknode.timer.add(hooktimer)
-      end
+    --stack timers
+    local stacknode = stackframe.node
+    if stacknode then
+      stacknode.timer.add(ht)
     end
   end
 end
 
 local function dump()
-  local t = game.create_profiler()
+  local t = create_profiler()
   print("***DebugAdapterBlockPrint***\nPROFILE:")
   -- reuse one table lots to be nice to GC
-  local tag = {"","PMN:",mod_name,":",luatotal}
+  local tag = {"","PMN:",mod_name,":",luatotal.timer}
   localised_print(tag)
   luatotal = nil
   for file,f in pairs(linedata) do
@@ -215,7 +228,7 @@ local function dump()
     tag[6] = ":"
     for line,ld in pairs(f) do
       tag[3] = line
-      tag[5] = ld.timer
+      tag[5] = ld.timer.timer
       tag[7] = ld.count
       localised_print(tag)
     end
@@ -224,7 +237,7 @@ local function dump()
       tag[2] = "PFT:"
       for line,ft in pairs(fd) do
         tag[3] = line
-        tag[5] = ft.timer
+        tag[5] = ft.timer.timer
         tag[7] = ft.count
         localised_print(tag)
       end
@@ -258,13 +271,16 @@ do
   function hook(event,line)
     if hooktimer then
       hooktimer.stop()
-    elseif game or find_game() then
-      -- prefetch these to skip __index for the hook later
-      hooktimer = game.create_profiler(true)
-      rawset(hooktimer, "stop", hooktimer.stop)
-      rawset(hooktimer, "reset", hooktimer.reset)
     else
-      return
+      local timer = create_profiler(true)
+      if not timer then return end
+
+      -- prefetch these to skip __index for the hook later
+      hooktimer = {
+        timer = timer,
+        stop = timer.stop,
+        reset = timer.reset,
+      }
     end
     if event == "line" then
       accumulate_hook_time()
