@@ -139,7 +139,7 @@ local calltree = {
 
 ---@class flamenode
 ---@field root boolean if this node is the root of the tree - will not include other fields except `children`
----@field funcnames table<string,string> any names this fun is called by, as both key and value
+---@field funcname string names this fun is called by
 ---@field filename string the file this function is defined in
 ---@field line number the line this function is defined at
 ---@field timer Accumulator the time in this function
