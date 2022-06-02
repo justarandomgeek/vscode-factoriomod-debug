@@ -397,7 +397,9 @@ export class ApiDocGenerator {
 
 			const bases_tag = bases.length>0 ? `:${bases.join(',')}` :'';
 
-			output.write(`---@class ${aclass.name}${generic_tag}${bases_tag}\n`);
+			const callable_tag = operators.find(op=>op.name==="call") ? '.__index' : '';
+
+			output.write(`---@class ${aclass.name}${callable_tag}${generic_tag}${bases_tag}\n`);
 			if(operators.find((operator)=>!["index","length","call"].includes(operator.name))){
 					throw "Unkown operator";
 			}
@@ -417,11 +419,19 @@ export class ApiDocGenerator {
 				return add_method(method);
 			});
 
+			output.write("}\n\n");
+
 			const callop = operators.find(op=>op.name==="call") as ApiMethod;
 			if (callop){
-				add_regular_method(callop, "__call", "operator%20()");
+				const params = callop.parameters.map((p,i)=>`${p.name??`param${i+1}`}${p.optional?'?':''}:${this.format_sumneko_type(p.type,()=>[`${aclass.name}()`, ''])}`);
+				const returns = ("return_values" in callop) ?
+					callop.return_values.map((p,i)=>`${this.format_sumneko_type(p.type,()=>[`${aclass.name}.__call`, ''])}`):
+					undefined;
+
+				output.write(convert_description_for_method(callop,"operator%20()"));
+				output.write(`---@alias ${aclass.name}.__call fun(${params})${returns?`:${returns}`:''}\n`);
+				output.write(`---@alias ${aclass.name} ${aclass.name}.__index|${aclass.name}.__call\n\n`);
 			}
-			output.write("}\n\n");
 		}
 	}
 
