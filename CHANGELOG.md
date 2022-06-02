@@ -5,9 +5,9 @@
 ## 1.1.14
 
 * Load LuaObject type data from Factorio's JSON docs for listing properties when debugging
-* List some function properties on LuaObjects as fetchable properties
+* List some property-like function on LuaObjects as fetchable properties
 * `__DebugAdapter.stepIgnore()` now handles both tables and functions. `__DebugAdapter.stepIgnoreAll()` has been removed.
-
+* Updated Sumneko EmmyLua typdef generator for Sumneko 3
 
 ## 1.1.13
 
