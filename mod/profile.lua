@@ -215,7 +215,12 @@ local function accumulate_hook_time()
   end
 end
 
+local hook
+local attach
+local detach
+
 local function dump()
+  detach()
   local t = create_profiler()
   print("***DebugAdapterBlockPrint***\nPROFILE:")
   -- reuse one table lots to be nice to GC
@@ -260,9 +265,9 @@ local function dump()
   end
   hooktimer = nil
   calltree = { root = true, children = {} }
+  attach()
 end
 
-local hook
 do
   local getinfo = debug.getinfo
   local sub = string.sub
@@ -282,19 +287,17 @@ do
         reset = timer.reset,
       }
     end
+    accumulate_hook_time()
     if event == "line" then
-      accumulate_hook_time()
       local info = getinfo(2,"S") -- currently executing function
       local s = info.source
       if sub(s,1,1) == "@" then
         s = normalizeLuaSource(s)
         activeline = getlinetimer(s,line)
-        --print("line @"..s..":"..line)
       else
         activeline = nil
       end
     elseif event == "call" or event == "tail call" then
-      accumulate_hook_time()
       local info = getinfo(2,"nS") -- call target
       local s = info.source
       local functimer
@@ -325,7 +328,6 @@ do
       }
       activeline = nil
     elseif event == "return" then
-      accumulate_hook_time()
       -- pop from callstack until not tail, return to activeline
       for i = #callstack,1,-1 do
         local stackframe = callstack[i]
@@ -358,8 +360,12 @@ do
     end
   end
 end
-local function attach()
+function attach()
   debug.sethook(hook, (__Profiler.trackLines ~= false) and "clr" or "cr")
+end
+
+function detach()
+  debug.sethook()
 end
 
 if mod_name ~= "debugadapter" then -- don't hook myself!
