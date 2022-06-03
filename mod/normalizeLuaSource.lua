@@ -4,6 +4,7 @@ local ssub = string.sub
 local smatch = string.match
 local pcall = pcall
 
+---@type {modname:string, basepath:string}
 local levelpath
 if script and script.mod_name == "level" then
   ---@param modname string
@@ -44,6 +45,7 @@ if script and script.mod_name == "level" then
   if __Profiler then __Profiler.levelPath = levelPath end
 end
 
+---@type {[string]:string}
 local knownSources = {}
 
 ---@param source string
@@ -53,6 +55,7 @@ local function normalizeLuaSource(source)
   local first = ssub(source,1,1)
   if first == "=" then return source end
   if first ~= "@" then return "=(dostring)" end
+  ---@type string|nil
   local known = knownSources[source]
   if known then return known end
   local filename =

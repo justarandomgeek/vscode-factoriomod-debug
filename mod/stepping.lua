@@ -5,6 +5,7 @@ local type = type
 local enc = require("__debugadapter__/base64.lua")
 
 --this has to be defined before requiring other files so they can mark functions as ignored
+---@type {[function]:true}
 local stepIgnoreFuncs = {}
 -- make it weak keys so it doesn't keep an otherwise-dead function around
 setmetatable(stepIgnoreFuncs,{__mode="k"})
@@ -14,10 +15,9 @@ local __DebugAdapter = __DebugAdapter
 local DAstep = {}
 
 ---Mark a function or table of functions (keys and values, deep) to be ignored by the stepping hook
----@param f function|table
----@return function|table
----@overload fun(f:function):function
----@overload fun(f:table):table
+---@generic T : table|function
+---@param f T
+---@return T
 local function stepIgnore(f)
   local tf = type(f)
   if tf == "function" then
@@ -61,6 +61,7 @@ local ReadBreakpoints = datastring.ReadBreakpoints
 
 ---@type table<string,table<number,SourceBreakpoint>>
 local breakpoints = {}
+---@type number|nil
 local stepdepth = nil
 
 local runningBreak
@@ -88,6 +89,7 @@ end
 
 
 local hook
+---@type {[function]:number}
 local pending = {}
 do
   local getinfo = debug.getinfo
@@ -125,6 +127,7 @@ do
           end
         end
         if filebreaks then
+          ---@type SourceBreakpoint
           local b = filebreaks[line]
           if b then
             -- 0 is getinfo, 1 is sethook callback, 2 is at breakpoint
@@ -158,7 +161,7 @@ do
                   __debugline = function() return result end,
                   __debugtype = "<print>",
                 })
-                local varresult = variables.create(nil,{exprs}, nil, true)
+                local varresult = variables.create(nil,{exprs}, nil)
                 local logpoint = {
                   output = result,
                   variablesReference = varresult.variablesReference,
@@ -368,6 +371,7 @@ end
 
 local function isMainChunk()
   local i = 2 -- no need to check getinfo or isMainChunk
+  ---@type string
   local what
   local getinfo = debug.getinfo
   while true do

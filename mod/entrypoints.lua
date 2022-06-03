@@ -1,6 +1,7 @@
 local rawxpcall = xpcall
 local debug = debug
 local print = print
+---@type fun(LocalisedString)
 local localised_print = localised_print
 local __DebugAdapter = __DebugAdapter
 local setmetatable = setmetatable
@@ -52,7 +53,7 @@ local handlernames = setmetatable({},{__mode="k"})
 ---@type table<string,function>
 local hashandler = {}
 
----@type table<defines.events|number|string,function>
+---@type {[defines.events|number|string]:function}
 local event_handler = {}
 ---@param id number|string
 ---@param f function
@@ -62,7 +63,7 @@ local function save_event_handler(id,f)
   return f
 end
 
----@type table<string,table<string,function>>
+---@type {[string]:{[string]:function}}
 local myRemotes = {}
 
 ---Look up the label for an entrypoint function
@@ -230,7 +231,8 @@ end
 function newscript.on_event(event,f,...)
   -- on_event checks arg count and throws if event is table and filters is present, even if filters is nil
   local etype = type(event)
-  local has_filters = select("#",...) > 0
+  ---@type boolean
+  local has_filters = select("#",...)  > 0
   if etype == "number" then
     local evtname = ("event %d"):format(event)
     for k,v in pairs(defines.events) do

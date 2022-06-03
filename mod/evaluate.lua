@@ -47,6 +47,7 @@ local function evalmeta(env,frameId,alsoLookIn)
       if short then
         return "<Eval Env>"
       end
+      ---@type string|nil
       local envname
       if frameId then
         envname = (envname or " for") .. " frame " .. frameId
@@ -82,6 +83,7 @@ local function evalmeta(env,frameId,alsoLookIn)
         -- if this table lives longer than the expression (by being returned), this will end up failing
         -- to locate the correct stack and fall back to only the global lookups
         local i = 0
+        ---@type number|nil
         local offset
         while true do
           local info = getinfo(i,"f")
@@ -103,7 +105,10 @@ local function evalmeta(env,frameId,alsoLookIn)
           local frame = frameId + offset
           --check for local at frameId
           i = 1
-          local islocal,localvalue
+          ---@type boolean
+          local islocal
+          ---@type any
+          local localvalue
           while true do
             local name,value = getlocal(frame,i)
             if not name then break end
@@ -155,6 +160,7 @@ local function evalmeta(env,frameId,alsoLookIn)
       if frameId then
         -- find how deep we are, if the expression includes defining new functions and calling them...
         local i = 1
+        ---@type number|nil
         local offset
         while true do
           local info = getinfo(i,"f")
@@ -176,6 +182,7 @@ local function evalmeta(env,frameId,alsoLookIn)
           local frame = frameId + offset
           --check for local at frameId
           i = 1
+          ---@type number|nil
           local localindex
           while true do
             local name = getlocal(frame,i)
@@ -228,6 +235,7 @@ __DebugAdapter.stepIgnore(evalmeta)
 ---@overload fun(frameId:number|nil,alsoLookIn:table|nil,context:string,expression:string,timed:boolean|nil): boolean,...
 ---@overload fun(frameId:number|nil,alsoLookIn:table|nil,context:string,expression:string): boolean,...
 function DAEval.evaluateInternal(frameId,alsoLookIn,context,expression,timed)
+  ---@type table
   local env = _ENV
 
   if frameId then
@@ -288,6 +296,7 @@ end
 ---@param alsoLookIn? table
 ---@param context? string
 ---@return string
+---@return any[]
 function DAEval.stringInterp(str,frameId,alsoLookIn,context)
   local sub = string.sub
   local evals = {}
@@ -387,19 +396,22 @@ function DAEval.evaluate(frameId,context,expression,seq,formod)
     end
   end
   local info = not frameId or debug.getinfo(frameId,"f")
+  ---@type Variable
   local evalresult
   if info then
-    ---@typelist LuaProfiler,boolean,Any
-    local timer,success,result
+    ---@type LuaProfiler
+    local timer
+    ---@type boolean
+    local success
+    ---@type Any
+    local result
     if context == "repl" then
-      ---@typelist LuaProfiler,boolean,Any
       timer,success,result = DAEval.evaluateInternal(frameId and frameId+1,nil,context,expression,true)
     else
-      ---@typelist boolean,Any
       success,result = DAEval.evaluateInternal(frameId and frameId+1,nil,context,expression)
     end
     if success then
-      evalresult = variables.create(nil,result,nil,true)
+      evalresult = variables.create(nil,result,nil)
       evalresult.result = evalresult.value
       if context == "visualize" then
         local mtresult = getmetatable(result)
@@ -415,7 +427,7 @@ function DAEval.evaluate(frameId,context,expression,seq,formod)
     else
       local outmesg = result
       local tmesg = type(result)
-      if tmesg == "table" and (result.object_name == "LuaProfiler" or (not getmetatable(result) and type(result[1])=="string")) then
+      if tmesg == "table" and (result--[[@as LuaObject]].object_name == "LuaProfiler" or (not getmetatable(result) and type(result[1])=="string")) then
         outmesg = "{LocalisedString "..variables.translate(result).."}"
       elseif tmesg ~= "string" then
         outmesg = variables.describe(result)

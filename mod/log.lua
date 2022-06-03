@@ -9,7 +9,6 @@ local debug = debug
 if not __DebugAdapter.instrument then return end
 
 local oldlog = log
----@type boolean
 local keepoldlog = __DebugAdapter.keepoldlog
 local function newlog(mesg)
   local outmesg = mesg
@@ -24,6 +23,7 @@ local function newlog(mesg)
     output = outmesg,
     };
   local istail = debug.getinfo(1,"t")
+  ---@type string
   local loc
   if istail.istailcall then
     body.line = 1

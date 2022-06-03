@@ -35,10 +35,12 @@ function DAStacks.stackTrace(startFrame, forRemote, seq)
     offset = offset + 1
   end
   local i = (startFrame or 0) + offset
+  ---@type StackFrame[]
   local stackFrames = {}
   while true do
     local info = debug.getinfo(i,"nSlutf")
     if not info then break end
+    ---@type string
     local framename = info.name or "(name unavailable)"
     if info.what == "main" then
       framename = "(main chunk)"

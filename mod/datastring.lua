@@ -25,10 +25,13 @@ local lshift = bit32.lshift
 local rshift = bit32.rshift
 
 local stepIgnore = __DebugAdapter and __DebugAdapter.stepIgnore or
----@param f function
----@return function
+---@generic T : table|function
+---@param f T
+---@return T
 function(f) return f end
 
+---@class DataString
+local DataString = {}
 
 --- reads an int from str starting at index.
 ---@param str string
@@ -57,6 +60,7 @@ local function ReadVarInt(str,index)
         return val,index+seq
     end
 end
+DataString.ReadVarInt = ReadVarInt
 
 --- convert an int to a string containing the encoded value
 ---@param val number
@@ -101,7 +105,7 @@ local function WriteVarInt(val)
     end
     return tconcat(s)
 end
-
+DataString.WriteVarInt = WriteVarInt
 
 --[[
 breakpoints = {
@@ -135,6 +139,7 @@ local function ReadString(strdata,i)
     local strout = ssub(strdata,i,val-1)
     return strout,val
 end
+DataString.ReadString = ReadString
 
 ---@param strdata string
 ---@param i number
@@ -161,6 +166,7 @@ local function ReadSourceBreakpoint(strdata,i)
 
     return bp,i
 end
+DataString.ReadSourceBreakpoint = ReadSourceBreakpoint
 
 ---@param strdata string
 ---@return string filename
@@ -206,11 +212,6 @@ local function ReadBreakpoints(strdata)
 
     return filename,bps
 end
+DataString.ReadBreakpoints = ReadBreakpoints
 
-return stepIgnore{
-    ReadVarInt = ReadVarInt,
-    WriteVarInt = WriteVarInt,
-    ReadString = ReadString,
-    ReadSourceBreakpoint = ReadSourceBreakpoint,
-    ReadBreakpoints = ReadBreakpoints,
-}
+return stepIgnore(DataString)

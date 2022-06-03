@@ -16,8 +16,12 @@ local DAprint = {}
 ---@param noexprs? boolean
 function DAprint.print(expr,alsoLookIn,upStack,category,noexprs)
   local texpr = type(expr)
-  local result,ref
+  ---@type string
+  local result
+  ---@type number
+  local ref
   if texpr == "string" then
+    ---@type any[]
     local exprs
     result,exprs = __DebugAdapter.stringInterp(expr,3,alsoLookIn,"print")
     if next(exprs) and not noexprs then
@@ -26,7 +30,7 @@ function DAprint.print(expr,alsoLookIn,upStack,category,noexprs)
         __debugtype = "<print>",
       })
 
-      local v = variables.create(nil,{exprs}, nil, true)
+      local v = variables.create(nil,{exprs}, nil)
       ref = v.variablesReference
     end
   elseif variables.translate and texpr == "table" and (expr.object_name == "LuaProfiler" or (not getmetatable(expr) and type(expr[1])=="string")) then
@@ -35,7 +39,7 @@ function DAprint.print(expr,alsoLookIn,upStack,category,noexprs)
     if texpr == "table" then
       expr = {expr}
     end
-    local v = variables.create(nil,expr, nil, true)
+    local v = variables.create(nil,expr, nil)
     result = v.value
     ref = v.variablesReference
   end

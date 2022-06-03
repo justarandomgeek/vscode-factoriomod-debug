@@ -12,10 +12,12 @@
 ---@field public condition string | nil
 ---@field public hitCondition string | nil
 ---@field public logMessage string | nil
+---@field hits number|nil
 
 ---@class Source
 ---@field public name string | nil
 ---@field public path string | nil
+---@field public sourceReference number | nil
 
 ---@class StackFrame
 ---@field public id number

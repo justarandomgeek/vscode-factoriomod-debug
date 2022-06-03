@@ -1,13 +1,19 @@
+---@class Profiler
+---@field trackFuncs? boolean
+---@field trackLines? boolean
+---@field trackTree? boolean
 __Profiler = __Profiler or {}
 local __Profiler = __Profiler
 
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local print = print
+---@type fun(LocalisedString)
 local localised_print = localised_print
 local debug = debug
 local mod_name = script.mod_name
 local pairs = pairs
 
+---@type fun(stopped?:boolean):LuaProfiler
 local create_profiler
 do
   local validLuaObjectTypes = {table=true,userdata=true}

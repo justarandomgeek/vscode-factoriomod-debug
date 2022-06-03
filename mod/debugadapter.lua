@@ -21,6 +21,7 @@ end
 ---@class DebugAdapter.Config
 ---@field nohook boolean set in DA's control.lua if it does not have hooks installed
 ---@field hooklog? boolean enable replacing `log`
+---@field keepoldlog? boolean when set, `log` replacement will still call original `log`
 ---@field runningBreak? number frequency to check for pause in long-running code
 ---@field checkGlobals? boolean enable warnings on writing to undefined globlas
 ---@field hascurrentpc? boolean set to `true` if debug.getinfo supports 'p'->`currentpc`
@@ -72,7 +73,13 @@ local debug = debug
 local print = print
 local pairs = pairs
 
+
+---Called by VSCode to retreive source for a function
+---@param id number
+---@param internal boolean Don't look in other LuaStates
+---@return boolean
 function __DebugAdapter.source(id,internal)
+  ---@type DAvarslib.SourceRef
   local ref = variables.longrefs[id]
   if ref and ref.type == "Source" then
     print("DBGdump: " .. json.encode{source=ref.source,ref=id})
@@ -98,6 +105,7 @@ end
 
 ---@return Module[]
 function __DebugAdapter.modules()
+  ---@type Module[]
   local modules = {}
   modules[1] = { id = "core", name = "core", }
   modules[2] = { id = "level", name = "level", }

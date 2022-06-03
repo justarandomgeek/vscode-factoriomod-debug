@@ -4,15 +4,20 @@ local script = script
 local pcall = pcall
 local validLuaObjectTypes = {table=true,userdata=true}
 
-
+---@class LuaObjectInfo
 local luaObjectInfo = {
   alwaysValid = {},
   eventlike = {},
   expandKeys = {},
 }
 do
+  ---@type string[]
   local objectChunks = {"return "}
 
+  ---Called by VSCode to load class data.
+  ---Called with no arguments after final chunk.
+  ---@param chunk string
+  ---@overload fun()
   function __DebugAdapter.loadObjectInfo(chunk)
     if chunk then
       objectChunks[#objectChunks+1] = chunk
@@ -25,9 +30,11 @@ do
   __DebugAdapter.loadObjectInfo = nil
 end
 
+---@type {[string]:string|fun(obj:LuaObject,short?:boolean):string}
 luaObjectInfo.lineItem = {
   ---@param stack LuaItemStack
   ---@param short boolean | nil
+  ---@return string
   LuaItemStack = function(stack,short)
     if stack.valid_for_read then
       if not short then
@@ -180,6 +187,9 @@ local function check_eventlike(level,hooktype)
 end
 luaObjectInfo.check_eventlike = check_eventlike
 
+---Check if a value is a LuaObject or LuaBindableObject
+---@param obj any
+---@return string|nil
 local function try_object_name(obj)
   -- basic checks for LuaObject-like things: is table(<=1.1) or usedata(>=1.2), has masked meta
   if not validLuaObjectTypes[type(obj)] then return end
