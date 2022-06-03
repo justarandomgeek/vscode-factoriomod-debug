@@ -197,11 +197,18 @@ function newscript.on_configuration_changed(f)
   return oldscript.on_configuration_changed(labelhandler(f,"on_configuration_changed handler"))
 end
 
----@param tick number
----@param f function
+---@param tick number|number[]
+---@param f function|nil
+---@overload fun(x:nil)
 function newscript.on_nth_tick(tick,f)
   if not tick then
-    return oldscript.on_nth_tick(nil)
+    if f then
+      -- pass this through for the error...
+      return oldscript.on_nth_tick(tick,f)
+    else
+      -- just in case somebody gives me a `false`...
+      return oldscript.on_nth_tick(tick)
+    end
   else
     local ttype = type(tick)
     if ttype == "number" then
@@ -215,11 +222,11 @@ function newscript.on_nth_tick(tick,f)
 end
 
 ---@param event number|string|table
----@param f function
+---@param f function|nil
 ---@vararg table
----@overload fun(event:number,f:function, filters:table)
----@overload fun(event:string,f:function)
----@overload fun(events:table,f:function)
+---@overload fun(event:number,f:function|nil, filters:table)
+---@overload fun(event:string,f:function|nil)
+---@overload fun(events:table,f:function|nil)
 function newscript.on_event(event,f,...)
   -- on_event checks arg count and throws if event is table and filters is present, even if filters is nil
   local etype = type(event)

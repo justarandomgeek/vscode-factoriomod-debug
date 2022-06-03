@@ -1,4 +1,7 @@
 local charmap='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+---base64 encode binary data from a string
+---@param data string binary data
+---@return string
 local function enc(data)
   return ((data:gsub('.',
   ---@param x string
