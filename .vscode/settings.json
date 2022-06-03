@@ -12,6 +12,7 @@
         "d:\\factorio\\factoriogit\\data",
         "d:\\factorio\\factoriogit\\data\\core\\lualib"
     ],
+    "Lua.runtime.plugin": ".vscode/lua/plugin.lua",
     "Lua.workspace.preloadFileSize": 1390,
     "Lua.diagnostics.globals": [
         "game",
