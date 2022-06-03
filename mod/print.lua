@@ -10,10 +10,10 @@ local print = print
 local DAprint = {}
 
 ---@param expr any
----@param alsoLookIn table
----@param upStack number
----@param category string "console"|"stdout"|"stderr"
----@param noexprs boolean
+---@param alsoLookIn? table
+---@param upStack? number
+---@param category? "console"|"important"|"stdout"|"stderr"
+---@param noexprs? boolean
 function DAprint.print(expr,alsoLookIn,upStack,category,noexprs)
   local texpr = type(expr)
   local result,ref
