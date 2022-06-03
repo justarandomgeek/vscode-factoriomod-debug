@@ -126,7 +126,7 @@ If normal breakpoints are unusable for some reason, you can call `__DebugAdapter
 
 ## Terminate Session
 
-`__DebugAdatper.terminate()` can be used to terminate a debug session from mod code.
+`__DebugAdapter.terminate()` can be used to terminate a debug session from mod code.
 
 ## Simulate Events
 
