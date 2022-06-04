@@ -199,7 +199,7 @@ function newscript.on_configuration_changed(f)
 end
 
 ---@param tick number|number[]
----@param f function|nil
+---@param f fun(x:NthTickEventData)|nil
 ---@overload fun(x:nil)
 function newscript.on_nth_tick(tick,f)
   if not tick then
@@ -222,12 +222,12 @@ function newscript.on_nth_tick(tick,f)
   end
 end
 
----@param event number|string|table
----@param f function|nil
+---@param event defines.events|string|defines.events[]
+---@param f fun(e:EventData)|nil
 ---@vararg table
----@overload fun(event:number,f:function|nil, filters:table)
----@overload fun(event:string,f:function|nil)
----@overload fun(events:table,f:function|nil)
+---@overload fun(event:defines.events,f:fun(e:EventData)|nil, filters:table)
+---@overload fun(event:string,f:fun(e:EventData)|nil)
+---@overload fun(events:defines.events[],f:fun(e:EventData)|nil)
 function newscript.on_event(event,f,...)
   -- on_event checks arg count and throws if event is table and filters is present, even if filters is nil
   local etype = type(event)
