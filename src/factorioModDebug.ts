@@ -355,7 +355,12 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			fs.writeFileSync(path.join(args.modsPath,"mod-settings.dat"),settings.save());
 		}
 
-		this.loadClassData(args.factorioPath);
+		if (!this.loadClassData(args.factorioPath)) {
+			this.terminate();
+			// send the response now and return early to kill the sessions...
+			this.sendResponse(response);
+			return;
+		}
 
 		this.factorio = new FactorioProcess(args.factorioPath,args.factorioArgs,args.nativeDebugger);
 
@@ -1183,11 +1188,20 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		}
 	}
 
-	private loadClassData(factorioPath:string)
+	private loadClassData(factorioPath:string):boolean
 	{
-		const docpath = path.resolve(factorioPath, "../../../doc-html/runtime-api.json");
-		const docs = new ApiDocGenerator(fs.readFileSync(docpath,"utf8"));
-		this.objectInfoChunks = bufferChunks(objectToLua(docs.generate_debuginfo()),3500);
+		const docpath = path.resolve(factorioPath,
+			(os.platform() === "darwin") ? "../../doc-html/runtime-api.json" :
+			"../../../doc-html/runtime-api.json"
+			);
+		try {
+			const docs = new ApiDocGenerator(fs.readFileSync(docpath,"utf8"));
+			this.objectInfoChunks = bufferChunks(objectToLua(docs.generate_debuginfo()),3500);
+			return true;
+		} catch (error) {
+			this.sendEvent(new OutputEvent(`failed to read ${docpath}: ${error}\n`,"stderr"));
+			return false;
+		}
 	}
 
 	private sendClassData()
@@ -1532,7 +1546,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			this.editorWatcher = undefined;
 		}
 
-		this.factorio.kill();
+		this.factorio?.kill?.();
 		const modsPath = this.launchArgs.modsPath;
 		if (modsPath) {
 			const modlistpath = path.resolve(modsPath,"./mod-list.json");

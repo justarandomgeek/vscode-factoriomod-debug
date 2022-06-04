@@ -4,6 +4,8 @@
 
 ## 1.1.15
 
+* Terminate sessions instead of hanging when failing to read JSON docs
+* Read correct JSON docs path on mac
 
 ## 1.1.14
 
