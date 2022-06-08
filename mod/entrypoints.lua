@@ -1,7 +1,7 @@
 local rawxpcall = xpcall
 local debug = debug
 local print = print
----@type fun(LocalisedString)
+---@type fun(ls:LocalisedString)
 local localised_print = localised_print
 local __DebugAdapter = __DebugAdapter
 local setmetatable = setmetatable

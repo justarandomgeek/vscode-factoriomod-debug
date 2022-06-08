@@ -7,7 +7,7 @@ local __Profiler = __Profiler
 
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local print = print
----@type fun(LocalisedString)
+---@type fun(ls:LocalisedString)
 local localised_print = localised_print
 local debug = debug
 local mod_name = script.mod_name
@@ -64,7 +64,7 @@ end
 
 ---@class Accumulator
 ---@field timer LuaProfiler
----@field add fun(LuaProfiler)
+---@field add fun(other:LuaProfiler)
 
 ---@return Accumulator
 local function getaccumulator()

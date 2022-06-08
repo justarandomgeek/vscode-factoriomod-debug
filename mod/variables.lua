@@ -187,7 +187,7 @@ do
 end
 
 do
-  ---@type fun(LocalisedString)
+  ---@type fun(ls:LocalisedString)
   local localised_print = localised_print
 
   ---Translate a LocalisedString
