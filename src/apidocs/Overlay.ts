@@ -16,10 +16,13 @@ export const overlay:{
 				value?: ApiType
 			}
 		} }
+		define: { [name:string]: {
+			subkeys?:string[]
+		}}
 	}
 
 } = {
-	version: 2,
+	version: 3,
 
 	// whole classes not preset in json
 	custom: [
@@ -503,6 +506,11 @@ export const overlay:{
 					key: "uint"
 				}
 			},
+		},
+		define: {
+			"defines.prototypes": {
+				subkeys: ["string", "string"]
+			}
 		}
 	},
 };

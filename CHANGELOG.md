@@ -4,6 +4,7 @@
 
 ## 1.1.16
 
+* Generate an indexed type for `defines.prototypes`
 
 ## 1.1.15
 

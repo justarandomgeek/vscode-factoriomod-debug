@@ -252,7 +252,16 @@ export class ApiDocGenerator {
 			output.write(this.convert_sumneko_description(
 				extend_string({str: define.description, post: "\n\n"})+this.view_documentation(name)
 			));
-			output.write(`---@class ${name}\n${name}={\n`);
+
+			const adjust = overlay.adjust.define[name];
+			let indextag = "";
+			if (adjust?.subkeys) {
+				indextag = ": " + adjust.subkeys
+					.map(s=>({start:`{[${s}]:`, end:`}`}))
+					.reduceRight((s,c)=>`${c.start}${s}${c.end}`,"0");
+			}
+
+			output.write(`---@class ${name}${indextag}\n${name}={\n`);
 			const child_prefix = `${name}.`;
 			if (define.values) {
 				define.values.forEach(value=>{
