@@ -6,7 +6,36 @@ interface DuplicateDefinitionDiagnostic extends vscode.Diagnostic {
 	newsym: vscode.DocumentSymbol
 }
 
-export async function validateLocale(document: vscode.Uri|vscode.TextDocument): Promise<vscode.Diagnostic[]> {
+export function activeateLocaleLangProvider(context:vscode.ExtensionContext, diagnosticCollection:vscode.DiagnosticCollection) {
+	context.subscriptions.push(
+		vscode.languages.registerCodeActionsProvider({ scheme: 'file', language: 'factorio-locale' }, new LocaleCodeActionProvider()));
+
+
+	vscode.workspace.findFiles("**/locale/*/*.cfg").then(uris => {
+		// check diagnostics
+		uris.forEach(async uri=> diagnosticCollection.set(uri, await validateLocale(uri)));
+	});
+
+	context.subscriptions.push(
+		vscode.workspace.onDidChangeTextDocument(async change =>{
+			if (change.document.languageId === "factorio-locale")
+			{
+				// if it's changelog.txt, recheck diagnostics...
+				diagnosticCollection.set(change.document.uri, await validateLocale(change.document));
+			}
+		}));
+
+	context.subscriptions.push(
+		vscode.languages.registerColorProvider(
+			{scheme:"file", language:"factorio-locale"}, new LocaleColorProvider()));
+
+	context.subscriptions.push(
+		vscode.languages.registerDocumentSymbolProvider(
+			{scheme:"file", language:"factorio-locale"}, new LocaleDocumentSymbolProvider()));
+
+}
+
+async function validateLocale(document: vscode.Uri|vscode.TextDocument): Promise<vscode.Diagnostic[]> {
 	if (document instanceof vscode.Uri)
 	{
 		document = await vscode.workspace.openTextDocument(document);
@@ -129,7 +158,7 @@ export async function validateLocale(document: vscode.Uri|vscode.TextDocument): 
 	return diags;
 }
 
-export class LocaleCodeActionProvider implements vscode.CodeActionProvider {
+class LocaleCodeActionProvider implements vscode.CodeActionProvider {
 	public provideCodeActions(document: vscode.TextDocument, range: vscode.Range, context: vscode.CodeActionContext, token: vscode.CancellationToken): vscode.CodeAction[] {
 		if (document.languageId === "factorio-locale") {
 			return context.diagnostics.filter(diag => !!diag.code).map((diag) => {
@@ -159,7 +188,7 @@ export class LocaleCodeActionProvider implements vscode.CodeActionProvider {
 	}
 }
 
-export class LocaleColorProvider implements vscode.DocumentColorProvider {
+class LocaleColorProvider implements vscode.DocumentColorProvider {
 	private readonly constColors = new Map([
 		["default", new vscode.Color(1.000, 0.630, 0.259, 1)],
 		["red", new vscode.Color(1.000, 0.166, 0.141, 1)],
@@ -282,7 +311,7 @@ export class LocaleColorProvider implements vscode.DocumentColorProvider {
 		});
 	}
 }
-export class LocaleDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
+class LocaleDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
 	public provideDocumentSymbols(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.DocumentSymbol[] {
 		const symbols: vscode.DocumentSymbol[] = [];
 		let category: vscode.DocumentSymbol | undefined;

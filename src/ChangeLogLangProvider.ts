@@ -1,6 +1,29 @@
 'use strict';
 import * as vscode from 'vscode';
-export async function validateChangelogTxt(document: vscode.Uri|vscode.TextDocument): Promise<vscode.Diagnostic[]> {
+
+export function activateChangeLogLangProvider(context: vscode.ExtensionContext, diagnosticCollection: vscode.DiagnosticCollection) {
+	context.subscriptions.push(
+		vscode.languages.registerCodeActionsProvider({ scheme: 'file', language: 'factorio-changelog' }, new ChangelogCodeActionProvider()));
+
+	vscode.workspace.findFiles("**/changelog.txt").then(uris => {
+		// check diagnostics
+		uris.forEach(async uri=> diagnosticCollection.set(uri, await validateChangelogTxt(uri)));
+	});
+	context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(async change =>{
+		if (change.document.languageId === "factorio-changelog")
+		{
+			// if it's changelog.txt, recheck diagnostics...
+			diagnosticCollection.set(change.document.uri, await validateChangelogTxt(change.document));
+		}
+	}));
+
+	context.subscriptions.push(
+		vscode.languages.registerDocumentSymbolProvider(
+			{scheme:"file", language:"factorio-changelog"}, new ChangelogDocumentSymbolProvider()));
+
+}
+
+async function validateChangelogTxt(document: vscode.Uri|vscode.TextDocument): Promise<vscode.Diagnostic[]> {
 	const changelog = (document instanceof vscode.Uri ?
 		(await vscode.workspace.fs.readFile(document)).toString().replace(/^\uFEFF/, '') : document.getText()).split(/\r?\n/);
 	const diags: vscode.Diagnostic[] = [];
@@ -150,7 +173,7 @@ export async function validateChangelogTxt(document: vscode.Uri|vscode.TextDocum
 	}
 	return diags;
 }
-export class ChangelogCodeActionProvider implements vscode.CodeActionProvider {
+class ChangelogCodeActionProvider implements vscode.CodeActionProvider {
 	public provideCodeActions(document: vscode.TextDocument, range: vscode.Range, context: vscode.CodeActionContext, token: vscode.CancellationToken): vscode.CodeAction[] {
 		if (document.languageId === "factorio-changelog") {
 			return context.diagnostics.filter(diag => !!diag.code).map((diag) => {
@@ -233,7 +256,7 @@ export class ChangelogCodeActionProvider implements vscode.CodeActionProvider {
 		return [];
 	}
 }
-export class ChangelogDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
+class ChangelogDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
 	public provideDocumentSymbols(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.DocumentSymbol[] {
 		const symbols: vscode.DocumentSymbol[] = [];
 		let version: vscode.DocumentSymbol | undefined;

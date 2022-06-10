@@ -5,8 +5,8 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as ini from 'ini';
 import { FactorioModDebugSession } from './factorioModDebug';
-import { validateLocale, LocaleColorProvider, LocaleDocumentSymbolProvider, LocaleCodeActionProvider } from './LocaleLangProvider';
-import { ChangelogCodeActionProvider, validateChangelogTxt, ChangelogDocumentSymbolProvider } from './ChangeLogLangProvider';
+import { activeateLocaleLangProvider } from './LocaleLangProvider';
+import { activateChangeLogLangProvider } from './ChangeLogLangProvider';
 import { ModsTreeDataProvider } from './ModPackageProvider';
 import { ApiDocGenerator } from './apidocs/ApiDocGenerator';
 
@@ -22,53 +22,15 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('factoriomod', factory));
 	context.subscriptions.push(factory);
 
-
 	diagnosticCollection = vscode.languages.createDiagnosticCollection('factorio');
 	context.subscriptions.push(diagnosticCollection);
 
-	context.subscriptions.push(
-		vscode.languages.registerCodeActionsProvider({ scheme: 'file', language: 'factorio-changelog' }, new ChangelogCodeActionProvider()));
+	activateChangeLogLangProvider(context,diagnosticCollection);
+	activeateLocaleLangProvider(context,diagnosticCollection);
 
-	vscode.workspace.findFiles("**/changelog.txt").then(uris => {
-		// check diagnostics
-		uris.forEach(async uri=> diagnosticCollection.set(uri, await validateChangelogTxt(uri)));
-	});
-
-	context.subscriptions.push(
-		vscode.languages.registerCodeActionsProvider({ scheme: 'file', language: 'factorio-locale' }, new LocaleCodeActionProvider()));
-
-
-	vscode.workspace.findFiles("**/locale/*/*.cfg").then(uris => {
-		// check diagnostics
-		uris.forEach(async uri=> diagnosticCollection.set(uri, await validateLocale(uri)));
-	});
-
-	vscode.workspace.onDidChangeTextDocument(async change =>{
-		if (change.document.languageId === "factorio-changelog")
-		{
-			// if it's changelog.txt, recheck diagnostics...
-			diagnosticCollection.set(change.document.uri, await validateChangelogTxt(change.document));
-		}
-		else if (change.document.languageId === "factorio-locale")
-		{
-			// if it's changelog.txt, recheck diagnostics...
-			diagnosticCollection.set(change.document.uri, await validateLocale(change.document));
-		}
-	});
 	vscode.workspace.onDidDeleteFiles(deleted => {
 		deleted.files.forEach(uri=>{diagnosticCollection.set(uri, undefined);});
 	});
-	context.subscriptions.push(
-		vscode.languages.registerDocumentSymbolProvider(
-			{scheme:"file", language:"factorio-changelog"}, new ChangelogDocumentSymbolProvider()));
-
-	context.subscriptions.push(
-		vscode.languages.registerColorProvider(
-			{scheme:"file", language:"factorio-locale"}, new LocaleColorProvider()));
-
-	context.subscriptions.push(
-		vscode.languages.registerDocumentSymbolProvider(
-			{scheme:"file", language:"factorio-locale"}, new LocaleDocumentSymbolProvider()));
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand("factorio.makedocs",async () => {
