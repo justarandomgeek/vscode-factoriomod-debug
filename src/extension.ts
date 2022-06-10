@@ -32,97 +32,8 @@ export function activate(context: vscode.ExtensionContext) {
 		deleted.files.forEach(uri=>{diagnosticCollection.set(uri, undefined);});
 	});
 
-	context.subscriptions.push(
-		vscode.commands.registerCommand("factorio.makedocs",async () => {
-			const file = await vscode.window.showOpenDialog({filters:{ "JSON Docs":["json"] } });
-			if (!file) {return;}
-			const docjson = Buffer.from(await vscode.workspace.fs.readFile(file[0])).toString("utf8");
-			const gen = new ApiDocGenerator(docjson);
-			const save = await vscode.window.showSaveDialog({
-				filters:{
-					"Sumneko EmmyLua Doc File":["lua"],
-				},
-				defaultUri: file[0].with({path: file[0].path.replace(/.json$/,".lua")}),
-			});
-			if (save) {
-				if (save.path.endsWith(".lua")) {
-					const buff = gen.generate_sumneko_docs();
-					vscode.workspace.fs.writeFile(save,buff);
-					const add_to_lib = <"Workspace"|"Global"|"No"|undefined> await vscode.window.showInformationMessage("Add generated file to library setting?",
-						{}, "Workspace", "Global", "No");
-					if (add_to_lib && add_to_lib !== "No")
-					{
-						const config = vscode.workspace.getConfiguration("Lua");
-						const library: string[] = config.get("workspace.library") ?? [];
-						if (!library.includes(save.fsPath)) {
-							library.push(save.fsPath);
-							config.update("workspace.library", library, add_to_lib==="Global");
-						}
-						const preloadFileSize = config.get<number>("workspace.preloadFileSize",0);
-						const docFileSize = Math.trunc(buff.length/1000)+1;
-						if (preloadFileSize < docFileSize) {
-							if ((await vscode.window.showWarningMessage(`workspace.preloadFileSize value ${preloadFileSize}kb is too small to load the generated definitions file (${docFileSize}kb). Increase workspace.preloadFileSize?`,"Yes","No")) === "Yes") {
-								config.update("workspace.preloadFileSize",docFileSize, add_to_lib==="Global");
-							}
-						}
-					}
-					const config_for_sumneko = <"Workspace"|"Global"|"No"|undefined> await vscode.window.showInformationMessage("Configure `sumneko.lua` environment for factorio?",
-						{}, "Workspace", "Global", "No");
-					if (config_for_sumneko && config_for_sumneko !== "No")
-					{
-						const config = vscode.workspace.getConfiguration("Lua");
-						const globals= config.get<string[]>("diagnostics.globals") ?? [];
-						[
-							"game", "script", "remote", "commands", "settings", "rcon", "rendering",
-							"global", "log", "defines", "data", "mods", "serpent", "table_size",
-							"bit32", "util", "localised_print",
-							//TODO: more data stage ones?
-							"circuit_connector_definitions", "universal_connector_template",
-							"__DebugAdapter", "__Profiler",
-						].forEach(s=>{
-							if (!globals.includes(s))
-							{
-								globals.push(s);
-							}
-						});
-						config.update("diagnostics.globals", globals, config_for_sumneko==="Global");
+	context.subscriptions.push(vscode.commands.registerCommand("factorio.makedocs",makeDocsCommand));
 
-						config.update("runtime.version", "Lua 5.2", config_for_sumneko==="Global");
-
-						const diagdisable= config.get<string[]>("diagnostics.disable") ?? [];
-						if (!diagdisable.includes("lowercase-global")) {
-							diagdisable.push("lowercase-global");
-						}
-						config.update("diagnostics.disable", diagdisable, config_for_sumneko==="Global");
-
-						const path_is_regular = file[0].path.match(/^(.*)[\/\\]doc-html[\/\\]runtime-api.json$/);
-						if (path_is_regular) {
-							const library: string[] = config.get("workspace.library") ?? [];
-							const rootpath = file[0].with({path:path_is_regular[1]});
-							const datapath = vscode.Uri.joinPath(rootpath,"data");
-							const lualibpath = vscode.Uri.joinPath(datapath,"core","lualib");
-							try {
-								if (!library.includes(datapath.fsPath) &&
-									// eslint-disable-next-line no-bitwise
-									((await vscode.workspace.fs.stat(datapath)).type & vscode.FileType.Directory)) {
-									library.push(datapath.fsPath);
-								}
-							} catch {}
-							try {
-								if (!library.includes(lualibpath.fsPath) &&
-									// eslint-disable-next-line no-bitwise
-									((await vscode.workspace.fs.stat(lualibpath)).type & vscode.FileType.Directory)) {
-									library.push(lualibpath.fsPath);
-								}
-							} catch {}
-
-							config.update("workspace.library", library, config_for_sumneko==="Global");
-
-						}
-					}
-				}
-			}
-		}));
 	if (vscode.workspace.workspaceFolders) {
 		const treeDataProvider = new ModsTreeDataProvider();
 		context.subscriptions.push(treeDataProvider);
@@ -135,6 +46,98 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
 	// nothing to do
+}
+
+
+async function makeDocsCommand() {
+	const file = await vscode.window.showOpenDialog({filters:{ "JSON Docs":["json"] } });
+	if (!file) {return;}
+	const docjson = Buffer.from(await vscode.workspace.fs.readFile(file[0])).toString("utf8");
+	const gen = new ApiDocGenerator(docjson);
+	const save = await vscode.window.showSaveDialog({
+		filters:{
+			"Sumneko EmmyLua Doc File":["lua"],
+		},
+		defaultUri: file[0].with({path: file[0].path.replace(/.json$/,".lua")}),
+	});
+	if (save) {
+		if (save.path.endsWith(".lua")) {
+			const buff = gen.generate_sumneko_docs();
+			vscode.workspace.fs.writeFile(save,buff);
+			const add_to_lib = <"Workspace"|"Global"|"No"|undefined> await vscode.window.showInformationMessage("Add generated file to library setting?",
+				{}, "Workspace", "Global", "No");
+			if (add_to_lib && add_to_lib !== "No")
+			{
+				const config = vscode.workspace.getConfiguration("Lua");
+				const library: string[] = config.get("workspace.library") ?? [];
+				if (!library.includes(save.fsPath)) {
+					library.push(save.fsPath);
+					config.update("workspace.library", library, add_to_lib==="Global");
+				}
+				const preloadFileSize = config.get<number>("workspace.preloadFileSize",0);
+				const docFileSize = Math.trunc(buff.length/1000)+1;
+				if (preloadFileSize < docFileSize) {
+					if ((await vscode.window.showWarningMessage(`workspace.preloadFileSize value ${preloadFileSize}kb is too small to load the generated definitions file (${docFileSize}kb). Increase workspace.preloadFileSize?`,"Yes","No")) === "Yes") {
+						config.update("workspace.preloadFileSize",docFileSize, add_to_lib==="Global");
+					}
+				}
+			}
+			const config_for_sumneko = <"Workspace"|"Global"|"No"|undefined> await vscode.window.showInformationMessage("Configure `sumneko.lua` environment for factorio?",
+				{}, "Workspace", "Global", "No");
+			if (config_for_sumneko && config_for_sumneko !== "No")
+			{
+				const config = vscode.workspace.getConfiguration("Lua");
+				const globals= config.get<string[]>("diagnostics.globals") ?? [];
+				[
+					"game", "script", "remote", "commands", "settings", "rcon", "rendering",
+					"global", "log", "defines", "data", "mods", "serpent", "table_size",
+					"bit32", "util", "localised_print",
+					//TODO: more data stage ones?
+					"circuit_connector_definitions", "universal_connector_template",
+					"__DebugAdapter", "__Profiler",
+				].forEach(s=>{
+					if (!globals.includes(s))
+					{
+						globals.push(s);
+					}
+				});
+				config.update("diagnostics.globals", globals, config_for_sumneko==="Global");
+
+				config.update("runtime.version", "Lua 5.2", config_for_sumneko==="Global");
+
+				const diagdisable= config.get<string[]>("diagnostics.disable") ?? [];
+				if (!diagdisable.includes("lowercase-global")) {
+					diagdisable.push("lowercase-global");
+				}
+				config.update("diagnostics.disable", diagdisable, config_for_sumneko==="Global");
+
+				const path_is_regular = file[0].path.match(/^(.*)[\/\\]doc-html[\/\\]runtime-api.json$/);
+				if (path_is_regular) {
+					const library: string[] = config.get("workspace.library") ?? [];
+					const rootpath = file[0].with({path:path_is_regular[1]});
+					const datapath = vscode.Uri.joinPath(rootpath,"data");
+					const lualibpath = vscode.Uri.joinPath(datapath,"core","lualib");
+					try {
+						if (!library.includes(datapath.fsPath) &&
+							// eslint-disable-next-line no-bitwise
+							((await vscode.workspace.fs.stat(datapath)).type & vscode.FileType.Directory)) {
+							library.push(datapath.fsPath);
+						}
+					} catch {}
+					try {
+						if (!library.includes(lualibpath.fsPath) &&
+							// eslint-disable-next-line no-bitwise
+							((await vscode.workspace.fs.stat(lualibpath)).type & vscode.FileType.Directory)) {
+							library.push(lualibpath.fsPath);
+						}
+					} catch {}
+
+					config.update("workspace.library", library, config_for_sumneko==="Global");
+
+				}
+			}
+		}
+	}
 }
 
 
