@@ -6,9 +6,9 @@ type ApiOperator = ApiOperatorV1|ApiOperatorV2;
 
 interface ApiDocsV1 {
 	readonly application:"factorio"
-	readonly stage:"runtime"
 	readonly application_version:string
 	readonly api_version:1
+	readonly stage:"runtime"
 
 	readonly classes: ApiClassV1[]
 	readonly events: ApiEvent[]
@@ -20,9 +20,9 @@ interface ApiDocsV1 {
 
 interface ApiDocsV2 {
 	readonly application:"factorio"
-	readonly stage:"runtime"
 	readonly application_version:string
 	readonly api_version:2
+	readonly stage:"runtime"
 
 	readonly classes: ApiClassV2[]
 	readonly events: ApiEvent[]
