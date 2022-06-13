@@ -6,7 +6,7 @@ interface DuplicateDefinitionDiagnostic extends vscode.Diagnostic {
 	newsym: vscode.DocumentSymbol
 }
 
-export function activeateLocaleLangProvider(context:vscode.ExtensionContext, diagnosticCollection:vscode.DiagnosticCollection) {
+export function activateLocaleLangProvider(context:vscode.ExtensionContext, diagnosticCollection:vscode.DiagnosticCollection) {
 	context.subscriptions.push(
 		vscode.languages.registerCodeActionsProvider({ scheme: 'file', language: 'factorio-locale' }, new LocaleCodeActionProvider()));
 

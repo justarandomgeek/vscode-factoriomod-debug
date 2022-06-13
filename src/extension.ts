@@ -5,7 +5,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as ini from 'ini';
 import { FactorioModDebugSession } from './factorioModDebug';
-import { activeateLocaleLangProvider } from './LocaleLangProvider';
+import { activateLocaleLangProvider } from './LocaleLangProvider';
 import { activateChangeLogLangProvider } from './ChangeLogLangProvider';
 import { ModsTreeDataProvider } from './ModPackageProvider';
 import { ApiDocGenerator } from './apidocs/ApiDocGenerator';
@@ -26,7 +26,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(diagnosticCollection);
 
 	activateChangeLogLangProvider(context,diagnosticCollection);
-	activeateLocaleLangProvider(context,diagnosticCollection);
+	activateLocaleLangProvider(context,diagnosticCollection);
 
 	vscode.workspace.onDidDeleteFiles(deleted => {
 		deleted.files.forEach(uri=>{diagnosticCollection.set(uri, undefined);});
