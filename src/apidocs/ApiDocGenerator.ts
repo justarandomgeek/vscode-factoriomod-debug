@@ -238,7 +238,7 @@ export class ApiDocGenerator {
 				output.write(this.convert_sumneko_description(
 					extend_string({str:builtin.description, post:"\n\n"}) + this.view_documentation(builtin.name)
 					));
-				output.write(`---@class ${builtin.name}:number\n\n`);
+				output.write(`---@alias ${builtin.name} number\n\n`);
 			}
 		});
 	}
