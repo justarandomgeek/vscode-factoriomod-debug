@@ -8,34 +8,25 @@
         ".vscode"
     ],
     "Lua.workspace.library": [
-        "d:\\factorio\\factoriogit\\doc-html\\runtime-api.lua",
+        "C:\\Users\\Thomas\\AppData\\Roaming\\Factorio\\mods\\.vscode\\factorio",
         "d:\\factorio\\factoriogit\\data",
         "d:\\factorio\\factoriogit\\data\\core\\lualib"
     ],
     "Lua.runtime.plugin": ".vscode/lua/plugin.lua",
-    "Lua.workspace.preloadFileSize": 1390,
+    "Lua.workspace.preloadFileSize": 5000,
     "Lua.diagnostics.globals": [
-        "game",
-        "script",
-        "remote",
-        "commands",
-        "settings",
-        "rcon",
-        "rendering",
-        "global",
-        "log",
-        "defines",
-        "data",
         "mods",
-        "serpent",
+        "log",
         "table_size",
-        "bit32",
-        "util",
         "localised_print",
-        "circuit_connector_definitions",
-        "universal_connector_template",
-		"on_error"
+        "on_error",
     ],
+    "Lua.diagnostics.neededFileStatus": {
+        //"no-unknown": "Any",
+    },
+    "Lua.diagnostics.severity": {
+        //"no-unknown": "Information"
+    },
     "Lua.runtime.version": "Lua 5.2",
     "Lua.diagnostics.disable": [
         "lowercase-global"
