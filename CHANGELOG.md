@@ -5,6 +5,9 @@
 ## 1.1.16
 
 * Generate an indexed type for `defines.prototypes`
+* Factorio Version Selector
+* Generate Sumneko EmmyLua typdefs in multiple files, and automatically when switching versions
+* Correctly locate files in `core` and `base` when debugging
 
 ## 1.1.15
 
