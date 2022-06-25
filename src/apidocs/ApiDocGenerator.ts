@@ -271,9 +271,20 @@ export class ApiDocGenerator {
 
 		const generate = (define:ApiDefine,name_prefix:string) => {
 			const name = `${name_prefix}${define.name}`;
-			output.write(this.convert_sumneko_description(
+			const doctext = this.convert_sumneko_description(
 				extend_string({str: define.description, post: "\n\n"})+this.view_documentation(name)
-			));
+			);
+			output.write(doctext);
+			output.write(`---@class ${name}\n`);
+
+			if (define.values) {
+				define.values.forEach(value=>{
+					output.write(this.convert_sumneko_description(
+						extend_string({str: value.description, post: "\n\n"})+this.view_documentation(`${name}.${value.name}`)
+						));
+					output.write(`---@class ${name}.${to_lua_ident(value.name)} : ${name} \n`);
+				});
+			}
 
 			const adjust = overlay.adjust.define[name];
 			let indextag = "";
@@ -283,17 +294,15 @@ export class ApiDocGenerator {
 					.reduceRight((s,c)=>`${c.start}${s}${c.end}`,"0");
 			}
 
-			output.write(`---@class ${name}${indextag}\n${name}={\n`);
+			output.write(doctext);
+			output.write(`---@class ${name}.__index${indextag}\n`);
 			const child_prefix = `${name}.`;
 			if (define.values) {
 				define.values.forEach(value=>{
-					output.write(this.convert_sumneko_description(
-						extend_string({str: value.description, post: "\n\n"})+this.view_documentation(`${name}.${value.name}`)
-						));
-					output.write(to_lua_ident(value.name)+"=0,\n");
+					output.write(`---@field ${to_lua_ident(value.name)} ${name}.${to_lua_ident(value.name)} \n`);
 				});
 			}
-			output.write("}\n\n");
+			output.write(`${name}={}\n`);
 			if (define.subkeys) {
 				define.subkeys.forEach(subkey=>generate(subkey,child_prefix));
 			}
