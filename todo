@@ -8,8 +8,9 @@ profile save for offline viewing
 replace data:extend with one that warns on non-arraylike?
 warn on no changelog in publish?
 build changelog from formatted commit messages
-use vscode auth system to keep one portal session
 map __#user__ to write-data tree for scenarios/campaigns
 plain TCP socket (for use with netcat or directly) for stdio
 break out object info & pretty printing as a library
 disassembler/sourcemap
+
+> If you put a breakpoint and it doesn't count because the file isn't saved, said breakpoint doesn't become real after you save the file. So you have to re-add it.

@@ -1,3 +1,5 @@
- import { FactorioModDebugSession } from './factorioModDebug';
+//TODO: copy the example from mock debug for standalone with constructor args...
 
- FactorioModDebugSession.run(FactorioModDebugSession);
+// import { FactorioModDebugSession } from './factorioModDebug';
+
+// FactorioModDebugSession.run(FactorioModDebugSession);

@@ -15,12 +15,11 @@ import { bufferChunks, encodeBreakpoints, luaBlockQuote, objectToLua } from './E
 import { Profile } from './Profile';
 import { FactorioProcess } from './FactorioProcess';
 import { ModInfo } from './ModPackageProvider';
-import { assert } from 'console';
 import { ModManager } from './ModManager';
 import { ModSettings } from './ModSettings';
 import { LuaFunction } from './LuaDisassembler';
 import { BufferStream } from './BufferStream';
-import { ApiDocGenerator } from './apidocs/ApiDocGenerator';
+import { ActiveFactorioVersion } from './VersionSelector';
 
 interface ModPaths{
 	uri: Uri
@@ -38,13 +37,8 @@ type EvaluateResponseBody = DebugProtocol.EvaluateResponse['body'] & {
 type resolver<T> = (value?: T | PromiseLike<T> | undefined)=>void;
 
 interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
-	factorioPath: string // path of factorio binary to launch
-	nativeDebugger: string // path to native debugger if in use
 	modsPath: string // path of `mods` directory
 	modsPathSource: string
-	configPath: string // path to config.ini
-	configPathDetected?: boolean
-	dataPath: string // path of `data` directory, always comes from config.ini
 	manageMod?: boolean
 	useInstrumentMode?: boolean
 	checkPrototypes?: boolean
@@ -80,16 +74,11 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 }
 
 export class FactorioModDebugSession extends LoggingDebugSession {
-
-	private context: vscode.ExtensionContext;
-
 	// we don't support multiple threads, so we can use a hardcoded ID for the default thread
 	private static THREAD_ID = 1;
 
 	private _configurationDone: resolver<void>;
 	private configDone: Promise<void>;
-
-	private objectInfoChunks: Buffer[]=[];
 
 	private readonly breakPoints = new Map<string, DebugProtocol.SourceBreakpoint[]>();
 	private readonly breakPointsChanged = new Set<string>();
@@ -129,7 +118,10 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	 * Creates a new debug adapter that is used for one debug session.
 	 * We configure the default implementation of a debug adapter here.
 	 */
-	public constructor() {
+	public constructor(
+		private readonly context: vscode.ExtensionContext,
+		private readonly activeVersion: ActiveFactorioVersion,
+		) {
 		super();
 
 		this.setDebuggerLinesStartAt1(true);
@@ -143,12 +135,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				this.profile.render(editor,profname);
 			}
 		});
-	}
-
-	public setContext(context: vscode.ExtensionContext)
-	{
-		assert(!this.context);
-		this.context = context;
 	}
 
 	/**
@@ -245,8 +231,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			await Promise.all(tasks.map(FactorioModDebugSession.runTask));
 		}
 
-		this.sendEvent(new OutputEvent(`using ${args.configPathDetected?"auto-detected":"manually-configured"} config.ini: ${args.configPath}\n`,"stdout"));
-
 		args.modsPath = args.modsPath.replace(/\\/g,"/");
 		// check for folder or symlink and leave it alone, if zip update if mine is newer
 		this.sendEvent(new OutputEvent(`using modsPath ${args.modsPath} (${args.modsPathSource})\n`,"stdout"));
@@ -311,9 +295,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			}
 		}
 
-		args.dataPath = args.dataPath.replace(/\\/g,"/");
-		this.sendEvent(new OutputEvent(`using dataPath ${args.dataPath}\n`,"stdout"));
-
 		const infos = await vscode.workspace.findFiles('**/info.json');
 		infos.forEach(this.updateInfoJson,this);
 
@@ -330,10 +311,11 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			}
 		}
 
-		if (!args.configPathDetected)
+		if (this.activeVersion.configPathIsOverriden())
 		{
-			args.factorioArgs.push("--config",args.configPath);
+			args.factorioArgs.push("--config",await this.activeVersion.configPath());
 		}
+
 		if (args.modsPathSource !== "config")
 		{
 			let mods = args.modsPath;
@@ -344,7 +326,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			args.factorioArgs.push("--mod-directory",mods);
 		}
 
-		this.createSteamAppID(args.factorioPath);
+		this.createSteamAppID();
 
 		if (args.adjustModSettings)
 		{
@@ -355,14 +337,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			fs.writeFileSync(path.join(args.modsPath,"mod-settings.dat"),settings.save());
 		}
 
-		if (!this.loadClassData(args.factorioPath)) {
-			this.terminate();
-			// send the response now and return early to kill the sessions...
-			this.sendResponse(response);
-			return;
-		}
-
-		this.factorio = new FactorioProcess(args.factorioPath,args.factorioArgs,args.nativeDebugger);
+		this.factorio = new FactorioProcess(this.activeVersion.factorioPath,args.factorioArgs,this.activeVersion.nativeDebugger);
 
 		this.factorio.on("exit", (code:number|null, signal:string) => {
 			if (this.profile)
@@ -1164,8 +1139,9 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		}
 	}
 
-	private createSteamAppID(factorioPath:string)
+	private createSteamAppID()
 	{
+		const factorioPath = this.activeVersion.factorioPath;
 		if (fs.existsSync(path.resolve(factorioPath,"../steam_api64.dll"))    ||// windows
 			fs.existsSync(path.resolve(factorioPath,"../libsteam_api.dylib")) ||// mac
 			fs.existsSync(path.resolve(factorioPath,"../libsteam_api.so")))     // linux
@@ -1188,22 +1164,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		}
 	}
 
-	private loadClassData(factorioPath:string):boolean
-	{
-		const docpath = path.resolve(factorioPath,
-			(os.platform() === "darwin") ? "../../doc-html/runtime-api.json" :
-			"../../../doc-html/runtime-api.json"
-			);
-		try {
-			const docs = new ApiDocGenerator(fs.readFileSync(docpath,"utf8"));
-			this.objectInfoChunks = bufferChunks(objectToLua(docs.generate_debuginfo()),3500);
-			return true;
-		} catch (error) {
-			this.sendEvent(new OutputEvent(`failed to read ${docpath}: ${error}\n`,"stderr"));
-			return false;
-		}
-	}
-
+	private readonly objectInfoChunks: Buffer[]=bufferChunks(objectToLua(this.activeVersion.docs.generate_debuginfo()),3500);
 	private sendClassData()
 	{
 		for (const chunk of this.objectInfoChunks) {
@@ -1425,7 +1386,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				if (module.name === "core" || module.name === "base")
 				{
 					// find `core` and `base` in data
-					module.symbolFilePath = Uri.joinPath(Uri.file(this.launchArgs.dataPath),module.name).toString();
+					module.symbolFilePath = Uri.joinPath(Uri.file(await this.activeVersion.dataPath()),module.name).toString();
 					module.symbolStatus = "Loaded Data Directory";
 					this.sendEvent(new OutputEvent(`loaded ${module.name} from data ${module.symbolFilePath}\n`,"stdout"));
 					continue;

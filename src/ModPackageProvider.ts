@@ -57,7 +57,16 @@ interface PortalError {
 	message:string
 }
 
-export class ModTaskProvider implements vscode.TaskProvider{
+export function activateModPackageProvider(context:vscode.ExtensionContext) {
+	if (vscode.workspace.workspaceFolders) {
+		const treeDataProvider = new ModsTreeDataProvider();
+		context.subscriptions.push(treeDataProvider);
+		const view = vscode.window.createTreeView('factoriomods', { treeDataProvider: treeDataProvider });
+		context.subscriptions.push(view);
+	}
+}
+
+class ModTaskProvider implements vscode.TaskProvider{
 	constructor(private readonly modPackages: Map<string, ModPackage>) {}
 
 
@@ -252,7 +261,7 @@ export class ModTaskProvider implements vscode.TaskProvider{
 	}
 }
 
-export class ModPackage extends vscode.TreeItem {
+class ModPackage extends vscode.TreeItem {
 	public label: string; // used as modname
 	public description: string; // used as modversion
 	public packageIgnore?: string[];
@@ -765,7 +774,7 @@ export class ModPackage extends vscode.TreeItem {
 		});
 	}
 }
-export class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>, vscode.Disposable {
+class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>, vscode.Disposable {
 	private readonly _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | undefined> = new vscode.EventEmitter<vscode.TreeItem | undefined>();
 	readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | undefined> = this._onDidChangeTreeData.event;
 

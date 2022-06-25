@@ -277,6 +277,51 @@
                 "threshold": 0.5
               }
             ]
+          },
+          "factorio.versions": {
+            "type": "array",
+            "description": "Factorio installations configured for use with debugging and profiling.",
+            "items": {
+              "type":"object",
+              "required": ["name", "factorioPath"],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Display name for this installation"
+                },
+                "active": {
+                  "const": true
+                },
+                "factorioPath": {
+                  "type": "string",
+                  "description": "Path to Factorio binary file.",
+                  "examples": [
+                    "C:/Program Files (x86)/Steam/steamapps/common/Factorio/bin/x64/factorio.exe",
+                    "C:/Program Files/Factorio/bin/x64/factorio.exe",
+                    "~/Library/Application Support/Steam/steamapps/common/Factorio/factorio.app/Contents/MacOS/factorio",
+                    "/Applications/factorio.app/Contents/MacOS/factorio",
+                    "~/.factorio/bin/x64/factorio",
+                    "${userHome}/.factorio/bin/x64/factorio",
+                    "${workspaceFolder}/factorio/bin/x64/factorio"
+                  ]
+                },
+                "configPath": {
+                  "type": "string",
+                  "description": "Path to Factorio config.ini file."
+                },
+                "docsPath": {
+                  "type": "string",
+                  "description": "Path to runtime-api.json, must be relative to factorioPath."
+                },
+                "nativeDebugger": {
+                  "type": "string",
+                  "description": "Native debugger to launch factorio with",
+                  "examples": [
+                    "vsjitdebugger.exe"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -370,11 +415,6 @@
         "category": "Factorio",
         "title": "Publish Mod",
         "icon": "$(repo-push)"
-      },
-      {
-        "command": "factorio.makedocs",
-        "category": "Factorio",
-        "title": "Generate Typedefs"
       }
     ],
     "views": {
@@ -641,32 +681,6 @@
                   true
                 ]
               },
-              "factorioPath": {
-                "type": "string",
-                "description": "Path to Factorio binary file.",
-                "examples": [
-                  "C:/Program Files (x86)/Steam/steamapps/common/Factorio/bin/x64/factorio.exe",
-                  "C:/Program Files/Factorio/bin/x64/factorio.exe",
-                  "~/Library/Application Support/Steam/steamapps/common/Factorio/factorio.app/Contents/MacOS/factorio",
-                  "/Applications/factorio.app/Contents/MacOS/factorio",
-                  "~/.factorio/bin/x64/factorio"
-                ]
-              },
-              "nativeDebugger": {
-                "type": "string",
-                "description": "Native debugger to launch factorio with",
-                "examples": [
-                  "vsjitdebugger.exe"
-                ]
-              },
-              "configPath": {
-                "type": "string",
-                "description": "Path to Factorio config.ini file."
-              },
-              "modsPath": {
-                "type": "string",
-                "description": "Absolute path to Factorio mods directory."
-              },
               "manageMod": {
                 "type": "boolean",
                 "description": "Enable automatic management of the debugadapter mod",
@@ -853,14 +867,12 @@
           {
             "type": "factoriomod",
             "request": "launch",
-            "name": "Factorio Mod Debug",
-            "factorioPath": ""
+            "name": "Factorio Mod Debug"
           },
           {
             "type": "factoriomod",
             "request": "launch",
             "name": "Factorio Mod Debug (Settings & Data)",
-            "factorioPath": "",
             "hookSettings": true,
             "hookData": true
           },
@@ -868,7 +880,6 @@
             "type": "factoriomod",
             "request": "launch",
             "name": "Factorio Mod Debug (Profile)",
-            "factorioPath": "",
             "hookMode": "profile"
           }
         ],
@@ -879,8 +890,7 @@
             "body": {
               "type": "factoriomod",
               "request": "launch",
-              "name": "Factorio Mod Debug",
-              "factorioPath": "$0"
+              "name": "Factorio Mod Debug"
             }
           },
           {
@@ -890,7 +900,6 @@
               "type": "factoriomod",
               "request": "launch",
               "name": "Factorio Mod Debug",
-              "factorioPath": "$0",
               "hookSettings": true,
               "hookData": true
             }
@@ -902,7 +911,6 @@
               "type": "factoriomod",
               "request": "launch",
               "name": "Factorio Mod Debug (Profile)",
-              "factorioPath": "$0",
               "hookMode": "profile"
             }
           }
