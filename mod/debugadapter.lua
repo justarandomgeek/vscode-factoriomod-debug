@@ -72,7 +72,7 @@ local script = script
 local debug = debug
 local print = print
 local pairs = pairs
-
+local match = string.match
 
 ---Called by VSCode to retreive source for a function
 ---@param id number
@@ -90,7 +90,7 @@ function __DebugAdapter.source(id,internal)
   if __DebugAdapter.canRemoteCall() then
     local call = remote.call
     for remotename,_ in pairs(remote.interfaces) do
-      local modname = remotename:match("^__debugadapter_(.+)$")
+      local modname = match(remotename, "^__debugadapter_(.+)$")
       if modname then
         if call(remotename,"source",id,true) then
           return true

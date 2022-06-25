@@ -24,6 +24,7 @@ local remote = remote and (type(remote)=="table" and rawget(remote,"__raw")) or 
 local debug = debug
 local print = print
 local pairs = pairs
+local match = string.match
 
 if __DebugAdapter.nohook then
   DAMerge(require("__debugadapter__/stacks.lua")) -- might have already been run, but load it now if not
@@ -35,10 +36,8 @@ end
 local function callAll(funcname,...)
   local results = {}
   local call = remote.call
-  ---@type string
   for remotename,_ in pairs(remote.interfaces) do
-    ---@type string
-    local modname = remotename:match("^__debugadapter_(.+)$")
+    local modname = match(remotename,"^__debugadapter_(.+)$")
     if modname then
       ---@type Any
       local result = call(remotename,funcname,...)

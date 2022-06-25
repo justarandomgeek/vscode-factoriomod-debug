@@ -198,7 +198,7 @@ function newscript.on_configuration_changed(f)
   return oldscript.on_configuration_changed(labelhandler(f,"on_configuration_changed handler"))
 end
 
----@param tick number|number[]
+---@param tick number|number[]|nil
 ---@param f fun(x:NthTickEventData)|nil
 ---@overload fun(x:nil)
 function newscript.on_nth_tick(tick,f)
