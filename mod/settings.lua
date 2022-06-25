@@ -4,7 +4,11 @@
 -- if using manual require in settings stage, include an optional dep on debugadapter to force ordering
 if not debug.getregistry().__DASentModules then
   local json = require('__debugadapter__/json.lua')
-  local modules = {}
+  local modules = {
+    {
+      id = "core", name = "core",
+    }
+  }
   ---@type string
   for name,version in pairs(mods) do
     modules[#modules+1] = {
