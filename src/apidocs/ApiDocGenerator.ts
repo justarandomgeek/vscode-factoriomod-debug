@@ -312,9 +312,10 @@ export class ApiDocGenerator {
 	}
 	private generate_sumneko_events(output:WritableMemoryStream) {
 		this.docs.events.forEach(event=>{
+			output.write(`---@alias ${event.name} EventData.${event.name}\n`);
 			const view_documentation_link = this.view_documentation(event.name);
 			output.write(this.convert_sumneko_description(this.format_entire_description(event,view_documentation_link)));
-			output.write(`---@class ${event.name}\n`);
+			output.write(`---@class EventData.${event.name} : EventData\n`);
 			event.data.forEach(param=>{
 				output.write(this.convert_sumneko_description(extend_string({str: param.description, post: "\n\n"}) + view_documentation_link));
 				output.write(`---@field ${param.name} ${this.format_sumneko_type(param.type,()=>[`${event.name}.${param.name}`, view_documentation_link])}`);
