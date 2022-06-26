@@ -509,8 +509,8 @@ export class ApiDocGenerator {
 							}${extend_string({pre:": ",str:option.description})}`)
 						}`
 					)));
-					output.write(`---@class ${concept.name}:`);
-					output.write(sorted_options.map(option=>this.format_sumneko_type(option.type, ()=>get_table_name_and_view_doc_link(option))).join(","));
+					output.write(`---@alias ${concept.name} `);
+					output.write(sorted_options.map(option=>this.format_sumneko_type(option.type, ()=>get_table_name_and_view_doc_link(option))).join("|"));
 					output.write("\n\n");
 					break;
 				case "concept":
