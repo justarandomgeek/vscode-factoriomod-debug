@@ -33,7 +33,6 @@ I use [VScode](https://code.visualstudio.com/) (imagine that!), but it needs a f
  * Optional: [Git Graph](https://marketplace.visualstudio.com/items?itemName=mhutchie.git-graph). I happen to like the graph git log view this extension gives as a place to do manual git operations more complicated than the builtin SCM view provides for.
 
 To provide Factorio Lua API autocompletion, the Factorio mod debugger extension generates EmmyLua docs from the Factorio JSON docs, which are then used by the [sumneko.lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua) language server for its autocompletion feature.
-To generate EmmyLua docs for the Factorio API from the JSON docs, press `Ctrl-Shift-P` to open the command palette and run the `Factorio: Generate Typedefs` command. In the file picker, open `factorio/doc-html/runtime-api.json`, and save the generated Lua file in the `.vscode` folder. This command will also offer to add it to the library and adjust other configuration for [sumneko.lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua). If you don't take this offer, you will have to add the generated Lua file to your `settings.json` manually: Add `"Lua.workspace.library": [ "path/to/mods/.vscode/runtime-api.lua" ]` to your settings.json.
 
 Install [the Factorio Sumneko Lua Plugin](https://github.com/JanSharp/FactorioSumnekoLuaPlugin) into `.vscode/lua` to improve handling of `require`s, `global`, `on_event` and `remote.call`.
 

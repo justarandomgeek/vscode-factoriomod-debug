@@ -13,3 +13,7 @@ break out object info & pretty printing as a library
 disassembler/sourcemap
 
 > If you put a breakpoint and it doesn't count because the file isn't saved, said breakpoint doesn't become real after you save the file. So you have to re-add it.
+
+
+move steam appid check to version selector
+remove __debugchildren, replace with __debugcounts->named,indexed and __debugpairs -> iter<name,value,virtual?>
