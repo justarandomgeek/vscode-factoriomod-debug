@@ -25,6 +25,7 @@ If you use a Steam install, a file `steam_appid.txt` with content `427520` in th
   * [Language Features](doc/language.md)
   * [Mod Packaging](doc/package.md)
   * [Profiling](doc/profile.md)
+  * [Workspace Setup Tips](doc/workspace.md)
 
 ## Support the Debugger
 
