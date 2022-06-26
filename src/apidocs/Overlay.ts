@@ -22,10 +22,29 @@ export const overlay:{
 	}
 
 } = {
-	version: 3,
+	version: 4,
 
 	// whole classes not preset in json
 	custom: [
+		{
+			name: "LuaObject",
+			parameters: [
+				{
+					name: "valid",
+					order: i++,
+					description: "",
+					optional: true,
+					type: "boolean",
+				},
+				{
+					name: "object_name",
+					order: i++,
+					description: "",
+					optional: true,
+					type: "string",
+				},
+			],
+		},
 		{
 			name: "BlueprintCircuitConnection",
 			parameters: [],

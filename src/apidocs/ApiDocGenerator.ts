@@ -335,13 +335,7 @@ export class ApiDocGenerator {
 			return buff.length;
 		});
 
-		const ms = new WritableMemoryStream();
-		this.generate_sumneko_header(ms,"LuaObject");
-		ms.write(`\n\n---@alias LuaObject ${this.docs.classes.map(aclass=>aclass.name).join("|")}\n\n`);
-		ms.write(`\n`);
-		const buff = ms.toBuffer();
-		await writeFile(`runtime-api-LuaObject.lua`,buff);
-		return Math.max(buff.length, ...await Promise.all(classSizes));
+		return Math.max(...await Promise.all(classSizes));
 	}
 
 	private add_sumneko_class(output:WritableMemoryStream,aclass:ApiClass):void;
@@ -449,7 +443,7 @@ export class ApiDocGenerator {
 			const generic_methods = overlay.adjust.class[aclass.name]?.generic_methods;
 			const generic_bases = generic_methods?.map(m=>`{${m.name}:fun():${m.return_values.join(",")}}`);
 
-			const bases = [indexed_table, ...generic_bases??[], ...base_classes??[]].filter(s=>!!s);
+			const bases = ["LuaObject", indexed_table, ...generic_bases??[], ...base_classes??[]].filter(s=>!!s);
 
 			const bases_tag = bases.length>0 ? `:${bases.join(',')}` :'';
 
