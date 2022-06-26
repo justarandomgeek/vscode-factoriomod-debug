@@ -87,6 +87,20 @@ local function hook_rate()
   end
 end
 
+local isDumpIgnore = {}
+
+--- Disable dumping (disassmbly, breakpoint location validation) for a file or list of files
+---@param source string|string[] exact source name, e.g. `"@__modname__/file.lua"`
+function DAstep.dumpIgnore(source)
+  local tsource = type(source)
+  if tsource == "string" then
+    isDumpIgnore[source] = true
+  elseif tsource == "table" then
+    for _, asource in pairs(source) do
+      isDumpIgnore[asource] = true
+    end
+  end
+end
 
 local hook
 ---@type {[function]:number}
@@ -199,10 +213,11 @@ do
           })
         else]]
         if s:sub(1,1) == "@" then
-          print("EVTsource: "..json_encode{
-            source = dasource,
+          local dump
+          if not isDumpIgnore[s] then
             dump = enc(string.dump(info.func))
-          })
+          end
+          print("EVTsource: "..json_encode{ source = dasource, dump = dump })
         end
       end
 

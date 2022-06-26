@@ -934,43 +934,45 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	private loadedSources:(Source&DebugProtocol.Source)[] = [];
 
-	protected async loadedSourceEvent(loaded:{ source:Source&DebugProtocol.Source; dump:string }) {
+	protected async loadedSourceEvent(loaded:{ source:Source&DebugProtocol.Source; dump?:string }) {
 		const source = loaded.source;
 		if (source.path){
 			source.path = this.convertDebuggerPathToClient(source.path);
 		}
 
-		const dumpid = source.path ?? source.sourceReference;
-		const dump = new LuaFunction(new BufferStream(Buffer.from(loaded.dump,"base64")),true);
-		this.nextdump = dump.rebase(this.nextdump);
-		//TODO load .map files for file sources named in debug symbols (recursively?)
-		// into this.sourceMaps
+		if (loaded.dump)
+		{
+			const dumpid = source.path ?? source.sourceReference;
+			const dump = new LuaFunction(new BufferStream(Buffer.from(loaded.dump,"base64")),true);
+			this.nextdump = dump.rebase(this.nextdump);
+			//TODO load .map files for file sources named in debug symbols (recursively?)
+			// into this.sourceMaps
 
+			const lines = new Set<number>();
 
-		const lines = new Set<number>();
+			const by_line = new Map<number,LuaFunction>();
 
-		const by_line = new Map<number,LuaFunction>();
+			dump.walk_functions(lf=>{
+				if (lf.baseAddr) {
+					const idx = this.dumps_by_address.findIndex(
+						other=>lf.baseAddr!<other.baseAddr!);
 
-		dump.walk_functions(lf=>{
-			if (lf.baseAddr) {
-				const idx = this.dumps_by_address.findIndex(
-					other=>lf.baseAddr!<other.baseAddr!);
-
-				if (idx === -1)
-				{
-					this.dumps_by_address.push(lf);
-				} else {
-					this.dumps_by_address.splice(idx,0,lf);
+					if (idx === -1)
+					{
+						this.dumps_by_address.push(lf);
+					} else {
+						this.dumps_by_address.splice(idx,0,lf);
+					}
 				}
-			}
 
 
-			by_line.set(lf.firstline,lf);
-			lf.instructions.forEach(i=>lines.add(i.line));
-		});
+				by_line.set(lf.firstline,lf);
+				lf.instructions.forEach(i=>lines.add(i.line));
+			});
 
-		this.dumps_by_source.set(dumpid,by_line);
-		this.lines_by_source.set(dumpid,lines);
+			this.dumps_by_source.set(dumpid,by_line);
+			this.lines_by_source.set(dumpid,lines);
+		}
 		this.loadedSources.push(source);
 		this.sendEvent(new LoadedSourceEvent("new",source));
 	}
@@ -1032,7 +1034,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			if (typeof sourceid === "string") {
 				sourceid = this.convertDebuggerPathToClient(sourceid);
 			}
-			const lines = this.lines_by_source.get(sourceid);
+			const lines = this.lines_by_source?.get(sourceid);
 			if (lines)
 			{
 				response.body = {
