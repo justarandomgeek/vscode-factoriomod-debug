@@ -24,14 +24,6 @@ if script and script.mod_name == "level" then
       basepath = "scenarios/"..level.level_name.."/",
     }
   end
-
-  ---@param modname string
-  ---@param basepath string
-  function levelPath(modname,basepath)
-    __DebugAdapter.print("__DebugAdapter.levelPath is no longer needed",nil,2,"stderr")
-  end
-  if __DebugAdapter then __DebugAdapter.levelPath = levelPath end
-  if __Profiler then __Profiler.levelPath = levelPath end
 end
 
 ---@type {[string]:string}

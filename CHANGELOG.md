@@ -12,6 +12,7 @@
 * Moved event data types to `EventData.eventname` type names, with (temporary) aliases from `eventname` for compatiblity
 * Improved generation of union and table_or_array concepts and defines types
 * Correctly locate files in user scenarios
+* Removed `__DebugAdapter.levelPath` stub
 
 ## 1.1.15
 
