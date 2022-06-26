@@ -903,7 +903,8 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
       local varRef = varRef
       local object = varRef.object
       if luaObjectInfo.alwaysValid[varRef.classname:match("^([^.]+).?")] or object.valid then
-        if varRef.classname == "LuaItemStack" and not object.valid_for_read then
+        if varRef.classname == "LuaItemStack" and --[[@cast object LuaItemStack]]
+          not object.valid_for_read then
           vars[#vars + 1] = {
             name = [["valid"]],
             value = "true",
@@ -1162,9 +1163,14 @@ function DAvars.setVariable(variablesReference, name, value, seq)
       -- special names "[]" and others aren't valid lua so it won't parse anyway
       local goodname,newname = __DebugAdapter.evaluateInternal(nil,nil,"setvar",name)
       if goodname then
-        local alsoLookIn =
-          varRef--[[@as DAvarslib.LuaObjectRef]].object or
-          varRef--[[@as DAvarslib.TableRef]].table
+        local alsoLookIn ---@type table|LuaObject
+        if varRef.type == "Table" then
+          ---@cast varRef DAvarslib.TableRef
+          alsoLookIn = varRef.table
+        elseif varRef.type == "LuaObject" then
+          ---@cast varRef DAvarslib.LuaObjectRef
+          alsoLookIn = varRef.object
+        end
         local goodvalue,newvalue = __DebugAdapter.evaluateInternal(nil,alsoLookIn,"setvar",value)
         if not goodvalue then
           print("DBGsetvar: " .. json_encode({seq = seq, body = {type="error",value=newvalue}}))
