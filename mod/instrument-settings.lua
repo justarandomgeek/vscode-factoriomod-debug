@@ -1,9 +1,9 @@
 local json = require('__debugadapter__/json.lua')
 ---@type Module[]
 local modules = {
-  {
-    id = "core", name = "core",
-  }
+  { id = "core", name = "core", },
+  { id = "level", name = "level", },
+  { id = "#user", name = "#user", },
 }
 ---@type string
 for name,version in pairs(mods) do
@@ -12,7 +12,6 @@ for name,version in pairs(mods) do
     version = version,
   }
 end
-modules[#modules+1] = { id = "level", name = "level", }
 print("EVTmodules: " .. json.encode(modules))
 debug.getregistry().__DASentModules = true
 

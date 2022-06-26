@@ -121,6 +121,14 @@ export class ActiveFactorioVersion {
 		return path.posix.normalize(path.resolve(await this.dataPath(),"core","lualib"));
 	}
 
+	public async writeDataPath() {
+		const configDataPath = (await this.configIni()).path?.["write-data"];
+		if (!configDataPath) {
+			throw "path.write-data missing in config.ini";
+		}
+		return path.posix.normalize(this.translatePath(configDataPath));
+	}
+
 	translatePath(p:string):string {
 		if (p.startsWith("__PATH__executable__"))
 			{return path.join(path.dirname(this.factorioPath),p.replace("__PATH__executable__",""));}

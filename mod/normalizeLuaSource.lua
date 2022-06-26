@@ -7,40 +7,29 @@ local pcall = pcall
 ---@type {modname:string, basepath:string}
 local levelpath
 if script and script.mod_name == "level" then
-  ---@param modname string
-  ---@param basepath string
-  local function levelPath(modname,basepath)
+  local level = script.level
+  if level.is_tutorial then
     levelpath = {
-      modname = modname,
-      basepath = basepath,
+      modname = "base",
+      basepath = "tutorials/"..level.level_name.."/",
+    }
+  elseif level.campaign_name then
+    levelpath = {
+      modname = level.mod_name or "#user",
+      basepath = "campaigns/"..level.campaign_name.."/"..level.level_name.."/",
+    }
+  else
+    levelpath = {
+      modname = level.mod_name or "#user",
+      basepath = "scenarios/"..level.level_name.."/",
     }
   end
-  pcall(function()
-    local level = script.level -- will throw here if factorio doesn't support this yet
-    assert(level.mod_name) -- for now throw if there's no mod name. remove when #user is able to resolve
-    if level.is_tutorial then
-      levelpath = {
-        modname = "base",
-        basepath = "tutorials/"..level.level_name.."/",
-      }
-    elseif level.campaign_name then
-      levelpath = {
-        modname = level.mod_name or "#user",
-        basepath = "campaigns/"..level.campaign_name.."/"..level.level_name.."/",
-      }
-    else
-      levelpath = {
-        modname = level.mod_name or "#user",
-        basepath = "scenarios/"..level.level_name.."/",
-      }
-    end
 
-    ---@param modname string
-    ---@param basepath string
-    function levelPath(modname,basepath)
-      __DebugAdapter.print("__DebugAdapter.levelPath is no longer needed",nil,2,"console")
-    end
-  end)
+  ---@param modname string
+  ---@param basepath string
+  function levelPath(modname,basepath)
+    __DebugAdapter.print("__DebugAdapter.levelPath is no longer needed",nil,2,"stderr")
+  end
   if __DebugAdapter then __DebugAdapter.levelPath = levelPath end
   if __Profiler then __Profiler.levelPath = levelPath end
 end

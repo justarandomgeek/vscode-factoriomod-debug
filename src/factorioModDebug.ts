@@ -1378,6 +1378,14 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			try {
 				this._modules.set(module.name,module);
 
+				if (module.name === "#user")
+				{
+					module.symbolFilePath = Uri.file(await this.activeVersion.writeDataPath()).toString();
+					module.symbolStatus = "Loaded Write Data Directory";
+					this.sendEvent(new OutputEvent(`loaded ${module.name} from config ${module.symbolFilePath}\n`,"stdout"));
+					continue;
+				}
+
 				if (module.name === "level")
 				{
 					// find `level` nowhere

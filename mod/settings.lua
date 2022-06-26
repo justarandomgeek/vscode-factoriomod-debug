@@ -5,9 +5,9 @@
 if not debug.getregistry().__DASentModules then
   local json = require('__debugadapter__/json.lua')
   local modules = {
-    {
-      id = "core", name = "core",
-    }
+    { id = "core", name = "core", },
+    { id = "level", name = "level", },
+    { id = "#user", name = "#user", },
   }
   ---@type string
   for name,version in pairs(mods) do
@@ -16,7 +16,6 @@ if not debug.getregistry().__DASentModules then
       version = version,
     }
   end
-  modules[#modules+1] = { id = "level", name = "level", }
   print("EVTmodules: " .. json.encode(modules))
   debug.getregistry().__DASentModules = true
 end
