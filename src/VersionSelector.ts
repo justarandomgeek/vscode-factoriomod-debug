@@ -287,7 +287,12 @@ export class FactorioVersionSelector {
 		// check for docs json
 		let docs = await this.tryJsonDocs(active_version);
 		if (!docs) {
-			const file = await vscode.window.showOpenDialog({filters:{ "JSON Docs":["json"] } });
+			const file = await vscode.window.showOpenDialog({
+				canSelectFiles: true,
+				canSelectFolders: false,
+				openLabel: "Select JSON Docs",
+				filters:{ "JSON Docs":["json"] }
+			});
 			if (!file) { return; }
 			active_version.docsPath = path.relative(substitutePathVariables(active_version.factorioPath), file[0].fsPath);
 			docs = await this.tryJsonDocs(active_version, true);
