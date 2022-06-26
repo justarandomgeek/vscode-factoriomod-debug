@@ -619,12 +619,13 @@ export class ApiDocGenerator {
 
 		if ('category' in type_data && (type_data as ApiConcept).category === "table_or_array") {
 			let i = 1;
-			output.write(`${`local ${to_lua_ident(table_class_name)}`}={\n`);
-			custom_parameters.forEach(param=>{
-				output.write(`[${i++}]=nil, ---@type ${this.format_sumneko_type(param.type, ()=>
-					[`${table_class_name}.${param.name}`, view_documentation_link])}${param.optional?'|nil':''}\n`);
+			custom_parameters.forEach(custom_parameter=>{
+				output.write(this.convert_sumneko_description(extend_string({str: custom_parameter.description, post: "\n\n"})+view_documentation_link));
+				output.write(`---@field [${i++}] ${this.format_sumneko_type(custom_parameter.type, ()=>
+					[`${table_class_name}.${custom_parameter.name}`, view_documentation_link])}`);
+				if (custom_parameter.optional) { output.write("|nil"); }
+				output.write(` ${custom_parameter.name} \n`);
 			});
-			output.write("}\n\n");
 		}
 
 		output.write("\n");
