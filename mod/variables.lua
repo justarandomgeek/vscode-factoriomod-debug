@@ -221,9 +221,9 @@ end
 ---@field public type string
 
 ---@class DAvarslib.ScopeRef : DAvarslib.Ref
----@field public type "Upvalues"|"Locals"
----@field public frameId number
----@field public mode? "temps" | "varargs"
+---@field type "Upvalues"|"Locals"
+---@field frameId number
+---@field mode "temps" | "varargs"
 
 --- Generate a variablesReference for `name` at frame `frameId`
 ---@param frameId number
@@ -234,9 +234,8 @@ end
 ---@overload fun(frameId:number, name:"Locals", mode?:"temps"|"varargs"):number
 function variables.scopeRef(frameId,name,mode)
   for id,varRef in pairs(variables.refs) do
-    if varRef.type == name and
-      varRef--[[@as DAvarslib.ScopeRef]].frameId == frameId and
-      varRef--[[@as DAvarslib.ScopeRef]].mode == mode then
+    if varRef.type == name and ---@cast varRef DAvarslib.ScopeRef
+      varRef.frameId == frameId and varRef.mode == mode then
       return id
     end
   end
@@ -264,10 +263,9 @@ function variables.kvRef(key,value)
   local refs = variables.longrefs
 
   for id,varRef in pairs(refs) do
-    if varRef.type == "kvPair" and
-      varRef--[[@as DAvarslib.KVRef]].key == key and
-      varRef--[[@as DAvarslib.KVRef]].value == value then
-      return id,varRef--[[@as DAvarslib.KVRef]].name
+    if varRef.type == "kvPair" and ---@cast varRef DAvarslib.KVRef
+      varRef.key == key and varRef.value == value then
+      return id,varRef.name
     end
   end
   local id = nextID()
@@ -334,8 +332,8 @@ function variables.funcRef(func)
   local refs = variables.longrefs
 
   for id,varRef in pairs(refs) do
-    if varRef.type == "Function" and
-      varRef--[[@as DAvarslib.FuncRef]].func == func then
+    if varRef.type == "Function" and ---@cast varRef DAvarslib.FuncRef
+      varRef.func == func then
       return id
     end
   end
@@ -358,8 +356,8 @@ function variables.fetchRef(func)
   local refs = variables.longrefs
 
   for id,varRef in pairs(refs) do
-    if varRef.type == "Fetch" and
-      varRef--[[@as DAvarslib.FetchRef]].func == func then
+    if varRef.type == "Fetch" and ---@cast varRef DAvarslib.FetchRef
+      varRef.func == func then
       return id
     end
   end
@@ -390,11 +388,9 @@ function variables.tableRef(table, mode, showMeta, extra, evalName)
   mode = mode or "pairs"
   local refs = variables.longrefs
   for id,varRef in pairs(refs) do
-    if varRef.type == "Table" and
-      varRef--[[@as DAvarslib.TableRef]].table == table and
-      varRef--[[@as DAvarslib.TableRef]].mode == mode and
-      varRef--[[@as DAvarslib.TableRef]].showMeta == showMeta
-      and varRef--[[@as DAvarslib.TableRef]].extra == extra then
+    if varRef.type == "Table" and ---@cast varRef DAvarslib.TableRef
+      varRef.table == table and varRef.mode == mode and
+      varRef.showMeta == showMeta and varRef.extra == extra then
       return id
     end
   end
@@ -426,8 +422,8 @@ function variables.luaObjectRef(luaObject,classname,evalName)
   if not luaObjectInfo.expandKeys[classname] then return 0 end
   local refs = variables.longrefs
   for id,varRef in pairs(refs) do
-    if varRef.type == "LuaObject" and
-      varRef--[[@as DAvarslib.LuaObjectRef]].object == luaObject then
+    if varRef.type == "LuaObject" and ---@cast varRef DAvarslib.LuaObjectRef
+      varRef.object == luaObject then
       return id
     end
   end
