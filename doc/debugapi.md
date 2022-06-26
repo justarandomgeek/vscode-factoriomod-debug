@@ -24,4 +24,4 @@ Functions can be excluded from stepping with `__DebugAdapter.stepIgnore(funcOrTa
 
 ## Disable dumping for large files
 
-Functions can be excluded from dumping with `__DebugAdapter.dumpIgnore(funcOrTable)`. This will disable disassembly, breakpoint validation, phobos debug symbols, and possibly other future features in these files. This may be appropriate if you are experiencing long hangs on `require`s of large (5+MB) data files.
+files can be excluded from dumping with `__DebugAdapter.dumpIgnore(nameOrNames)`. These must be exact source names, e.g. `"@__modname__/file.lua"`. This will disable disassembly, breakpoint validation, phobos debug symbols, and possibly other future features in these files. This may be appropriate if you are experiencing long hangs on `require`s of large (5+MB) data files.
