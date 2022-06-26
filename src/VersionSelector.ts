@@ -83,13 +83,18 @@ export class ActiveFactorioVersion {
 
 
 	private iniData? : FactorioConfigIni|Thenable<FactorioConfigIni>;
-	public async configIni() {
+	private async configIni() {
 		if (!this.iniData) {
 			this.iniData =
 				vscode.workspace.fs.readFile(vscode.Uri.file(await this.configPath()))
 				.then(dat=>ini.parse(dat.toString()));
 		}
 		return this.iniData;
+	}
+
+	public async isPrototypeCacheEnabled() {
+		let configIni = await this.configIni();
+		return configIni.other?.["cache-prototype-data"];
 	}
 
 	public async disablePrototypeCache() {

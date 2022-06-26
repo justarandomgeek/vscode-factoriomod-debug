@@ -69,8 +69,7 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 			}
 		}
 
-		let configIni = await activeVersion.configIni();
-		if (configIni.other?.["cache-prototype-data"])
+		if (await activeVersion.isPrototypeCacheEnabled())
 		{
 			const pcache = await vscode.window.showWarningMessage(
 				"Prototype Caching is enabled, which usually conflicts with the final portion of debugger initialization (which occurs in settings stage).",
