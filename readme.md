@@ -18,7 +18,7 @@ If you need to use debugging without Instrument mode, you can set `"useIntrument
 ```lua
 require('__debugadapter__/debugadapter.lua')
 ```
-Running without Instrument Mode will disable break-on-exception.
+Running without Instrument Mode will disable break-on-exception and is generally not reccomended.
 
 ## Enabling Debugging inside Zip Files
 
