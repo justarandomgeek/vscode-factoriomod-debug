@@ -399,12 +399,6 @@ export class FactorioVersionSelector {
 
 		config.update("runtime.version", "Lua 5.2");
 
-		const diagdisable= config.get<string[]>("diagnostics.disable") ?? [];
-		if (!diagdisable.includes("lowercase-global")) {
-			diagdisable.push("lowercase-global");
-		}
-		config.update("diagnostics.disable", diagdisable);
-
 		/*
 		const library: string[] = config.get("workspace.library") ?? [];
 		const rootpath = ?????;

@@ -12,7 +12,7 @@ Sumneko EmmyLua docs and workspace settings for the Factorio API will be automat
 You can configure the generation location with the setting `"factorio.workspace.library"`.
 
 The following settings will be automatically configured:
-  * `"Lua.diagnostics.globals"` will have entries added for variables not presently covered by the generated files:
+  * `"Lua.diagnostics.globals"` will have entries added for variables not presently covered by the generated files (this list will change over time as docs expand):
     * `mods`
     * `table_size`
     * `log`
@@ -21,7 +21,6 @@ The following settings will be automatically configured:
     * `__DebugAdapter`
     * `__Profiler`
   * `"Lua.runtime.version"` will be set to `"Lua 5.2"`
-  * `"Lua.diagnostics.disable"` will have `"lowercase-global"` added to avoid warnings on various factorio api objects
 
 Further advanced language features are also enabled by [the Factorio Sumneko Lua Plugin](https://github.com/JanSharp/FactorioSumnekoLuaPlugin) which may be additionally installed in conjunction with thes files to improve handling of `require`s, `global`, `on_event` and `remote.call`.
 
