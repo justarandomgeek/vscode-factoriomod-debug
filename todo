@@ -16,5 +16,5 @@ disassembler/sourcemap
 
 
 move steam appid check to version selector
-remove __debugchildren, replace with __debugcounts->named,indexed and __debugpairs -> iter<name,value,virtual?>
+remove __debugchildren, replace with __debugcounts->named,indexed and __debugpairs -> iter<key,value,meta>
 set /data and /data/core/lualib library paths

@@ -336,12 +336,7 @@ local remotemeta = {
     return {
       variables.create([["interfaces"]],oldremote.interfaces),
       variables.create("<raw>",oldremote),
-      {
-        name = "<myRemotes>",
-        value = "<myRemotes>",
-        type = "table",
-        variablesReference = variables.tableRef(myRemotes),
-      },
+      variables.create("<myRemotes>",myRemotes),
     }
   end,
 }
