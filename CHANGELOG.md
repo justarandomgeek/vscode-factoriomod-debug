@@ -9,6 +9,8 @@
 * Generate Sumneko EmmyLua typdefs in multiple files, and automatically when switching versions
 * Correctly locate files in `core` and `base` when debugging
 * `__DebugAdapter.dumpIgnore(source:string|string[])` to disable dumping (disassembly, breakpoint validation) for specific files. This is useful for very large data files where stepping is not relevant and dumping is expensive (long hang when `require`ing the file).
+* Moved event data types to `EventData.eventname` type names, with (temporary) aliases from `eventname` for compatiblity
+* Improved generation of union and table_or_array concepts and defines types
 
 ## 1.1.15
 
