@@ -159,6 +159,7 @@ class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory 
 			new FactorioModDebugSession(
 				this.context,
 				activeVersion,
+				vscode.workspace.fs
 				));
 	}
 

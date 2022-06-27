@@ -6,7 +6,6 @@ import {
 } from '@vscode/debugadapter';
 import { DebugProtocol } from '@vscode/debugprotocol';
 import * as path from 'path';
-import * as fs from 'fs';
 import * as os from 'os';
 import * as semver from 'semver';
 import * as vscode from 'vscode';
@@ -121,6 +120,11 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	public constructor(
 		private readonly context: vscode.ExtensionContext,
 		private readonly activeVersion: ActiveFactorioVersion,
+		private readonly fs: {
+			readFile(file:Uri):Thenable<Uint8Array>
+			writeFile(file:Uri, content:Uint8Array):Thenable<void>
+			stat(item:Uri):Thenable<vscode.FileStat>
+		},
 		) {
 		super();
 
@@ -243,14 +247,8 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			if (!args.adjustMods) {args.adjustMods = {};}
 			if (!args.allowDisableBaseMod) {args.adjustMods["base"] = true;}
 
-			const packagedModsList = this.context.asAbsolutePath("./modpackage/mods.json");
-
-			if(!fs.existsSync(packagedModsList))
-			{
-				this.sendEvent(new OutputEvent(`package list missing in extension\n`,"stdout"));
-			}
-			else
-			{
+			await this.fs.readFile(Uri.joinPath(this.context.extensionUri,"./modpackage/mods.json"))
+			.then((packagedModsList)=>{
 				const manager = new ModManager(args.modsPath);
 				if (args.disableExtraMods) {
 					manager.disableAll();
@@ -262,7 +260,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 						manager.set(mod,adjust);
 					}
 				}
-				const packages:{[key:string]:{version:string;debugOnly?:boolean;deleteOld?:boolean}} = JSON.parse(fs.readFileSync(packagedModsList, "utf8"));
+				const packages:{[key:string]:{version:string;debugOnly?:boolean;deleteOld?:boolean}} = JSON.parse(Buffer.from(packagedModsList).toString("utf8"));
 				if (!args.noDebug)
 				{
 					manager.set("coverage",false);
@@ -292,11 +290,13 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				}
 				manager.write();
 				this.sendEvent(new OutputEvent(`debugadapter ${args.noDebug?"disabled":"enabled"} in mod-list.json\n`,"stdout"));
-			}
+			},(reason)=>{
+				this.sendEvent(new OutputEvent(`package list missing in extension:\n${reason}\n`,"stdout"));
+			});
 		}
 
 		const infos = await vscode.workspace.findFiles('**/info.json');
-		infos.forEach(this.updateInfoJson,this);
+		await Promise.all(infos.map(this.updateInfoJson,this));
 
 		args.factorioArgs = args.factorioArgs||[];
 		if(!args.noDebug)
@@ -328,11 +328,12 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 		if (args.adjustModSettings)
 		{
-			const settings = new ModSettings(fs.readFileSync(path.join(args.modsPath,"mod-settings.dat")));
+			const modSettingsUri = Uri.file(path.join(args.modsPath,"mod-settings.dat"));
+			const settings = new ModSettings(Buffer.from(await this.fs.readFile(modSettingsUri)));
 			for (const s of args.adjustModSettings) {
 				settings.set(s.scope,s.name,s.value);
 			}
-			fs.writeFileSync(path.join(args.modsPath,"mod-settings.dat"),settings.save());
+			this.fs.writeFile(modSettingsUri,settings.save());
 		}
 
 		this.factorio = new FactorioProcess(this.activeVersion.factorioPath,args.factorioArgs,this.activeVersion.nativeDebugger);
@@ -1114,12 +1115,12 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		});
 	}
 
-	private updateInfoJson(uri:Uri)
+	private async updateInfoJson(uri:Uri)
 	{
 		try {
 			let jsonpath = uri.path;
 			if (os.platform() === "win32" && jsonpath.startsWith("/")) {jsonpath = jsonpath.substr(1);}
-			const jsonstr = fs.readFileSync(jsonpath, "utf8");
+			const jsonstr = Buffer.from(await this.fs.readFile(uri)).toString('utf8');
 			if (jsonstr)
 			{
 				const moddata = JSON.parse(jsonstr);
@@ -1313,13 +1314,13 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	{
 		try
 		{
-			const stat = await vscode.workspace.fs.stat(dir);
+			const stat = await this.fs.stat(dir);
 			// eslint-disable-next-line no-bitwise
 			if (stat.type&vscode.FileType.Directory)
 			{
 
 				const modinfo:ModInfo = JSON.parse(Buffer.from(
-					await vscode.workspace.fs.readFile(Uri.joinPath(dir,"info.json"))).toString("utf8"));
+					await this.fs.readFile(Uri.joinPath(dir,"info.json"))).toString("utf8"));
 				if (modinfo.name===module.name && semver.eq(modinfo.version,module.version!,{"loose":true}))
 				{
 					module.symbolFilePath = dir.toString();
@@ -1413,7 +1414,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 						let stat:vscode.FileStat|undefined;
 						try
 						{
-							stat = await vscode.workspace.fs.stat(zipuri);
+							stat = await this.fs.stat(zipuri);
 						}
 						catch (ex)
 						{
@@ -1493,19 +1494,19 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.factorio?.kill?.();
 		const modsPath = this.launchArgs.modsPath;
 		if (modsPath) {
-			const modlistpath = path.resolve(modsPath,"./mod-list.json");
-			if (fs.existsSync(modlistpath))
+			if(this.launchArgs.manageMod === false)
 			{
-				if(this.launchArgs.manageMod === false)
-				{
-					this.sendEvent(new OutputEvent(`automatic management of mods disabled by launch config\n`,"stdout"));
-				}
-				else
-				{
+				this.sendEvent(new OutputEvent(`automatic management of mods disabled by launch config\n`,"stdout"));
+			}
+			else
+			{
+				try {
 					const manager = new ModManager(modsPath);
 					manager.set("debugadapter",false);
 					manager.write();
 					this.sendEvent(new OutputEvent(`debugadapter disabled in mod-list.json\n`,"stdout"));
+				} catch (error) {
+					this.sendEvent(new OutputEvent(`failed to disable debugadapter in mod-list.json:\n${error}\n`,"stdout"));
 				}
 			}
 		}
