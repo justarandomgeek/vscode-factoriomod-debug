@@ -330,6 +330,18 @@
               "alias"
             ],
             "default": "class"
+          },
+          "factorio.docs.docLinksVerion": {
+            "description": "What version to use when generating docs links",
+            "enumDescriptions": [
+              "Always link to the `latest` docs available online",
+              "Link to the online version of the specific version used for generation"
+            ],
+            "enum": [
+              "latest",
+              "current"
+            ],
+            "default": "latest"
           }
         }
       }

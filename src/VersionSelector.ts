@@ -332,7 +332,7 @@ export class FactorioVersionSelector {
 			(os.platform() === "darwin") ? "../../doc-html/runtime-api.json" :
 			"../../../doc-html/runtime-api.json"
 			);
-		const docsettings = vscode.workspace.getConfiguration("factorio.doc");
+		const docsettings = vscode.workspace.getConfiguration("factorio.docs");
 		try {
 			return new ApiDocGenerator((await vscode.workspace.fs.readFile(docpath)).toString(), docsettings);
 		} catch (error) {

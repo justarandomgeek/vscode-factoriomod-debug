@@ -44,7 +44,7 @@ export class ApiDocGenerator {
 	private readonly defines:Set<string>;
 
 	//TODO: version
-	private runtime_api_base:string = "https://lua-api.factorio.com/latest/";
+	private readonly runtime_api_base:string;
 
 	constructor(docjson:string, private readonly docsettings:WorkspaceConfiguration) {
 		this.docs = JSON.parse(docjson);
@@ -59,6 +59,16 @@ export class ApiDocGenerator {
 
 		if (this.docs.stage !== "runtime") {
 			throw `Unknown stage: ${this.docs.stage}`;
+		}
+
+		switch (docsettings.get("docLinksVerion")) {
+			case "latest":
+			default:
+				this.runtime_api_base = "https://lua-api.factorio.com/latest/";
+				break;
+			case "current":
+				this.runtime_api_base = `https://lua-api.factorio.com/${this.docs.application_version}/`;
+				break;
 		}
 
 		this.classes = new Map(this.docs.classes.map(c => [c.name,c]));
