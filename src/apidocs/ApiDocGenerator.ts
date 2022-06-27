@@ -447,7 +447,7 @@ export class ApiDocGenerator {
 		if ('category' in aclass) {
 			output.write(`---@class ${aclass.name}\n`);
 		} else {
-			const base_classes = aclass.base_classes;
+			const base_classes = aclass.base_classes ?? ["LuaObject"];
 			const generic_params = overlay.adjust.class[aclass.name]?.generic_params;
 			const operators = aclass.operators as ApiOperator[];
 			const indexop = operators?.find?.(op=>op.name==="index") as ApiAttribute|undefined;
@@ -462,7 +462,7 @@ export class ApiDocGenerator {
 			const generic_methods = overlay.adjust.class[aclass.name]?.generic_methods;
 			const generic_bases = generic_methods?.map(m=>`{${m.name}:fun():${m.return_values.join(",")}}`);
 
-			const bases = ["LuaObject", indexed_table, ...generic_bases??[], ...base_classes??[]].filter(s=>!!s);
+			const bases = [indexed_table, ...generic_bases??[], ...base_classes??[]].filter(s=>!!s);
 
 			const bases_tag = bases.length>0 ? `:${bases.join(',')}` :'';
 
