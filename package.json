@@ -36,7 +36,8 @@
     "watch": "tsc -w -p ./src",
     "vscode:prepublish": ".\\mod\\makerelease.sh",
     "package": "vsce package",
-    "publish": "vsce publish"
+    "publish": "vsce publish",
+    "publish-prerelease": "vsce publish --pre-release"
   },
   "dependencies": {
     "@vscode/debugadapter": "^1.55.1",
