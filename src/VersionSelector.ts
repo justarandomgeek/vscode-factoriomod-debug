@@ -366,14 +366,17 @@ export class FactorioVersionSelector {
 			return;
 		}
 
-		await Promise.all(
-			(await vscode.workspace.fs.readDirectory(workspaceLibrary))
-			.map(async ([name,type])=>{
-				if (name.match(/runtime\-api.+\.lua/))
-				{
-					return vscode.workspace.fs.delete(vscode.Uri.joinPath(workspaceLibrary,name),{useTrash:true});
-				}
-			}));
+		try {
+			await Promise.all(
+				(await vscode.workspace.fs.readDirectory(workspaceLibrary))
+				.map(async ([name,type])=>{
+					if (name.match(/runtime\-api.+\.lua/))
+					{
+						return vscode.workspace.fs.delete(vscode.Uri.joinPath(workspaceLibrary,name),{useTrash:true});
+					}
+				}));
+		} catch (error) {
+		}
 
 		const maxDocSize = await activeVersion.docs.generate_sumneko_docs(
 			async (filename:string,buff:Buffer)=>{
