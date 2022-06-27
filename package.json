@@ -322,6 +322,14 @@
                 }
               }
             }
+          },
+          "factorio.docs.numberStyle": {
+            "description": "Type of annotations to generate for specialized number types",
+            "enum": [
+              "class",
+              "alias"
+            ],
+            "default": "class"
           }
         }
       }

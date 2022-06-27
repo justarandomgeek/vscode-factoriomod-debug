@@ -1,3 +1,4 @@
+import { WorkspaceConfiguration } from "vscode";
 import { WritableStream as WritableMemoryStream } from "memory-streams";
 import { overlay } from "./Overlay";
 
@@ -45,7 +46,7 @@ export class ApiDocGenerator {
 	//TODO: version
 	private runtime_api_base:string = "https://lua-api.factorio.com/latest/";
 
-	constructor(docjson:string) {
+	constructor(docjson:string, private readonly docsettings:WorkspaceConfiguration) {
 		this.docs = JSON.parse(docjson);
 
 		if (this.docs.application !== "factorio") {
@@ -260,7 +261,15 @@ export class ApiDocGenerator {
 				output.write(this.convert_sumneko_description(
 					extend_string({str:builtin.description, post:"\n\n"}) + this.view_documentation(builtin.name)
 					));
-				output.write(`---@alias ${builtin.name} number\n\n`);
+				switch (this.docsettings.get("numberStyle")) {
+					case "alias":
+						output.write(`---@alias ${builtin.name} number\n\n`);
+						break;
+					case "class":
+					default:
+						output.write(`---@class ${builtin.name}:number\n\n`);
+						break;
+				}
 			}
 		});
 	}

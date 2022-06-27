@@ -332,8 +332,9 @@ export class FactorioVersionSelector {
 			(os.platform() === "darwin") ? "../../doc-html/runtime-api.json" :
 			"../../../doc-html/runtime-api.json"
 			);
+		const docsettings = vscode.workspace.getConfiguration("factorio.doc");
 		try {
-			return new ApiDocGenerator((await vscode.workspace.fs.readFile(docpath)).toString());
+			return new ApiDocGenerator((await vscode.workspace.fs.readFile(docpath)).toString(), docsettings);
 		} catch (error) {
 			if (showError) {
 				vscode.window.showErrorMessage(`Unable read JSON docs: ${error}`);
