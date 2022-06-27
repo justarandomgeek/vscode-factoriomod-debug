@@ -669,10 +669,6 @@
       {
         "fileMatch": "campaigns/*/description.json",
         "url": "./schema/campaign.json"
-      },
-      {
-        "fileMatch": "database/instances.json",
-        "url": "./schema/clusterio_instances.json"
       }
     ],
     "breakpoints": [
