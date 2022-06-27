@@ -4,6 +4,12 @@
 
 ## 1.1.17
 
+* Doc Generation Options:
+  * Alias or class for specialized number types
+  * Version for online doc links
+* Correctly handle no `.vscode/factorio` dir in cleanup before generation
+* `LuaObject` as base class for all classes, instead of union of all classes
+
 ## 1.1.16
 
 * Generate an indexed type for `defines.prototypes`
