@@ -106,6 +106,28 @@ export class ActiveFactorioVersion {
 		this.iniData = ini.parse(filedata);
 	}
 
+	public async checkSteamAppID() {
+		const factorioPath = vscode.Uri.file(this.factorioPath);
+		const stats = await Promise.allSettled(
+			[ "../steam_api64.dll", "../libsteam_api.dylib", "../libsteam_api.so"]
+			.map(s=>vscode.workspace.fs.stat(vscode.Uri.joinPath(factorioPath,s)))
+			);
+		if (stats.find(psr=>psr.status==="fulfilled")){
+			const appidUri = vscode.Uri.joinPath(factorioPath,"../steam_appid.txt");
+			const appidStat = await Promise.allSettled([vscode.workspace.fs.stat(appidUri)]);
+			if (!appidStat.find(psr=>psr.status==="fulfilled"))
+			{
+				if("Yes" === await vscode.window.showInformationMessage("This is a steam install, and will require `steam_appid.txt` in order to be used for debugging. Create it now?","Yes","No")){
+					try {
+						vscode.workspace.fs.writeFile(appidUri,Buffer.from("427520"));
+					} catch (error) {
+						vscode.window.showErrorMessage(`failed to write "427520" to ${appidUri}: ${error}`);
+					}
+				}
+			}
+		}
+	}
+
 	public async defaultModsPath() {
 		const configModsPath = (await this.configIni())?.path?.["write-data"];
 		if (!configModsPath) {
@@ -314,7 +336,10 @@ export class FactorioVersionSelector {
 		this.bar.text = `Factorio ${docs.application_version} (${active_version.name})`;
 		this._active_version = new ActiveFactorioVersion(active_version, docs);
 
-		await this.generateDocs();
+		await Promise.allSettled([
+			this.generateDocs(),
+			this._active_version.checkSteamAppID(),
+		]);
 	}
 
 	private _active_version?: ActiveFactorioVersion;

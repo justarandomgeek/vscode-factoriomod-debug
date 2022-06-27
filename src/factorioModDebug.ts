@@ -326,8 +326,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			args.factorioArgs.push("--mod-directory",mods);
 		}
 
-		this.createSteamAppID();
-
 		if (args.adjustModSettings)
 		{
 			const settings = new ModSettings(fs.readFileSync(path.join(args.modsPath,"mod-settings.dat")));
@@ -1138,31 +1136,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			}
 		} catch (error) {
 			this.sendEvent(new OutputEvent(`failed to read ${uri} ${error}\n`,"stderr"));
-		}
-	}
-
-	private createSteamAppID()
-	{
-		const factorioPath = this.activeVersion.factorioPath;
-		if (fs.existsSync(path.resolve(factorioPath,"../steam_api64.dll"))    ||// windows
-			fs.existsSync(path.resolve(factorioPath,"../libsteam_api.dylib")) ||// mac
-			fs.existsSync(path.resolve(factorioPath,"../libsteam_api.so")))     // linux
-		{
-			this.sendEvent(new OutputEvent("detected steam...\n","stdout"));
-			const appidPath = path.resolve(factorioPath,"../steam_appid.txt");
-			try {
-				if (fs.existsSync(appidPath))
-				{
-					this.sendEvent(new OutputEvent(`found ${appidPath}\n`,"stdout"));
-				}
-				else
-				{
-					fs.writeFileSync(appidPath,"427520");
-					this.sendEvent(new OutputEvent(`wrote ${appidPath}\n`,"stdout"));
-				}
-			} catch (error) {
-				this.sendEvent(new OutputEvent(`failed to write ${appidPath}: ${error}\n`,"stderr"));
-			}
 		}
 	}
 
