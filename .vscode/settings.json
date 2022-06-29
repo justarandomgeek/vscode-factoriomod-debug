@@ -28,7 +28,4 @@
         //"no-unknown": "Information"
     },
     "Lua.runtime.version": "Lua 5.2",
-    "Lua.diagnostics.disable": [
-        "lowercase-global"
-    ],
 }
