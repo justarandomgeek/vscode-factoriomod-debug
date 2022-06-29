@@ -5,6 +5,7 @@
 ## 1.1.18
 
 * Restored incorrectly removed definiton for `modsPath` in launch.json
+* Use `integer` as the base type for factorio's int builtins
 
 ## 1.1.17
 
