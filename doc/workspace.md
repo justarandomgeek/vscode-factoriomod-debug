@@ -11,7 +11,7 @@ I open the Factorio `mods` directory as the root of my workspace in VSCode, and 
       * `launch.json`
       * `settings.json`
       * `lua/plugin.lua`
-      * `runtime-api.lua`
+      * `factorio/runtime-api-*.lua`
     * `modname/`
       * `.git/...`
       * `info.json`
