@@ -332,6 +332,11 @@
             ],
             "default": "class"
           },
+          "factorio.docs.useInteger": {
+            "type":"boolean",
+            "description": "Use lua `integer` type for specialized integer types",
+            "default": true
+          },
           "factorio.docs.docLinksVerion": {
             "description": "What version to use when generating docs links",
             "enumDescriptions": [
