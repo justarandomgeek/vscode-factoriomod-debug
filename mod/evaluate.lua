@@ -380,6 +380,18 @@ function DAEval.stringInterp(str,frameId,alsoLookIn,context)
     return result,evals
 end
 
+local evalresultmeta = {
+  __debugline = function(t)
+    local s = {}
+    for i,v in ipairs(t) do
+      s[i] = variables.describe(v)
+    end
+    return table.concat(s,", ")
+  end,
+  __debugtype = "DebugAdapter.EvalResult",
+  __debugcontents = ipairs,
+}
+
 ---@param frameId number
 ---@param context string
 ---@param expression string
@@ -427,17 +439,7 @@ function DAEval.evaluate(frameId,context,expression,seq,formod)
         if result.n == 0 or result.n == 1 then
           result = result[1]
         else
-          setmetatable(result,{
-            __debugline = function(t)
-              local s = {}
-              for i,v in ipairs(t) do
-                s[i] = variables.describe(v)
-              end
-              return table.concat(s,", ")
-            end,
-            __debugtype = "DebugAdapter.EvalResult",
-            __debugcontents = ipairs,
-          })
+          setmetatable(result,evalresultmeta)
         end
       end
       evalresult = variables.create(nil,result,nil)
