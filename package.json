@@ -698,6 +698,10 @@
                   true
                 ]
               },
+              "modsPath": {
+                "type": "string",
+                "description": "Absolute path to Factorio mods directory."
+              },
               "manageMod": {
                 "type": "boolean",
                 "description": "Enable automatic management of the debugadapter mod",

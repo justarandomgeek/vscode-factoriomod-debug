@@ -4,6 +4,8 @@
 
 ## 1.1.18
 
+* Restored incorrectly removed definiton for `modsPath` in launch.json
+
 ## 1.1.17
 
 * Doc Generation Options:
