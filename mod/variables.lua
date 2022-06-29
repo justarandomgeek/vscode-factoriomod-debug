@@ -223,16 +223,16 @@ end
 
 ---@class DAvarslib.ScopeRef : DAvarslib.Ref
 ---@field type "Upvalues"|"Locals"
----@field frameId number
+---@field frameId integer
 ---@field mode "temps" | "varargs"
 
 --- Generate a variablesReference for `name` at frame `frameId`
----@param frameId number
+---@param frameId integer
 ---@param name string = "Locals" | "Upvalues"
 ---@param mode? string = "temps" | "varargs"
----@return number variablesReference
----@overload fun(frameId:number, name:"Upvalues"):number
----@overload fun(frameId:number, name:"Locals", mode?:"temps"|"varargs"):number
+---@return integer variablesReference
+---@overload fun(frameId:integer, name:"Upvalues"):integer
+---@overload fun(frameId:integer, name:"Locals", mode?:"temps"|"varargs"):integer
 function variables.scopeRef(frameId,name,mode)
   for id,varRef in pairs(variables.refs) do
     if varRef.type == name and ---@cast varRef DAvarslib.ScopeRef
@@ -258,7 +258,7 @@ end
 --- Generate a variablesReference for a key-value-pair for complex keys object
 ---@param key table
 ---@param value any
----@return number variablesReference
+---@return integer variablesReference
 ---@return string keyName
 function variables.kvRef(key,value)
   local refs = variables.longrefs
@@ -295,7 +295,7 @@ end
 --- Generate a variablesReference for a source string and prepare a Source
 ---@param source string
 ---@param checkonly? boolean
----@return Source
+---@return Source?
 function variables.sourceRef(source,checkonly)
   local refs = variables.longrefs
 
@@ -328,7 +328,7 @@ end
 
 --- Generate a variablesReference for a function
 ---@param func function
----@return number variablesReference
+---@return integer variablesReference
 function variables.funcRef(func)
   local refs = variables.longrefs
 
@@ -352,7 +352,7 @@ end
 
 --- Generate a variablesReference for a fetchable property
 ---@param func function
----@return number variablesReference
+---@return integer variablesReference
 function variables.fetchRef(func)
   local refs = variables.longrefs
 
@@ -384,7 +384,7 @@ end
 ---@param showMeta? boolean true
 ---@param extra? any
 ---@param evalName? string
----@return number variablesReference
+---@return integer variablesReference
 function variables.tableRef(table, mode, showMeta, extra, evalName)
   mode = mode or "pairs"
   local refs = variables.longrefs
@@ -514,7 +514,7 @@ function variables.describe(value,short)
         else
           -- generate { [shortdescribe(key)]=shortdescribe(value), ... }
           -- but omit consecutive numeric indexes { shortdescribe(value), ... }
-          local inext = 1
+          local inext = 1 ---@type integer?
           if next(value) then
             ---@type string[]
             local innerpairs = { "{ " }
@@ -555,7 +555,7 @@ function variables.describe(value,short)
         lineitem = ("<main chunk %s>"):format(info.source and normalizeLuaSource(info.source))
       end
     end
-  elseif vtype == "userdata" then
+  elseif vtype == "userdata" then ---@cast value LuaObject
     local classname = luaObjectInfo.try_object_name(value)
     if classname then
       lineitem,vtype = describeLuaObject(classname,value,short)
@@ -579,9 +579,9 @@ DAvars.describe = variables.describe
 function variables.create(name,value,evalName)
   local lineitem,vtype = variables.describe(value)
   local variablesReference = 0
-  ---@type number|nil
+  ---@type integer|nil
   local namedVariables
-  ---@type number|nil
+  ---@type integer|nil
   local indexedVariables
   if vtype == "LuaCustomTable" then
     variablesReference = variables.tableRef(value,"pairs",false)
@@ -602,6 +602,7 @@ function variables.create(name,value,evalName)
       variablesReference = variables.tableRef(value,nil,nil,nil,evalName)
       namedVariables = 0
       indexedVariables = rawlen(value)
+      ---@type integer|nil
       local namesStartAfter = indexedVariables
       if namesStartAfter == 0 then
         namesStartAfter = nil
@@ -664,12 +665,13 @@ local itermode = {
 
 --- DebugAdapter VariablesRequest
 ---@param variablesReference integer
----@param seq number
+---@param seq integer
 ---@param filter nil | 'indexed' | 'named'
----@param start nil | number
----@param count nil | number
+---@param start nil | integer
+---@param count nil | integer
 ---@param longonly nil | boolean
----@return Variable[]
+---@return boolean?
+---@prints Variable[]
 function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
   ---@type DAvarslib.Ref
   local varRef
@@ -694,8 +696,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
   local vars = {}
   if varRef then
     if varRef.type == "Locals" then
-      ---@type DAvarslib.ScopeRef
-      local varRef = varRef
+      ---@cast varRef DAvarslib.ScopeRef
       local mode = varRef.mode
       local hasTemps =  false
       local i = 1
@@ -757,8 +758,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
         end
       end
     elseif varRef.type == "Upvalues" then
-      ---@type DAvarslib.ScopeRef
-      local varRef = varRef
+      ---@cast varRef DAvarslib.ScopeRef
       local func = debug.getinfo(varRef.frameId,"f").func
       local i = 1
       while true do
@@ -768,8 +768,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
         i = i + 1
       end
     elseif varRef.type == "Table" then
-      ---@type DAvarslib.TableRef
-      local varRef = varRef
+      ---@cast varRef DAvarslib.TableRef
       -- use debug.getmetatable insead of getmetatable to get raw meta instead of __metatable result
       local mt = debug.getmetatable(varRef.table)
       if varRef.mode == "count" then
@@ -830,7 +829,6 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
                   }
                   break
               end
-              ---@cast opts DebugAdapter.RenderOptions|nil
               if not k then
                 break
               end
@@ -998,8 +996,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
         end
       end
     elseif varRef.type == "LuaObject" then
-      ---@type DAvarslib.LuaObjectRef
-      local varRef = varRef
+      ---@cast varRef DAvarslib.LuaObjectRef
       local object = varRef.object
       if luaObjectInfo.alwaysValid[varRef.classname:match("^([^.]+).?")] or object.valid then
         if varRef.classname == "LuaItemStack" and --[[@cast object LuaItemStack]]
@@ -1102,13 +1099,11 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
         }
       end
     elseif varRef.type == "kvPair" then
-      ---@type DAvarslib.KVRef
-      local varRef = varRef
+      ---@cast varRef DAvarslib.KVRef
       vars[#vars + 1] = variables.create("<key>",varRef.key)
       vars[#vars + 1] = variables.create("<value>",varRef.value)
     elseif varRef.type == "Function" then
-      ---@type DAvarslib.FuncRef
-      local varRef = varRef
+      ---@cast varRef DAvarslib.FuncRef
       local func = varRef.func
       local i = 1
       while true do
@@ -1119,8 +1114,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
         i = i + 1
       end
     elseif varRef.type == "Fetch" then
-      ---@type DAvarslib.FetchRef
-      local varRef = varRef
+      ---@cast varRef DAvarslib.FetchRef
       local func = varRef.func
       local success,result = pcall(func)
       if success then
@@ -1158,6 +1152,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
     print("DBGvars: " .. json_encode({variablesReference = variablesReference, seq = seq, vars = vars, long = longonly and script.mod_name}))
     return true
   end
+  return
 end
 
 --- DebugAdapter SetVariablesRequest
@@ -1169,8 +1164,7 @@ function DAvars.setVariable(variablesReference, name, value, seq)
   local varRef = variables.refs[variablesReference]
   if varRef then
     if varRef.type == "Locals" then
-      ---@type DAvarslib.ScopeRef
-      local varRef = varRef
+      ---@cast varRef DAvarslib.ScopeRef
       if varRef.mode ~= "varargs" then
         local i = 1
         local localindex
@@ -1236,8 +1230,7 @@ function DAvars.setVariable(variablesReference, name, value, seq)
       print("DBGsetvar: " .. json_encode({seq = seq, body = {type="error",value="invalid local name"}}))
       return
     elseif varRef.type == "Upvalues" then
-      ---@type DAvarslib.ScopeRef
-      local varRef = varRef
+      ---@cast varRef DAvarslib.ScopeRef
       local func = debug.getinfo(varRef.frameId,"f").func
       local i = 1
       while true do

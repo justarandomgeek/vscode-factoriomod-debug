@@ -16,20 +16,20 @@ end
 ---@class DebugAdapter.RenderOptionsWithFilter: DebugAdapter.RenderOptions
 ---@field filter DebugAdapter.RenderFilter
 
----@class DebugAdapter.SectionedIterState<K,V>
+---@class DebugAdapter.SectionedIterState
 ---@field sections table[]
 ---@field filter? DebugAdapter.RenderFilter
 
 ---@generic K, V
 ---@param section_opts table<K,DebugAdapter.RenderFilter|DebugAdapter.RenderOptionsWithFilter>
----@return fun(t:DebugAdapter.SectionedIterState<K,V>,k:K,filter?:DebugAdapter.RenderFilter):K,V,DebugAdapter.RenderOptions?
+---@return fun(t:DebugAdapter.SectionedIterState,k:K,filter?:DebugAdapter.RenderFilter):K?,V?,DebugAdapter.RenderOptions?
 local function sectioned_next(section_opts)
   ---@generic K, V
   ---@param state DebugAdapter.SectionedIterState
   ---@param k K
-  ---@return K name
-  ---@return V value
-  ---@return DebugAdapter.RenderOptions opts?
+  ---@return K? name
+  ---@return V? value
+  ---@return DebugAdapter.RenderOptions? opts
   return function(state,k)
     local sections = state.sections
     local filter = state.filter
@@ -71,7 +71,7 @@ local function sectioned_contents(sections, section_opts)
   ---@param t table<K,V>
   ---@param filter? DebugAdapter.RenderFilter
   ---@return DebugAdapter.DebugNext<K,V,DebugAdapter.RenderFilter>
-  ---@return DebugAdapter.SectionedIterState<K,V>
+  ---@return DebugAdapter.SectionedIterState
   return function(t,filter)
     return _sectioned_next,{sections={sections,t},filter=filter}
   end

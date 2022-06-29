@@ -35,9 +35,9 @@ local DataString = {}
 
 --- reads an int from str starting at index.
 ---@param str string
----@param index number
----@return number value
----@return number nextIndex
+---@param index integer
+---@return integer value
+---@return integer nextIndex
 local function ReadVarInt(str,index)
 
     local c = sbyte(str, index) or 0
@@ -63,7 +63,7 @@ end
 DataString.ReadVarInt = ReadVarInt
 
 --- convert an int to a string containing the encoded value
----@param val number
+---@param val integer
 ---@return string varintstr
 local function WriteVarInt(val)
     local prefix, firstmask, startshift
@@ -128,9 +128,9 @@ breakpoints = {
 ]]
 
 ---@param strdata string
----@param i number
+---@param i integer
 ---@return string strout
----@return number nextIndex
+---@return integer nextIndex
 local function ReadString(strdata,i)
     ---@type number
     local val
@@ -142,9 +142,9 @@ end
 DataString.ReadString = ReadString
 
 ---@param strdata string
----@param i number
+---@param i integer
 ---@return SourceBreakpoint breakpoint
----@return number nextIndex
+---@return integer nextIndex
 local function ReadSourceBreakpoint(strdata,i)
     ---@type SourceBreakpoint
     local bp = {}
@@ -169,8 +169,8 @@ end
 DataString.ReadSourceBreakpoint = ReadSourceBreakpoint
 
 ---@param strdata string
----@return string filename
----@return SourceBreakpoint[] breakpoints
+---@return string? filename
+---@return SourceBreakpoint[]? breakpoints
 local function ReadBreakpoints(strdata)
     local i = 1
     local bytecount = #strdata

@@ -35,6 +35,10 @@ local function timedpcall(f)
   end
 end
 
+---@param env table
+---@param frameId? integer|false|nil
+---@param alsoLookIn? table|nil
+---@return table
 local function evalmeta(env,frameId,alsoLookIn)
   local getinfo = debug.getinfo
   local getlocal = debug.getlocal
@@ -89,7 +93,7 @@ local function evalmeta(env,frameId,alsoLookIn)
         -- if this table lives longer than the expression (by being returned),
         -- the frameId will be cleared and fall back to only the global lookups
         local i = 0
-        ---@type number|nil
+        ---@type integer|nil
         local offset
         while true do
           local info = getinfo(i,"f")
@@ -166,7 +170,7 @@ local function evalmeta(env,frameId,alsoLookIn)
       if frameId then
         -- find how deep we are, if the expression includes defining new functions and calling them...
         local i = 1
-        ---@type number|nil
+        ---@type integer|nil
         local offset
         while true do
           local info = getinfo(i,"f")
@@ -188,7 +192,7 @@ local function evalmeta(env,frameId,alsoLookIn)
           local frame = frameId + offset
           --check for local at frameId
           i = 1
-          ---@type number|nil
+          ---@type integer|nil
           local localindex
           while true do
             local name = getlocal(frame,i)
@@ -231,15 +235,15 @@ end
 __DebugAdapter.stepIgnore(evalmeta)
 
 ---@class DebugAdapter.CountedResult: any[]
----@field n number
+---@field n integer
 
----@param frameId number | nil
----@param alsoLookIn table | nil
----@param context string
+---@param frameId integer|nil
+---@param alsoLookIn table|nil
+---@param context string|nil
 ---@param expression string
 ---@param timed nil|boolean
----@overload fun(frameId:number|nil,alsoLookIn:table|nil,context:string,expression:string,timed:true): LuaProfiler,boolean,DebugAdapter.CountedResult
----@overload fun(frameId:number|nil,alsoLookIn:table|nil,context:string,expression:string,timed?:false|nil): boolean,...
+---@overload fun(frameId:integer|nil,alsoLookIn:table|nil,context:string|nil,expression:string,timed:true): LuaProfiler,boolean,DebugAdapter.CountedResult
+---@overload fun(frameId:integer|nil,alsoLookIn:table|nil,context:string|nil,expression:string,timed?:false|nil): boolean,...
 function DAEval.evaluateInternal(frameId,alsoLookIn,context,expression,timed)
   ---@type table
   local env = _ENV
@@ -292,6 +296,7 @@ function DAEval.evaluateInternal(frameId,alsoLookIn,context,expression,timed)
       return false,res
     end
   end
+  ---@cast f function
 
   local pcall = timed and timedpcall or pcall
   local closeframe = timed and
@@ -316,7 +321,7 @@ function DAEval.evaluateInternal(frameId,alsoLookIn,context,expression,timed)
 end
 
 ---@param str string
----@param frameId? number
+---@param frameId? integer
 ---@param alsoLookIn? table
 ---@param context? string
 ---@return string
@@ -393,10 +398,10 @@ local evalresultmeta = {
   __debugcontents = ipairs,
 }
 
----@param frameId number
----@param context string
+---@param frameId? integer
+---@param context? string
 ---@param expression string
----@param seq number
+---@param seq integer
 function DAEval.evaluate(frameId,context,expression,seq,formod)
   -- if you manage to do one of these fast enough for data, go for it...
   if not data and formod~=script.mod_name then
@@ -420,29 +425,29 @@ function DAEval.evaluate(frameId,context,expression,seq,formod)
     end
   end
   local info = not frameId or debug.getinfo(frameId,"f")
+
+  -- Variable is close enough to EvaluateResult
   ---@type Variable
   local evalresult
   if info then
-    ---@type LuaProfiler
-    local timer
-    ---@type boolean
-    local success
-    ---@type Any
-    local result
+    local timer,success,result
     if context == "repl" then
       timer,success,result = DAEval.evaluateInternal(frameId and frameId+1,nil,context,expression,true)
     else
       success,result = DAEval.evaluateInternal(frameId and frameId+1,nil,context,expression)
     end
+    ---@cast timer LuaProfiler
+    ---@cast success boolean
     if success then
       if context == "repl" then
-        --[[@cast result DebugAdapter.CountedResult]]
+        ---@cast result DebugAdapter.CountedResult
         if result.n == 0 or result.n == 1 then
           result = result[1]
         else
           setmetatable(result,evalresultmeta)
         end
       end
+      ---@cast result any
       evalresult = variables.create(nil,result,nil)
       evalresult.result = evalresult.value
       if context == "visualize" then
@@ -454,12 +459,13 @@ function DAEval.evaluate(frameId,context,expression,seq,formod)
         end
         evalresult.result = json_encode(result)
       end
-      evalresult.value = nil
       evalresult.seq = seq
     else
       if context == "repl" then
+        ---@cast result DebugAdapter.CountedResult
         result = result[1]
       end
+      ---@cast result any
       local outmesg = result
       local tmesg = type(result)
       if tmesg == "table" and (result--[[@as LuaObject]].object_name == "LuaProfiler" or (not getmetatable(result) and type(result[1])=="string")) then

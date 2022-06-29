@@ -80,9 +80,9 @@ local match = string.match
 ---@param internal boolean Don't look in other LuaStates
 ---@return boolean
 function __DebugAdapter.source(id,internal)
-  ---@type DAvarslib.SourceRef
+
   local ref = variables.longrefs[id]
-  if ref and ref.type == "Source" then
+  if ref and ref.type == "Source" then ---@cast ref DAvarslib.SourceRef
     print("DBGdump: " .. json.encode{source=ref.source,ref=id})
     return true
   end
@@ -104,7 +104,7 @@ function __DebugAdapter.source(id,internal)
   return false
 end
 
----@return Module[]
+---@prints Module[]
 function __DebugAdapter.modules()
   ---@type Module[]
   local modules = {}
@@ -119,8 +119,8 @@ function __DebugAdapter.modules()
   print("DBGmodules: " .. json.encode(modules))
 end
 
----@param frameId number
----@return Scope[]
+---@param frameId integer
+---@prints Scope[]
 function __DebugAdapter.scopes(frameId)
   if debug.getinfo(frameId,"f") then
     ---@type Scope[]

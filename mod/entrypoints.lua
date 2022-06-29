@@ -53,11 +53,11 @@ local handlernames = setmetatable({},{__mode="k"})
 ---@type table<string,function>
 local hashandler = {}
 
----@type {[defines.events|number|string]:function}
+---@type {[defines.events|uint|string]:function}
 local event_handler = {}
----@param id number|string
----@param f function
----@return function
+---@param id defines.events|string
+---@param f? function
+---@return function?
 local function save_event_handler(id,f)
   event_handler[id] = f
   return f
@@ -68,7 +68,7 @@ local myRemotes = {}
 
 ---Look up the label for an entrypoint function
 ---@param func function
----@return string label
+---@return string? label
 function DAEntrypoints.getEntryLabel(func)
   do
     local handler = handlernames[func]
@@ -85,12 +85,13 @@ function DAEntrypoints.getEntryLabel(func)
       end
     end
   end
+  return
 end
 
 ---Record a handler label for a function and return that functions
----@param func function
+---@param func? function
 ---@param entryname string
----@return function func
+---@return function? func
 local function labelhandler(func,entryname)
   if func then
     if handlernames[func] then
@@ -198,7 +199,7 @@ function newscript.on_configuration_changed(f)
   return oldscript.on_configuration_changed(labelhandler(f,"on_configuration_changed handler"))
 end
 
----@param tick number|number[]|nil
+---@param tick uint|uint[]|nil
 ---@param f fun(x:NthTickEventData)|nil
 ---@overload fun(x:nil)
 function newscript.on_nth_tick(tick,f)
@@ -212,7 +213,7 @@ function newscript.on_nth_tick(tick,f)
     end
   else
     local ttype = type(tick)
-    if ttype == "number" then
+    if ttype == "number" then ---@cast tick uint
       return oldscript.on_nth_tick(tick,labelhandler(f,("on_nth_tick %d handler"):format(tick)))
     elseif ttype == "table" then
       return oldscript.on_nth_tick(tick,labelhandler(f,("on_nth_tick {%s} handler"):format(table.concat(tick,","))))
@@ -233,7 +234,7 @@ function newscript.on_event(event,f,...)
   local etype = type(event)
   ---@type boolean
   local has_filters = select("#",...)  > 0
-  if etype == "number" then
+  if etype == "number" then ---@cast event defines.events
     local evtname = ("event %d"):format(event)
     for k,v in pairs(defines.events) do
       if event == v then
@@ -284,7 +285,7 @@ local newcommands = {
 ---@param help string|LocalisedString
 ---@param f function
 function newcommands.add_command(name,help,f)
-  return oldcommands.add_command(name,help,labelhandler(f, "command /" .. name))
+  return oldcommands.add_command(name,help,labelhandler(f, "command /" .. name)--[[@as function]])
 end
 
 ---@param name string

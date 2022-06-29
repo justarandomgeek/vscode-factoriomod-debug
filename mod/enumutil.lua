@@ -1,9 +1,9 @@
 --- swap the keys and values on a table
 ---@generic T
----@param t table<string,T>
+---@param t? table<string,T>
 ---@param prefix? string
 ---@param filter? fun(key:string,val:T):boolean
----@return table<T,string>
+---@return table<T,string>?
 local function invert(t,prefix,filter)
   if not t then return end
   local tt = {}

@@ -11,14 +11,14 @@ local DAprint = {}
 
 ---@param expr any
 ---@param alsoLookIn? table
----@param upStack? number
+---@param upStack? integer
 ---@param category? "console"|"important"|"stdout"|"stderr"
 ---@param noexprs? boolean
 function DAprint.print(expr,alsoLookIn,upStack,category,noexprs)
   local texpr = type(expr)
   ---@type string
   local result
-  ---@type number
+  ---@type integer
   local ref
   if texpr == "string" then
     ---@type any[]

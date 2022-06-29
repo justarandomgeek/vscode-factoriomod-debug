@@ -182,13 +182,13 @@ end
 
 ---@type cross_stack[]
 local stacks = {}
----@type number
+---@type string|nil
 local cross_stepping
----@type boolean
+---@type boolean|nil
 local cross_step_instr
 
 ---@param stack cross_stack
----@param stepping number
+---@param stepping string
 ---@param step_instr boolean
 function DAStacks.pushStack(stack,stepping,step_instr)
   if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
@@ -200,8 +200,8 @@ function DAStacks.pushStack(stack,stepping,step_instr)
   end
 end
 
----@return number stepping
----@return boolean step_instr
+---@return string? stepping
+---@return boolean? step_instr
 function DAStacks.popStack()
   if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
     return remote.call("debugadapter", "popStack")
@@ -225,7 +225,6 @@ end
 
 ---@param stepping string
 ---@param step_instr boolean
----@return nil
 function DAStacks.crossStepping(stepping,step_instr)
   if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
     return remote.call("debugadapter", "crossStepping", stepping)
@@ -235,8 +234,8 @@ function DAStacks.crossStepping(stepping,step_instr)
   end
 end
 
----@return number cross_stepping
----@return boolean cross_step_instr
+---@return string? cross_stepping
+---@return boolean? cross_step_instr
 function DAStacks.peekStepping()
   if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
     return remote.call("debugadapter", "peekStepping")

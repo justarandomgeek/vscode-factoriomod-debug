@@ -35,6 +35,7 @@ luaObjectInfo.lineItem = {
   ---@param stack LuaItemStack
   ---@param short boolean | nil
   ---@return string
+  ---@return any[]?
   LuaItemStack = function(stack,short)
     if stack.valid_for_read then
       if not short then
@@ -115,12 +116,12 @@ eventlike.__newindex.LuaCustomTable = setmetatable({},{__index = function() retu
 
 
 ---Test if a hooked call/return represents an event-like api call
----@param level number the stack level of the code interrupted by the hook
+---@param level integer the stack level of the code interrupted by the hook
 ---@param hooktype string the debug hook type we're in while checking this
----@return boolean is_eventlike
----@return string classname
----@return string method
----@return any value if api access was a `__newindex` call
+---@return boolean? is_eventlike
+---@return string? classname
+---@return string? method
+---@return any? value if api access was a `__newindex` call
 local function check_eventlike(level,hooktype)
   if not script then return end
 
@@ -182,8 +183,8 @@ local function check_eventlike(level,hooktype)
         return true,member.class,member.member
       end
     end
-
   end
+  return
 end
 luaObjectInfo.check_eventlike = check_eventlike
 
@@ -206,6 +207,7 @@ local function try_object_name(obj)
   if success then
     return object_name
   end
+  return
 end
 luaObjectInfo.try_object_name = try_object_name
 
