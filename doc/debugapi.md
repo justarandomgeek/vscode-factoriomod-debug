@@ -1,10 +1,14 @@
 ## String Interpolation
 
-Logpoint expressions, `__DebugAdapter.print()`,  and `__debugline` strings will evaluate expressions in `{}`. The inner expression is evaluated as lua code, and has access to all locals and upvalues at the current location (for logpoints), or members of the current object and the object itself as `self` (for `__debugline`). The expression always has access to globals. `{[}` and `{]}` can be used to emit literal `{` and `}`.
+Several locations in the interface use string interpolation with expressions in `{}`. The inner expression is evaluated as lua code. `{[}` and `{]}` can be used to emit literal `{` and `}`.
+
+When used with Logpoint expressions, exception strings, and `__DebugAdapter.print()`, the inner expression has access to all locals and upvalues at the current location, and the expression `{...}` will represent the varargs available at that location, if available.
+
+The expression always has access to globals.
 
 ## Debug Print
 
-The function `__DebugAdapter.print(expr,alsoLookIn)` can be used to print messages to the vscode debug console. `expr` is string interpolation expression with access to locals at the scope that calls `print()`, and fields in table-like object `alsoLookIn`. The expression `{...}` will expand to the list of the caller's varargs, if any.
+The function `__DebugAdapter.print(expr,alsoLookIn)` can be used to print messages using string interpolation to the vscode debug console. An indexable object `alsoLookIn` may provide additional values for the expressions in the string, which will be used before other variables.
 
 ## Manual Breakpoints
 

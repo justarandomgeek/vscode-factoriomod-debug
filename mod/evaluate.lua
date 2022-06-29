@@ -39,6 +39,9 @@ local function evalmeta(env,frameId,alsoLookIn)
   local getlocal = debug.getlocal
   local getupvalue = debug.getupvalue
   local em = {
+    __closeframe = function ()
+      frameId = false
+    end,
     __debugtype = "DebugAdapter.EvalEnv",
     ---@param t table
     ---@param short boolean
@@ -49,7 +52,9 @@ local function evalmeta(env,frameId,alsoLookIn)
       end
       ---@type string|nil
       local envname
-      if frameId then
+      if frameId == false then
+        envname = (envname or " for") .. " closed frame"
+      elseif frameId then
         envname = (envname or " for") .. " frame " .. frameId
       end
       if alsoLookIn then
@@ -73,15 +78,15 @@ local function evalmeta(env,frameId,alsoLookIn)
         end
         -- this might be a LuaObject and throw on bad lookups...
         local success,result = pcall(function() return alsoLookIn[k] end)
-        if success and result then
+        if success then
           return result
         end
       end
 
       if frameId then
         -- find how deep we are, if the expression includes defining new functions and calling them...
-        -- if this table lives longer than the expression (by being returned), this will end up failing
-        -- to locate the correct stack and fall back to only the global lookups
+        -- if this table lives longer than the expression (by being returned),
+        -- the frameId will be cleared and fall back to only the global lookups
         local i = 0
         ---@type number|nil
         local offset
@@ -89,7 +94,7 @@ local function evalmeta(env,frameId,alsoLookIn)
           local info = getinfo(i,"f")
           if info then
             local func = info.func
-            if func == DAEval.evaluateInternal or func == timedpcall then
+            if func == DAEval.evaluateInternal then
               offset = i - 1
               break
             end
@@ -166,7 +171,7 @@ local function evalmeta(env,frameId,alsoLookIn)
           local info = getinfo(i,"f")
           if info then
             local func = info.func
-            if func == DAEval.evaluateInternal or func == timedpcall then
+            if func == DAEval.evaluateInternal then
               offset = i - 1
               break
             end
@@ -288,7 +293,15 @@ function DAEval.evaluateInternal(frameId,alsoLookIn,context,expression,timed)
   end
 
   local pcall = timed and timedpcall or pcall
-  return pcall(f)
+  local function closeframe(...)
+    if frameId then
+      local mt = getmetatable(env)
+      local __closeframe = mt and mt.__closeframe
+      if __closeframe then __closeframe() end
+    end
+    return ...
+  end
+  return closeframe(pcall(f))
 end
 
 ---@param str string
@@ -317,7 +330,7 @@ function DAEval.stringInterp(str,frameId,alsoLookIn,context)
           evals[evalidx] = setmetatable({},{
             __debugline = "no frame for `...`",
             __debugtype = "error",
-            __debugchildren = false,
+            __debugcontents = false,
           })
           evalidx = evalidx+1
           return "<error>"
@@ -344,7 +357,7 @@ function DAEval.stringInterp(str,frameId,alsoLookIn,context)
           evals[evalidx] = setmetatable({},{
             __debugline = "frame for `...` is not vararg",
             __debugtype = "error",
-            __debugchildren = false,
+            __debugcontents = false,
           })
           evalidx = evalidx+1
           return "<error>"
@@ -360,7 +373,7 @@ function DAEval.stringInterp(str,frameId,alsoLookIn,context)
         evals[evalidx] = setmetatable({},{
           __debugline = result,
           __debugtype = "error",
-          __debugchildren = false,
+          __debugcontents = false,
         })
         evalidx = evalidx+1
         return "<error>"

@@ -5,7 +5,7 @@ local print = print
 local localised_print = localised_print
 local __DebugAdapter = __DebugAdapter
 local setmetatable = setmetatable
-local variables = require("__debugadapter__/variables.lua")
+local nextuple = require("__debugadapter__/iterutil.lua").nextuple
 
 ---@class DebugAdapter.Entrypoints
 local DAEntrypoints = {}
@@ -332,11 +332,11 @@ local remotemeta = {
   __newindex = function(t,k,v) oldremote[k] = v end,
   __debugline = "<LuaRemote Debug Proxy>",
   __debugtype = "DebugAdapter.LuaRemote",
-  __debugchildren = function()
-    return {
-      variables.create([["interfaces"]],oldremote.interfaces),
-      variables.create("<raw>",oldremote),
-      variables.create("<myRemotes>",myRemotes),
+  __debugcontents = function()
+    return nextuple, {
+      ["interfaces"] = {oldremote.interfaces},
+      ["<raw>"] = {oldremote, {rawName = true, virtual = true}},
+      ["<myRemotes>"] = {myRemotes, {rawName = true, virtual = true}},
     }
   end,
 }

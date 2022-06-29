@@ -15,6 +15,7 @@ end
 local luaObjectInfo = require("__debugadapter__/luaobjectinfo.lua")
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local json_encode = require("__debugadapter__/json.lua").encode
+local iterutil = require("__debugadapter__/iterutil.lua")
 
 local __DebugAdapter = __DebugAdapter
 local debug = debug
@@ -34,13 +35,13 @@ local remote = remote and (type(remote)=="table" and rawget(remote,"__raw")) or 
 local refsmeta = {
   __debugline = "<Debug Adapter Variable ID Cache [{table_size(self)}]>",
   __debugtype = "DebugAdapter.VariableRefs",
-  __debugchildren = false,
+  __debugcontents = false,
 }
 
 local longrefsmeta = {
   __debugline = "<Debug Adapter Long-lived Variable ID Cache [{table_size(self)}]>",
   __debugtype = "DebugAdapter.VariableLongRefs",
-  __debugchildren = false,
+  __debugcontents = false,
 }
 
 ---@class DebugAdapter.Variables
@@ -64,7 +65,8 @@ if not gmeta then
   gmeta = {}
   setmetatable(_ENV,gmeta)
 end
-local globalbuiltins={
+---@type (DebugAdapter.RenderFilter|DebugAdapter.RenderOptionsWithFilter)[]
+local env_opts={
   _G = "builtin", assert = "builtin", collectgarbage = "builtin", error = "builtin", getmetatable = "builtin",
   ipairs = "builtin", load = "builtin", loadstring = "builtin", next = "builtin", pairs = "builtin", pcall = "builtin",
   print = "builtin", rawequal = "builtin", rawlen = "builtin", rawget = "builtin", rawset = "builtin", select = "builtin",
@@ -76,38 +78,18 @@ local globalbuiltins={
   script = "factorio", defines = "factorio", game = "factorio", global = "factorio", mods = "factorio", data = "factorio", util = "factorio",
   log = "factorio", table_size = "factorio", localised_print = "factorio",
 
+  ["<Lua Builtin Globals>"] = {rawName=true, rawValue=true, virtual=true, ref=_ENV, extra="builtin"},
+  ["<Factorio API>"] = {rawName=true, rawValue=true, virtual=true, ref=_ENV, extra="factorio"},
 }
+
+local env_sections = {
+  ["<Lua Builtin Globals>"] = "<Lua Builtin Globals>",
+  ["<Factorio API>"] = "<Factorio API>",
+}
+
 gmeta.__debugline = "<Global Self Reference>"
 gmeta.__debugtype = "_ENV"
-gmeta.__debugchildren = __DebugAdapter.stepIgnore(function(t,extra)
-  local vars = {}
-  if not extra then
-    vars[#vars + 1] =  {
-      name = "<Lua Builtin Globals>",
-      value = "<Lua Builtin Globals>",
-      type = "<Lua Builtin Globals>",
-      variablesReference = variables.tableRef(t,nil,false,"builtin"),
-      presentationHint = {kind="virtual"},
-    }
-    vars[#vars + 1] =  {
-      name = "<Factorio API>",
-      value = "<Factorio API>",
-      type = "<Factorio API>",
-      variablesReference = variables.tableRef(t,nil,false,"factorio"),
-      presentationHint = {kind="virtual"},
-    }
-
-  end
-  for k,v in pairs(t) do
-    if globalbuiltins[k] == extra then -- extra is nil for top level, or section name for sub-sections
-      local name = variables.describe(k,true)
-      -- force a global lookup even if local/upvalue of same name
-      local evalName = "_G[" .. name .. "]"
-      vars[#vars + 1] = variables.create(name,v,evalName)
-    end
-  end
-  return vars
-end)
+gmeta.__debugcontents = iterutil.sectioned_contents(env_sections,env_opts)
 
 if __DebugAdapter.checkGlobals ~= false then
   local definedGlobals = {_=true}
@@ -597,7 +579,7 @@ function variables.create(name,value,evalName)
     variablesReference = variables.luaObjectRef(value,vtype,evalName)
   elseif vtype == "table" then
     local mt = debug.getmetatable(value)
-    if not mt or mt.__debugchildren == nil then
+    if not mt or mt.__debugcontents == nil then
       variablesReference = variables.tableRef(value,nil,nil,nil,evalName)
       namedVariables = 0
       indexedVariables = rawlen(value)
@@ -614,9 +596,8 @@ function variables.create(name,value,evalName)
         -- no meta, array-like, and starts with a string, maybe a localisedstring? at least try...
         namedVariables = 1
       end
-    elseif mt.__debugchildren then -- mt and ...
-      variablesReference = variables.tableRef(value,nil,nil,nil,evalName)
-      -- children counts for mt children?
+    elseif mt.__debugcontents then -- mt and ...
+      variablesReference = variables.tableRef(value)
     end
     if mt and type(mt.__debugtype) == "string" then
       vtype = mt.__debugtype
@@ -640,10 +621,21 @@ local itermode = {
   ipairs = ipairs,
 }
 
+---@alias DebugAdapter.DebugContents<K,V,E> fun(self:table,extra:E):DebugAdapter.DebugNext<K,V,E>,any,any
+---@alias DebugAdapter.DebugNext<K,V> fun(t:any,k:K):K,V,DebugAdapter.RenderOptions
+
+---@class DebugAdapter.RenderOptions
+---@field rawName? boolean @ if `k` is a string, display it as-is
+---@field rawValue? boolean @ if `v` is a string, display it as-is
+---@field virtual? boolean
+---@field ref? table|function @ Object to expand children of instead of this value
+---@field fetchable? boolean @ if ref or value is function, treat as fetchable property instead of raw function
+---@field extra? any @ Extra object to pass back to `__debugcontents`
+
 --- DebugAdapter VariablesRequest
 ---@param variablesReference integer
 ---@param seq number
----@param filter nil | string ('indexed' | 'named')
+---@param filter nil | 'indexed' | 'named'
 ---@param start nil | number
 ---@param count nil | number
 ---@param longonly nil | boolean
@@ -789,19 +781,71 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
           vars[#vars + 1] = variables.create(tostring(i),varRef.table[i], evalName)
         end
       else
-        if mt and type(mt.__debugchildren) == "function" then
-          -- don't crash a debug session for a bad user-provided formatter...
-          local success,children = pcall(mt.__debugchildren,varRef.table,varRef.extra)
+        if mt and type(mt.__debugcontents) == "function" then
+          ---@type DebugAdapter.DebugContents<any,any,any>
+          local __debugcontents = mt.__debugcontents
+          local success, __debugnext, t, firstk = pcall(__debugcontents,varRef.table,varRef.extra)
           if success then
-            for _,var in pairs(children) do
-              vars[#vars + 1] = var
+            ---@cast __debugnext DebugAdapter.DebugNext<any,any>
+            while true do
+              local success,k,v,opts = pcall(__debugnext,t,firstk)
+              if not success then
+                vars[#vars + 1] = {
+                    name = "<__debugnext error>",
+                    -- describe in case it's a LocalisedString or other non-string error object
+                    value = variables.describe(k),
+                    type = "error",
+                    variablesReference = 0,
+                    presentationHint = {kind="virtual"},
+                  }
+                  break
+              end
+              ---@cast opts DebugAdapter.RenderOptions|nil
+              if not k then
+                break
+              end
+              local kline,ktype = variables.describe(k,true)
+              local newvar = variables.create(kline,v)
+              if ktype == "string" and opts and opts.rawName then
+                newvar.name = k
+              elseif ktype == "table" or ktype == "function" then
+                newvar.variablesReference,newvar.name = variables.kvRef(k,v)
+              end
+              if type(v)=="string" and opts and opts.rawValue then
+                newvar.value = v
+                newvar.type = nil
+              end
+              if opts and opts.ref then
+                  local ref = opts.ref
+                  local tref = type(ref)
+                  if tref == "table" then
+                    newvar.variablesReference = variables.tableRef(ref,nil,nil,opts.extra)
+                  elseif tref == "function" then
+                    if opts.fetchable then
+                      newvar.variablesReference = variables.fetchRef(ref)
+                      newvar.presentationHint = newvar.presentationHint or {}
+                      newvar.presentationHint.lazy = true
+                    else
+                      newvar.variablesReference = variables.funcRef(ref)
+                    end
+                  end
+
+              elseif type(v) == "table" and opts and opts.extra then
+                newvar.variablesReference = variables.tableRef(v,nil,nil,opts.extra)
+              end
+              if opts and opts.virtual then
+                newvar.presentationHint = newvar.presentationHint or {}
+                newvar.presentationHint.kind="virtual"
+              end
+              vars[#vars + 1] = newvar
+              firstk = k
             end
           else
             vars[#vars + 1] = {
-              name = "<__debugchildren error>",
+              name = "<__debugcontents error>",
               -- describe in case it's a LocalisedString or other non-string error object
-              value = variables.describe(children),
-              type = "childerror",
+              value = variables.describe(__debugnext),
+              type = "error",
               variablesReference = 0,
               presentationHint = {kind="virtual"},
             }
@@ -842,56 +886,81 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
           ---@type fun(t:table):nextfn,table,any
           local debugpairs = itermode[varRef.mode]
           if debugpairs then
-            local f,t,firstk = debugpairs(varRef.table)
-            ---@type fun(t:table):number
-            local len = mt and mt.__len
-            if len then
-              if not luaObjectInfo.try_object_name(varRef.table) then
+            local success,f,t,firstk = pcall(debugpairs,varRef.table)
+            if success then
+              ---@type fun(t:table):number
+              local len = mt and mt.__len
+              if len then
+                if not luaObjectInfo.try_object_name(varRef.table) then
+                  len = rawlen
+                end
+              else
                 len = rawlen
               end
+              local maxindex = len(varRef.table)
+              if filter == "indexed" then
+                if not start or start == 0 then
+                  start = 1
+                  count = count and (count - 1)
+                end
+                firstk = start - 1
+                if firstk == 0 then firstk = nil end
+              elseif filter == "named" then
+                if maxindex > 0 then
+                  firstk = maxindex
+                end
+                -- skip ahead some names? limit them? vscode does not currently ask for limited names
+              end
+              local limit = (filter == "indexed") and (start+count)
+              while true do
+                local success,k,v = pcall(f,t,firstk)
+                if not success then
+                  vars[#vars + 1] = {
+                    name = "<"..varRef.mode.." error>",
+                    value = variables.describe(k),
+                    type = "error",
+                    variablesReference = 0,
+                    presentationHint = {kind="virtual"},
+                  }
+                  break
+                end
+                if not k then
+                  break
+                end
+                if filter == "indexed" and ((type(k) ~= "number") or (k > maxindex) or (k >= limit) or (k == 0) or (k % 1 ~= 0)) then
+                  break
+                end
+                ---@type string
+                local evalName
+                if varRef.evalName then
+                  evalName = varRef.evalName .. "[" .. variables.describe(k,true) .. "]"
+                end
+                local kline,ktype = variables.describe(k,true)
+                local newvar = variables.create(kline,v, evalName)
+                if ktype == "table" or ktype == "function" then
+                  newvar.variablesReference,newvar.name = variables.kvRef(k,v)
+                end
+                vars[#vars + 1] = newvar
+                if count then
+                  count = count - 1
+                  if count == 0 then break end
+                end
+                firstk = k
+              end
             else
-              len = rawlen
-            end
-            local maxindex = len(varRef.table)
-            if filter == "indexed" then
-              if not start or start == 0 then
-                start = 1
-                count = count and (count - 1)
-              end
-              firstk = start - 1
-              if firstk == 0 then firstk = nil end
-            elseif filter == "named" then
-              if maxindex > 0 then
-                firstk = maxindex
-              end
-              -- skip ahead some names? limit them? vscode does not currently ask for limited names
-            end
-            local limit = (filter == "indexed") and (start+count)
-            for k,v in f,t,firstk do
-              if filter == "indexed" and ((type(k) ~= "number") or (k > maxindex) or (k >= limit) or (k == 0) or (k % 1 ~= 0)) then
-                break
-              end
-              ---@type string
-              local evalName
-              if varRef.evalName then
-                evalName = varRef.evalName .. "[" .. variables.describe(k,true) .. "]"
-              end
-              local kline,ktype = variables.describe(k,true)
-              local newvar = variables.create(kline,v, evalName)
-              if ktype == "table" or ktype == "function" then
-                newvar.variablesReference,newvar.name = variables.kvRef(k,v)
-              end
-              vars[#vars + 1] = newvar
-              if count then
-                count = count - 1
-                if count == 0 then break end
-              end
+              vars[#vars + 1] = {
+                name = "<"..varRef.mode.." error>",
+                value = variables.describe(f),
+                type = "error",
+                variablesReference = 0,
+                presentationHint = {kind="virtual"},
+              }
             end
           else
             vars[#vars + 1] = {
               name = "<table varRef error>",
               value = "missing iterator for table varRef mode ".. varRef.mode,
-              type = "childerror",
+              type = "error",
               variablesReference = 0,
               presentationHint = {kind="virtual"},
             }
@@ -1031,7 +1100,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
           name = "<Fetch error>",
           -- describe in case it's a LocalisedString or other non-string error object
           value = variables.describe(result),
-          type = "fetcherror",
+          type = "error",
           variablesReference = 0,
           presentationHint = { kind="virtual"},
         }

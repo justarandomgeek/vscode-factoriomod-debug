@@ -3,6 +3,7 @@ local pairs = pairs
 local type = type
 
 local enc = require("__debugadapter__/base64.lua")
+local nextuple = require("__debugadapter__/iterutil.lua").nextuple
 
 --this has to be defined before requiring other files so they can mark functions as ignored
 ---@type {[function]:true}
@@ -449,14 +450,15 @@ function DAstep.currentStep()
   return stepdepth, step_instr
 end
 
-local vcreate = variables.create
 local vmeta = {
   __debugline = "<Debug Adapter Stepping Module>",
   __debugtype = "DebugAdapter.Stepping",
-  __debugchildren = function() return {
-    vcreate("<breakpoints>",breakpoints),
-    vcreate("<stepdepth>",stepdepth),
-  } end,
+  __debugcontents =function ()
+    return nextuple, {
+      ["<breakpoints>"] = {breakpoints, {rawName = true, virtual = true}},
+      ["<stepdepth>"] = {stepdepth, {rawName = true, virtual = true}},
+    }
+  end,
 }
 stepIgnore(vmeta)
 return setmetatable(DAstep,vmeta)
