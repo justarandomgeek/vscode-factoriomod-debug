@@ -174,7 +174,7 @@ do
                 local result,exprs = __DebugAdapter.stringInterp(b.logMessage,frameId,nil,"logpoint")
                 setmetatable(exprs,{
                   __debugline = function() return result end,
-                  __debugtype = "<print>",
+                  __debugtype = "DebugAdapter.LogPointResult",
                 })
                 local varresult = variables.create(nil,{exprs}, nil)
                 local logpoint = {

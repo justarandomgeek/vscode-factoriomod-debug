@@ -59,6 +59,25 @@ local variables = {
   -- objects to pass up to the parent __DebugAdapter
   __ = DAvars,
 }
+local pindex,pnewindex
+do
+  local function index(t,k) return t[k] end
+  local function newindex(t,k,v) t[k]=v end
+
+  ---@param t any
+  ---@param k any
+  ---@return boolean success
+  ---@return any value
+  function pindex(t,k) return pcall(index,t,k) end
+
+  ---@param t any
+  ---@param k any
+  ---@param v any
+  ---@return boolean success
+  function pnewindex(t,k,v) return pcall(newindex,t,k,v) end
+end
+variables.pindex = pindex
+variables.pnewindex = pnewindex
 
 local gmeta = getmetatable(_ENV)
 if not gmeta then
@@ -603,7 +622,10 @@ function variables.create(name,value,evalName)
       vtype = mt.__debugtype
     end
   elseif vtype == "function" then
-    variablesReference = variables.funcRef(value)
+    local info = debug.getinfo(value, "u")
+    if info.nups > 0 then
+      variablesReference = variables.funcRef(value)
+    end
   end
   return {
     name = name,
@@ -924,7 +946,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
                 local success,k,v = pcall(f,t,firstk)
                 if not success then
                   vars[#vars + 1] = {
-                    name = "<"..varRef.mode.." error>",
+                    name = "<"..varRef.mode.." iter error>",
                     value = variables.describe(k),
                     type = "error",
                     variablesReference = 0,
@@ -1030,7 +1052,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
               }
             else
               -- Not all keys are valid on all LuaObjects of a given type. Just skip the errors (or nils)
-              local success,value = pcall(function() return object[key] end)
+              local success,value = pindex(object,key)
               if success and value ~= nil then
                 ---@type string
                 local evalName
@@ -1254,7 +1276,7 @@ function DAvars.setVariable(variablesReference, name, value, seq)
           return
         end
         -- this could fail if table has __newindex or LuaObject property is read only or wrong type, etc
-        local goodassign,mesg = pcall(function() alsoLookIn[newname] = newvalue end)
+        local goodassign,mesg = pnewindex(alsoLookIn,newname,newvalue)
         if not goodassign then
           print("DBGsetvar: " .. json_encode({seq = seq, body = {type="error",value=mesg}}))
           return
@@ -1263,7 +1285,7 @@ function DAvars.setVariable(variablesReference, name, value, seq)
         -- it could even fail silently, or coerce the value to another type,
         -- so fetch the value back instead of assuming it set...
         -- also, refresh the value even if we didn't update it
-        local _,resultvalue = pcall(function() return alsoLookIn[newname] end)
+        local _,resultvalue = pindex(alsoLookIn,newname)
         print("DBGsetvar: " .. json_encode({seq = seq, body = variables.create(nil,resultvalue)}))
         return
       else

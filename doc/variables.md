@@ -4,7 +4,7 @@ The debug views of tables can be customized using metatables to override default
 
 The default lineitem for a table can be overridden by the metamethod `__debugline`, which can be either a string or a function `__debugline(self)->string` which takes the table as an argument and returns a string. If `__debugline` is a string, [String Interpolation](./debugapi.md#string-interpolation) will be applied, with members of the current object avaliable to expressions, as well as the object itself as `self`.
 
-The typename for a table can be overridden by a string in the metatable field `__debugtype`.
+The typename for a table can be overridden by a string in the metatable field `__debugtype`. This is only used for display in the DAP client.
 
 By default, the metatable will be listed as a virtual member `<metatable>`.The displayed contents of the table can be overridden with `__debugcontents` which can be `false` to omit contents entirely, or a function `__debugcontents(self,extra?)->__debugnext,t,k` which returns an iterator `__debugnext(t,k)->nextk,nextv,renderOpts?`.
 

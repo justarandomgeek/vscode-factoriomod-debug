@@ -8,6 +8,7 @@ local pcall = pcall -- capture pcall early before entrypoints wraps it
 local xpcall = xpcall -- ditto
 local setmetatable = setmetatable
 local load = load
+local pindex = variables.pindex
 
 -- capture the raw object
 local remote = remote and (type(remote)=="table" and rawget(remote,"__raw")) or remote
@@ -77,7 +78,7 @@ local function evalmeta(env,frameId,alsoLookIn)
           return alsoLookIn
         end
         -- this might be a LuaObject and throw on bad lookups...
-        local success,result = pcall(function() return alsoLookIn[k] end)
+        local success,result = pindex(alsoLookIn,k)
         if success then
           return result
         end
@@ -153,7 +154,7 @@ local function evalmeta(env,frameId,alsoLookIn)
           return -- don't allow setting `self`
         end
         -- this might be a LuaObject and throw on bad lookups...
-        local success = pcall(function() return alsoLookIn[k] end)
+        local success = pindex(alsoLookIn,k)
         if success then
           -- attempt to set, this may throw on bad assignment to LuaObject, but we want to pass that up usually
           alsoLookIn[k] = v

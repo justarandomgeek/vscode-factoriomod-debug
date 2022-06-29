@@ -27,7 +27,7 @@ function DAprint.print(expr,alsoLookIn,upStack,category,noexprs)
     if next(exprs) and not noexprs then
       setmetatable(exprs,{
         __debugline = function() return result end,
-        __debugtype = "<print>",
+        __debugtype = "DebugAdapter.PrintResult",
       })
 
       local v = variables.create(nil,{exprs}, nil)
