@@ -267,7 +267,7 @@ export class ApiDocGenerator {
 
 	private generate_sumneko_builtin(output:WritableMemoryStream) {
 		this.docs.builtin_types.forEach(builtin=>{
-			if (!(["string","boolean","table"].includes(builtin.name))) {
+			if (!(["string","boolean","table","nil"].includes(builtin.name))) {
 				output.write(this.convert_sumneko_description(
 					extend_string({str:builtin.description, post:"\n\n"}) + this.view_documentation(builtin.name)
 					));
