@@ -616,6 +616,14 @@ function variables.create(name,value,evalName)
   }
 end
 
+function variables.error(message)
+  return setmetatable({},{
+    __debugline = message,
+    __debugtype = "error",
+    __debugcontents = false,
+  })
+end
+
 local itermode = {
   pairs = pairs,
   ipairs = ipairs,

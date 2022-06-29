@@ -229,16 +229,16 @@ local function evalmeta(env,frameId,alsoLookIn)
 end
 __DebugAdapter.stepIgnore(evalmeta)
 
+---@class DebugAdapter.CountedResult: any[]
+---@field n number
+
 ---@param frameId number | nil
 ---@param alsoLookIn table | nil
 ---@param context string
 ---@param expression string
 ---@param timed nil|boolean
----@return boolean success
----@return ...
----@overload fun(frameId:number|nil,alsoLookIn:table|nil,context:string,expression:string,timed:boolean): LuaProfiler,boolean,...
----@overload fun(frameId:number|nil,alsoLookIn:table|nil,context:string,expression:string,timed:boolean|nil): boolean,...
----@overload fun(frameId:number|nil,alsoLookIn:table|nil,context:string,expression:string): boolean,...
+---@overload fun(frameId:number|nil,alsoLookIn:table|nil,context:string,expression:string,timed:true): LuaProfiler,boolean,DebugAdapter.CountedResult
+---@overload fun(frameId:number|nil,alsoLookIn:table|nil,context:string,expression:string,timed?:false|nil): boolean,...
 function DAEval.evaluateInternal(frameId,alsoLookIn,context,expression,timed)
   ---@type table
   local env = _ENV
@@ -293,14 +293,24 @@ function DAEval.evaluateInternal(frameId,alsoLookIn,context,expression,timed)
   end
 
   local pcall = timed and timedpcall or pcall
-  local function closeframe(...)
-    if frameId then
-      local mt = getmetatable(env)
-      local __closeframe = mt and mt.__closeframe
-      if __closeframe then __closeframe() end
+  local closeframe = timed and
+    function(timer,success,...)
+      if frameId then
+        local mt = getmetatable(env)
+        local __closeframe = mt and mt.__closeframe
+        if __closeframe then __closeframe() end
+      end
+      return timer,success,table.pack(...)
     end
-    return ...
-  end
+    or
+    function(success,...)
+      if frameId then
+        local mt = getmetatable(env)
+        local __closeframe = mt and mt.__closeframe
+        if __closeframe then __closeframe() end
+      end
+      return success,...
+    end
   return closeframe(pcall(f))
 end
 
@@ -327,11 +337,7 @@ function DAEval.stringInterp(str,frameId,alsoLookIn,context)
       elseif expr == "{...}" then
         -- expand a comma separated list of short described varargs
         if not frameId then
-          evals[evalidx] = setmetatable({},{
-            __debugline = "no frame for `...`",
-            __debugtype = "error",
-            __debugcontents = false,
-          })
+          evals[evalidx] = variables.error("no frame for `...`")
           evalidx = evalidx+1
           return "<error>"
         end
@@ -354,11 +360,7 @@ function DAEval.stringInterp(str,frameId,alsoLookIn,context)
           evalidx = evalidx+1
           return result
         else
-          evals[evalidx] = setmetatable({},{
-            __debugline = "frame for `...` is not vararg",
-            __debugtype = "error",
-            __debugcontents = false,
-          })
+          evals[evalidx] = variables.error("frame for `...` is not vararg")
           evalidx = evalidx+1
           return "<error>"
         end
@@ -370,11 +372,7 @@ function DAEval.stringInterp(str,frameId,alsoLookIn,context)
         evalidx = evalidx+1
         return variables.describe(result)
       else
-        evals[evalidx] = setmetatable({},{
-          __debugline = result,
-          __debugtype = "error",
-          __debugcontents = false,
-        })
+        evals[evalidx] = variables.error(result)
         evalidx = evalidx+1
         return "<error>"
       end
@@ -424,6 +422,24 @@ function DAEval.evaluate(frameId,context,expression,seq,formod)
       success,result = DAEval.evaluateInternal(frameId and frameId+1,nil,context,expression)
     end
     if success then
+      if context == "repl" then
+        --[[@cast result DebugAdapter.CountedResult]]
+        if result.n == 0 or result.n == 1 then
+          result = result[1]
+        else
+          setmetatable(result,{
+            __debugline = function(t)
+              local s = {}
+              for i,v in ipairs(t) do
+                s[i] = variables.describe(v)
+              end
+              return table.concat(s,", ")
+            end,
+            __debugtype = "DebugAdapter.EvalResult",
+            __debugcontents = ipairs,
+          })
+        end
+      end
       evalresult = variables.create(nil,result,nil)
       evalresult.result = evalresult.value
       if context == "visualize" then
@@ -438,6 +454,9 @@ function DAEval.evaluate(frameId,context,expression,seq,formod)
       evalresult.value = nil
       evalresult.seq = seq
     else
+      if context == "repl" then
+        result = result[1]
+      end
       local outmesg = result
       local tmesg = type(result)
       if tmesg == "table" and (result--[[@as LuaObject]].object_name == "LuaProfiler" or (not getmetatable(result) and type(result[1])=="string")) then
