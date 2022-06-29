@@ -9,6 +9,8 @@
   * Version for online doc links
 * Correctly handle no `.vscode/factorio` dir in cleanup before generation
 * `LuaObject` as base class for all classes, instead of union of all classes
+* `__debugchildren` has been replaced by `__debugcontents`
+* Debug console evals that return multiple results will show all results
 
 ## 1.1.16
 
