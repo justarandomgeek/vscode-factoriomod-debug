@@ -36,7 +36,7 @@ To provide Factorio Lua API autocompletion, the Factorio mod debugger extension 
 
 Install [the Factorio Sumneko Lua Plugin](https://github.com/JanSharp/FactorioSumnekoLuaPlugin) into `.vscode/lua` to improve handling of `require`s, `global`, `on_event` and `remote.call`.
 
-Don't forget to read [the readme](readme.md) for information about using the Factorio Mod Debugger itself.
+Don't forget to read [the readme](../readme.md) for information about using the Factorio Mod Debugger itself.
 
 
 If using tasks, you may want to use git-bash as your automation shell:
