@@ -228,8 +228,8 @@ end
 
 --- Generate a variablesReference for `name` at frame `frameId`
 ---@param frameId integer
----@param name string = "Locals" | "Upvalues"
----@param mode? string = "temps" | "varargs"
+---@param name "Locals" | "Upvalues"
+---@param mode? "temps" | "varargs"
 ---@return integer variablesReference
 ---@overload fun(frameId:integer, name:"Upvalues"):integer
 ---@overload fun(frameId:integer, name:"Locals", mode?:"temps"|"varargs"):integer
