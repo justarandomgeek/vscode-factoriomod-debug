@@ -389,13 +389,26 @@ end
 local evalresultmeta = {
   __debugline = function(t)
     local s = {}
-    for i,v in ipairs(t) do
-      s[i] = variables.describe(v)
+    for i=1,t.n do
+      s[i] = variables.describe(t[i])
     end
     return table.concat(s,", ")
   end,
   __debugtype = "DebugAdapter.EvalResult",
-  __debugcontents = ipairs,
+  __debugcontents = function (t)
+    return
+      function(t,k)
+        if k == nil then
+          return 1,t[1]
+        end
+        if k >= t.n then
+          return
+        end
+        k = k +1
+        return k,t[k]
+      end,
+      t
+  end,
 }
 
 ---@param frameId? integer
