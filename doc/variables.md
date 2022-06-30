@@ -6,7 +6,7 @@ The default lineitem for a table can be overridden by the metamethod `__debuglin
 
 The typename for a table can be overridden by a string in the metatable field `__debugtype`. This is only used for display in the DAP client.
 
-By default, the metatable will be listed as a virtual member `<metatable>`.The displayed contents of the table can be overridden with `__debugcontents` which can be `false` to omit contents entirely, or a function `__debugcontents(self,extra?)->__debugnext,t,k` which returns an iterator `__debugnext(t,k)->nextk,nextv,renderOpts?`.
+By default, the metatable will be listed as a virtual member `<metatable>`.The displayed contents of the table can be overridden with `__debugcontents` which can be `false` to omit contents entirely, or a function `__debugcontents(self,extra?)->__debugnext,t,k` which returns an iterator `__debugnext(t,k)->nextk,nextv,renderOpts?`. You may use the functions in `__debugadapter__/iterutil.lua` to assist in creating these iterators.
 
 ```lua
 ---@class DebugAdapter.RenderOptions
