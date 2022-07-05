@@ -8,6 +8,15 @@ local util = require("factorio-plugin.util")
 local function replace(uri, text, diffs)
   -- rename `global` so we can tell them apart!
   local this_mod = uri:match("mods[\\/]([^\\/]+)[\\/]")
+  if not this_mod then
+    if __plugin_dev then
+      this_mod = "FallbackModName"
+    else
+      ---@type table
+      local workspace = require("workspace")
+      this_mod = (workspace.uri or workspace.getRootUri(uri)):match("[^/\\]+$")
+    end
+  end
   if this_mod then
     local scenario = uri:match("scenarios[\\/]([^\\/]+)[\\/]")
     if scenario then

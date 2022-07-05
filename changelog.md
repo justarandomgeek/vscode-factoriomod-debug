@@ -1,4 +1,7 @@
 
+### 2022-07-05
+- Add fallback modname resolution which is using the workspace folder name for `global` when the file uri does not contain `mods/modname/`
+
 ### 2022-04-17
 - Fix the usage of `global` causing a `lowercase-global` diagnostic warning on the first line if the current mod name is lowercase
 
