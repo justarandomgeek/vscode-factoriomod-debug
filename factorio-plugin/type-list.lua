@@ -15,26 +15,23 @@ local function match_count(s, pattern)
   return c
 end
 
----@param uri string @ The uri of file
+---@param _ string @ The uri of file
 ---@param text string @ The content of file
 ---@param diffs Diff[] @ The diffs to add more diffs to
-local function replace(uri, text, diffs)
-  ---@type string|number
+local function replace(_, text, diffs)
   for s_typelist_str, typelist_str, s_next_line, next_line
   in
-    text:gmatch("()%-%-%-[^%S\n]*@typelist([^\n]*)\n()([^\n]*)")
+    text:gmatch("()%-%-%-[^%S\n]*@typelist([^\n]*)\n()([^\n]*)")--[[@as fun(): integer, string, integer, string]]
   do
 
     if next_line:match("^%s*%-%-") then
       goto continue
     end
 
-    ---@type string[]
-    local types = {}
+    local types = {} ---@type string[]
     do
       local open_count = 0
-      ---@type string
-      local current_type = nil
+      local current_type = nil ---@type string|nil
       for part in typelist_str:gmatch("[^,]*") do
         if current_type then
           current_type = current_type .. "," .. part
@@ -44,7 +41,6 @@ local function replace(uri, text, diffs)
         open_count = open_count + match_count(part, "[%(<]")
         open_count = open_count - match_count(part, "[%)>]")
         if open_count == 0 then
-          ---@type string
           types[#types+1] = current_type
           current_type = nil
         elseif open_count < 0 then
@@ -59,8 +55,7 @@ local function replace(uri, text, diffs)
     util.add_diff(diffs, s_typelist_str, s_next_line, "--") -- to prevent the warning of a line with only spaces
 
     local i = 0
-    ---@type number
-    for s_list_item in next_line:gmatch("()[^,]*") do
+    for s_list_item in next_line:gmatch("()[^,]*")--[[@as fun(): integer]]  do
       i = i + 1
       local current_type = types[i]
       if not current_type then break end

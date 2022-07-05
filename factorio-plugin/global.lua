@@ -7,31 +7,29 @@ local util = require("factorio-plugin.util")
 ---@param diffs Diff[] @ The diffs to add more diffs to
 local function replace(uri, text, diffs)
   -- rename `global` so we can tell them apart!
-  local this_mod = uri:match("mods[\\/]([^\\/]+)[\\/]")
+  local this_mod = uri:match("mods[\\/]([^\\/]+)[\\/]")--[[@as string|nil]]
   if not this_mod then
     if __plugin_dev then
       this_mod = "FallbackModName"
     else
-      ---@type table
       local workspace = require("workspace")
-      this_mod = (workspace.uri or workspace.getRootUri(uri)):match("[^/\\]+$")
+      this_mod = (workspace.uri--[[@as string]] or workspace.getRootUri(uri)):match("[^/\\]+$")
     end
   end
   if this_mod then
-    local scenario = uri:match("scenarios[\\/]([^\\/]+)[\\/]")
+    local scenario = uri:match("scenarios[\\/]([^\\/]+)[\\/]")--[[@as string|nil]]
     if scenario then
       this_mod = this_mod.."__"..scenario
     end
     this_mod = this_mod:gsub("[^a-zA-Z0-9_]","_")
     local global_name = "__"..this_mod.."__global"
 
-    local global_matches = {}
-    ---@type number
-    for start, finish in text:gmatch("%f[a-zA-Z0-9_]()global()%s*[=.%[]") do
+    local global_matches = {} ---@type {[integer]: integer}
+    for start, finish in text:gmatch("%f[a-zA-Z0-9_]()global()%s*[=.%[]")--[[@as fun():integer, integer]] do
       global_matches[start] = finish
     end
     -- remove matches that where `global` is actually indexing into something (`.global`)
-    for start in text:gmatch("%.%s*()global%s*[=.%[]") do
+    for start in text:gmatch("%.%s*()global%s*[=.%[]")--[[@as fun():integer]] do
       global_matches[start] = nil
     end
     -- `_ENV.global` and `_G.global` now get removed because of this, we can add them back in

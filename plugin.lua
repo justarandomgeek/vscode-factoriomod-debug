@@ -7,19 +7,19 @@
 
 -- allow for require to search relative to this plugin file
 -- open for improvements!
+
+---Notes: confirm "path/to/lua-language-server/script/", in Lua.Workspace.Library
+---Notes: confirm "path/to/bee" in Lua.Workspace.Library
+
 if not __plugin_dev and not _G.__factorio_plugin_initialized then
   _G.__factorio_plugin_initialized = true
 
-  ---@type table
   local config = require("config")
-  ---@type table
   local fs = require("bee.filesystem")
-  ---@type table
   local workspace = require("workspace")
 
   -- now it's getting incredibly hacky, I should look into making a PR
   local is_2_6_0_or_later = debug.getinfo(config.get, "u").nparams > 1
-  ---@type userdata
   local plugin_path
   if is_2_6_0_or_later then
     local info = debug.getinfo(3, "uf")
@@ -45,11 +45,11 @@ if not __plugin_dev and not _G.__factorio_plugin_initialized then
 
     plugin_path = fs.path(workspace.getAbsolutePath(scp.uri, config.get(scp.uri, 'Lua.runtime.plugin')))
   else -- sumneko.lua < 2.6.0
+    ---@diagnostic disable-next-line: missing-parameter
     plugin_path = fs.path(workspace.getAbsolutePath(config.get('Lua.runtime.plugin')))
   end
 
-  ---@type string
-  local new_path = (plugin_path:parent_path() / "?.lua"):string()
+  local new_path = (plugin_path:parent_path() / "?.lua"):string() --[[@as string]]
   if not package.path:find(new_path, 1, true) then
     package.path = package.path..";"..new_path
   end
@@ -57,7 +57,6 @@ end
 
 local require_module = require("factorio-plugin.require")
 local global = require("factorio-plugin.global")
-local narrow = require("factorio-plugin.narrow")
 local remote = require("factorio-plugin.remote")
 local type_list = require("factorio-plugin.type-list")
 local on_event = require("factorio-plugin.on-event")
@@ -71,13 +70,21 @@ local on_event = require("factorio-plugin.on-event")
 ---@param text string @ The content of file
 ---@return nil|Diff[]
 function OnSetText(uri, text)
-  if text:sub(1, 4) == "--##" then return end
+  ---I can't see a reason to process ---@meta files
+  ---Speeds up loading by not reading mod debugger annotations.
+  local sub = text:sub(1, 8)
+  if sub == "---@meta" or sub == "--##" then return end
 
-  local diffs = {count = 0}
+  ---Hacky way to ignore data files but it greatly improves startup times if factorio/data is in the library.
+  ---This should probably loop through the workspace.library setting and disable if it matches anything but it could
+  ---be an issue if the user is using it to load library mods (which I think is a bug) maybe? Todo?.
+  local workspace = require("workspace")
+  if workspace.getRelativePath(uri):find('factorio/data/') then return end
+
+  local diffs = {count = 0} ---@type Diff[]
 
   require_module.replace(uri, text, diffs)
   global.replace(uri, text, diffs)
-  narrow.replace(uri, text, diffs)
   remote.replace(uri, text, diffs)
   type_list.replace(uri, text, diffs)
   on_event.replace(uri, text, diffs)
