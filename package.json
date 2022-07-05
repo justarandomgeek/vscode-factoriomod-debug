@@ -349,7 +349,7 @@
             ],
             "default": "latest"
           },
-          "factor.workspace.library" :{
+          "factorio.workspace.library" :{
             "type": "string",
             "description": "Location to generate factorio typedef files. If unspecified, will use `.vscode/factorio` in your workspace."
           }
