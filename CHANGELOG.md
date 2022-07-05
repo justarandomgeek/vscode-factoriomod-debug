@@ -4,6 +4,8 @@
 
 ## 1.1.19
 
+* Added missing config definition for `factorio.workspace.library`
+
 
 ## 1.1.18
 
