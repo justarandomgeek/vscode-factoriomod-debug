@@ -376,7 +376,7 @@ export class FactorioVersionSelector {
 	private findWorkspaceLibraryFolder() {
 		const config = vscode.workspace.getConfiguration("factorio");
 		const library = config.get<string>("workspace.library");
-		if (library) { return Uri.file(library); }
+		if (library) { return Uri.file(substitutePathVariables(library)); }
 
 		const a = vscode.workspace.workspaceFolders?.find(wf=>wf.name===".vscode")?.uri;
 		if (a) { return Uri.joinPath(a, "factorio"); }
