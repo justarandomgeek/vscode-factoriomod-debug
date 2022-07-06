@@ -560,7 +560,7 @@ export class ApiDocGenerator {
 								`\n- "${option.name}"${extend_string({pre:" - ",str:option.description})}`)
 						].filter(s=>!!s).join("")
 					)));
-					output.write(`---@class ${concept.name}\n\n`);
+					output.write(`---@alias ${concept.name} ${concept.options.sort(sort_by_order).map(option=>`"${option.name}"`).join("|")}\n\n`);
 					break;
 				case "filter":
 					this.add_table_type(output,concept,concept.name,this.view_documentation(concept.name), "Applies to filter");
