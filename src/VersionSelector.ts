@@ -29,6 +29,8 @@ function substitutePathVariables(aPath:string) {
 		aPath = aPath.replace("${workspaceFolder}", vscode.workspace.workspaceFolders[0].uri.fsPath);
 	}
 
+	aPath = aPath.replace(/\$\{env:(\w+)}/g, (match, p1) => process.env[p1] ?? match);
+
 	return aPath;
 }
 
