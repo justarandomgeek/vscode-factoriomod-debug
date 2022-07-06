@@ -303,7 +303,7 @@ export class FactorioVersionSelector {
 			if (!factorioPath) { return; }
 
 			const newName = await vscode.window.showInputBox({
-				prompt: "Factorio Version Label"
+				prompt: "Display Name for this version",
 			});
 			if (!newName) { return; }
 
@@ -314,18 +314,27 @@ export class FactorioVersionSelector {
 		}
 
 		// check for docs json
-		let docs = await this.tryJsonDocs(active_version);
-		if (!docs) {
+		let docs;
+		try {
+			docs = await this.tryJsonDocs(active_version, true);
+		} catch (error) {
+			if ("Select alternate location" !== await vscode.window.showErrorMessage(`Unable to read JSON docs: ${error}`,"Select alternate location","Cancel")) {
+				return;
+			}
+
 			const file = await vscode.window.showOpenDialog({
 				canSelectFiles: true,
 				canSelectFolders: false,
 				openLabel: "Select JSON Docs",
+				title: "Select JSON Docs",
 				filters:{ "JSON Docs":["json"] }
 			});
 			if (!file) { return; }
 			active_version.docsPath = path.relative(substitutePathVariables(active_version.factorioPath), file[0].fsPath);
-			docs = await this.tryJsonDocs(active_version, true);
-			if (!docs) {
+			try {
+				docs = await this.tryJsonDocs(active_version, true);
+			} catch (error) {
+				vscode.window.showErrorMessage(`Unable to read JSON docs: ${error}`);
 				return;
 			}
 		}
@@ -358,7 +367,9 @@ export class FactorioVersionSelector {
 		return this._active_version;
 	}
 
-	private async tryJsonDocs(fv:FactorioVersion,showError?:boolean) {
+	private async tryJsonDocs(fv:FactorioVersion,throwOnError?:false): Promise<ApiDocGenerator|undefined>
+	private async tryJsonDocs(fv:FactorioVersion,throwOnError:true) : Promise<ApiDocGenerator>
+	private async tryJsonDocs(fv:FactorioVersion,throwOnError?:boolean) {
 		const docpath = Uri.joinPath(Uri.file(substitutePathVariables(fv.factorioPath)),
 			fv.docsPath ? fv.docsPath :
 			(os.platform() === "darwin") ? "../../doc-html/runtime-api.json" :
@@ -368,10 +379,8 @@ export class FactorioVersionSelector {
 		try {
 			return new ApiDocGenerator((await fs.readFile(docpath)).toString(), docsettings);
 		} catch (error) {
-			if (showError) {
-				vscode.window.showErrorMessage(`Unable read JSON docs: ${error}`);
-			}
-			return;
+			if (!throwOnError) { return; }
+			throw error;
 		}
 	}
 
