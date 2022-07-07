@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import { EventEmitter } from "events";
 import { assert } from "console";
 
 function NaN_safe_max(a:number,b:number):number {
@@ -216,7 +215,7 @@ class ProfileData {
 
 
 
-export class Profile extends EventEmitter implements vscode.Disposable  {
+export class Profile implements vscode.Disposable  {
 	private readonly profileData = new ProfileData();
 	private readonly profileTreeRoot = new ProfileTreeNode("root",0);
 
@@ -226,10 +225,17 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 	private rulerDecorationTypes: {type:vscode.TextEditorDecorationType;threshold:number}[];
 	private statusBar: vscode.StatusBarItem;
 	private flamePanel?: vscode.WebviewPanel;
+	private _disposables: vscode.Disposable[] = [];
 
-	constructor(withTree:boolean, private readonly context: vscode.ExtensionContext)
+	constructor(
+		withTree:boolean,
+		private readonly context: vscode.ExtensionContext,
+		private readonly debug:vscode.DebugSession,
+		)
 	{
-		super();
+		this._disposables.push(vscode.debug.onDidReceiveDebugSessionCustomEvent(this.onCustomEvent, this));
+		this._disposables.push(vscode.debug.onDidTerminateDebugSession(this.dispose,this));
+
 		this.timeDecorationType = vscode.window.createTextEditorDecorationType({
 			before: {
 				contentText:"",
@@ -274,6 +280,14 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 			};
 		});
 		this.statusBar = vscode.window.createStatusBarItem();
+
+		this._disposables.push(vscode.window.onDidChangeActiveTextEditor(editor =>{
+			if (editor && (editor.document.uri.scheme==="file"||editor.document.uri.scheme==="zip"))
+			{
+				this.render(editor);
+			}
+		}));
+
 		if (withTree)
 		{
 			this.createFlamePanel();
@@ -281,12 +295,25 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 	}
 
 	dispose() {
+		this._disposables.forEach(d=>d.dispose());
 		this.timeDecorationType.dispose();
 		this.funcDecorationType.dispose();
 		this.rulerDecorationTypes.forEach(ruler=>{ruler.type.dispose();});
 		this.statusBar.dispose();
 		if (this.flamePanel){
 			this.flamePanel.dispose();
+		}
+	}
+
+	private async onCustomEvent(event:vscode.DebugSessionCustomEvent) {
+		if (event.session === this.debug && event.event === "x-Factorio-Profile") {
+			await this.parse(event.body);
+
+			const editor = vscode.window.activeTextEditor;
+			if (editor && (editor.document.uri.scheme==="file"||editor.document.uri.scheme==="zip"))
+			{
+				this.render(editor);
+			}
 		}
 	}
 
@@ -323,7 +350,16 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 				case "click":
 					if(mesg.line && mesg.line > 0)
 					{
-						this.emit("flameclick", mesg);
+						if (mesg.filename && mesg.line)
+						{
+							vscode.window.showTextDocument(
+								vscode.Uri.parse(mesg.filename),
+								{
+									selection: new vscode.Range(mesg.line,0,mesg.line,0),
+									viewColumn: vscode.ViewColumn.One
+								}
+							);
+						}
 					}
 					break;
 				default:
@@ -333,14 +369,14 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 		this.flamePanel.onDidDispose(()=>this.flamePanel=undefined);
 	}
 
-	public parse(profile:string)
+	private async parse(profile:string)
 	{
 		const lines = profile.split("\n");
-		let currmod:string;
-		let currfile:string;
+		let currmod:string|undefined;
+		let currfile:string|undefined;
 		const profileTreeStack = [new ProfileTreeNode("root",0)];
 		let currnode:ProfileTreeNode|undefined;
-		lines.forEach(line => {
+		for (const line of lines) {
 			const parts = line.split(":");
 			switch(parts[0])
 			{
@@ -356,7 +392,9 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 				case "PFN": // PFN:filename
 					if (currmod)
 					{
-						currfile = parts[1].replace(/[\r\n]*/g,"");
+						currfile = await this.debug.customRequest("x-Factorio-ConvertPath", {
+							path: parts[1].replace(/[\r\n]*/g,"")
+						});
 					}
 					break;
 				case "PLN": // PLN:line:label: time:count
@@ -394,7 +432,9 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 					if (currnode)
 					{
 						const funcname = parts[1];
-						const filename = parts[2];
+						const filename = await this.debug.customRequest("x-Factorio-ConvertPath", {
+							path: parts[2]
+						});
 						const line = parts[3];
 						const nodename = funcname + ":" + filename + ":" + line;
 						const time =  parseFloat(parts[5]);
@@ -413,7 +453,7 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 					}
 					break;
 			}
-		});
+		};
 
 		assert(profileTreeStack.length === 1);
 		if (this.flamePanel && this.flamePanel.visible)
@@ -423,10 +463,9 @@ export class Profile extends EventEmitter implements vscode.Disposable  {
 		this.profileTreeRoot.Merge(profileTreeStack[0]);
 	}
 
-	public render(editor:vscode.TextEditor,filename:string)
+	public render(editor:vscode.TextEditor)
 	{
-
-		const report = this.profileData.Report(filename);
+		const report = this.profileData.Report(editor.document.uri.toString());
 		const reportmax = report.fileData.max();
 
 		const maxtime = reportmax.line.timer;

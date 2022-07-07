@@ -8,6 +8,7 @@ import { activateLocaleLangProvider } from './LocaleLangProvider';
 import { activateChangeLogLangProvider } from './ChangeLogLangProvider';
 import { activateModPackageProvider } from './ModPackageProvider';
 import { FactorioVersionSelector } from './VersionSelector';
+import { ProfileRenderer } from './ProfileRenderer';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -32,6 +33,8 @@ export function activate(context: vscode.ExtensionContext) {
 	}));
 
 	activateModPackageProvider(context);
+
+	new ProfileRenderer(context);
 }
 
 export function deactivate() {

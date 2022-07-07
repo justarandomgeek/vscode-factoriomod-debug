@@ -11,7 +11,6 @@ import * as semver from 'semver';
 import * as vscode from 'vscode';
 import { Uri } from 'vscode';
 import { bufferChunks, encodeBreakpoints, luaBlockQuote, objectToLua } from './EncodingUtil';
-import { Profile } from './Profile';
 import { FactorioProcess } from './FactorioProcess';
 import { ModInfo } from './ModPackageProvider';
 import { ModManager } from './ModManager';
@@ -97,7 +96,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	private readonly translations = new Map<number, string>();
 	private nextRef = 1;
 
-
 	private factorio : FactorioProcess;
 	private stdinQueue:{buffer:Buffer;resolve:resolver<boolean>;consumed?:Promise<void>;token?:vscode.CancellationToken}[] = [];
 
@@ -106,12 +104,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	private inPrompt:boolean = false;
 	private pauseRequested:boolean = false;
 
-
-	private profile?: Profile;
-
 	private readonly workspaceModInfo = new Array<ModPaths>();
-
-	private editorWatcher?:vscode.Disposable;
 
 	/**
 	 * Creates a new debug adapter that is used for one debug session.
@@ -131,14 +124,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.setDebuggerLinesStartAt1(true);
 		this.setDebuggerColumnsStartAt1(true);
 		this.setDebuggerPathFormat("uri");
-
-		this.editorWatcher = vscode.window.onDidChangeActiveTextEditor(editor =>{
-			if (editor && this.profile && (editor.document.uri.scheme==="file"||editor.document.uri.scheme==="zip"))
-			{
-				const profname = this.convertClientPathToDebugger(editor.document.uri.toString());
-				this.profile.render(editor,profname);
-			}
-		});
 	}
 
 	/**
@@ -208,22 +193,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		args.hookControl = args.hookControl ?? true;
 		args.hookMode = args.hookMode ?? "debug";
 		args.trace = args.trace ?? false;
-
-		if (args.hookMode === "profile" && !args.noDebug) {
-			this.profile = new Profile(args.profileTree ?? true, this.context);
-			this.profile.on("flameclick", async (mesg)=>{
-				if (mesg.filename && mesg.line)
-				{
-					vscode.window.showTextDocument(
-						Uri.parse(this.convertDebuggerPathToClient(mesg.filename)),
-						{
-							selection: new vscode.Range(mesg.line,0,mesg.line,0),
-							viewColumn: vscode.ViewColumn.One
-						}
-					);
-				}
-			});
-		}
 
 		const tasks = (await vscode.tasks.fetchTasks({type:"factorio"})).filter(
 			(task)=>task.definition.command === "compile"
@@ -339,11 +308,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.factorio = new FactorioProcess(this.activeVersion.factorioPath,args.factorioArgs,this.activeVersion.nativeDebugger);
 
 		this.factorio.on("exit", (code:number|null, signal:string) => {
-			if (this.profile)
-			{
-				this.profile.dispose();
-				this.profile = undefined;
-			}
 			if (code)
 			{
 				// exit event in case somebody cares about the return code
@@ -582,16 +546,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			} else if (mesg.startsWith("DBGuntranslate: ")) {
 				this.translations.clear();
 			} else if (mesg.startsWith("PROFILE:")) {
-				if (this.profile)
-				{
-					const editor = vscode.window.activeTextEditor;
-					this.profile.parse(mesg);
-					if (editor && (editor.document.uri.scheme==="file"||editor.document.uri.scheme==="zip"))
-					{
-						const profname = this.convertClientPathToDebugger(editor.document.uri.toString());
-						this.profile.render(editor,profname);
-					}
-				}
+				this.sendEvent(new Event("x-Factorio-Profile", mesg));
 			} else {
 				//raise this as a stdout "Output" event
 				this.sendEvent(new OutputEvent(mesg+"\n", "stdout"));
@@ -644,6 +599,20 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		}
 
 		return debuggerPath;
+	}
+
+	protected customRequest(command: string, response: DebugProtocol.Response, args: any, request?: DebugProtocol.Request | undefined): void {
+		switch (command) {
+			case "x-Factorio-ConvertPath":
+				response.body = this.convertDebuggerPathToClient(args.path);
+				break;
+			default:
+				response.success=false;
+				response.message="Unknown request";
+				break;
+		}
+
+		this.sendResponse(response);
 	}
 
 	protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
@@ -1479,18 +1448,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	private terminate()
 	{
-		if (this.profile)
-		{
-			this.profile.dispose();
-			this.profile = undefined;
-		}
-
-		if (this.editorWatcher)
-		{
-			this.editorWatcher.dispose();
-			this.editorWatcher = undefined;
-		}
-
 		this.factorio?.kill?.();
 		const modsPath = this.launchArgs.modsPath;
 		if (modsPath) {
