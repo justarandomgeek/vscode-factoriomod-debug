@@ -31,11 +31,14 @@ if not __plugin_dev and not _G.__factorio_plugin_initialized then
       end
     end
     if not scp then
-      for i = 1, info.nparams do
+      local i = 1
+      while true do
         local name, value = debug.getlocal(3, i)
+        if not name then break end
         if name == "scp" then
           scp = value
         end
+        i = i + 1
       end
     end
     assert(scp, "Unable to get currently used scope/folder. This is very most likely \z

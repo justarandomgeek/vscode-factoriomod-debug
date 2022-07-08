@@ -1,4 +1,7 @@
 
+### 2022-07-09
+- Update internal plugin hack for `sumneko.lua` `> 3.4.2`
+
 ### 2022-07-08
 - Hack fix fallback modname resolution erroring
 
