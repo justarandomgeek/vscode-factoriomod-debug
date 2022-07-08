@@ -368,7 +368,7 @@ end
 ---@return table|nil args @ returns `nil` if there was an error, `{help = true}` if it was help
 ---@return integer|nil last_consumed_index @ returns `nil` under the same condition.
 local function parse_and_print_on_error_or_help(args, config, help_config)
-  local result, err_or_index = parse(args, config)
+  local result, err_or_index = parse--[[@as fun(a,b):table?,integer?]](args, config)
   if (not result) or result.help then
     if not result then
       print(err_or_index)
