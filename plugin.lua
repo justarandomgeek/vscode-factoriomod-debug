@@ -5,6 +5,7 @@
 -- what do the different prefixes for gmatch results mean:
 -- s = start, f = finish, p = position, no prefix = an actual string capture
 
+local scp
 -- allow for require to search relative to this plugin file
 -- open for improvements!
 if not __plugin_dev and not _G.__factorio_plugin_initialized then
@@ -23,7 +24,6 @@ if not __plugin_dev and not _G.__factorio_plugin_initialized then
   local plugin_path
   if is_2_6_0_or_later then
     local info = debug.getinfo(3, "uf")
-    local scp
     for i = 1, info.nups do
       local name, value = debug.getupvalue(info.func, i)
       if name == "scp" then
@@ -79,7 +79,7 @@ function OnSetText(uri, text)
   local diffs = {count = 0}
 
   require_module.replace(uri, text, diffs)
-  global.replace(uri, text, diffs)
+  global.replace(uri, text, diffs, scp)
   narrow.replace(uri, text, diffs)
   remote.replace(uri, text, diffs)
   type_list.replace(uri, text, diffs)

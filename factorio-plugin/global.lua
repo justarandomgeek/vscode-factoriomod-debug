@@ -5,7 +5,7 @@ local util = require("factorio-plugin.util")
 ---@param uri string @ The uri of file
 ---@param text string @ The content of file
 ---@param diffs Diff[] @ The diffs to add more diffs to
-local function replace(uri, text, diffs)
+local function replace(uri, text, diffs, scp)
   -- rename `global` so we can tell them apart!
   local this_mod = uri:match("mods[\\/]([^\\/]+)[\\/]")
   if not this_mod then
@@ -14,8 +14,7 @@ local function replace(uri, text, diffs)
     else
       ---@type table
       local workspace = require("workspace")
-      -- FIXME: this doesn't actually work but idk why? getRootUri seems to be returning nil
-      this_mod = workspace.uri or workspace.getRootUri(uri)
+      this_mod = workspace.uri or workspace.getRootUri(scp and scp.uri)
       this_mod = this_mod and this_mod:match("[^/\\]+$")
     end
   end
