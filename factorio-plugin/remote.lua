@@ -43,7 +43,7 @@ local function replace(_, text, diffs)
 
   for preceding_text, s_entire_thing, s_add, f_add, p_open_paren, p_param_1
   in
-    util.gmatch_at_start_of_line(text, "([^\n]-)()remote%s*%.%s*()add_interface()%s*()%(()")--[[@as fun(): string, integer, any, any, any, any]]
+    util.gmatch_at_start_of_line(text, "([^\n]-)()remote%s*%.%s*()add_interface()%s*()%(()")--[[@as fun(): string, integer, integer, integer, integer, integer]]
   do
     if not preceding_text:find("--", 1, true) then
 
