@@ -14,7 +14,9 @@ local function replace(uri, text, diffs)
     else
       ---@type table
       local workspace = require("workspace")
-      this_mod = (workspace.uri or workspace.getRootUri(uri)):match("[^/\\]+$")
+      -- FIXME: this doesn't actually work but idk why? getRootUri seems to be returning nil
+      this_mod = workspace.uri or workspace.getRootUri(uri)
+      this_mod = this_mod and this_mod:match("[^/\\]+$")
     end
   end
   if this_mod then
