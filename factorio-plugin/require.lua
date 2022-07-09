@@ -13,10 +13,7 @@ local function replace(_, text, diffs)
     local original_name = name
 
     ---Convert the mod name prefix if there is one
-    ---@param match string
-    name = name:gsub("^__(.-)__", function(match)
-      return match
-    end)
+    name = name:gsub("^__(.-)__", "%1", 1)
 
     if name ~= original_name then
       util.add_diff(diffs, start, finish, name)

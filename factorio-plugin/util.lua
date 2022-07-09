@@ -20,8 +20,7 @@
 local function gmatch_at_start_of_line(s, pattern, init)
   local first = true
   local unpack = table.unpack
-  ---@type fun(): string|integer, ...
-  local gmatch_iterator = s:gmatch("\n"..pattern)
+  local gmatch_iterator = s:gmatch("\n"..pattern) ---@type fun(): string|integer, ...
   return function()
     if first then
       first = false
@@ -69,10 +68,9 @@ end
 ---if 'source' is a string wrapped in "" or '' get the string inside those quotes
 ---otherwise returns nil
 ---@param source string
----@return string|nil
+---@return string|false
 local function try_parse_string_literal(source)
-  local str, ---@type string|nil
-  f_str = source:match("^[\"']([^\"']*)[\"']%s*()") ---@type integer
+  local str, f_str = source:match("^[\"']([^\"']*)[\"']%s*()") ---@type string, integer
   return f_str == #str and str
 end
 

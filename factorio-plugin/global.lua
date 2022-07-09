@@ -13,7 +13,7 @@ local function replace(uri, text, diffs)
       this_mod = "FallbackModName"
     else
       local workspace = require("workspace")
-      this_mod = (workspace.uri--[[@as string]] or workspace.getRootUri(uri)):match("[^/\\]+$")
+      this_mod = (workspace.rootUri or workspace.getRootUri(uri)):match("[^/\\]+$")
     end
   end
   if this_mod then

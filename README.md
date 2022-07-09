@@ -66,7 +66,7 @@ If the plugin is causing the language server to report syntax errors when there 
 
 ## Introduction
 
-What the plugin fundamentally does is make the lua extension (to which i'll refer to as lua language server) think files look different than they actually do. This allows for the language server to understand custom syntax, which factorio doesn't have a lot of, but it does help with a few things. 
+What the plugin fundamentally does is make the lua extension (to which i'll refer to as lua language server) think files look different than they actually do. This allows for the language server to understand custom syntax, which factorio doesn't have a lot of, but it does help with a few things.
 
 ## Cross mod require
 
@@ -310,53 +310,3 @@ local foo = {
 }
 remote.__all_remote_interfaces.foo = foo
 ```
-
-## ---@typelist
-
-The language server is getting better support for EmmyLua annotations, but it was really missing a way to define multiple types on the same line. For example for functions that return multiple values.
-
-For example
-```lua
----@typelist integer, string
-local foo, bar = string.match("Hello world!", "()(l+)")
-```
-Would look something similar to this to the language server
-```lua
----@type integer
-local foo,
----@type string
-bar = string.match("Hello world!", "()(l+)")
-```
-
-It only supports `---@typelist` (with spaces allowed between `---` and `@typelist`) being on one line and it only affects the next line. And it uses `,` (commas) as separators. (commas inside `< >` or `( )` are ignored on the `---@typelist` line.)
-
-## ---@narrow
-
-**Important:** Does not work in `sumneko.lua` `2.4.0` or later and there is currently no other known workaround
-
-Another thing the annotations are lacking currently is a way to change the type of a variable, which is usually something you want to narrow down the type of that variable.
-
-For example
-```lua
----@param value any
-local function foo(value)
-  if type(value) == "string" then
-    ---@narrow value string
-    -- now value is a string, not any
-  end
-end
-```
-Would look something similar to this to the language server
-```lua
----@param value any
-local function foo(value)
-  if type(value) == "string" then
-    value = nil ---@type string
-    -- now value is a string, not any
-  end
-end
-```
-
-It specifically looks for `---@narrow` (with spaces allowed between `---` and `@narrow`) followed by space and an identifier, then does the replacement so that the type is actually used in place, exactly how/where you wrote it.
-
-Unfortunately since it is using `nil` as a placeholder assignment the language server will think the variable can be `nil` even though it might never be. An expression the language server resolves to `any` would be better, but i don't know of one right now.

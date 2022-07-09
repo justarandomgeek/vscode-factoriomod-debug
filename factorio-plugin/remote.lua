@@ -19,11 +19,8 @@ local function replace(_, text, diffs)
   ---@return integer|nil
   local function process_param(chain_diff, p_param_start)
 
-    local s_param, ---@type integer
-    param, ---@type string|nil
-    f_param, ---@type integer
-    comma_or_paren, ---@type comma_or_paren
-    p_param_finish ---@type integer
+    ---@type integer, string|nil, integer, comma_or_paren|nil, integer
+    local s_param, param, f_param, comma_or_paren, p_param_finish
     = text:match("^%s*()[\"']([^\"']*)[\"']()%s*([,)])()", p_param_start)
 
     if not param then
@@ -43,7 +40,7 @@ local function replace(_, text, diffs)
 
   for preceding_text, s_entire_thing, s_add, f_add, p_open_paren, p_param_1
   in
-    util.gmatch_at_start_of_line(text, "([^\n]-)()remote%s*%.%s*()add_interface()%s*()%(()")--[[@as fun(): string, integer, integer, integer, integer, integer]]
+    util.gmatch_at_start_of_line(text, "([^\n]-)()remote%s*%.%s*()add_interface()%s*()%(()") --[[@as fun(): string, integer, integer, integer, integer, integer]]
   do
     if not preceding_text:find("--", 1, true) then
 
@@ -55,17 +52,16 @@ local function replace(_, text, diffs)
       if not name then
         goto continue
       end
-      ---@cast s_param_2 -nil
 
       if name_comma_or_paren == "," then
-        -- p_closing_paren is one past the actual closing parenthesis
-        local p_closing_paren, f_entire_thing = text:match("^%b()()[^\n]*()", p_open_paren) ---@type integer
+        ---@type integer|nil, integer  p_closing_paren is one past the actual closing parenthesis
+        local p_closing_paren, f_entire_thing = text:match("^%b()()[^\n]*()", p_open_paren)
 
         if p_closing_paren
           and not text:sub(s_entire_thing, f_entire_thing):find("--##", 1, true)
         then
           util.extend_chain_diff_elem_text(chain_diff[3], "=")
-          chain_diff[4] = {i = s_param_2}
+          chain_diff[4] = {i = s_param_2 --[[@as integer]]}
           util.add_diff(diffs, s_add - 1, s_add, text:sub(s_add - 1, s_add - 1).."--\n")
           util.add_diff(diffs, s_add, f_add,
             "__all_remote_interfaces---@diagnostic disable-line:undefined-field\n")

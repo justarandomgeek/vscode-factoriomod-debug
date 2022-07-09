@@ -21,7 +21,6 @@ end
 local require_module = require("factorio-plugin.require")
 local global = require("factorio-plugin.global")
 local remote = require("factorio-plugin.remote")
-local type_list = require("factorio-plugin.type-list")
 local on_event = require("factorio-plugin.on-event")
 
 ---@class Diff
@@ -34,14 +33,14 @@ local on_event = require("factorio-plugin.on-event")
 ---@return nil|Diff[]
 function OnSetText(uri, text)
 
-  ---Not sure about this one if files are in the library it will not process
+  ---Not sure about this one. If files are in the library it will not process
   ---cross workspace requires seem to require the path in the library?
   --TODO report that as sumneko bug? Needs more testing, maybe individual settings.
   if scope.getScope(uri):isLinkedUri(uri) then return end
   -- if workspace.getRelativePath(uri):find('factorio/data/') then return end
 
   ---I can't see a reason to process ---@meta files
-  ---Speeds up loading by not reading mod debugger annotations.
+  ---Speeds up loading by not reading annotation files
   if text:sub(1, 8) == "---@meta" or text:sub(1, 4) == "--##" then return end
 
   local diffs = {count = 0} ---@type Diff[]
@@ -49,7 +48,6 @@ function OnSetText(uri, text)
   require_module.replace(uri, text, diffs)
   global.replace(uri, text, diffs)
   remote.replace(uri, text, diffs)
-  type_list.replace(uri, text, diffs)
   on_event.replace(uri, text, diffs)
 
   diffs.count = nil

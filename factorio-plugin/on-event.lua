@@ -21,10 +21,8 @@ local function replace(_, text, diffs)
   ---@param s_func_param integer
   ---@param class_name_getter fun(): string
   local function process_func_param(s_func_param, class_name_getter)
-    local s_func, ---@type integer|nil
-    param_name, ---@type string
-    f_func ---@type integer
-    = text:match("^%s*()function%s*%(%s*([^)%s]+)()", s_func_param)
+    ---@type integer|nil, string, integer
+    local s_func, param_name, f_func = text:match("^%s*()function%s*%(%s*([^)%s]+)()", s_func_param)
 
     if s_func and not text:match("^[^\n]-%-%-##()", f_func) then
     local class_name = class_name_getter()
@@ -41,11 +39,9 @@ local function replace(_, text, diffs)
     local param, s_func_param
     local is_table = text:sub(s_param, s_param) == "{"
     if is_table then
-       param, ---@type string|nil
-       s_func_param = text:match("^(%b{})%s*,()", s_param) --[[@as integer]]
+      param, s_func_param = text:match("^(%b{})%s*,()", s_param) ---@type string|nil, integer
     else
-      param, ---@type string|nil
-      s_func_param = text:match("^([^,)]-)%s*,()", s_param) --[[@as integer]]
+      param, s_func_param = text:match("^([^,)]-)%s*,()", s_param) ---@type string|nil, integer
     end
 
     if param then
