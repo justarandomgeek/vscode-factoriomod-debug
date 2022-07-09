@@ -114,8 +114,13 @@
         "properties": {
           "factorio.portal.apikey": {
             "type": "string",
-            "description": "API Key for Factorio Mod Portal to enable automatically uploading mods. If not set, will use environment variable FACTORIO_PORTAL_APIKEY if set, or prompt for a key.",
-            "scope": "machine-overridable"
+            "scope": "machine-overridable",
+            "deprecationMessage": "This setting is no longer used. API Keys are now stored in secrets storage."
+          },
+          "factorio.portal.saveKey": {
+            "type": "boolean",
+            "default": true,
+            "description": "Prompt to save newly entered API key to secrets storage"
           },
           "factorio.package.preparingCommitMessage": {
             "type": "string",

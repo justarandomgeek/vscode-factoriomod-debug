@@ -10,6 +10,7 @@ import { BufferSplitter } from './BufferSplitter';
 import { ModManager } from './ModManager';
 import * as FormData from 'form-data';
 import fetch, { Headers } from 'node-fetch';
+import { Keychain } from './Keychain';
 interface ModPackageScripts {
 	compile?: string
 	datestamp?: string
@@ -57,12 +58,66 @@ interface PortalError {
 	message:string
 }
 
-export function activateModPackageProvider(context:vscode.ExtensionContext) {
+export async function activateModPackageProvider(context:vscode.ExtensionContext) {
 	if (vscode.workspace.workspaceFolders) {
-		const treeDataProvider = new ModsTreeDataProvider();
+		const keychain = new Keychain(context.secrets);
+		const treeDataProvider = new ModsTreeDataProvider(keychain);
 		context.subscriptions.push(treeDataProvider);
 		const view = vscode.window.createTreeView('factoriomods', { treeDataProvider: treeDataProvider });
 		context.subscriptions.push(view);
+		await MigrateAPIKeyStorage(keychain);
+	}
+}
+
+async function MigrateAPIKeyStorage(keychain:Keychain) {
+
+	const config = vscode.workspace.getConfiguration("factorio.portal");
+	const key = config.inspect<string>("apikey");
+	if (key) {
+		const global = key.globalValue;
+		const workspace = key.workspaceValue;
+		if (global && workspace) {
+			if (global !== workspace) {
+				switch (await vscode.window.showInformationMessage(
+					"Factorio Mod Portal API Key is present in both Workspace and Global configuration. Which would you like migrated to secure storage?",
+					"Global", "Workspace"
+				)) {
+					case 'Global':
+						await Promise.all([
+							keychain.SetApiKey(global),
+							config.update("apikey",undefined,true),
+							config.update("apikey",undefined,false),
+						]);
+						break;
+					case 'Workspace':
+						await Promise.all([
+							keychain.SetApiKey(workspace),
+							config.update("apikey",undefined,true),
+							config.update("apikey",undefined,false),
+						]);
+						break;
+					default:
+						break;
+				}
+			} else {
+				// they're the same, it doesn't matter which...
+				await Promise.all([
+					keychain.SetApiKey(workspace),
+					config.update("apikey",undefined,true),
+					config.update("apikey",undefined,false),
+				]);
+			}
+		} else if (global) {
+			await Promise.all([
+				keychain.SetApiKey(global),
+				config.update("apikey",undefined,true),
+			]);
+		} else if (workspace) {
+			await Promise.all([
+				keychain.SetApiKey(workspace),
+				config.update("apikey",undefined,false),
+			]);
+		}
 	}
 }
 
@@ -271,7 +326,11 @@ class ModPackage extends vscode.TreeItem {
 	public noPortalUpload?: boolean;
 	public scripts?: ModPackageScripts;
 
-	constructor(public readonly resourceUri: vscode.Uri, modscript: ModInfo) {
+	constructor(
+		public readonly resourceUri: vscode.Uri,
+		modscript: ModInfo,
+		private readonly keychain: Keychain
+		) {
 		super(resourceUri);
 		this.label = modscript.name;
 		this.description = modscript.version;
@@ -543,10 +602,7 @@ class ModPackage extends vscode.TreeItem {
 	private async PostToPortal(packagepath: string, packageversion:string, term:ModTaskTerminal): Promise<boolean>
 	{
 		try {
-			const config = vscode.workspace.getConfiguration(undefined,this.resourceUri);
-			const APIKey = config.get<string>("factorio.portal.apikey")
-				|| process.env["FACTORIO_PORTAL_APIKEY"]
-				|| await vscode.window.showInputBox({prompt: "Mod Portal API Key:", ignoreFocusOut: true });
+			const APIKey = await this.keychain.GetAPIKey();
 			if(!APIKey) {return false;}
 
 			const headers = new Headers({
@@ -567,6 +623,9 @@ class ModPackage extends vscode.TreeItem {
 			const init_json = <{upload_url:string}|PortalError>await init_result.json();
 
 			if ('error' in init_json) {
+				if (init_json.error === "InvalidApiKey") {
+					this.keychain.ClearApiKey();
+				}
 				term.write(`init_upload failed: ${init_json.error} ${init_json.message}'\r\n`);
 				return false;
 			}
@@ -780,7 +839,7 @@ class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>, 
 
 	private readonly modPackages: Map<string, ModPackage>;
 	private readonly subscriptions:{dispose():void}[] = [this._onDidChangeTreeData];
-	constructor() {
+	constructor(private readonly keychain:Keychain) {
 		this.modPackages = new Map<string, ModPackage>();
 		vscode.workspace.findFiles('**/info.json').then(infos => { infos.forEach(this.updateInfoJson, this); });
 		const infoWatcher = vscode.workspace.createFileSystemWatcher('**/info.json');
@@ -862,7 +921,7 @@ class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>, 
 					}
 					else
 					{
-						this.modPackages.set(uri.toString(), new ModPackage(uri, modscript));
+						this.modPackages.set(uri.toString(), new ModPackage(uri, modscript,this.keychain));
 					}
 				}
 				else {

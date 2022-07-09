@@ -4,7 +4,7 @@ Mods can be automatically Packaged and Published from the "Factorio Mod Packages
 
 ## API Key
 
-Uploading to the mod portal requires an API key with the `ModPortal: Upload Mods` usage, which can be created on https://factorio.com/profile. The key will be read from the setting `"factorio.portal.apikey"` or the environment variable `FACTORIO_PORTAL_APIKEY`, or may be entered when prompted for one-time use.
+Uploading to the mod portal requires an API key with the `ModPortal: Upload Mods` usage, which can be created on https://factorio.com/profile. You will be prompted for this key when it is first required.
 
 ## Tasks
 
