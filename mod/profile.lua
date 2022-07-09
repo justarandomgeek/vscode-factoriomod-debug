@@ -48,7 +48,7 @@ end
 ---@field count number
 ---@field timer Accumulator
 
----@type Accumulator Total time accumulated in this lua state
+---@type Accumulator|nil Total time accumulated in this lua state
 local luatotal
 ---@type table<string,table<number,TimeAndCount>> Time accumulated per line
 local linedata = {}
@@ -123,15 +123,17 @@ end
 
 ---@type number
 local dumpcount = 0
----@type boolean
+---@type boolean|nil
 local dumpnow
 
 ---@class HookTimer time not yet accumulated to specific line/function timer(s)
 ---@field stop fun()
 ---@field reset fun()
 ---@field timer LuaProfiler
+
+---@type HookTimer|nil
 local hooktimer
----@type Accumulator the timer for the current line, if any
+---@type Accumulator|nil the timer for the current line, if any
 local activeline
 -- the timers for lines higher up the callstack, if any
 local callstack = {}
@@ -168,7 +170,7 @@ end
 
 ---@param treenode flamenode
 ---@param source string
----@param linedefined string
+---@param linedefined integer
 ---@param name string|nil
 ---@return flamenode
 local function getstackbranch(treenode,source,linedefined,name)
@@ -230,7 +232,8 @@ local function dump()
   local t = create_profiler()
   print("***DebugAdapterBlockPrint***\nPROFILE:")
   -- reuse one table lots to be nice to GC
-  local tag = {"","PMN:",mod_name,":",luatotal.timer}
+  ---@type LocalisedString
+  local tag = {"","PMN:",mod_name,":",luatotal and luatotal.timer}
   localised_print(tag)
   luatotal = nil
   for file,f in pairs(linedata) do
