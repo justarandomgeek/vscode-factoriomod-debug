@@ -5,7 +5,10 @@
 ## 1.1.19
 
 * Added missing config definition for `factorio.workspace.library`
-
+* Support `${env:ENVVAR}` in path settings
+* Correctly generate `enum` concept types
+* Migrate API keys to secure storage from settings
+* Clarify prompts on manaul factorio version configuration
 
 ## 1.1.18
 
