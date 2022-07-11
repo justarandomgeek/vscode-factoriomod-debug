@@ -332,10 +332,16 @@
           "factorio.docs.numberStyle": {
             "description": "Type of annotations to generate for specialized number types",
             "enum": [
-              "class",
-              "alias"
+              "aliasNative",
+              "alias",
+              "class"
             ],
-            "default": "class"
+            "enumDescriptions": [
+              "Use `alias` for numeric types which exactly match `number` (or `integer` if enabled), and `class` otherwise",
+              "Use `alias` for all numeric types",
+              "Use `class` for all numeric types"
+            ],
+            "default": "aliasNative"
           },
           "factorio.docs.useInteger": {
             "type":"boolean",

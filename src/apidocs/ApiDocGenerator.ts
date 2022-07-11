@@ -265,20 +265,69 @@ export class ApiDocGenerator {
 		output.write(`\n`);
 	}
 
+
+	private builtin_type_info(builtin:ApiBasicMember) :
+		{type:"number"|"integer"|"unsigned"; size:number}|undefined
+	{
+		switch (builtin.name) {
+			case "string":
+			case "boolean":
+			case "table":
+			case "nil":
+				// these are all *real* lua types, so nothing to do here
+				return undefined;
+
+			case "double":
+				return {type:"number",size:64};
+			case "float":
+				return {type:"number",size:32};
+
+			default:
+				//try to parse integer types...
+				const matches = builtin.name.match(/(u?)int(\d*)/);
+				if (!matches) { return undefined; }
+				const type = matches[1] === 'u' ? "unsigned" : "integer";
+				const size = matches[2] ? Number.parseInt(matches[2],10) : 32;
+				return {type:type,size:size};
+		}
+	}
+
 	private generate_sumneko_builtin(output:WritableMemoryStream) {
 		this.docs.builtin_types.forEach(builtin=>{
 			if (!(["string","boolean","table","nil"].includes(builtin.name))) {
+				const info = this.builtin_type_info(builtin);
+				if(!info) { return; }
 				output.write(this.convert_sumneko_description(
 					extend_string({str:builtin.description, post:"\n\n"}) + this.view_documentation(builtin.name)
 					));
-				const numberType = this.docsettings.get("useInteger",true) && builtin.name.match(/int/) ? "integer" : "number";
+				let builtinType = info.type;
+				switch (builtinType) {
+					case "unsigned":
+					case "integer":
+						builtinType =
+							(this.docsettings.get<boolean>("useInteger",true) === false) ?
+							"number" : "integer";
+						break;
+				}
+
+
 				switch (this.docsettings.get("numberStyle")) {
+					case "aliasNative":
+					default:
+						const isNative =
+							(info.type === "number" && info.size === 64) ||
+							(info.type === "integer" && info.size === 32) ;
+						if (isNative) {
+							output.write(`---@alias ${builtin.name} ${builtinType}\n\n`);
+						} else {
+							output.write(`---@class ${builtin.name}:${builtinType}\n\n`);
+						}
+						break;
 					case "alias":
-						output.write(`---@alias ${builtin.name} ${numberType}\n\n`);
+						output.write(`---@alias ${builtin.name} ${builtinType}\n\n`);
 						break;
 					case "class":
-					default:
-						output.write(`---@class ${builtin.name}:${numberType}\n\n`);
+						output.write(`---@class ${builtin.name}:${builtinType}\n\n`);
 						break;
 				}
 			}
