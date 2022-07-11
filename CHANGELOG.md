@@ -9,6 +9,7 @@
 * Correctly generate `enum` concept types
 * Migrate API keys to secure storage from settings
 * Clarify prompts on manaul factorio version configuration
+* New default numeric type option: Use `alias` for numeric types which exactly match `number` (or `integer` if enabled), and `class` otherwise
 
 ## 1.1.18
 
