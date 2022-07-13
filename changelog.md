@@ -1,4 +1,11 @@
 
+### 2022-07-09
+- Update internal plugin hack for `sumneko.lua` `> 3.4.2`
+- "Properly" fix fallback modname resolution
+
+### 2022-07-08
+- Hack fix fallback modname resolution erroring
+
 ### 2022-07-05
 - Add fallback modname resolution which is using the workspace folder name for `global` when the file uri does not contain `mods/modname/`
 
