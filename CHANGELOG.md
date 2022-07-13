@@ -4,6 +4,8 @@
 
 ## 1.1.20
 
+* Fix some ts->js files with inconsistent file case
+
 ## 1.1.19
 
 * Added missing config definition for `factorio.workspace.library`
