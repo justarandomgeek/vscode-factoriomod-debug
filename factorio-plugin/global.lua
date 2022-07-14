@@ -13,7 +13,8 @@ local function replace(uri, text, diffs, scp)
       this_mod = "FallbackModName"
     else
       local workspace = require("workspace")
-      this_mod = workspace.uri or workspace.getRootUri(scp and scp.uri)
+      ---@diagnostic disable-next-line: undefined-field
+      this_mod = workspace.uri or workspace.rootUri or workspace.getRootUri(scp and scp.uri)
       this_mod = this_mod and this_mod:match("[^/\\]+$")
     end
   end

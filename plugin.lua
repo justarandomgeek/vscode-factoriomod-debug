@@ -37,7 +37,6 @@ function OnSetText(uri, text)
   ---cross workspace requires seem to require the path in the library?
   --TODO report that as sumneko bug? Needs more testing, maybe individual settings.
   if scope.getScope(uri):isLinkedUri(uri) then return end
-  -- if workspace.getRelativePath(uri):find('factorio/data/') then return end
 
   ---I can't see a reason to process ---@meta files
   ---Speeds up loading by not reading annotation files
@@ -46,7 +45,7 @@ function OnSetText(uri, text)
   local diffs = {count = 0} ---@type Diff[]
 
   require_module.replace(uri, text, diffs)
-  global.replace(uri, text, diffs)
+  global.replace(uri, text, diffs, scope)
   remote.replace(uri, text, diffs)
   on_event.replace(uri, text, diffs)
 
