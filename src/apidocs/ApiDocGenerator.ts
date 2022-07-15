@@ -53,7 +53,7 @@ export class ApiDocGenerator {
 			throw `Unknown application: ${this.docs.application}`;
 		}
 
-		if (!(this.docs.api_version===1 || this.docs.api_version===2)) {
+		if (!(this.docs.api_version===1 || this.docs.api_version===2 || this.docs.api_version===3)) {
 			throw `Unsupported JSON Version ${(<ApiDocs>this.docs).api_version}`;
 		}
 
@@ -167,8 +167,9 @@ export class ApiDocGenerator {
 						if (!attribute.write) {
 							cc[attribute.name].readOnly = true;
 						}
-						if (typeof attribute.type === "string" && attribute.type.startsWith("defines.")) {
-							cc[attribute.name].enumFrom = attribute.type;
+						const type = attribute.type;
+						if (typeof type === "string" && type.startsWith("defines.")) {
+							cc[attribute.name].enumFrom = type;
 						}
 					}
 
@@ -233,15 +234,18 @@ export class ApiDocGenerator {
 	}
 
 	public async generate_sumneko_docs(writeFile:(filename:string,buff:Buffer)=>any) {
-		return (await Promise.all([
-		this.generate_sumneko_section("builtin",writeFile),
-		this.generate_sumneko_section("defines",writeFile),
-		this.generate_sumneko_section("events",writeFile),
-		this.generate_sumneko_classes(writeFile),
-		this.generate_sumneko_section("custom",writeFile),
-		this.generate_sumneko_section("table_types",writeFile),
-		this.generate_sumneko_section("concepts",writeFile),
-		])).reduce((a,b)=>Math.max(a,b));
+		const x = Math.max(...await Promise.all([
+			this.generate_sumneko_section("builtin",writeFile),
+			this.generate_sumneko_section("defines",writeFile),
+			this.generate_sumneko_section("events",writeFile),
+			this.generate_sumneko_classes(writeFile),
+			this.generate_sumneko_section("custom",writeFile),
+			this.generate_sumneko_section("concepts",writeFile),
+			]));
+
+		return Math.max(x,
+			await this.generate_sumneko_section("table_types",writeFile),
+			);
 	}
 
 	private async generate_sumneko_section(name:"builtin"|"defines"|"events"|"custom"|"table_types"|"concepts", writeFile:(filename:string,buff:Buffer)=>any) {
@@ -407,17 +411,19 @@ export class ApiDocGenerator {
 		return Math.max(...await Promise.all(classSizes));
 	}
 
+	private add_attribute(output:WritableMemoryStream,classname:string,attribute:ApiAttribute,oper_lua_name?:string,oper_html_name?:string) {
+		const aname = oper_lua_name ?? attribute.name;
+		const view_doc_link = this.view_documentation(`${classname}::${oper_html_name ?? aname}`);
+		output.write(this.convert_sumneko_description(this.format_entire_description(
+			attribute, view_doc_link, `[${attribute.read?"R":""}${attribute.write?"W":""}]${extend_string({pre:"\n", str:attribute.description})}`
+		)));
+		const optionaltag = "optional" in attribute && attribute.optional ? "?" : "";
+		output.write(`---@field ${aname}${optionaltag} ${this.format_sumneko_type(attribute.type, ()=>[`${classname}.${aname}`,view_doc_link])}\n`);
+	};
+
 	private add_sumneko_class(output:WritableMemoryStream,aclass:ApiClass):void;
-	private add_sumneko_class(output:WritableMemoryStream,aclass:ApiStructConcept):void;
-	private add_sumneko_class(output:WritableMemoryStream,aclass:ApiClass|ApiStructConcept):void {
-		const add_attribute = (attribute:ApiAttribute,oper_lua_name?:string,oper_html_name?:string)=>{
-			const aname = oper_lua_name ?? attribute.name;
-			const view_doc_link = this.view_documentation(`${aclass.name}::${oper_html_name ?? aname}`);
-			output.write(this.convert_sumneko_description(this.format_entire_description(
-				attribute, view_doc_link, `[${attribute.read?"R":""}${attribute.write?"W":""}]${extend_string({pre:"\n", str:attribute.description})}`
-			)));
-			output.write(`---@field ${aname} ${this.format_sumneko_type(attribute.type, ()=>[`${aclass.name}.${aname}`,view_doc_link])}\n`);
-		};
+	private add_sumneko_class(output:WritableMemoryStream,aclass:ApiStructConceptV1):void;
+	private add_sumneko_class(output:WritableMemoryStream,aclass:ApiClass|ApiStructConceptV1):void {
 
 		const view_documentation_for_method = (method_name:string)=>{
 			return this.view_documentation(`${aclass.name}::${method_name}`);
@@ -501,12 +507,13 @@ export class ApiDocGenerator {
 			const generic_params = overlay.adjust.class[aclass.name]?.generic_params;
 			const operators = aclass.operators as ApiOperator[];
 			const indexop = operators?.find?.(op=>op.name==="index") as ApiAttribute|undefined;
+			const indexoptype = indexop && indexop.type;
 			const indexed = overlay.adjust.class[aclass.name]?.indexed;
 
 			const generic_tag = generic_params? `<${generic_params.join(',')}>`:'';
 
 			const indexed_table = indexed || indexop ?
-				`{[${this.format_sumneko_type(indexed?.key??'AnyBasic', ()=>[`${aclass.name}.__indexkey`, ''])}]:${this.format_sumneko_type(indexed?.value??indexop?.type, ()=>[`${aclass.name}.__index`, ''])}}`:
+				`{[${this.format_sumneko_type(indexed?.key??'AnyBasic', ()=>[`${aclass.name}.__indexkey`, ''])}]:${this.format_sumneko_type(indexed?.value??indexoptype, ()=>[`${aclass.name}.__index`, ''])}}`:
 				'';
 
 			const generic_methods = overlay.adjust.class[aclass.name]?.generic_methods;
@@ -524,13 +531,13 @@ export class ApiDocGenerator {
 			}
 		}
 
-		aclass.attributes.forEach(a=>add_attribute(a));
+		aclass.attributes.forEach(a=>this.add_attribute(output,aclass.name,a));
 
 		if (!('category' in aclass)) {
 			const operators = <ApiOperator[]>aclass.operators;
 			const lenop = operators.find(op=>op.name==="length") as ApiAttribute|undefined;
 			if (lenop) {
-				add_attribute(lenop,"__len","operator%20#");
+				this.add_attribute(output,aclass.name,lenop,"__len","operator%20#");
 			};
 
 			output.write(`${this.globals.get(aclass.name)?.name ?? `local ${to_lua_ident(aclass.name)}`}={\n`);
@@ -557,65 +564,115 @@ export class ApiDocGenerator {
 	private generate_sumneko_concepts(output:WritableMemoryStream) {
 		this.docs.concepts.forEach(concept=>{
 			const view_documentation_link = this.view_documentation(concept.name);
-			switch (concept.category) {
-				case "union":
-					const sorted_options = concept.options.sort(sort_by_order);
-					const get_table_name_and_view_doc_link = (option:ApiUnionConcept["options"][0]):[string,string]=>{
-						return [`${concept.name}.${option.order}`, view_documentation_link];
-					};
-					output.write(this.convert_sumneko_description(this.format_entire_description(
-						concept, view_documentation_link,
-						`${extend_string({str:concept.description, post:"\n\n"})
-						}May be specified in one of the following ways:${
-							sorted_options.map(option=>`\n- ${
-								this.format_sumneko_type(option.type, ()=>get_table_name_and_view_doc_link(option), true)
-							}${extend_string({pre:": ",str:option.description})}`)
-						}`
-					)));
-					output.write(`---@alias ${concept.name} `);
-					output.write(sorted_options.map(option=>this.format_sumneko_type(option.type, ()=>get_table_name_and_view_doc_link(option))).join("|"));
-					output.write("\n\n");
-					break;
-				case "concept":
-					output.write(this.convert_sumneko_description(this.format_entire_description(concept,this.view_documentation(concept.name))));
-					output.write(`---@alias ${concept.name} any\n\n`);
-					break;
-				case "struct":
-					this.add_sumneko_class(output, concept);
-					break;
-				case "flag":
+			if ("category" in concept) { // V1-2
+				switch (concept.category) {
+					case "union":
+						const sorted_options = concept.options.sort(sort_by_order);
+						const get_table_name_and_view_doc_link = (option:ApiUnionConceptV1["options"][0]):[string,string]=>{
+							return [`${concept.name}.${option.order}`, view_documentation_link];
+						};
+						output.write(this.convert_sumneko_description(this.format_entire_description(
+							concept, view_documentation_link,
+							`${extend_string({str:concept.description, post:"\n\n"})
+							}May be specified in one of the following ways:${
+								sorted_options.map(option=>`\n- ${
+									this.format_sumneko_type(option.type, ()=>get_table_name_and_view_doc_link(option), true)
+								}${extend_string({pre:": ",str:option.description})}`)
+							}`
+						)));
+						output.write(`---@alias ${concept.name} `);
+						output.write(sorted_options.map(option=>this.format_sumneko_type(option.type, ()=>get_table_name_and_view_doc_link(option))).join("|"));
+						output.write("\n\n");
+						break;
+					case "concept":
+						output.write(this.convert_sumneko_description(this.format_entire_description(concept,this.view_documentation(concept.name))));
+						output.write(`---@alias ${concept.name} any\n\n`);
+						break;
+					case "struct":
+						this.add_sumneko_class(output, concept);
+						break;
+					case "flag":
+						output.write(this.convert_sumneko_description(this.format_entire_description(concept,view_documentation_link)));
+						output.write(`---@class ${concept.name}\n`);
+						concept.options.forEach(option=>{
+							output.write(this.convert_sumneko_description(
+								extend_string({str:option.description, post:"\n\n"})+
+								view_documentation_link
+								));
+							output.write(`---@field ${option.name} true|nil\n`);
+						});
+						output.write("\n");
+						break;
+					case "table":
+						this.add_table_type(output, concept, concept.name, view_documentation_link);
+						break;
+					case "table_or_array":
+						this.add_table_type(output, concept, concept.name, view_documentation_link);
+						break;
+					case "enum":
+						output.write(this.convert_sumneko_description(this.format_entire_description(
+							concept, view_documentation_link,[
+								concept.description, "Possible values are:",
+								...concept.options.sort(sort_by_order).map(option=>
+									`\n- "${option.name}"${extend_string({pre:" - ",str:option.description})}`)
+							].filter(s=>!!s).join("")
+						)));
+						output.write(`---@alias ${concept.name} ${concept.options.sort(sort_by_order).map(option=>`"${option.name}"`).join("|")}\n\n`);
+						break;
+					case "filter":
+						this.add_table_type(output,concept,concept.name,view_documentation_link, "Applies to filter");
+						break;
+					default:
+						throw `Unknown concept category: ${concept}`;
+				}
+			} else { //V3
+				if (typeof concept.type === "string") {
 					output.write(this.convert_sumneko_description(this.format_entire_description(concept,view_documentation_link)));
-					output.write(`---@class ${concept.name}\n`);
-					concept.options.forEach(option=>{
-						output.write(this.convert_sumneko_description(
-							extend_string({str:option.description, post:"\n\n"})+
-							view_documentation_link
-							));
-						output.write(`---@field ${option.name} boolean|nil\n`);
-					});
-					output.write("\n");
-					break;
-				case "table":
-					this.add_table_type(output, concept, concept.name, this.view_documentation(concept.name));
-					break;
-				case "table_or_array":
-					this.add_table_type(output, concept, concept.name, this.view_documentation(concept.name));
-					break;
-				case "enum":
-					output.write(this.convert_sumneko_description(this.format_entire_description(
-						concept, this.view_documentation(concept.name),[
-							concept.description, "Possible values are:",
-							...concept.options.sort(sort_by_order).map(option=>
-								`\n- "${option.name}"${extend_string({pre:" - ",str:option.description})}`)
-						].filter(s=>!!s).join("")
-					)));
-					output.write(`---@alias ${concept.name} ${concept.options.sort(sort_by_order).map(option=>`"${option.name}"`).join("|")}\n\n`);
-					break;
-				case "filter":
-					this.add_table_type(output,concept,concept.name,this.view_documentation(concept.name), "Applies to filter");
-					break;
-				default:
-					throw `Unknown concept category: ${concept}`;
+					output.write(`---@class ${concept.name}:${concept.type}\n\n`);
+				} else {
+					switch (concept.type.complex_type) {
+						case "dictionary":
+							{
+								// check for dict<union,true> and treat as flags instead...
+								const k = concept.type.key;
+								const v = concept.type.value;
+								if (typeof v === "object" && v.complex_type === "literal" && v.value === true &&
+									typeof k === "object" && k.complex_type === "union") {
+										output.write(this.convert_sumneko_description(this.format_entire_description(concept,view_documentation_link)));
+										output.write(`---@class ${concept.name}\n`);
+										k.options.forEach((option,i)=>{
+											if (typeof option === "object" && "description" in option && option.description) {
+												output.write(this.convert_sumneko_description(`${option.description}\n\n${view_documentation_link}`));
+											}
+											output.write(`---@field [${this.format_sumneko_type(option,()=>[`${concept.name}.${i}`, view_documentation_link])}] true|nil\n`);
+										});
+										output.write("\n");
+									break;
+								}
+								output.write(this.convert_sumneko_description(this.format_entire_description(concept,this.view_documentation(concept.name))));
+								output.write(`---@alias ${concept.name} ${this.format_sumneko_type(concept.type,()=>[`${concept.name}`, view_documentation_link]) }\n\n`);
+								break;
+							}
+						case "union":
+						case "array":
+							output.write(this.convert_sumneko_description(this.format_entire_description(concept,this.view_documentation(concept.name))));
+							output.write(`---@alias ${concept.name} ${this.format_sumneko_type(concept.type,()=>[`${concept.name}`, view_documentation_link]) }\n\n`);
+							break;
+						case "table":
+						case "tuple":
+							this.add_table_type(output,concept.type, concept.name, view_documentation_link);
+							break;
+						case "struct":
+							output.write(this.convert_sumneko_description(this.format_entire_description(concept,this.view_documentation(concept.name))));
+							output.write(`---@class ${concept.name}}\n\n`);
+							concept.type.attributes.forEach(a=>this.add_attribute(output,concept.name,a));
+							break;
+
+						default:
+							break;
+					}
+				}
+
 			}
 		});
 	}
@@ -673,14 +730,16 @@ export class ApiDocGenerator {
 			});
 		}
 
-		custom_parameters.forEach(custom_parameter=>{
-			output.write(this.convert_sumneko_description(extend_string({str: custom_parameter.description, post: "\n\n"})+view_documentation_link));
-			output.write(`---@field ${custom_parameter.name} ${this.format_sumneko_type(custom_parameter.type, ()=>
-				[`${table_class_name}.${custom_parameter.name}`, view_documentation_link])}`);
-			output.write((custom_parameter.optional? "|nil\n":"\n"));
-		});
 
-		if ('category' in type_data && (type_data as ApiConcept).category === "table_or_array") {
+
+		if ('category' in type_data && (type_data as ApiConceptV1).category === "table_or_array") {
+			//V1-2
+			custom_parameters.forEach(custom_parameter=>{
+				output.write(this.convert_sumneko_description(extend_string({str: custom_parameter.description, post: "\n\n"})+view_documentation_link));
+				output.write(`---@field ${custom_parameter.name} ${this.format_sumneko_type(custom_parameter.type, ()=>
+					[`${table_class_name}.${custom_parameter.name}`, view_documentation_link])}`);
+				output.write((custom_parameter.optional? "|nil\n":"\n"));
+			});
 			let i = 1;
 			custom_parameters.forEach(custom_parameter=>{
 				output.write(this.convert_sumneko_description(extend_string({str: custom_parameter.description, post: "\n\n"})+view_documentation_link));
@@ -688,6 +747,36 @@ export class ApiDocGenerator {
 					[`${table_class_name}.${custom_parameter.name}`, view_documentation_link])}`);
 				if (custom_parameter.optional) { output.write("|nil"); }
 				output.write(` ${custom_parameter.name} \n`);
+			});
+		} else if ('complex_type' in type_data) {
+			//V3
+			const type_data_ = type_data as Extends<ApiType,ApiWithParameters>;
+			switch (type_data_.complex_type) {
+				case "table":
+					custom_parameters.forEach(custom_parameter=>{
+						output.write(this.convert_sumneko_description(extend_string({str: custom_parameter.description, post: "\n\n"})+view_documentation_link));
+						output.write(`---@field ${custom_parameter.name} ${this.format_sumneko_type(custom_parameter.type, ()=>
+							[`${table_class_name}.${custom_parameter.name}`, view_documentation_link])}`);
+						output.write((custom_parameter.optional? "|nil\n":"\n"));
+					});
+					break;
+				case "tuple":
+					let i = 1;
+					custom_parameters.forEach(custom_parameter=>{
+						output.write(this.convert_sumneko_description(extend_string({str: custom_parameter.description, post: "\n\n"})+view_documentation_link));
+						output.write(`---@field [${i++}] ${this.format_sumneko_type(custom_parameter.type, ()=>
+							[`${table_class_name}.${custom_parameter.name}`, view_documentation_link])}`);
+						if (custom_parameter.optional) { output.write("|nil"); }
+						output.write(` ${custom_parameter.name} \n`);
+					});
+					break;
+			}
+		} else {
+			custom_parameters.forEach(custom_parameter=>{
+				output.write(this.convert_sumneko_description(extend_string({str: custom_parameter.description, post: "\n\n"})+view_documentation_link));
+				output.write(`---@field ${custom_parameter.name} ${this.format_sumneko_type(custom_parameter.type, ()=>
+					[`${table_class_name}.${custom_parameter.name}`, view_documentation_link])}`);
+				output.write((custom_parameter.optional? "|nil\n":"\n"));
 			});
 		}
 
@@ -793,21 +882,40 @@ export class ApiDocGenerator {
 				return this.format_sumneko_type(api_type.value, get_table_name_and_view_doc_link)+"[]";
 			case "dictionary":
 				return `{[${this.format_sumneko_type(api_type.key, modify_getter("_key"))}]: ${this.format_sumneko_type(api_type.value, modify_getter("_value"))}}`;
-			case "variant":
+			case "variant": // V1-2
+			case "union": // V3
 				return api_type.options.map((o,i)=> this.format_sumneko_type(o,modify_getter("."+i))).join("|");
 			case "LuaLazyLoadedValue":
 				return `${wrap("LuaLazyLoadedValue")}<${this.format_sumneko_type(api_type.value, get_table_name_and_view_doc_link)}>`;
 			case "LuaCustomTable":
 				return `${wrap("LuaCustomTable")}<${this.format_sumneko_type(api_type.key, modify_getter("_key"))},${this.format_sumneko_type(api_type.value, modify_getter("_value"))}>`;
 			case "table":
-				const [table_class_name, view_documentation_link] = get_table_name_and_view_doc_link();
+			case "tuple":
+				{
+					const [table_class_name, view_documentation_link] = get_table_name_and_view_doc_link();
 
-				if (this.complex_table_type_name_lut.has(table_class_name)) {return table_class_name;}
+					if (this.complex_table_type_name_lut.has(table_class_name)) {return table_class_name;}
 
-				this.complex_table_type_name_lut.add(table_class_name);
-				return this.add_table_type(this.tablebuff,api_type, table_class_name, view_documentation_link);
+					this.complex_table_type_name_lut.add(table_class_name);
+					return this.add_table_type(this.tablebuff,api_type, table_class_name, view_documentation_link);
+				}
 			case "function":
 				return `fun(${api_type.parameters.map((p,i)=>`param${i+1}:${this.format_sumneko_type(p,modify_getter(`_param${i+1}`))}`).join(",")})`;
+			case "literal":
+				switch (typeof api_type.value) {
+					case "number":
+					case "boolean":
+						return `${api_type.value}`;
+					case "string":
+						return `"${api_type.value}"`;
+				}
+			case "type":
+				//TODO: do something with the description?
+				// at least for inside described enums?
+				return this.format_sumneko_type(api_type.value, get_table_name_and_view_doc_link);
+			case "struct": //struct only appears in concepts which handle them more directly
+			default:
+				return "error";
 		}
 	}
 

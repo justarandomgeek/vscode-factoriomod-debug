@@ -4,6 +4,7 @@
 
 ## 1.1.21
 
+* Support v3 json docs
 
 ## 1.1.20
 
