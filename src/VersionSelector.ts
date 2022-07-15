@@ -3,7 +3,7 @@ import * as ini from 'ini';
 import * as os from 'os';
 import * as path from 'path';
 import { Uri } from "vscode";
-import { ApiDocGenerator } from './ApiDocs_/ApiDocGenerator';
+import { ApiDocGenerator } from './ApiDocs/ApiDocGenerator';
 const fs = vscode.workspace.fs;
 interface FactorioVersion {
 	name: string
