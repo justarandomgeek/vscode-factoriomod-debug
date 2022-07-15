@@ -22,7 +22,7 @@ export const overlay:{
 	}
 
 } = {
-	version: 4,
+	version: 5,
 
 	// whole classes not preset in json
 	custom: [
@@ -208,28 +208,28 @@ export const overlay:{
 					order: i++,
 					description: "",
 					optional: true,
-					type: "boolean",
+					type: "SignalID",
 				},
 				{
 					name: "total_logistic_output_signal",
 					order: i++,
 					description: "",
 					optional: true,
-					type: "boolean",
+					type: "SignalID",
 				},
 				{
 					name: "available_construction_output_signal",
 					order: i++,
 					description: "",
 					optional: true,
-					type: "boolean",
+					type: "SignalID",
 				},
 				{
 					name: "total_construction_output_signal",
 					order: i++,
 					description: "",
 					optional: true,
-					type: "boolean",
+					type: "SignalID",
 				},
 				{
 					name: "circuit_contents_read_mode",
@@ -250,14 +250,14 @@ export const overlay:{
 					order: i++,
 					description: "",
 					optional: true,
-					type: "boolean",
+					type: "SignalID",
 				},
 				{
 					name: "circuit_read_signal",
 					order: i++,
 					description: "",
 					optional: true,
-					type: "boolean",
+					type: "SignalID",
 				},
 				{
 					name: "red_output_signal",

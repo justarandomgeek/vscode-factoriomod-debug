@@ -5,6 +5,7 @@
 ## 1.1.21
 
 * Support v3 json docs
+* Some overlay corrections to `BlueprintControlBehavior`
 
 ## 1.1.20
 
