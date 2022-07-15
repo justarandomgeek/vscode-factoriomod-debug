@@ -1,6 +1,4 @@
 type ApiConcept = ApiConceptV1|ApiConceptV3;
-
-type ReplaceProps<T,New> = Omit<T,keyof New> & New;
 type Extends<T,X> = T extends X ? T : never;
 
 type ApiVersions = 1|2|3;
@@ -39,52 +37,52 @@ interface ApiWithParameters<V extends ApiVersions = ApiVersions> {
 	readonly variant_parameter_description?: string
 }
 
-interface ApiUnionType<V extends ApiVersions = ApiVersions> {
+interface ApiUnionType<V extends ApiVersions> {
 	readonly complex_type:
 		V extends 1|2 ? "variant" :
 		"union"
 	readonly options: ApiType<V>[]
 }
 
-interface ApiArrayType<V extends ApiVersions = ApiVersions> {
+interface ApiArrayType<V extends ApiVersions> {
 	readonly complex_type:"array"
 	readonly value: ApiType<V>
 }
 
-interface ApiDictionaryType<V extends ApiVersions = ApiVersions> {
+interface ApiDictionaryType<V extends ApiVersions> {
 	readonly complex_type:"dictionary"
 	readonly key: ApiType<V>
 	readonly value: ApiType<V>
 }
 
-interface ApiCustomTableType<V extends ApiVersions = ApiVersions> {
+interface ApiCustomTableType<V extends ApiVersions> {
 	readonly complex_type:"LuaCustomTable"
 	readonly key: ApiType<V>
 	readonly value: ApiType<V>
 }
 
-interface ApiFunctionType<V extends ApiVersions = ApiVersions> {
+interface ApiFunctionType<V extends ApiVersions> {
 	readonly complex_type:"function"
 	readonly parameters: ApiType<V>[]
 }
 
-interface ApiLazyLoadedType<V extends ApiVersions = ApiVersions> {
+interface ApiLazyLoadedType<V extends ApiVersions> {
 	readonly complex_type:"LuaLazyLoadedValue"
 	readonly value: ApiType<V>
 }
 
-type ApiTableType<V extends ApiVersions = ApiVersions> = ApiWithParameters<V> & {
+type ApiTableType<V extends ApiVersions> = ApiWithParameters<V> & {
 	readonly complex_type:"table"
 };
 
 type ApiType<V extends ApiVersions = ApiVersions> = string | ApiTypeType<V> | ApiUnionType<V> | ApiArrayType<V> | ApiDictionaryType<V> | ApiCustomTableType<V> | ApiFunctionType<V> | ApiLiteralType<V> | ApiLazyLoadedType<V> | ApiStructType<V> | ApiTableType<V> | ApiTupleType<V>;
 
-type ApiParameter<V extends ApiVersions = ApiVersions> = ApiBasicMember & {
+type ApiParameter<V extends ApiVersions> = ApiBasicMember & {
 	readonly type: ApiType<V>
 	readonly optional: boolean
 };
 
-type ApiParameterGroup<V extends ApiVersions = ApiVersions> = ApiBasicMember & {
+type ApiParameterGroup<V extends ApiVersions> = ApiBasicMember & {
 	readonly parameters: ApiParameter<V>[]
 };
 

@@ -1,10 +1,10 @@
-type ApiTableConceptV1 = ApiWithNotes & ApiWithParameters & {
+type ApiTableConceptV1 = ApiWithNotes & ApiWithParameters<1> & {
 	readonly category: "table"
 };
 
 type ApiTableOrArrayConceptV1 = ApiWithNotes & {
 	readonly category: "table_or_array"
-	readonly parameters: ApiParameter[]
+	readonly parameters: ApiParameter<1>[]
 };
 
 type ApiEnumConceptV1 = ApiWithNotes & {
@@ -26,7 +26,7 @@ type ApiUnionConceptV1 = ApiWithNotes & {
 	}[]
 };
 
-type ApiFilterConceptV1 = ApiWithNotes & ApiWithParameters & {
+type ApiFilterConceptV1 = ApiWithNotes & ApiWithParameters<1> & {
 	readonly category: "filter"
 };
 
