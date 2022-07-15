@@ -43,7 +43,6 @@ export class ApiDocGenerator {
 
 	private readonly defines:Set<string>;
 
-	//TODO: version
 	private readonly runtime_api_base:string;
 
 	constructor(docjson:string, private readonly docsettings:WorkspaceConfiguration) {
