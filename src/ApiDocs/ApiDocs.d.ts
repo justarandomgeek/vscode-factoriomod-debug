@@ -1,4 +1,7 @@
-type ApiConcept = ApiConceptV1|ApiConceptV3;
+type ApiConcept<V extends ApiVersions = ApiVersions> =
+	V extends 1|2 ? ApiConceptV1 :
+	ApiConceptV3;
+
 type Extends<T,X> = T extends X ? T : never;
 
 type ApiVersions = 1|2|3;
@@ -12,7 +15,7 @@ interface ApiDocs<V extends ApiVersions = ApiVersions> {
 	readonly events: ApiEvent[]
 	readonly defines: ApiDefine[]
 	readonly builtin_types: ApiBuiltin[]
-	readonly concepts: V extends 1|2 ? ApiConceptV1[] : ApiConceptV3[]
+	readonly concepts: ApiConcept<V>[]
 	readonly global_objects: ApiGlobalObject[]
 	readonly global_function: V extends 1|2 ? never : ApiAttribute<V>
 }
