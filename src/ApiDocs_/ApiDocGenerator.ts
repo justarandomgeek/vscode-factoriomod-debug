@@ -214,7 +214,7 @@ export class ApiDocGenerator {
 						break;
 
 					case 2:
-						const m2 = method as ApiMethodV2;
+						const m2 = method as ApiMethod<2>;
 						if (m2.return_values.length === 0) { continue; }
 						if (m2.raises) { continue; }
 						cc[m2.name] = {
