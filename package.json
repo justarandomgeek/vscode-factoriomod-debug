@@ -288,8 +288,11 @@
             "type": "array",
             "description": "Factorio installations configured for use with debugging and profiling.",
             "items": {
-              "type":"object",
-              "required": ["name", "factorioPath"],
+              "type": "object",
+              "required": [
+                "name",
+                "factorioPath"
+              ],
               "properties": {
                 "name": {
                   "type": "string",
@@ -344,7 +347,7 @@
             "default": "aliasNative"
           },
           "factorio.docs.useInteger": {
-            "type":"boolean",
+            "type": "boolean",
             "description": "Use lua `integer` type for specialized integer types",
             "default": true
           },
@@ -360,7 +363,7 @@
             ],
             "default": "latest"
           },
-          "factorio.workspace.library" :{
+          "factorio.workspace.library": {
             "type": "string",
             "description": "Location to generate factorio typedef files. If unspecified, will use `.vscode/factorio` in your workspace."
           }
