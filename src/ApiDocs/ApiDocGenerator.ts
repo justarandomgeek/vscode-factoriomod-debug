@@ -369,9 +369,10 @@ export class ApiDocGenerator {
 			output.write(this.convert_sumneko_description(this.format_entire_description(event,view_documentation_link)));
 			output.write(`---@class EventData.${event.name} : EventData\n`);
 			event.data.forEach(param=>{
-				output.write(this.convert_sumneko_description(param.description, view_documentation_link));
-				output.write(`---@field ${param.name} ${this.format_sumneko_type(param.type,()=>[`${event.name}.${param.name}`, view_documentation_link])}`);
-				output.write(param.optional?"|nil\n":"\n");
+				this.write_sumneko_field(
+					output, param.name, param.type,
+					()=>[`${event.name}.${param.name}`, view_documentation_link],
+					[param.description, view_documentation_link], param.optional);
 			});
 			output.write("\n");
 		});
@@ -390,14 +391,25 @@ export class ApiDocGenerator {
 		return Math.max(...await Promise.all(classSizes));
 	}
 
+	private write_sumneko_field(
+		output:WritableMemoryStream, name:string, type:ApiType,
+		get_table_name_and_view_doc_link:()=>[string,string],
+		description:string|string[], optional?:boolean, inline_desc?:string) {
+		output.write(this.convert_sumneko_description(...description));
+		output.write(`---@field ${name}${optional ? "?" : ""} ${this.format_sumneko_type(type, get_table_name_and_view_doc_link)} ${inline_desc??""}\n`);
+	}
+
 	private add_attribute(output:WritableMemoryStream,classname:string,attribute:ApiAttribute,oper_lua_name?:string,oper_html_name?:string) {
 		const aname = oper_lua_name ?? attribute.name;
 		const view_doc_link = this.view_documentation(`${classname}::${oper_html_name ?? aname}`);
-		output.write(this.convert_sumneko_description(this.format_entire_description(
+
+		const description = this.format_entire_description(
 			attribute, view_doc_link, `[${attribute.read?"R":""}${attribute.write?"W":""}]${attribute.description?`\n${attribute.description}`:''}`
-		)));
-		const optionaltag = "optional" in attribute && attribute.optional ? "?" : "";
-		output.write(`---@field ${aname}${optionaltag} ${this.format_sumneko_type(attribute.type, ()=>[`${classname}.${aname}`,view_doc_link])}\n`);
+		);
+		this.write_sumneko_field(
+			output, aname, attribute.type,
+			()=>[`${classname}.${aname}`, view_doc_link],
+			description, attribute.optional);
 	};
 
 	private add_sumneko_class(output:WritableMemoryStream,aclass:ApiClass):void;
@@ -570,8 +582,10 @@ export class ApiDocGenerator {
 						output.write(this.convert_sumneko_description(this.format_entire_description(concept,view_documentation_link)));
 						output.write(`---@class ${concept.name}\n`);
 						concept.options.forEach(option=>{
-							output.write(this.convert_sumneko_description(option.description, view_documentation_link));
-							output.write(`---@field ${option.name} true|nil\n`);
+							this.write_sumneko_field(
+								output, option.name, "true",
+								()=>["", ""],
+								[option.description, view_documentation_link]);
 						});
 						output.write("\n");
 						break;
@@ -705,18 +719,17 @@ export class ApiDocGenerator {
 		if ('category' in type_data && (type_data as ApiConceptV1).category === "table_or_array") {
 			//V1-2
 			custom_parameters.forEach(custom_parameter=>{
-				output.write(this.convert_sumneko_description(custom_parameter.description, view_documentation_link));
-				output.write(`---@field ${custom_parameter.name} ${this.format_sumneko_type(custom_parameter.type, ()=>
-					[`${table_class_name}.${custom_parameter.name}`, view_documentation_link])}`);
-				output.write((custom_parameter.optional? "|nil\n":"\n"));
+				this.write_sumneko_field(
+					output, custom_parameter.name, custom_parameter.type,
+					()=>[`${table_class_name}.${custom_parameter.name}`, view_documentation_link],
+					[custom_parameter.description, view_documentation_link], custom_parameter.optional);
 			});
 			let i = 1;
 			custom_parameters.forEach(custom_parameter=>{
-				output.write(this.convert_sumneko_description(custom_parameter.description, view_documentation_link));
-				output.write(`---@field [${i++}] ${this.format_sumneko_type(custom_parameter.type, ()=>
-					[`${table_class_name}.${custom_parameter.name}`, view_documentation_link])}`);
-				if (custom_parameter.optional) { output.write("|nil"); }
-				output.write(` ${custom_parameter.name} \n`);
+				this.write_sumneko_field(
+					output, `[${i++}]`, custom_parameter.type,
+					()=>[`${table_class_name}.${custom_parameter.name}`, view_documentation_link],
+					[custom_parameter.description, view_documentation_link], custom_parameter.optional, custom_parameter.name);
 			});
 		} else if ('complex_type' in type_data) {
 			//V3
@@ -724,29 +737,28 @@ export class ApiDocGenerator {
 			switch (type_data_.complex_type) {
 				case "table":
 					custom_parameters.forEach(custom_parameter=>{
-						output.write(this.convert_sumneko_description(custom_parameter.description, view_documentation_link));
-						output.write(`---@field ${custom_parameter.name} ${this.format_sumneko_type(custom_parameter.type, ()=>
-							[`${table_class_name}.${custom_parameter.name}`, view_documentation_link])}`);
-						output.write((custom_parameter.optional? "|nil\n":"\n"));
+						this.write_sumneko_field(
+							output, custom_parameter.name, custom_parameter.type,
+							()=>[`${table_class_name}.${custom_parameter.name}`, view_documentation_link],
+							[custom_parameter.description, view_documentation_link], custom_parameter.optional);
 					});
 					break;
 				case "tuple":
 					let i = 1;
 					custom_parameters.forEach(custom_parameter=>{
-						output.write(this.convert_sumneko_description(custom_parameter.description, view_documentation_link));
-						output.write(`---@field [${i++}] ${this.format_sumneko_type(custom_parameter.type, ()=>
-							[`${table_class_name}.${custom_parameter.name}`, view_documentation_link])}`);
-						if (custom_parameter.optional) { output.write("|nil"); }
-						output.write(` ${custom_parameter.name} \n`);
+						this.write_sumneko_field(
+							output, `[${i++}]`, custom_parameter.type,
+							()=>[`${table_class_name}.${custom_parameter.name}`, view_documentation_link],
+							[custom_parameter.description, view_documentation_link], custom_parameter.optional, custom_parameter.name);
 					});
 					break;
 			}
 		} else {
 			custom_parameters.forEach(custom_parameter=>{
-				output.write(this.convert_sumneko_description(custom_parameter.description, view_documentation_link));
-				output.write(`---@field ${custom_parameter.name} ${this.format_sumneko_type(custom_parameter.type, ()=>
-					[`${table_class_name}.${custom_parameter.name}`, view_documentation_link])}`);
-				output.write((custom_parameter.optional? "|nil\n":"\n"));
+				this.write_sumneko_field(
+					output, custom_parameter.name, custom_parameter.type,
+					()=>[`${table_class_name}.${custom_parameter.name}`, view_documentation_link],
+					[custom_parameter.description, view_documentation_link], custom_parameter.optional);
 			});
 		}
 
