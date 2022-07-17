@@ -18,12 +18,12 @@ function sort_by_order(a:{order:number},b:{order:number}) {
 	return a.order - b.order;
 }
 
-export class ApiDocGenerator {
-	private readonly docs:ApiDocs;
+export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
+	private readonly docs:ApiDocs<V>;
 
-	private readonly classes:Map<string,ApiClass>;
-	private readonly events:Map<string,ApiEvent>;
-	private readonly concepts:Map<string,ApiConcept>;
+	private readonly classes:Map<string,ApiClass<V>>;
+	private readonly events:Map<string,ApiEvent<V>>;
+	private readonly concepts:Map<string,ApiConcept<V>>;
 	private readonly builtins:Map<string,ApiBuiltin>;
 	private readonly globals:Map<string,ApiGlobalObject>;
 
@@ -88,7 +88,7 @@ export class ApiDocGenerator {
 		this.docs.defines.forEach(define=>add_define(define,"defines."));
 	}
 
-	public get api_version() : ApiDocs["api_version"] {
+	public get api_version() : ApiDocs<V>["api_version"] {
 		return this.docs.api_version;
 	}
 
@@ -104,7 +104,7 @@ export class ApiDocGenerator {
 		return this.docs.application_version;
 	}
 
-	private with_base_classes<T>(c:ApiClass, getter:(c:ApiClass)=>T) {
+	private with_base_classes<T>(c:ApiClass<V>, getter:(c:ApiClass<V>)=>T) {
 		const own = getter(c);
 		const bases = c.base_classes
 			?.map(b=>this.classes.get(b))
@@ -200,10 +200,9 @@ export class ApiDocGenerator {
 						break;
 
 					case 2:
-						const m2 = method as ApiMethod<2>;
-						if (m2.return_values.length === 0) { continue; }
-						if (m2.raises) { continue; }
-						cc[m2.name] = {
+						if (method.return_values.length === 0) { continue; }
+						if (method.raises) { continue; }
+						cc[method.name] = {
 							readOnly: true,
 							fetchable: true,
 						};
@@ -414,9 +413,9 @@ export class ApiDocGenerator {
 			description, attribute.optional);
 	};
 
-	private add_sumneko_class(output:WritableMemoryStream,aclass:ApiClass):void;
+	private add_sumneko_class(output:WritableMemoryStream,aclass:ApiClass<V>):void;
 	private add_sumneko_class(output:WritableMemoryStream,aclass:ApiStructConceptV1):void;
-	private add_sumneko_class(output:WritableMemoryStream,aclass:ApiClass|ApiStructConceptV1):void {
+	private add_sumneko_class(output:WritableMemoryStream,aclass:ApiClass<V>|ApiStructConceptV1):void {
 
 		const view_documentation_for_method = (method_name:string)=>{
 			return this.view_documentation(`${aclass.name}.${method_name}`);
@@ -433,7 +432,7 @@ export class ApiDocGenerator {
 			}
 		};
 
-		const add_return_annotation = (method:ApiMethod)=>{
+		const add_return_annotation = (method:ApiMethod<V>)=>{
 			if ("return_type" in method) { // v1
 				output.write(`---@return ${convert_param_or_return(method.return_type,method.return_description,()=>[
 					`${aclass.name}.${method.name}_return`, view_documentation_for_method(method.name)
@@ -448,10 +447,10 @@ export class ApiDocGenerator {
 			}
 		};
 
-		const convert_description_for_method = (method:ApiMethod,html_name?:string)=>
+		const convert_description_for_method = (method:ApiMethod<V>,html_name?:string)=>
 			this.convert_sumneko_description(this.format_entire_description(method,view_documentation_for_method(html_name??method.name)));
 
-		const add_regular_method = (method:ApiMethod,oper_lua_name?:string,oper_html_name?:string)=>{
+		const add_regular_method = (method:ApiMethod<V>,oper_lua_name?:string,oper_html_name?:string)=>{
 			output.write(convert_description_for_method(method,oper_html_name));
 			const sorted_params = method.parameters.sort(sort_by_order);
 			sorted_params.forEach(parameter=>{
@@ -471,7 +470,7 @@ export class ApiDocGenerator {
 			output.write(`${oper_lua_name??method.name}=function(${sorted_params.map(p=>escape_lua_keyword(p.name)).concat(method.variadic_type?["..."]:[]).join(",")})end,\n`);
 		};
 
-		const add_method_taking_table = (method:ApiMethod)=>{
+		const add_method_taking_table = (method:ApiMethod<V>)=>{
 			const param_class_name = `${aclass.name}.${method.name}_param`;
 			this.add_table_type(output,method,param_class_name,this.view_documentation(`${aclass.name}.${method.name}`));
 			output.write("\n");
@@ -481,7 +480,7 @@ export class ApiDocGenerator {
 			output.write(`${method.name}=function(param)end,\n`);
 		};
 
-		const add_method = (method:ApiMethod)=> method.takes_table?add_method_taking_table(method):add_regular_method(method);
+		const add_method = (method:ApiMethod<V>)=> method.takes_table?add_method_taking_table(method):add_regular_method(method);
 
 		const needs_label = !!(aclass.description || aclass.notes);
 		output.write(this.convert_sumneko_description(this.format_entire_description(
@@ -495,7 +494,7 @@ export class ApiDocGenerator {
 		} else {
 			const base_classes = aclass.base_classes ?? ["LuaObject"];
 			const generic_params = overlay.adjust.class[aclass.name]?.generic_params;
-			const operators = aclass.operators as ApiOperator[];
+			const operators = aclass.operators;
 			const generic_tag = generic_params? `<${generic_params.join(',')}>`:'';
 			const indexed = overlay.adjust.class[aclass.name]?.generic_params ?
 				overlay.adjust.class[aclass.name]?.indexed :
@@ -522,13 +521,13 @@ export class ApiDocGenerator {
 		aclass.attributes.forEach(a=>this.add_attribute(output,aclass.name,a));
 
 		if (!('category' in aclass)) {
-			const operators = <ApiOperator[]>aclass.operators;
-			const lenop = operators.find(op=>op.name==="length") as ApiAttribute|undefined;
+			const operators = aclass.operators;
+			const lenop = operators.find((op): op is ApiAttribute<V>&{name:"length"}=>op.name==="length");
 			if (lenop) {
 				this.add_attribute(output,aclass.name,lenop,"__len");
 			};
 
-			const indexop = operators?.find?.(op=>op.name==="index") as ApiAttribute|undefined;
+			const indexop = operators?.find?.((op):op is ApiAttribute<V>&{name:"index"}=>op.name==="index");
 			if (indexop) {
 				const indexed = !overlay.adjust.class[aclass.name]?.generic_params ? overlay.adjust.class[aclass.name]?.indexed : undefined;
 
@@ -545,7 +544,7 @@ export class ApiDocGenerator {
 
 			output.write("}\n\n");
 
-			const callop = operators.find(op=>op.name==="call") as ApiMethod;
+			const callop = operators.find((op): op is ApiMethod<V>&{name:"call"}=>op.name==="call");
 			if (callop){
 				const params = callop.parameters.map((p,i)=>`${p.name??`param${i+1}`}${p.optional?'?':''}:${this.format_sumneko_type(p.type,()=>[`${aclass.name}()`, ''])}`);
 				const returns = ("return_values" in callop) ?

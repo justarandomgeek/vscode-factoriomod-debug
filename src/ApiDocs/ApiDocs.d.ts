@@ -1,4 +1,4 @@
-type ApiConcept<V extends ApiVersions = ApiVersions> =
+type ApiConcept<V extends ApiVersions> =
 	V extends 1|2 ? ApiConceptV1 :
 	ApiConceptV3;
 
@@ -12,7 +12,7 @@ interface ApiDocs<V extends ApiVersions = ApiVersions> {
 	readonly stage:"runtime"
 
 	readonly classes: ApiClass<V>[]
-	readonly events: ApiEvent[]
+	readonly events: ApiEvent<V>[]
 	readonly defines: ApiDefine[]
 	readonly builtin_types: ApiBuiltin[]
 	readonly concepts: ApiConcept<V>[]
@@ -87,7 +87,7 @@ type ApiParameterGroup<V extends ApiVersions> = ApiBasicMember & {
 	readonly parameters: ApiParameter<V>[]
 };
 
-type ApiEvent<V extends ApiVersions = ApiVersions> = ApiWithNotes<V> & {
+type ApiEvent<V extends ApiVersions> = ApiWithNotes<V> & {
 	readonly data: ApiParameter<V>[]
 };
 
@@ -102,7 +102,7 @@ type ApiGlobalObject = ApiBasicMember & {
 	readonly type: string
 };
 
-type ApiMethod<V extends ApiVersions = ApiVersions> = ApiWithNotes<V> & ApiWithParameters<V> &{
+type ApiMethod<V extends ApiVersions> = ApiWithNotes<V> & ApiWithParameters<V> &{
 	readonly subclasses?: string[]
 	readonly variadic_type?: ApiType<V>
 	readonly variadic_description?: string
@@ -127,14 +127,14 @@ type ApiAttribute<V extends ApiVersions = ApiVersions> = ApiWithNotes<V> & {
 		boolean
 };
 
-type ApiOperator<V extends ApiVersions = ApiVersions> = (ApiMethod<V>&{readonly name:"call"})|(ApiAttribute<V>&{readonly name:"index"|"length"});
+type ApiOperator<V extends ApiVersions> = (ApiMethod<V>&{readonly name:"call"})|(ApiAttribute<V>&{readonly name:"index"|"length"});
 
 type ApiEventRaised = ApiBasicMember & {
 	readonly timeframe: "instantly"|"current_tick"|"future_tick"
 	readonly optional: boolean
 };
 
-type ApiClass<V extends ApiVersions = ApiVersions> = ApiWithNotes<V> & {
+type ApiClass<V extends ApiVersions> = ApiWithNotes<V> & {
 	readonly methods: ApiMethod<V>[]
 	readonly attributes: ApiAttribute<V>[]
 	readonly operators: ApiOperator<V>[]
