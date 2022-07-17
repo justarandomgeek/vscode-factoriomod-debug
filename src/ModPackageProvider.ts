@@ -61,6 +61,9 @@ interface PortalError {
 export async function activateModPackageProvider(context:vscode.ExtensionContext) {
 	if (vscode.workspace.workspaceFolders) {
 		const keychain = new Keychain(context.secrets);
+		context.subscriptions.push(vscode.commands.registerCommand("factorio.clearApiKey", async ()=>{
+			await keychain.ClearApiKey();
+		}));
 		const treeDataProvider = new ModsTreeDataProvider(keychain);
 		context.subscriptions.push(treeDataProvider);
 		const view = vscode.window.createTreeView('factoriomods', { treeDataProvider: treeDataProvider });

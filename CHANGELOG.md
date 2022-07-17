@@ -8,6 +8,7 @@
 * Some overlay corrections to `BlueprintControlBehavior`
 * Automatically manage data and docs links in `Lua.workspace.library`
 * General cleanup of docs generator
+* Added command to clear saved API key
 
 ## 1.1.20
 

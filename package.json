@@ -80,7 +80,7 @@
     "onCommand:factorio.version",
     "onCommand:factorio.upload",
     "onCommand:factorio.publish",
-    "onCommand:factorio.makedocs",
+    "onCommand:factorio.clearApiKey",
     "workspaceContains:**/changelog.txt",
     "workspaceContains:**/info.json",
     "onLanguage:factorio-locale",
@@ -469,6 +469,11 @@
         "category": "Factorio",
         "title": "Publish Mod",
         "icon": "$(repo-push)"
+      },
+      {
+        "command": "factorio.clearApiKey",
+        "category": "Factorio",
+        "title": "Clear API Key"
       }
     ],
     "views": {
