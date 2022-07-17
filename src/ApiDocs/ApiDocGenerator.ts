@@ -395,7 +395,7 @@ export class ApiDocGenerator {
 		output:WritableMemoryStream, name:string, type:ApiType,
 		get_table_name_and_view_doc_link:()=>[string,string],
 		description:string|string[], optional?:boolean, inline_desc?:string) {
-		output.write(this.convert_sumneko_description(...description));
+		output.write(this.convert_sumneko_description(...(description instanceof Array ? description : [description])));
 		output.write(`---@field ${name}${optional ? "?" : ""} ${this.format_sumneko_type(type, get_table_name_and_view_doc_link)} ${inline_desc??""}\n`);
 	}
 
