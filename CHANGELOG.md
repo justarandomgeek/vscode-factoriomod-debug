@@ -7,6 +7,7 @@
 * Support v3 json docs
 * Some overlay corrections to `BlueprintControlBehavior`
 * Automatically manage data and docs links in `Lua.workspace.library`
+* General cleanup of docs generator
 
 ## 1.1.20
 
