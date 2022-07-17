@@ -1,10 +1,12 @@
 let i = 100000;
 
+type OverlayApiVersion = 3;
+
 export const overlay:{
 	version: number
-	custom: (ApiWithParameters&{name:string})[]
+	custom: (ApiWithParameters<OverlayApiVersion>&{name:string})[]
 	adjust: {
-		table: { [classname:string]: ApiWithParameters }
+		table: { [classname:string]: ApiWithParameters<OverlayApiVersion> }
 		class: { [classname:string]: {
 			generic_params?: string[]
 			generic_methods?: {
@@ -12,8 +14,8 @@ export const overlay:{
 				return_values:(string|undefined)[]
 			}[]
 			indexed?: {
-				key: ApiType
-				value?: ApiType
+				key: ApiType<OverlayApiVersion>
+				value?: ApiType<OverlayApiVersion>
 			}
 		} }
 		define: { [name:string]: {
@@ -27,6 +29,8 @@ export const overlay:{
 	// whole classes not preset in json
 	custom: [
 		{
+			// There's an empty Builtin of this, but the two everywhere members
+			// are useful to supply instead so i inject it here and block the builtin
 			name: "LuaObject",
 			parameters: [
 				{
@@ -499,30 +503,15 @@ export const overlay:{
 					value: "V",
 				},
 			},
-			"LuaFluidBox":{
-				indexed: {
-					key: "uint"
-				}
-			},
 			"LuaGuiElement":{
 				indexed: {
 					key: {
-						complex_type: "variant",
+						complex_type: "union",
 						options: [
 							"string",
 							"uint"
 						]
 					}
-				}
-			},
-			"LuaInventory":{
-				indexed: {
-					key: "uint"
-				}
-			},
-			"LuaTransportLine":{
-				indexed: {
-					key: "uint"
 				}
 			},
 		},

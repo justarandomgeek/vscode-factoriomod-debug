@@ -401,15 +401,15 @@ export class ApiDocGenerator {
 		output.write(`---@field ${name}${optional ? "?" : ""} ${this.format_sumneko_type(type, get_table_name_and_view_doc_link)} ${inline_desc??""}\n`);
 	}
 
-	private add_attribute(output:WritableMemoryStream,classname:string,attribute:ApiAttribute,oper_lua_name?:string,oper_html_name?:string) {
-		const aname = oper_lua_name ?? attribute.name;
-		const view_doc_link = this.view_documentation(`${classname}::${oper_html_name ?? aname}`);
+	private add_attribute(output:WritableMemoryStream,classname:string,attribute:ApiAttribute,oper_lua_name?:string,type?:ApiType) {
+		const aname = attribute.name;
+		const view_doc_link = this.view_documentation(`${classname}.${aname}`);
 
 		const description = this.format_entire_description(
 			attribute, view_doc_link, `[${attribute.read?"R":""}${attribute.write?"W":""}]${attribute.description?`\n${attribute.description}`:''}`
 		);
 		this.write_sumneko_field(
-			output, aname, attribute.type,
+			output, oper_lua_name ?? aname, type ?? attribute.type,
 			()=>[`${classname}.${aname}`, view_doc_link],
 			description, attribute.optional);
 	};
@@ -419,7 +419,7 @@ export class ApiDocGenerator {
 	private add_sumneko_class(output:WritableMemoryStream,aclass:ApiClass|ApiStructConceptV1):void {
 
 		const view_documentation_for_method = (method_name:string)=>{
-			return this.view_documentation(`${aclass.name}::${method_name}`);
+			return this.view_documentation(`${aclass.name}.${method_name}`);
 		};
 
 		const convert_param_or_return = (api_type:ApiType|undefined, description:string|undefined, get_table_name_and_view_doc_link:()=>[string,string]):string =>{
@@ -473,7 +473,7 @@ export class ApiDocGenerator {
 
 		const add_method_taking_table = (method:ApiMethod)=>{
 			const param_class_name = `${aclass.name}.${method.name}_param`;
-			this.add_table_type(output,method,param_class_name,this.view_documentation(`${aclass.name}::${method.name}`));
+			this.add_table_type(output,method,param_class_name,this.view_documentation(`${aclass.name}.${method.name}`));
 			output.write("\n");
 			output.write(convert_description_for_method(method));
 			output.write(`---@param param${method.table_is_optional?"?":" "}${param_class_name}\n`);
@@ -496,14 +496,12 @@ export class ApiDocGenerator {
 			const base_classes = aclass.base_classes ?? ["LuaObject"];
 			const generic_params = overlay.adjust.class[aclass.name]?.generic_params;
 			const operators = aclass.operators as ApiOperator[];
-			const indexop = operators?.find?.(op=>op.name==="index") as ApiAttribute|undefined;
-			const indexoptype = indexop && indexop.type;
-			const indexed = overlay.adjust.class[aclass.name]?.indexed;
-
 			const generic_tag = generic_params? `<${generic_params.join(',')}>`:'';
-
-			const indexed_table = indexed || indexop ?
-				`{[${this.format_sumneko_type(indexed?.key??'AnyBasic', ()=>[`${aclass.name}.__indexkey`, ''])}]:${this.format_sumneko_type(indexed?.value??indexoptype, ()=>[`${aclass.name}.__index`, ''])}}`:
+			const indexed = overlay.adjust.class[aclass.name]?.generic_params ?
+				overlay.adjust.class[aclass.name]?.indexed :
+				undefined;
+			const indexed_table = indexed ?
+				`{[${this.format_sumneko_type(indexed.key, ()=>[`${aclass.name}.__indexkey`, ''])}]:${this.format_sumneko_type(indexed.value, ()=>[`${aclass.name}.__index`, ''])}}`:
 				'';
 
 			const generic_methods = overlay.adjust.class[aclass.name]?.generic_methods;
@@ -527,8 +525,18 @@ export class ApiDocGenerator {
 			const operators = <ApiOperator[]>aclass.operators;
 			const lenop = operators.find(op=>op.name==="length") as ApiAttribute|undefined;
 			if (lenop) {
-				this.add_attribute(output,aclass.name,lenop,"__len","operator%20#");
+				this.add_attribute(output,aclass.name,lenop,"__len");
 			};
+
+			const indexop = operators?.find?.(op=>op.name==="index") as ApiAttribute|undefined;
+			if (indexop) {
+				const indexed = !overlay.adjust.class[aclass.name]?.generic_params ? overlay.adjust.class[aclass.name]?.indexed : undefined;
+
+				const opname = `[${this.format_sumneko_type(lenop?.type ?? indexed?.key ?? 'AnyBasic', ()=>[`${aclass.name}.__indexkey`, ''])}]`;
+				const indexoptype = indexed?.value ?? indexop?.type;
+
+				this.add_attribute(output,aclass.name,indexop,opname,indexoptype);
+			}
 
 			output.write(`${this.globals.get(aclass.name)?.name ?? `local ${to_lua_ident(aclass.name)}`}={\n`);
 			aclass.methods.forEach(method=>{
@@ -781,10 +789,10 @@ export class ApiDocGenerator {
 		} else if (this.defines.has(reference)) {
 			relative_link = "defines.html#"+reference;
 		} else {
-			const matches = reference.match(/^(.*?)::(.*)$/);
+			const matches = reference.match(/^(.*?)(\.|::)(.*)$/);
 			if (!!matches) {
-				const class_name = matches![1];
-				const member_name = matches![2];
+				const class_name = matches[1];
+				const member_name = matches[3];
 				const build_link = (main:string)=> `${main}.html#${class_name}.${member_name}`;
 				if (this.classes.has(class_name)) {
 					relative_link = build_link(class_name);
