@@ -26,12 +26,10 @@ interface ApiBasicMember {
 	readonly description: string
 }
 
-type ApiWithNotes = ApiBasicMember & {
+type ApiWithNotes<V extends ApiVersions = ApiVersions> = ApiBasicMember & {
 	readonly notes?: string[]
 	readonly examples?: string[]
-
-	// only in V1, but not worth splitting all the types to remove
-	readonly see_also?: string[]
+	readonly see_also?: V extends 1 ? string[] : never
 };
 
 interface ApiWithParameters<V extends ApiVersions = ApiVersions> {
@@ -89,7 +87,7 @@ type ApiParameterGroup<V extends ApiVersions> = ApiBasicMember & {
 	readonly parameters: ApiParameter<V>[]
 };
 
-type ApiEvent<V extends ApiVersions = ApiVersions> = ApiWithNotes & {
+type ApiEvent<V extends ApiVersions = ApiVersions> = ApiWithNotes<V> & {
 	readonly data: ApiParameter<V>[]
 };
 
@@ -104,7 +102,7 @@ type ApiGlobalObject = ApiBasicMember & {
 	readonly type: string
 };
 
-type ApiMethod<V extends ApiVersions = ApiVersions> = ApiWithNotes & ApiWithParameters<V> &{
+type ApiMethod<V extends ApiVersions = ApiVersions> = ApiWithNotes<V> & ApiWithParameters<V> &{
 	readonly subclasses?: string[]
 	readonly variadic_type?: ApiType<V>
 	readonly variadic_description?: string
@@ -116,7 +114,7 @@ type ApiMethod<V extends ApiVersions = ApiVersions> = ApiWithNotes & ApiWithPara
 	readonly raises?: V extends 1 ? never : ApiEventRaised[]
 };
 
-type ApiAttribute<V extends ApiVersions = ApiVersions> = ApiWithNotes & {
+type ApiAttribute<V extends ApiVersions = ApiVersions> = ApiWithNotes<V> & {
 	readonly subclasses?: string[]
 	readonly type: ApiType<V>
 	readonly read: boolean
@@ -136,7 +134,7 @@ type ApiEventRaised = ApiBasicMember & {
 	readonly optional: boolean
 };
 
-type ApiClass<V extends ApiVersions = ApiVersions> = ApiWithNotes & {
+type ApiClass<V extends ApiVersions = ApiVersions> = ApiWithNotes<V> & {
 	readonly methods: ApiMethod<V>[]
 	readonly attributes: ApiAttribute<V>[]
 	readonly operators: ApiOperator<V>[]
