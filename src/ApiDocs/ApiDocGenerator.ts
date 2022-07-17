@@ -566,7 +566,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 				switch (concept.category) {
 					case "union":
 						const sorted_options = concept.options.sort(sort_by_order);
-						const get_table_name_and_view_doc_link = (option:ApiUnionConceptV1<V>["options"][0]):[string,string]=>{
+						const get_table_name_and_view_doc_link = (option:ApiUnionConceptV1<1|2>["options"][0]):[string,string]=>{
 							return [`${concept.name}.${option.order}`, view_documentation_link];
 						};
 						output.write(this.convert_sumneko_description(_this.format_entire_description(
@@ -726,7 +726,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 
 
-		if ('category' in type_data && (type_data as ApiConceptV1).category === "table_or_array") {
+		if ('category' in type_data && (type_data as ApiConceptV1<V>).category === "table_or_array") {
 			//V1-2
 			custom_parameters.forEach(custom_parameter=>{
 				this.write_sumneko_field(
