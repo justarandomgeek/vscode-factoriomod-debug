@@ -266,6 +266,10 @@ export class ApiDocGenerator {
 				// these are all *real* lua types, so nothing to do here
 				return undefined;
 
+			case "LuaObject":
+				// skip the builtin to use the class from Overlay instead
+				return undefined;
+
 			case "double":
 				return {type:"number",size:64};
 			case "float":
@@ -283,40 +287,38 @@ export class ApiDocGenerator {
 
 	private generate_sumneko_builtin(output:WritableMemoryStream) {
 		this.docs.builtin_types.forEach(builtin=>{
-			if (!(["string","boolean","table","nil"].includes(builtin.name))) {
-				const info = this.builtin_type_info(builtin);
-				if(!info) { return; }
-				output.write(this.convert_sumneko_description(builtin.description, this.view_documentation(builtin.name)));
-				let builtinType = info.type;
-				switch (builtinType) {
-					case "unsigned":
-					case "integer":
-						builtinType =
-							(this.docsettings.get<boolean>("useInteger",true) === false) ?
-							"number" : "integer";
-						break;
-				}
+			const info = this.builtin_type_info(builtin);
+			if(!info) { return; }
+			output.write(this.convert_sumneko_description(builtin.description, this.view_documentation(builtin.name)));
+			let builtinType = info.type;
+			switch (builtinType) {
+				case "unsigned":
+				case "integer":
+					builtinType =
+						(this.docsettings.get<boolean>("useInteger",true) === false) ?
+						"number" : "integer";
+					break;
+			}
 
 
-				switch (this.docsettings.get("numberStyle")) {
-					case "aliasNative":
-					default:
-						const isNative =
-							(info.type === "number" && info.size === 64) ||
-							(info.type === "integer" && info.size === 32) ;
-						if (isNative) {
-							output.write(`---@alias ${builtin.name} ${builtinType}\n\n`);
-						} else {
-							output.write(`---@class ${builtin.name}:${builtinType}\n\n`);
-						}
-						break;
-					case "alias":
+			switch (this.docsettings.get("numberStyle")) {
+				case "aliasNative":
+				default:
+					const isNative =
+						(info.type === "number" && info.size === 64) ||
+						(info.type === "integer" && info.size === 32) ;
+					if (isNative) {
 						output.write(`---@alias ${builtin.name} ${builtinType}\n\n`);
-						break;
-					case "class":
+					} else {
 						output.write(`---@class ${builtin.name}:${builtinType}\n\n`);
-						break;
-				}
+					}
+					break;
+				case "alias":
+					output.write(`---@alias ${builtin.name} ${builtinType}\n\n`);
+					break;
+				case "class":
+					output.write(`---@class ${builtin.name}:${builtinType}\n\n`);
+					break;
 			}
 		});
 	}
