@@ -1,6 +1,6 @@
 
-type ApiConceptV3 = ApiWithNotes & {
-	readonly type: ApiType<3>
+type ApiConceptV3<V extends ApiVersions> = ApiWithNotes<V> & {
+	readonly type: ApiType<V>
 };
 type ApiTypeType<V extends ApiVersions = ApiVersions> = V extends 1|2 ? never : {
 	readonly complex_type:"type"

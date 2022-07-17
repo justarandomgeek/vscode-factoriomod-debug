@@ -1,23 +1,24 @@
-type ApiTableConceptV1 = ApiWithNotes & ApiWithParameters<1> & {
+type ApiTableConceptV1<V extends ApiVersions> =
+	ApiWithNotes<V> & ApiWithParameters<V> & {
 	readonly category: "table"
 };
 
-type ApiTableOrArrayConceptV1 = ApiWithNotes & {
+type ApiTableOrArrayConceptV1<V extends ApiVersions> = ApiWithNotes<V> & {
 	readonly category: "table_or_array"
-	readonly parameters: ApiParameter<1>[]
+	readonly parameters: ApiParameter<V>[]
 };
 
-type ApiEnumConceptV1 = ApiWithNotes & {
+type ApiEnumConceptV1<V extends ApiVersions> = ApiWithNotes<V> & {
 	readonly category: "enum"
 	readonly options: ApiBasicMember[]
 };
 
-type ApiFlagConceptV1 = ApiWithNotes & {
+type ApiFlagConceptV1<V extends ApiVersions> = ApiWithNotes<V> & {
 	readonly category: "flag"
 	readonly options: ApiBasicMember[]
 };
 
-type ApiUnionConceptV1 = ApiWithNotes & {
+type ApiUnionConceptV1<V extends ApiVersions> = ApiWithNotes<V> & {
 	readonly category: "union"
 	readonly options: {
 		readonly type: ApiType
@@ -26,17 +27,17 @@ type ApiUnionConceptV1 = ApiWithNotes & {
 	}[]
 };
 
-type ApiFilterConceptV1 = ApiWithNotes & ApiWithParameters<1> & {
+type ApiFilterConceptV1<V extends ApiVersions> = ApiWithNotes<V> & ApiWithParameters<V> & {
 	readonly category: "filter"
 };
 
-type ApiStructConceptV1 = ApiWithNotes & {
+type ApiStructConceptV1<V extends ApiVersions> = ApiWithNotes<V> & {
 	readonly category: "struct"
-	readonly attributes: ApiAttribute<1>[]
+	readonly attributes: ApiAttribute<V>[]
 };
 
-type ApiConceptConceptV1 = ApiWithNotes & {
+type ApiConceptConceptV1<V extends ApiVersions> = ApiWithNotes<V> & {
 	readonly category: "concept"
 };
 
-type ApiConceptV1 = ApiTableConceptV1 | ApiTableOrArrayConceptV1 | ApiEnumConceptV1 | ApiFlagConceptV1 | ApiUnionConceptV1 | ApiFilterConceptV1 | ApiStructConceptV1 | ApiConceptConceptV1;
+type ApiConceptV1<V extends ApiVersions = ApiVersions> = ApiTableConceptV1<V> | ApiTableOrArrayConceptV1<V> | ApiEnumConceptV1<V> | ApiFlagConceptV1<V> | ApiUnionConceptV1<V> | ApiFilterConceptV1<V> | ApiStructConceptV1<V> | ApiConceptConceptV1<V>;

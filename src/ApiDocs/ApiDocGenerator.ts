@@ -400,7 +400,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		output.write(`---@field ${name}${optional ? "?" : ""} ${this.format_sumneko_type(type, get_table_name_and_view_doc_link)} ${inline_desc??""}\n`);
 	}
 
-	private add_attribute(output:WritableMemoryStream,classname:string,attribute:ApiAttribute,oper_lua_name?:string,type?:ApiType) {
+	private add_attribute(output:WritableMemoryStream,classname:string,attribute:ApiAttribute<V>,oper_lua_name?:string,type?:ApiType) {
 		const aname = attribute.name;
 		const view_doc_link = this.view_documentation(`${classname}.${aname}`);
 
@@ -414,8 +414,8 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	};
 
 	private add_sumneko_class(output:WritableMemoryStream,aclass:ApiClass<V>):void;
-	private add_sumneko_class(output:WritableMemoryStream,aclass:ApiStructConceptV1):void;
-	private add_sumneko_class(output:WritableMemoryStream,aclass:ApiClass<V>|ApiStructConceptV1):void {
+	private add_sumneko_class(output:WritableMemoryStream,aclass:ApiStructConceptV1<V>):void;
+	private add_sumneko_class(output:WritableMemoryStream,aclass:ApiClass<V>|ApiStructConceptV1<V>):void {
 
 		const view_documentation_for_method = (method_name:string)=>{
 			return this.view_documentation(`${aclass.name}.${method_name}`);
@@ -562,13 +562,14 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		this.docs.concepts.forEach(concept=>{
 			const view_documentation_link = this.view_documentation(concept.name);
 			if ("category" in concept) { // V1-2
+				const _this = <ApiDocGenerator<1|2>>this;
 				switch (concept.category) {
 					case "union":
 						const sorted_options = concept.options.sort(sort_by_order);
-						const get_table_name_and_view_doc_link = (option:ApiUnionConceptV1["options"][0]):[string,string]=>{
+						const get_table_name_and_view_doc_link = (option:ApiUnionConceptV1<V>["options"][0]):[string,string]=>{
 							return [`${concept.name}.${option.order}`, view_documentation_link];
 						};
-						output.write(this.convert_sumneko_description(this.format_entire_description(
+						output.write(this.convert_sumneko_description(_this.format_entire_description(
 							concept, view_documentation_link,
 							`${concept.description?`${concept.description}\n\n`:''}May be specified in one of the following ways:${
 								sorted_options.map(option=>`\n- ${
@@ -581,14 +582,14 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 						output.write("\n\n");
 						break;
 					case "concept":
-						output.write(this.convert_sumneko_description(this.format_entire_description(concept,this.view_documentation(concept.name))));
+						output.write(this.convert_sumneko_description(_this.format_entire_description(concept,this.view_documentation(concept.name))));
 						output.write(`---@alias ${concept.name} any\n\n`);
 						break;
 					case "struct":
-						this.add_sumneko_class(output, concept);
+						_this.add_sumneko_class(output, concept);
 						break;
 					case "flag":
-						output.write(this.convert_sumneko_description(this.format_entire_description(concept,view_documentation_link)));
+						output.write(this.convert_sumneko_description(_this.format_entire_description(concept,view_documentation_link)));
 						output.write(`---@class ${concept.name}\n`);
 						concept.options.forEach(option=>{
 							this.write_sumneko_field(
@@ -605,7 +606,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 						this.add_table_type(output, concept, concept.name, view_documentation_link);
 						break;
 					case "enum":
-						output.write(this.convert_sumneko_description(this.format_entire_description(
+						output.write(this.convert_sumneko_description(_this.format_entire_description(
 							concept, view_documentation_link,[
 								concept.description, "Possible values are:",
 								...concept.options.sort(sort_by_order).map(option=>
@@ -660,7 +661,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 						case "struct":
 							output.write(this.convert_sumneko_description(this.format_entire_description(concept,this.view_documentation(concept.name))));
 							output.write(`---@class ${concept.name}}\n\n`);
-							concept.type.attributes.forEach(a=>this.add_attribute(output,concept.name,a));
+							concept.type.attributes.forEach(a=>(<ApiDocGenerator<3>>this).add_attribute(output,concept.name,a));
 							break;
 
 						default:
@@ -911,7 +912,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		}
 	}
 
-	private format_entire_description(obj:ApiWithNotes&{readonly description:string; readonly subclasses?:string[]; readonly raises?: ApiEventRaised[]}, view_documentation_link:string, description?:string)
+	private format_entire_description(obj:ApiWithNotes<V>&{readonly description:string; readonly subclasses?:string[]; readonly raises?: ApiEventRaised[]}, view_documentation_link:string, description?:string)
 	{
 		return [
 			description??obj.description,

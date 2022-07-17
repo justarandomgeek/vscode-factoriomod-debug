@@ -1,6 +1,6 @@
 type ApiConcept<V extends ApiVersions> =
-	V extends 1|2 ? ApiConceptV1 :
-	ApiConceptV3;
+	V extends 1|2 ? ApiConceptV1<V> :
+	ApiConceptV3<V>;
 
 type Extends<T,X> = T extends X ? T : never;
 
@@ -26,7 +26,7 @@ interface ApiBasicMember {
 	readonly description: string
 }
 
-type ApiWithNotes<V extends ApiVersions = ApiVersions> = ApiBasicMember & {
+type ApiWithNotes<V extends ApiVersions> = ApiBasicMember & {
 	readonly notes?: string[]
 	readonly examples?: string[]
 	readonly see_also?: V extends 1 ? string[] : never
@@ -114,7 +114,7 @@ type ApiMethod<V extends ApiVersions> = ApiWithNotes<V> & ApiWithParameters<V> &
 	readonly raises?: V extends 1 ? never : ApiEventRaised[]
 };
 
-type ApiAttribute<V extends ApiVersions = ApiVersions> = ApiWithNotes<V> & {
+type ApiAttribute<V extends ApiVersions> = ApiWithNotes<V> & {
 	readonly subclasses?: string[]
 	readonly type: ApiType<V>
 	readonly read: boolean
