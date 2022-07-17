@@ -386,24 +386,57 @@ export const overlay:{
 						order: i++,
 						description: "",
 						optional: true,
-						//TODO: "input"|"output"
-						type: "string",
+						type: {
+							complex_type: "union",
+							options: [
+								{
+									complex_type: "literal",
+									value: "input",
+								},
+								{
+									complex_type: "literal",
+									value: "output",
+								},
+							]
+						},
 					},
 					{
 						name: "input_priority",
 						order: i++,
 						description: "",
 						optional: true,
-						//TODO: "left"|"right"
-						type: "string",
+						type: {
+							complex_type: "union",
+							options: [
+								{
+									complex_type: "literal",
+									value: "left",
+								},
+								{
+									complex_type: "literal",
+									value: "right",
+								},
+							]
+						},
 					},
 					{
 						name: "output_priority",
 						order: i++,
 						description: "",
 						optional: true,
-						//TODO: "left"|"right"
-						type: "string",
+						type: {
+							complex_type: "union",
+							options: [
+								{
+									complex_type: "literal",
+									value: "left",
+								},
+								{
+									complex_type: "literal",
+									value: "right",
+								},
+							]
+						},
 					},
 					{
 						name: "filter",
@@ -417,8 +450,19 @@ export const overlay:{
 						order: i++,
 						description: "",
 						optional: true,
-						//TODO: "whitelist"|"blacklist"
-						type: "string",
+						type: {
+							complex_type: "union",
+							options: [
+								{
+									complex_type: "literal",
+									value: "whitelist",
+								},
+								{
+									complex_type: "literal",
+									value: "blacklist",
+								},
+							]
+						},
 					},
 					{
 						name: "override_stack_size",
