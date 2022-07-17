@@ -366,6 +366,16 @@
           "factorio.workspace.library": {
             "type": "string",
             "description": "Location to generate factorio typedef files. If unspecified, will use `.vscode/factorio` in your workspace."
+          },
+          "factorio.workspace.manageLibraryDataLinks": {
+            "type": "boolean",
+            "default": true,
+            "description": "Automatically manage /data and /data/core/lualib links in `\"Lua.workspace.library\"`."
+          },
+          "factorio.workspace.manageLibraryDocsLink": {
+            "type": "boolean",
+            "default": true,
+            "description": "Automatically manage generated docs link in `\"Lua.workspace.library\"`."
           }
         }
       }

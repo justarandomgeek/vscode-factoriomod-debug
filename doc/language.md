@@ -9,7 +9,7 @@ The debugger also injects runtime diagnostics into all hooked mods:
 
 Sumneko EmmyLua docs and workspace settings for the Factorio API will be automatically generated when selecting a Factorio version for debugging. Together with the [sumneko.lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua) language server, this enables autocompletion and other language server features for the Factorio API.
 
-You can configure the generation location with the setting `"factorio.workspace.library"`. Note that if you place these outside the workspace you will also need to add this folder to `"Lua.workspace.library"` as well for them to be loaded.
+You can configure the generation location with the setting `"factorio.workspace.library"`.
 
 The following settings will be automatically configured:
   * `"Lua.diagnostics.globals"` will have entries added for variables not presently covered by the generated files (this list will change over time as docs expand):
@@ -21,6 +21,7 @@ The following settings will be automatically configured:
     * `__DebugAdapter`
     * `__Profiler`
   * `"Lua.runtime.version"` will be set to `"Lua 5.2"`
+  * `"Lua.workspace.library"` will be automatically updated with `/data` and `/data/core/lualib` links to the selected version, as well as the folder containing generated docs.
 
 Further advanced language features are also enabled by [the Factorio Sumneko Lua Plugin](https://github.com/JanSharp/FactorioSumnekoLuaPlugin) which may be additionally installed in conjunction with thes files to improve handling of `require`s, `global`, `on_event` and `remote.call`.
 

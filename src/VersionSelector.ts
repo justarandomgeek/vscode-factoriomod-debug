@@ -350,10 +350,11 @@ export class FactorioVersionSelector {
 
 		config.update("versions", versions);
 		this.bar.text = `Factorio ${docs.application_version} (${active_version.name})`;
+		const previous_active = this._active_version;
 		this._active_version = new ActiveFactorioVersion(active_version, docs);
 
 		await Promise.allSettled([
-			this.generateDocs(),
+			this.generateDocs(previous_active),
 			this._active_version.checkSteamAppID(),
 		]);
 	}
@@ -398,7 +399,7 @@ export class FactorioVersionSelector {
 		return;
 	}
 
-	private async generateDocs() {
+	private async generateDocs(previous_active?:ActiveFactorioVersion) {
 		const activeVersion = await this.getActiveVersion();
 		if (!activeVersion) {return;}
 		const workspaceLibrary = this.findWorkspaceLibraryFolder();
@@ -425,17 +426,17 @@ export class FactorioVersionSelector {
 				await fs.writeFile(save,buff);
 			});
 
-		const config = vscode.workspace.getConfiguration("Lua");
+		const luaconfig = vscode.workspace.getConfiguration("Lua");
 
-		const preloadFileSize = config.get<number>("workspace.preloadFileSize",0);
+		const preloadFileSize = luaconfig.get<number>("workspace.preloadFileSize",0);
 		const docFileSize = Math.trunc(maxDocSize/1000)+1;
 		if (preloadFileSize < docFileSize) {
 			if ((await vscode.window.showWarningMessage(`workspace.preloadFileSize value ${preloadFileSize}kb is too small to load the generated definitions file (${docFileSize}kb). Increase workspace.preloadFileSize?`,"Yes","No")) === "Yes") {
-				config.update("workspace.preloadFileSize",docFileSize);
+				luaconfig.update("workspace.preloadFileSize",docFileSize);
 			}
 		}
 
-		const globals = config.get<string[]>("diagnostics.globals") ?? [];
+		const globals = luaconfig.get<string[]>("diagnostics.globals") ?? [];
 		[
 			"mods", "table_size", "log", "localised_print", "serpent",
 			"__DebugAdapter", "__Profiler",
@@ -445,32 +446,49 @@ export class FactorioVersionSelector {
 				globals.push(s);
 			}
 		});
-		config.update("diagnostics.globals", globals);
+		luaconfig.update("diagnostics.globals", globals);
 
-		config.update("runtime.version", "Lua 5.2");
+		luaconfig.update("runtime.version", "Lua 5.2");
 
-		/*
-		const library: string[] = config.get("workspace.library") ?? [];
-		const rootpath = ?????;
-		const datapath = Uri.joinPath(rootpath,"data");
-		const lualibpath = Uri.joinPath(datapath,"core","lualib");
-		try {
-			if (!library.includes(datapath.fsPath) &&
-				// eslint-disable-next-line no-bitwise
-				((await fs.stat(datapath)).type & vscode.FileType.Directory)) {
-				library.push(datapath.fsPath);
+
+		const library: string[] = luaconfig.get("workspace.library") ?? [];
+
+		const replaceLibraryPath = async (newroot:Uri,oldroot?:Uri, ...seg:string[]) => {
+			const newpath = Uri.joinPath(newroot,...seg);
+			try {
+				if (!library.includes(newpath.fsPath) &&
+					// eslint-disable-next-line no-bitwise
+					((await fs.stat(newpath)).type & vscode.FileType.Directory)) {
+					library.push(newpath.fsPath);
+				}
+			} catch {}
+			if (oldroot) {
+				const oldpath = Uri.joinPath(oldroot,...seg);
+				const oldindex = library.indexOf(oldpath.fsPath);
+				if (oldindex !== -1 && newpath.fsPath !== oldpath.fsPath) {
+					library.splice(oldindex,1);
+				}
 			}
-		} catch {}
-		try {
-			if (!library.includes(lualibpath.fsPath) &&
-				// eslint-disable-next-line no-bitwise
-				((await fs.stat(lualibpath)).type & vscode.FileType.Directory)) {
-				library.push(lualibpath.fsPath);
-			}
-		} catch {}
+		};
 
-		config.update("workspace.library", library);
-		*/
+		const factorioconfig = vscode.workspace.getConfiguration("factorio");
+
+		if (factorioconfig.get("workspace.manageLibraryDataLinks", true)) {
+			const newroot = Uri.file(await activeVersion.dataPath());
+			const oldroot = previous_active ? Uri.file(await previous_active.dataPath()) : undefined;
+
+			await replaceLibraryPath(newroot,oldroot);
+			await replaceLibraryPath(newroot,oldroot,"core","lualib");
+		}
+
+		if (factorioconfig.get("workspace.manageLibraryDocsLink", true)) {
+			const workspacelib = vscode.workspace.asRelativePath(workspaceLibrary);
+			if (!library.includes(workspacelib)) {
+				library.push(workspacelib);
+			}
+		}
+
+		luaconfig.update("workspace.library", library);
 
 	}
 }
