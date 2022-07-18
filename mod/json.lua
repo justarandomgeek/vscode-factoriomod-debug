@@ -111,7 +111,8 @@ local type_encode = stepIgnore({
 })
 
 ---Output a value formatted as JSON
----@param value table|string|number|boolean|nil
+---@generic T : table|string|number|boolean|nil
+---@param value T
 ---@param stack table|nil List of already-seen tables
 ---@return string json
 function encode(value, stack)
