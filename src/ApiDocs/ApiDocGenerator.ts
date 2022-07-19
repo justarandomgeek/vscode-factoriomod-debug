@@ -414,6 +414,21 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			description, attribute.optional);
 	};
 
+
+	private add_operator(output:WritableMemoryStream,classname:string,ApiOperator:ApiOperator<V>&{name:"length"}) {
+		const opnames = {
+			["length"]:"len"
+		};
+		const aname = ApiOperator.name;
+		const view_doc_link = this.view_documentation(`${classname}.${aname}`);
+
+		const description = this.format_entire_description(
+			ApiOperator, view_doc_link, `[${ApiOperator.read?"R":""}${ApiOperator.write?"W":""}]${ApiOperator.description?`\n${ApiOperator.description}`:''}`
+		);
+		output.write(this.convert_sumneko_description(description));
+		output.write(`---@operator ${opnames[aname]}: ${this.format_sumneko_type(ApiOperator.type, ()=>[`${classname}.${aname}`, view_doc_link])}\n`);
+	}
+
 	private convert_param_or_return(api_type:ApiType|undefined, description:string|undefined, get_table_name_and_view_doc_link:()=>[string,string]):string {
 		const formatted_type = this.format_sumneko_type(api_type,get_table_name_and_view_doc_link);
 		if (!description) {
@@ -524,7 +539,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			const operators = aclass.operators;
 			const lenop = operators.find((op): op is ApiAttribute<V>&{name:"length"}=>op.name==="length");
 			if (lenop) {
-				this.add_attribute(output,aclass.name,lenop,"__len");
+				this.add_operator(output,aclass.name,lenop);
 			};
 
 			const indexop = operators?.find?.((op):op is ApiAttribute<V>&{name:"index"}=>op.name==="index");

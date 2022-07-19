@@ -6,6 +6,7 @@
 
 * Add `global` back to `Lua.diagnostics.globals`
 * Offer to regenerate docs when they seem to be out of date
+* Generate length operators for sumneko 3.5
 
 ## 1.1.21
 
