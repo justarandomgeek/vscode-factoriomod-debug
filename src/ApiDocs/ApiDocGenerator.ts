@@ -528,8 +528,8 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			};
 
 			const indexop = operators?.find?.((op):op is ApiAttribute<V>&{name:"index"}=>op.name==="index");
-			if (indexop) {
-				const indexed = !overlay.adjust.class[aclass.name]?.generic_params ? overlay.adjust.class[aclass.name]?.indexed : undefined;
+			if (indexop && !overlay.adjust.class[aclass.name]?.generic_params) {
+				const indexed = overlay.adjust.class[aclass.name]?.indexed;
 
 				const opname = `[${this.format_sumneko_type(lenop?.type ?? indexed?.key ?? 'AnyBasic', ()=>[`${aclass.name}.__indexkey`, ''])}]`;
 				const indexoptype = indexed?.value ?? indexop?.type;
