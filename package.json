@@ -352,20 +352,26 @@
               "Use `class` for all numeric types"
             ]
           },
-          "factorio.docs.numberCustomStyle": {
-            "description": "Customize the generation of annotations for specific types",
+          "factorio.docs.builtinCustomStyle": {
+            "description": "Customize the generation of annotations for builtin types",
             "type":"object",
             "additionalProperties": {
               "type":"object",
-              "required": ["kind", "base"],
+              "required": ["kind"],
               "properties": {
                 "kind": {
                   "description": "The kind of annotation to use for this type",
-                  "enum": ["alias", "class"]
+                  "enum": ["none", "alias", "class"]
                 }
               },
               "oneOf": [
                 {
+                  "properties": {
+                    "kind": {"const":"none"}
+                  }
+                },
+                {
+                  "required": ["kind", "base"],
                   "properties": {
                     "kind": {"const":"alias"},
                     "base": {
@@ -375,6 +381,7 @@
                   }
                 },
                 {
+                  "required": ["kind", "base"],
                   "properties": {
                     "kind": {"const":"class"},
                     "base": {

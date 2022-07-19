@@ -4,6 +4,7 @@ import { overlay } from "./Overlay";
 
 
 type ApiBuiltinCustom =
+	{kind:"none"} |
 	{kind:"alias"; base:string} |
 	{kind:"class"; base:string[]; operators?:boolean};
 
@@ -312,8 +313,9 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 	private generate_sumneko_builtin(output:WritableMemoryStream) {
 		this.docs.builtin_types.forEach(builtin=>{
-			const custom = this.docsettings.get<{[k:string]:ApiBuiltinCustom}>("numberCustomStyle")?.[builtin.name];
+			const custom = this.docsettings.get<{[k:string]:ApiBuiltinCustom}>("builtinCustomStyle")?.[builtin.name];
 			if(custom) {
+				if (custom.kind === "none") { return; }
 				output.write(this.convert_sumneko_description(builtin.description, this.view_documentation(builtin.name)));
 				switch (custom.kind) {
 					case "alias":
