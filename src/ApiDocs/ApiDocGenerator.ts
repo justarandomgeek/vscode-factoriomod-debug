@@ -3,6 +3,10 @@ import { WritableStream as WritableMemoryStream } from "memory-streams";
 import { overlay } from "./Overlay";
 
 
+type ApiBuiltinCustom =
+	{kind:"alias"; base:string} |
+	{kind:"class"; base:string[]; operators?:boolean};
+
 function escape_lua_keyword(str:string) {
 	const keywords = ["and", "break", "do", "else", "elseif", "end", "false", "for",
 		"function", "goto", "if", "in", "local", "nil", "not", "or", "repeat", "return",
@@ -285,8 +289,42 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		}
 	}
 
+	private add_alias_builtin(output:WritableMemoryStream, name:string, base:string) {
+		output.write(`---@alias ${name} ${base}\n\n`);
+	}
+
+	private add_all_math_operators(output:WritableMemoryStream, result_type:string) {
+		output.write(`---@operator unm:${result_type}\n`);
+		output.write(`---@operator mod:${result_type}\n`);
+		output.write(`---@operator add:${result_type}\n`);
+		output.write(`---@operator div:${result_type}\n`);
+		output.write(`---@operator sub:${result_type}\n`);
+		output.write(`---@operator mul:${result_type}\n`);
+	}
+
+	private add_class_builtin(output:WritableMemoryStream, name:string, base:string[], with_operators:boolean = true) {
+		output.write(`---@class ${name}${base.length>0?":":""}${base.join(",")}\n`);
+		if (with_operators) {
+			this.add_all_math_operators(output,name);
+		}
+		output.write(`\n`);
+	}
+
 	private generate_sumneko_builtin(output:WritableMemoryStream) {
 		this.docs.builtin_types.forEach(builtin=>{
+			const custom = this.docsettings.get<{[k:string]:ApiBuiltinCustom}>("numberCustomStyle")?.[builtin.name];
+			if(custom) {
+				output.write(this.convert_sumneko_description(builtin.description, this.view_documentation(builtin.name)));
+				switch (custom.kind) {
+					case "alias":
+						this.add_alias_builtin(output, builtin.name, custom.base);
+						break;
+					case "class":
+						this.add_class_builtin(output, builtin.name, custom.base, custom.operators??true);
+						break;
+				}
+				return;
+			}
 			const info = this.builtin_type_info(builtin);
 			if(!info) { return; }
 			output.write(this.convert_sumneko_description(builtin.description, this.view_documentation(builtin.name)));
@@ -299,8 +337,6 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 						"number" : "integer";
 					break;
 			}
-
-
 			switch (this.docsettings.get("numberStyle")) {
 				case "aliasNative":
 				default:
@@ -308,16 +344,16 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 						(info.type === "number" && info.size === 64) ||
 						(info.type === "integer" && info.size === 32) ;
 					if (isNative) {
-						output.write(`---@alias ${builtin.name} ${builtinType}\n\n`);
+						this.add_alias_builtin(output, builtin.name, builtinType);
 					} else {
-						output.write(`---@class ${builtin.name}:${builtinType}\n\n`);
+						this.add_class_builtin(output, builtin.name, [builtinType]);
 					}
 					break;
 				case "alias":
-					output.write(`---@alias ${builtin.name} ${builtinType}\n\n`);
+					this.add_alias_builtin(output, builtin.name, builtinType);
 					break;
 				case "class":
-					output.write(`---@class ${builtin.name}:${builtinType}\n\n`);
+					this.add_class_builtin(output, builtin.name, [builtinType]);
 					break;
 			}
 		});

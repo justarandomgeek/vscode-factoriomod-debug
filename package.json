@@ -340,6 +340,7 @@
           },
           "factorio.docs.numberStyle": {
             "description": "Type of annotations to generate for specialized number types",
+            "default": "aliasNative",
             "enum": [
               "aliasNative",
               "alias",
@@ -349,8 +350,45 @@
               "Use `alias` for numeric types which exactly match `number` (or `integer` if enabled), and `class` otherwise",
               "Use `alias` for all numeric types",
               "Use `class` for all numeric types"
-            ],
-            "default": "aliasNative"
+            ]
+          },
+          "factorio.docs.numberCustomStyle": {
+            "description": "Customize the generation of annotations for specific types",
+            "type":"object",
+            "additionalProperties": {
+              "type":"object",
+              "required": ["kind", "base"],
+              "properties": {
+                "kind": {
+                  "description": "The kind of annotation to use for this type",
+                  "enum": ["alias", "class"]
+                }
+              },
+              "oneOf": [
+                {
+                  "properties": {
+                    "kind": {"const":"alias"},
+                    "base": {
+                      "description": "The base type this alias refers to",
+                      "type":"string"
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "kind": {"const":"class"},
+                    "base": {
+                      "description": "The base classes, if any, for this class",
+                      "type":"array", "items": "string"
+                    },
+                    "operators": {
+                      "description": "If this class should have math operators",
+                      "type":"boolean"
+                    }
+                  }
+                }
+              ]
+            }
           },
           "factorio.docs.useInteger": {
             "type": "boolean",
