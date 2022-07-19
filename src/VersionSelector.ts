@@ -456,13 +456,6 @@ export class FactorioVersionSelector {
 
 		const replaceLibraryPath = async (newroot:Uri,oldroot?:Uri, ...seg:string[]) => {
 			const newpath = Uri.joinPath(newroot,...seg);
-			try {
-				if (!library.includes(newpath.fsPath) &&
-					// eslint-disable-next-line no-bitwise
-					((await fs.stat(newpath)).type & vscode.FileType.Directory)) {
-					library.push(newpath.fsPath);
-				}
-			} catch {}
 			if (oldroot) {
 				const oldpath = Uri.joinPath(oldroot,...seg);
 				const oldindex = library.indexOf(oldpath.fsPath);
@@ -470,6 +463,13 @@ export class FactorioVersionSelector {
 					library.splice(oldindex,1);
 				}
 			}
+			try {
+				if (!library.includes(newpath.fsPath) &&
+					// eslint-disable-next-line no-bitwise
+					((await fs.stat(newpath)).type & vscode.FileType.Directory)) {
+					library.push(newpath.fsPath);
+				}
+			} catch {}
 		};
 
 		const factorioconfig = vscode.workspace.getConfiguration("factorio");
