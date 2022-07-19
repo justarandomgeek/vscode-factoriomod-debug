@@ -491,16 +491,16 @@ export class FactorioVersionSelector {
 		const maxDocSize = await activeVersion.docs.generate_sumneko_docs(
 			async (filename:string,buff:Buffer)=>{
 				const save = Uri.joinPath(workspaceLibrary, filename);
-				await fs.writeFile(save,buff);
+				return fs.writeFile(save,buff);
 			});
 
 		const luaconfig = vscode.workspace.getConfiguration("Lua");
-
+		const updates = [];
 		const preloadFileSize = luaconfig.get<number>("workspace.preloadFileSize",0);
 		const docFileSize = Math.trunc(maxDocSize/1000)+1;
 		if (preloadFileSize < docFileSize) {
 			if ((await vscode.window.showWarningMessage(`workspace.preloadFileSize value ${preloadFileSize}kb is too small to load the generated definitions file (${docFileSize}kb). Increase workspace.preloadFileSize?`,"Yes","No")) === "Yes") {
-				luaconfig.update("workspace.preloadFileSize",docFileSize);
+				updates.push(luaconfig.update("workspace.preloadFileSize",docFileSize));
 			}
 		}
 
@@ -515,9 +515,9 @@ export class FactorioVersionSelector {
 				globals.push(s);
 			}
 		});
-		luaconfig.update("diagnostics.globals", globals);
+		updates.push(luaconfig.update("diagnostics.globals", globals));
 
-		luaconfig.update("runtime.version", "Lua 5.2");
+		updates.push(luaconfig.update("runtime.version", "Lua 5.2"));
 
 
 		const library: string[] = luaconfig.get("workspace.library") ?? [];
@@ -556,6 +556,8 @@ export class FactorioVersionSelector {
 				library.push(workspacelib);
 			}
 		}
+
+		await Promise.all(updates);
 
 		// dummy update to force sumneko to reload libraries after regenerating all the files...
 		library.push("");
