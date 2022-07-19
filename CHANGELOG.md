@@ -4,6 +4,8 @@
 
 ## 1.1.22
 
+* Add `global` back to `Lua.diagnostics.globals`
+
 ## 1.1.21
 
 * Support v3 json docs

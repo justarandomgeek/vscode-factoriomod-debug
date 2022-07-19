@@ -439,6 +439,7 @@ export class FactorioVersionSelector {
 		const globals = luaconfig.get<string[]>("diagnostics.globals") ?? [];
 		[
 			"mods", "table_size", "log", "localised_print", "serpent",
+			"global",
 			"__DebugAdapter", "__Profiler",
 		].forEach(s=>{
 			if (!globals.includes(s))

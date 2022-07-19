@@ -18,6 +18,7 @@ The following settings will be automatically configured:
     * `log`
     * `localised_print`
     * `serpent`
+    * `global`
     * `__DebugAdapter`
     * `__Profiler`
   * `"Lua.runtime.version"` will be set to `"Lua 5.2"`
