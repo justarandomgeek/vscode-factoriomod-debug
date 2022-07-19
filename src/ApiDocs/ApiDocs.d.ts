@@ -17,7 +17,7 @@ interface ApiDocs<V extends ApiVersions = ApiVersions> {
 	readonly builtin_types: ApiBuiltin[]
 	readonly concepts: ApiConcept<V>[]
 	readonly global_objects: ApiGlobalObject[]
-	readonly global_function: V extends 1|2 ? never : ApiAttribute<V>
+	readonly global_functions: V extends 1|2 ? never : ApiMethod<V>[]
 }
 
 interface ApiBasicMember {

@@ -88,7 +88,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		this.docs.defines.forEach(define=>add_define(define,"defines."));
 	}
 
-	public get api_version() : ApiDocs<V>["api_version"] {
+	public get api_version() : V {
 		return this.docs.api_version;
 	}
 
@@ -225,6 +225,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			this.generate_sumneko_classes(writeFile),
 			this.generate_sumneko_section("custom",writeFile),
 			this.generate_sumneko_section("concepts",writeFile),
+			this.generate_sumneko_section("global_functions",writeFile),
 			]));
 
 		return Math.max(x,
@@ -232,7 +233,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			);
 	}
 
-	private async generate_sumneko_section(name:"builtin"|"defines"|"events"|"custom"|"table_types"|"concepts", writeFile:(filename:string,buff:Buffer)=>any) {
+	private async generate_sumneko_section(name:"builtin"|"defines"|"events"|"custom"|"table_types"|"concepts"|"global_functions", writeFile:(filename:string,buff:Buffer)=>any) {
 		const ms = new WritableMemoryStream();
 		this.generate_sumneko_header(ms,name);
 		this[`generate_sumneko_${name}`](ms);
@@ -413,74 +414,73 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			description, attribute.optional);
 	};
 
+	private convert_param_or_return(api_type:ApiType|undefined, description:string|undefined, get_table_name_and_view_doc_link:()=>[string,string]):string {
+		const formatted_type = this.format_sumneko_type(api_type,get_table_name_and_view_doc_link);
+		if (!description) {
+			return `${formatted_type}\n`;
+		} else if (!description.includes("\n")) {
+			return `${formatted_type}@${this.preprocess_description(description)}\n`;
+		} else {
+			return `${formatted_type}@\n${this.convert_sumneko_description(description)}`;
+		}
+	};
+
+	private add_return_annotation(output:WritableMemoryStream, classname:string, method:ApiMethod<V>) {
+		if (this.api_version === 1) {
+			output.write(`---@return ${this.convert_param_or_return(method.return_type,method.return_description,()=>[
+				`${classname}.${method.name}_return`, this.view_documentation(`${classname}.${method.name}`)
+			])}`);
+		} else {
+			method.return_values.forEach((rv)=>{
+				output.write(`---@return ${this.convert_param_or_return(rv.type,rv.description,()=>[
+					`${classname}.${method.name}_return`, this.view_documentation(`${classname}.${method.name}`)
+				])}`);
+			});
+		}
+	};
+
+	private convert_description_for_method(classname:string, method:ApiMethod<V>, html_name?:string) {
+			return this.convert_sumneko_description(
+				this.format_entire_description(method,this.view_documentation(`${classname}.${html_name??method.name}`)));
+	}
+
+	private add_regular_method(output:WritableMemoryStream, classname:string, method:ApiMethod<V>) {
+		output.write(this.convert_description_for_method(classname, method));
+		const sorted_params = method.parameters.sort(sort_by_order);
+		sorted_params.forEach(parameter=>{
+			output.write(`---@param ${escape_lua_keyword(parameter.name)}${parameter.optional?"?":" "}`);
+			output.write(this.convert_param_or_return(parameter.type,parameter.description,()=>[
+				`${classname}.${method.name}.${parameter.name}`, this.view_documentation(`${classname}.${method.name}`)
+			]));
+		});
+		if (method.variadic_type) {
+			output.write(`---@vararg ${this.format_sumneko_type(method.variadic_type,()=>[`${classname}.${method.name}_vararg`, this.view_documentation(`${classname}.${method.name}`)])}\n`);
+			if (method.variadic_description) {
+				output.write(this.convert_sumneko_description(`\n**vararg**: ${method.variadic_description.includes("\n")?"\n\n":""}${method.variadic_description}`));
+			}
+		}
+		this.add_return_annotation(output, classname, method);
+
+		output.write(`${method.name}=function(${sorted_params.map(p=>escape_lua_keyword(p.name)).concat(method.variadic_type?["..."]:[]).join(",")})end${classname!==""?",":""}\n`);
+	};
+
+	private add_method_taking_table(output:WritableMemoryStream, classname:string, method:ApiMethod<V>) {
+		const param_class_name = `${classname}.${method.name}_param`;
+		this.add_table_type(output,method,param_class_name,this.view_documentation(`${classname}.${method.name}`));
+		output.write("\n");
+		output.write(this.convert_description_for_method(classname, method));
+		output.write(`---@param param${method.table_is_optional?"?":" "}${param_class_name}\n`);
+		this.add_return_annotation(output, classname, method);
+		output.write(`${method.name}=function(param)end${classname!==""?",":""}\n`);
+	};
+
+	private add_method(output:WritableMemoryStream, classname:string, method:ApiMethod<V>) {
+		return method.takes_table?this.add_method_taking_table(output, classname, method):this.add_regular_method(output, classname, method);
+	}
+
 	private add_sumneko_class(output:WritableMemoryStream,aclass:ApiClass<V>):void;
 	private add_sumneko_class(output:WritableMemoryStream,aclass:ApiStructConceptV1<V>):void;
 	private add_sumneko_class(output:WritableMemoryStream,aclass:ApiClass<V>|ApiStructConceptV1<V>):void {
-
-		const view_documentation_for_method = (method_name:string)=>{
-			return this.view_documentation(`${aclass.name}.${method_name}`);
-		};
-
-		const convert_param_or_return = (api_type:ApiType|undefined, description:string|undefined, get_table_name_and_view_doc_link:()=>[string,string]):string =>{
-			const formatted_type = this.format_sumneko_type(api_type,get_table_name_and_view_doc_link);
-			if (!description) {
-				return `${formatted_type}\n`;
-			} else if (!description.includes("\n")) {
-				return `${formatted_type}@${this.preprocess_description(description)}\n`;
-			} else {
-				return `${formatted_type}@\n${this.convert_sumneko_description(description)}`;
-			}
-		};
-
-		const add_return_annotation = (method:ApiMethod<V>)=>{
-			if ("return_type" in method) { // v1
-				output.write(`---@return ${convert_param_or_return(method.return_type,method.return_description,()=>[
-					`${aclass.name}.${method.name}_return`, view_documentation_for_method(method.name)
-				])}`);
-			}
-			if ("return_values" in method) { // v2
-				method.return_values.forEach((rv)=>{
-					output.write(`---@return ${convert_param_or_return(rv.type,rv.description,()=>[
-						`${aclass.name}.${method.name}_return`, view_documentation_for_method(method.name)
-					])}`);
-				});
-			}
-		};
-
-		const convert_description_for_method = (method:ApiMethod<V>,html_name?:string)=>
-			this.convert_sumneko_description(this.format_entire_description(method,view_documentation_for_method(html_name??method.name)));
-
-		const add_regular_method = (method:ApiMethod<V>,oper_lua_name?:string,oper_html_name?:string)=>{
-			output.write(convert_description_for_method(method,oper_html_name));
-			const sorted_params = method.parameters.sort(sort_by_order);
-			sorted_params.forEach(parameter=>{
-				output.write(`---@param ${escape_lua_keyword(parameter.name)}${parameter.optional?"?":" "}`);
-				output.write(convert_param_or_return(parameter.type,parameter.description,()=>[
-					`${aclass.name}.${method.name}.${parameter.name}`, view_documentation_for_method(method.name)
-				]));
-			});
-			if (method.variadic_type) {
-				output.write(`---@vararg ${this.format_sumneko_type(method.variadic_type,()=>[`${aclass.name}.${method.name}_vararg`, view_documentation_for_method(method.name)])}\n`);
-				if (method.variadic_description) {
-					output.write(this.convert_sumneko_description(`\n**vararg**: ${method.variadic_description.includes("\n")?"\n\n":""}${method.variadic_description}`));
-				}
-			}
-			add_return_annotation(method);
-
-			output.write(`${oper_lua_name??method.name}=function(${sorted_params.map(p=>escape_lua_keyword(p.name)).concat(method.variadic_type?["..."]:[]).join(",")})end,\n`);
-		};
-
-		const add_method_taking_table = (method:ApiMethod<V>)=>{
-			const param_class_name = `${aclass.name}.${method.name}_param`;
-			this.add_table_type(output,method,param_class_name,this.view_documentation(`${aclass.name}.${method.name}`));
-			output.write("\n");
-			output.write(convert_description_for_method(method));
-			output.write(`---@param param${method.table_is_optional?"?":" "}${param_class_name}\n`);
-			add_return_annotation(method);
-			output.write(`${method.name}=function(param)end,\n`);
-		};
-
-		const add_method = (method:ApiMethod<V>)=> method.takes_table?add_method_taking_table(method):add_regular_method(method);
 
 		const needs_label = !!(aclass.description || aclass.notes);
 		output.write(this.convert_sumneko_description(this.format_entire_description(
@@ -539,7 +539,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 			output.write(`${this.globals.get(aclass.name)?.name ?? `local ${to_lua_ident(aclass.name)}`}={\n`);
 			aclass.methods.forEach(method=>{
-				return add_method(method);
+				return this.add_method(output, aclass.name, method);
 			});
 
 			output.write("}\n\n");
@@ -551,7 +551,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 					callop.return_values.map((p,i)=>`${this.format_sumneko_type(p.type,()=>[`${aclass.name}.__call`, ''])}`):
 					undefined;
 
-				output.write(convert_description_for_method(callop,"operator%20()"));
+				output.write(this.convert_description_for_method(aclass.name, callop,"operator%20()"));
 				output.write(`---@alias ${aclass.name}.__call fun(${params})${returns?`:${returns}`:''}\n`);
 				output.write(`---@alias ${aclass.name} ${aclass.name}.__index|${aclass.name}.__call\n\n`);
 			}
@@ -672,6 +672,14 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			}
 		});
 	}
+	private generate_sumneko_global_functions(output:WritableMemoryStream) {
+		if (this.api_version >= 3) {
+			this.docs.global_functions.forEach((func) =>{
+				(this as ApiDocGenerator<3>).add_method(output,"",func);
+			});
+		}
+	}
+
 	private generate_sumneko_custom(output:WritableMemoryStream) {
 		overlay.custom.forEach(table=>this.add_table_type(output,table,table.name,""));
 	}
