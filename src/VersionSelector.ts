@@ -557,7 +557,11 @@ export class FactorioVersionSelector {
 			}
 		}
 
-		luaconfig.update("workspace.library", library);
+		// dummy update to force sumneko to reload libraries after regenerating all the files...
+		library.push("");
+		await luaconfig.update("workspace.library", library);
+		library.pop();
+		await luaconfig.update("workspace.library", library);
 
 	}
 }
