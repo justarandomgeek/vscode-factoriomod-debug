@@ -333,6 +333,11 @@
               }
             }
           },
+          "factorio.docs.offerUpdate": {
+            "type": "boolean",
+            "description": "Offer to update docs when they seem out of date.",
+            "default":true
+          },
           "factorio.docs.numberStyle": {
             "description": "Type of annotations to generate for specialized number types",
             "enum": [

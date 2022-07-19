@@ -4,6 +4,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { Uri } from "vscode";
 import { ApiDocGenerator } from './ApiDocs/ApiDocGenerator';
+import { overlay } from './ApiDocs/Overlay';
 const fs = vscode.workspace.fs;
 interface FactorioVersion {
 	name: string
@@ -192,6 +193,15 @@ export class ActiveFactorioVersion {
 
 		return p;
 	}
+
+	public is(other:FactorioVersion) {
+		const fv = this.fv;
+		return fv.name === other.name &&
+			fv.factorioPath === other.factorioPath &&
+			fv.nativeDebugger === other.nativeDebugger &&
+			fv.docsPath === other.docsPath &&
+			fv.configPath === other.configPath;
+	}
 }
 
 
@@ -235,12 +245,23 @@ export class FactorioVersionSelector {
 		const versions = config.get<FactorioVersion[]>("versions", []);
 
 		const active_version = versions.find(fv=>fv.active);
+		// no active version in settings...
 		if (!active_version) { return; }
+
+		// active version in settings is already active live
+		if (this._active_version && this._active_version.is(active_version)) { return; }
+
 		const docs =  await this.tryJsonDocs(active_version);
+
+		// can't activate without docs...
 		if (!docs) { return; }
 
 		this.bar.text = `Factorio ${docs.application_version} (${active_version.name})`;
 		this._active_version = new ActiveFactorioVersion(active_version, docs);
+
+		if (config.get("docs.offerUpdate",true)) {
+			this.checkDocs();
+		}
 	}
 
 	private async selectVersionCommand() {
@@ -398,6 +419,53 @@ export class FactorioVersionSelector {
 
 		return;
 	}
+
+	private async checkDocs() {
+		const activeVersion = await this.getActiveVersion();
+		if (!activeVersion) { return; }
+		const workspaceLibrary = this.findWorkspaceLibraryFolder();
+		if (!workspaceLibrary) { return; }
+
+		const file = (await fs.readDirectory(workspaceLibrary)).find(([name,type])=>name.match(/runtime\-api.+\.lua/));
+		if (!file) {
+			// no generated files?
+			this.offerRefreshDocs("unknown", "unknown");
+			return;
+		}
+
+		const filecontent = (await fs.readFile(Uri.joinPath(workspaceLibrary, file[0]))).toString();
+
+		const matches = filecontent.match(/--\$Factorio ([^\n]*)\n--\$Overlay ([^\n]*)\n/m);
+		if (!matches) {
+			// no header at all? offer to regen...
+			this.offerRefreshDocs("unknown", "unknown");
+			return;
+		}
+
+		if (matches[1] !== activeVersion.docs.application_version || Number(matches[2]) !== overlay.version) {
+			// header mismatch, offer to regen...
+			this.offerRefreshDocs(matches[1], matches[2]);
+			return;
+		}
+	}
+
+	private async offerRefreshDocs(old_factorio:string,old_overlay:string) {
+		const regen = await vscode.window.showInformationMessage(
+			`It looks like your Factorio intellisense files are out of date. Would you like to regenerate them now? \
+			Files: ${old_factorio}/${old_overlay} Current: ${this._active_version!.docs.application_version}/${overlay.version}`,
+			"Yes", "No", "Never");
+
+		switch (regen) {
+			case "Yes":
+				this.generateDocs();
+				break;
+
+			case "Never":
+				vscode.workspace.getConfiguration("factorio").update("docs.offerUpdate",false);
+				break;
+		}
+	}
+
 
 	private async generateDocs(previous_active?:ActiveFactorioVersion) {
 		const activeVersion = await this.getActiveVersion();

@@ -5,6 +5,7 @@
 ## 1.1.22
 
 * Add `global` back to `Lua.diagnostics.globals`
+* Offer to regenerate docs when they seem to be out of date
 
 ## 1.1.21
 
