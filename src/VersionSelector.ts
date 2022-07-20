@@ -522,16 +522,19 @@ export class FactorioVersionSelector {
 
 		const library: string[] = luaconfig.get("workspace.library") ?? [];
 
-		const replaceLibraryPath = async (newroot:Uri,oldroot?:Uri, ...seg:string[]) => {
-			const newpath = Uri.joinPath(newroot,...seg);
+		const removeLibraryPath = async (oldroot:Uri, ...seg:string[]) => {
 			if (oldroot) {
 				const oldpath = Uri.joinPath(oldroot,...seg);
 				const oldindex = library.indexOf(oldpath.fsPath);
-				if (oldindex !== -1 && newpath.fsPath !== oldpath.fsPath) {
+				if (oldindex !== -1) {
 					library.splice(oldindex,1);
 				}
 			}
+		};
+
+		const addLibraryPath =async (newroot:Uri, ...seg:string[]) => {
 			try {
+				const newpath = Uri.joinPath(newroot,...seg);
 				if (!library.includes(newpath.fsPath) &&
 					// eslint-disable-next-line no-bitwise
 					((await fs.stat(newpath)).type & vscode.FileType.Directory)) {
@@ -540,14 +543,30 @@ export class FactorioVersionSelector {
 			} catch {}
 		};
 
+		await Promise.all(updates);
+
+		// remove and re-add library links to force sumneko to update...
 		const factorioconfig = vscode.workspace.getConfiguration("factorio");
+
+		if (previous_active && factorioconfig.get("workspace.manageLibraryDataLinks", true)) {
+			const oldroot = Uri.file(await previous_active.dataPath());
+			await removeLibraryPath(oldroot);
+			await removeLibraryPath(oldroot,"core","lualib");
+		}
+
+		if (factorioconfig.get("workspace.manageLibraryDocsLink", true)) {
+			const workspacelib = vscode.workspace.asRelativePath(workspaceLibrary);
+			const index = library.indexOf(workspacelib);
+			if (index!==-1) {
+				library.splice(index);
+			}
+		}
+		await luaconfig.update("workspace.library", library);
 
 		if (factorioconfig.get("workspace.manageLibraryDataLinks", true)) {
 			const newroot = Uri.file(await activeVersion.dataPath());
-			const oldroot = previous_active ? Uri.file(await previous_active.dataPath()) : undefined;
-
-			await replaceLibraryPath(newroot,oldroot);
-			await replaceLibraryPath(newroot,oldroot,"core","lualib");
+			await addLibraryPath(newroot);
+			await addLibraryPath(newroot,"core","lualib");
 		}
 
 		if (factorioconfig.get("workspace.manageLibraryDocsLink", true)) {
@@ -556,13 +575,6 @@ export class FactorioVersionSelector {
 				library.push(workspacelib);
 			}
 		}
-
-		await Promise.all(updates);
-
-		// dummy update to force sumneko to reload libraries after regenerating all the files...
-		library.push("");
-		await luaconfig.update("workspace.library", library);
-		library.pop();
 		await luaconfig.update("workspace.library", library);
 
 	}
