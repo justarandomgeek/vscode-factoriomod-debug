@@ -934,6 +934,16 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 		switch (api_type.complex_type) {
 			case "array":
+				if (typeof api_type.value === "object") {
+					switch (api_type.value.complex_type){
+						case "union":
+							return `(${this.format_sumneko_type(api_type.value, get_table_name_and_view_doc_link)})[]`;
+
+						default:
+							// default format
+							break;
+					}
+				}
 				return this.format_sumneko_type(api_type.value, get_table_name_and_view_doc_link)+"[]";
 			case "dictionary":
 				return `{[${this.format_sumneko_type(api_type.key, modify_getter("_key"))}]: ${this.format_sumneko_type(api_type.value, modify_getter("_value"))}}`;
