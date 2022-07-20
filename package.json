@@ -376,7 +376,8 @@
                     "kind": {"const":"alias"},
                     "base": {
                       "description": "The base type this alias refers to",
-                      "type":"string"
+                      "type":"string",
+                      "examples": ["number", "integer"]
                     }
                   }
                 },
@@ -386,7 +387,7 @@
                     "kind": {"const":"class"},
                     "base": {
                       "description": "The base classes, if any, for this class",
-                      "type":"array", "items": "string"
+                      "type":"array", "items": {"type":"string", "examples": ["number", "integer"]}
                     },
                     "operators": {
                       "description": "If this class should have math operators",
