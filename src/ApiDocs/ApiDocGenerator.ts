@@ -677,7 +677,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			} else { //V3
 				if (typeof concept.type === "string") {
 					output.write(this.convert_sumneko_description(this.format_entire_description(concept,view_documentation_link)));
-					output.write(`---@class ${concept.name}:${concept.type}\n\n`);
+					output.write(`---@alias ${concept.name} ${concept.type}\n\n`);
 				} else {
 					switch (concept.type.complex_type) {
 						case "dictionary":
