@@ -467,25 +467,26 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		output.write(`---@operator ${opnames[aname]}: ${this.format_sumneko_type(ApiOperator.type, ()=>[`${classname}.${aname}`, view_doc_link])}\n`);
 	}
 
-	private convert_param_or_return(api_type:ApiType|undefined, description:string|undefined, get_table_name_and_view_doc_link:()=>[string,string]):string {
+	private convert_param_or_return(api_type:ApiType|undefined, optional:boolean, description:string|undefined, get_table_name_and_view_doc_link:()=>[string,string]):string {
 		const formatted_type = this.format_sumneko_type(api_type,get_table_name_and_view_doc_link);
+		const optional_tag = optional ? "?":"";
 		if (!description) {
-			return `${formatted_type}\n`;
+			return `${formatted_type}${optional_tag}\n`;
 		} else if (!description.includes("\n")) {
-			return `${formatted_type}@${this.preprocess_description(description)}\n`;
+			return `${formatted_type}${optional_tag}@${this.preprocess_description(description)}\n`;
 		} else {
-			return `${formatted_type}@\n${this.convert_sumneko_description(description)}`;
+			return `${formatted_type}${optional_tag}@\n${this.convert_sumneko_description(description)}`;
 		}
 	};
 
 	private add_return_annotation(output:WritableMemoryStream, classname:string, method:ApiMethod<V>) {
 		if (this.api_version === 1) {
-			output.write(`---@return ${this.convert_param_or_return(method.return_type,method.return_description,()=>[
+			output.write(`---@return ${this.convert_param_or_return(method.return_type, false, method.return_description,()=>[
 				`${classname}.${method.name}_return`, this.view_documentation(`${classname}.${method.name}`)
 			])}`);
 		} else {
 			method.return_values.forEach((rv)=>{
-				output.write(`---@return ${this.convert_param_or_return(rv.type,rv.description,()=>[
+				output.write(`---@return ${this.convert_param_or_return(rv.type, rv.optional, rv.description,()=>[
 					`${classname}.${method.name}_return`, this.view_documentation(`${classname}.${method.name}`)
 				])}`);
 			});
@@ -501,8 +502,8 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		output.write(this.convert_description_for_method(classname, method));
 		const sorted_params = method.parameters.sort(sort_by_order);
 		sorted_params.forEach(parameter=>{
-			output.write(`---@param ${escape_lua_keyword(parameter.name)}${parameter.optional?"?":" "}`);
-			output.write(this.convert_param_or_return(parameter.type,parameter.description,()=>[
+			output.write(`---@param ${escape_lua_keyword(parameter.name)} `);
+			output.write(this.convert_param_or_return(parameter.type,parameter.optional,parameter.description,()=>[
 				`${classname}.${method.name}.${parameter.name}`, this.view_documentation(`${classname}.${method.name}`)
 			]));
 		});
