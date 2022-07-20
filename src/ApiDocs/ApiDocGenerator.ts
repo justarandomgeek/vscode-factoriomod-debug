@@ -718,7 +718,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 							break;
 
 						default:
-							break;
+							throw `Unknown type in concept: ${concept.type.complex_type}`;
 					}
 				}
 
