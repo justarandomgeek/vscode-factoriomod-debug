@@ -112,7 +112,7 @@ local function add_chain_diff(chain_diff, diffs)
       diffs[count] = {
         start = prev_chain_diff_elem.i,
         finish = chain_diff_elem.i - 1, -- finish is treated as including, which we don't want
-        text = prev_chain_diff_elem.text --[[@as string 3.4.1 bug]],
+        text = prev_chain_diff_elem.text
       }
     end
     prev_chain_diff_elem = chain_diff_elem
@@ -124,7 +124,7 @@ local function add_chain_diff(chain_diff, diffs)
     diffs[count] = {
       start = prev_chain_diff_elem.i,
       finish = prev_chain_diff_elem.i - 1,
-      text = prev_chain_diff_elem.text --[[@as string 3.4.1 bug]],
+      text = prev_chain_diff_elem.text
     }
   end
 end
