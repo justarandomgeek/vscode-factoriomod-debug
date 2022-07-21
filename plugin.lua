@@ -29,6 +29,8 @@ local on_event = require("factorio-plugin.on-event")
 ---@field finish integer @ The number of bytes at the end of the replacement
 ---@field text string @ What to replace
 
+---@alias Diff.ArrayWithCount {[integer]: Diff, ["count"]: integer}
+
 ---@param uri string @ The uri of file
 ---@param text string @ The content of file
 ---@return nil|Diff[]
@@ -41,7 +43,7 @@ function OnSetText(uri, text)
   ---Speeds up loading by not reading annotation files
   if text:sub(1, 8) == "---@meta" or text:sub(1, 4) == "--##" then return end
 
-  local diffs = {count = 0} ---@type Diff[]
+  local diffs = {count = 0} ---@type Diff.ArrayWithCount
 
   require_module.replace(uri, text, diffs)
   global.replace(uri, text, diffs, scope)

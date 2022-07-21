@@ -47,7 +47,7 @@ local function replace(_, text, diffs)
     if param then
       process_func_param(s_func_param, function()
         if is_table then
-          local classes = {}
+          local classes = {} ---@type string[]
           local f = 1
           for match, f_match in param:gmatch("%s*([^{},]-)%s*,()")--[[@as fun():string, integer]] do
             f = f_match
@@ -82,7 +82,7 @@ local function replace(_, text, diffs)
 
   for preceding_text, class_name, s_func_param
   in
-    util.gmatch_at_start_of_line(text, "([^\n]-)[Ee]vent%s*%.%s*([a-zA-Z_][a-zA-Z0-9_]*)%s*%(()")--[[@as fun():string, integer]]
+    util.gmatch_at_start_of_line(text, "([^\n]-)[Ee]vent%s*%.%s*([a-zA-Z_][a-zA-Z0-9_]*)%s*%(()")--[[@as fun():string, string, integer]]
   do
     if not preceding_text:find("--", 1, true) then
       process_func_param(s_func_param, function() return class_name end)

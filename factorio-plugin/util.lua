@@ -44,7 +44,7 @@ local function extend_chain_diff_elem_text(elem, text)
   end
 end
 
----@param diffs Diff[]
+---@param diffs Diff.ArrayWithCount
 ---@param start integer
 ---@param finish integer
 ---@param replacement string
@@ -59,6 +59,7 @@ local function add_diff(diffs, start, finish, replacement)
   }
 end
 
+---@param diffs Diff.ArrayWithCount
 local function remove_diff(diffs)
   local count = diffs.count
   diffs[count] = nil
@@ -99,7 +100,7 @@ end
 
 ---creates diffs according to the chain_diff. See ChainDiffElem class description for how it works
 ---@param chain_diff ChainDiffElem[]
----@param diffs Diff[]
+---@param diffs Diff.ArrayWithCount
 local function add_chain_diff(chain_diff, diffs)
   local prev_chain_diff_elem = chain_diff[1]
   if not prev_chain_diff_elem then return end
