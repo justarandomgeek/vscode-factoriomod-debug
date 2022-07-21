@@ -1,4 +1,7 @@
 
+### 2022-07-21
+- Fix `global` not getting replaced when having a `.` (dot) as the last character on the previous line in a comment
+
 ### 2022-07-09
 - Update internal plugin hack for `sumneko.lua` `> 3.4.2`
 - "Properly" fix fallback modname resolution

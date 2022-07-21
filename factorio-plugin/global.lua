@@ -31,7 +31,7 @@ local function replace(uri, text, diffs, scp)
       global_matches[start] = finish
     end
     -- remove matches that where `global` is actually indexing into something (`.global`)
-    for start in text:gmatch("%.%s*()global%s*[=.%[]")--[[@as fun():integer]] do
+    for start in text:gmatch("%.[^%S\n]*()global%s*[=.%[]")--[[@as fun():integer]] do
       global_matches[start] = nil
     end
     -- `_ENV.global` and `_G.global` now get removed because of this, we can add them back in
