@@ -17,6 +17,7 @@ local new_path = (plugin_path:parent_path() / "?.lua"):string()
 if not package.path:find(new_path, 1, true) then
   package.path = package.path..";"..new_path
 end
+---End of require stuff
 
 local require_module = require("factorio-plugin.require")
 local global = require("factorio-plugin.global")
@@ -32,10 +33,8 @@ local on_event = require("factorio-plugin.on-event")
 ---@param text string @ The content of file
 ---@return nil|Diff[]
 function OnSetText(uri, text)
-
-  ---Not sure about this one. If files are in the library it will not process
-  ---cross workspace requires seem to require the path in the library?
-  --TODO report that as sumneko bug? Needs more testing, maybe individual settings.
+  ---This could be at the top of the file. It just loads from package.loaded
+  local scope = require("workspace.scope")
   if scope.getScope(uri):isLinkedUri(uri) then return end
 
   ---I can't see a reason to process ---@meta files
