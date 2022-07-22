@@ -19,6 +19,9 @@ if not package.path:find(new_path, 1, true) then
 end
 ---End of require stuff
 
+local workspace = require("workspace")
+local scope = require("workspace.scope")
+
 local require_module = require("factorio-plugin.require")
 local global = require("factorio-plugin.global")
 local remote = require("factorio-plugin.remote")
@@ -35,8 +38,7 @@ local on_event = require("factorio-plugin.on-event")
 ---@param text string @ The content of file
 ---@return nil|Diff[]
 function OnSetText(uri, text)
-  ---This could be at the top of the file. It just loads from package.loaded
-  local scope = require("workspace.scope")
+  if not workspace.isReady(uri) then return end
   if scope.getScope(uri):isLinkedUri(uri) then return end
 
   ---I can't see a reason to process ---@meta files
@@ -46,7 +48,7 @@ function OnSetText(uri, text)
   local diffs = {count = 0} ---@type Diff.ArrayWithCount
 
   require_module.replace(uri, text, diffs)
-  global.replace(uri, text, diffs, scope)
+  global.replace(uri, text, diffs)
   remote.replace(uri, text, diffs)
   on_event.replace(uri, text, diffs)
 

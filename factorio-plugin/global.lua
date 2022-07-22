@@ -1,24 +1,25 @@
 --##
 
 local util = require("factorio-plugin.util")
+local workspace = require("workspace")
 
+---Rename `global` so we can tell them apart!
 ---@param uri string @ The uri of file
 ---@param text string @ The content of file
 ---@param diffs Diff[] @ The diffs to add more diffs to
-local function replace(uri, text, diffs, scp)
-  -- rename `global` so we can tell them apart!
-  local this_mod = uri:match("mods[\\/]([^\\/]+)[\\/]")--[[@as string|nil]]
+local function replace(uri, text, diffs)
+  ---Single Workspace/Folder OK, Multi Workspace OK, mods as root OK, mods_path as root uses __mods_path__
+  ---Match on mods folder
+  local this_mod = uri:match("mods[\\/]([^\\/]+)[\\/]")
+  this_mod = this_mod and this_mod:match("[^/\\]+$")
+  this_mod = this_mod or workspace.getRootUri(uri):match("[^/\\]+$")
+
   if not this_mod then
-    if __plugin_dev --[[@as boolean]] then
-      this_mod = "FallbackModName"
-    else
-      ---This could probaly be moved to the top scope also.
-      local workspace = require("workspace")
-      ---@diagnostic disable-next-line: undefined-field
-      this_mod = workspace.uri or workspace.rootUri or workspace.getRootUri(scp and scp.uri)
-      this_mod = this_mod and this_mod:match("[^/\\]+$")--[[@as string?]]
-    end
+    -- In a multi user workspace workspace.rootUri = the first workspace (workspace.getFirstScope())
+    log.warn("Mod folder name not found, Using fallback.")
+    this_mod = "FallbackModName"
   end
+
   if this_mod then
     local scenario = uri:match("scenarios[\\/]([^\\/]+)[\\/]")--[[@as string|nil]]
     if scenario then
