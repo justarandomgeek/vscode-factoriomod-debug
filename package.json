@@ -333,6 +333,11 @@
               }
             }
           },
+          "factorio.docs.generateDocs": {
+            "type": "boolean",
+            "description": "Generate docs files when selecting a Factorio version.",
+            "default":true
+          },
           "factorio.docs.offerUpdate": {
             "type": "boolean",
             "description": "Offer to update docs when they seem out of date.",

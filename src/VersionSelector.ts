@@ -468,6 +468,7 @@ export class FactorioVersionSelector {
 
 
 	private async generateDocs(previous_active?:ActiveFactorioVersion) {
+		if (!vscode.workspace.getConfiguration("factorio").get("docs.generateDocs",true)) { return; }
 		const activeVersion = await this.getActiveVersion();
 		if (!activeVersion) {return;}
 		const workspaceLibrary = this.findWorkspaceLibraryFolder();
