@@ -34,7 +34,7 @@
     "compile": "tsc -p ./src",
     "lint": "eslint -c ./src/.eslintrc.js --ext .ts ./src",
     "watch": "tsc -w -p ./src",
-    "vscode:prepublish": ".\\mod\\makerelease.sh",
+    "vscode:prepublish": "bash ./mod/makerelease.sh",
     "package": "vsce package",
     "publish": "vsce publish",
     "publish-prerelease": "vsce publish --pre-release"
