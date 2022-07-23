@@ -357,6 +357,16 @@
               "Use `class` for all numeric types"
             ]
           },
+          "factorio.docs.builtinOperators": {
+            "description": "Enable generating operators for builtin classes",
+            "type": "boolean",
+            "default": true
+          },
+          "factorio.docs.signedUMinus": {
+            "description": "Convert uint to int in builtin unary minus operator",
+            "type": "boolean",
+            "default": true
+          },
           "factorio.docs.builtinCustomStyle": {
             "description": "Customize the generation of annotations for builtin types",
             "type":"object",

@@ -293,7 +293,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	}
 
 	private add_all_math_operators(output:WritableMemoryStream, result_type:string) {
-		output.write(`---@operator unm:${result_type}\n`);
+		output.write(`---@operator unm:${this.docsettings.get<boolean>("signedUMinus", true) && result_type.startsWith("uint")?result_type.substring(1):result_type}\n`);
 		output.write(`---@operator mod:${result_type}\n`);
 		output.write(`---@operator add:${result_type}\n`);
 		output.write(`---@operator div:${result_type}\n`);
@@ -303,7 +303,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 	private add_class_builtin(output:WritableMemoryStream, name:string, base:string[], with_operators:boolean = true) {
 		output.write(`---@class ${name}${base.length>0?":":""}${base.join(",")}\n`);
-		if (with_operators) {
+		if (with_operators && this.docsettings.get<boolean>("builtinOperators", true)) {
 			this.add_all_math_operators(output, name);
 		}
 		output.write(`\n`);
