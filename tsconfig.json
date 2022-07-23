@@ -9,11 +9,19 @@
 		"noImplicitThis": true,
 		"inlineSourceMap": false,
 		"sourceMap": true,
-		"outDir": "../out",
+		"outDir": "out",
+		"rootDir": "src",
 		"preserveConstEnums": true,
 		"strictNullChecks": true,
 		"noUnusedParameters": false,
 		"noFallthroughCasesInSwitch": true,
-		"noImplicitReturns": true
-	}
+		"noImplicitReturns": true,
+		"lib": [
+			"WebWorker",
+			"ES2020"
+		],
+	},
+	"exclude": [
+		"node_modules"
+	]
 }
