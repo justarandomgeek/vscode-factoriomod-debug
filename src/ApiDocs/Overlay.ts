@@ -77,7 +77,7 @@ export const overlay:{
 					optional: true,
 					type: {
 						complex_type: "array",
-						value: "Signal"
+						value: "Signal",
 					},
 				},
 				{
@@ -320,8 +320,8 @@ export const overlay:{
 	// classes present in json that need members added/replaced
 	adjust: {
 		table: {
-			"BlueprintEntity":{
-				parameters:[
+			"BlueprintEntity": {
+				parameters: [
 					{
 						name: "orientation",
 						order: i++,
@@ -358,10 +358,10 @@ export const overlay:{
 									optional: true,
 									type: {
 										complex_type: "array",
-										value: "InventoryFilter"
+										value: "InventoryFilter",
 									},
 								},
-							]
+							],
 						},
 					},
 					{
@@ -378,7 +378,7 @@ export const overlay:{
 						optional: true,
 						type: {
 							complex_type: "array",
-							value: "InventoryFilter"
+							value: "InventoryFilter",
 						},
 					},
 					{
@@ -397,7 +397,7 @@ export const overlay:{
 									complex_type: "literal",
 									value: "output",
 								},
-							]
+							],
 						},
 					},
 					{
@@ -416,7 +416,7 @@ export const overlay:{
 									complex_type: "literal",
 									value: "right",
 								},
-							]
+							],
 						},
 					},
 					{
@@ -435,7 +435,7 @@ export const overlay:{
 									complex_type: "literal",
 									value: "right",
 								},
-							]
+							],
 						},
 					},
 					{
@@ -461,7 +461,7 @@ export const overlay:{
 									complex_type: "literal",
 									value: "blacklist",
 								},
-							]
+							],
 						},
 					},
 					{
@@ -477,8 +477,8 @@ export const overlay:{
 						description: "",
 						optional: true,
 						type: {
-							complex_type:"array",
-							value: "LogisticFilter"
+							complex_type: "array",
+							value: "LogisticFilter",
 						},
 					},
 					{
@@ -518,8 +518,8 @@ export const overlay:{
 					},
 				],
 			},
-			"CapsuleAction":{
-				parameters:[
+			"CapsuleAction": {
+				parameters: [
 					{
 						name: "flare",
 						order: i++,
@@ -531,38 +531,38 @@ export const overlay:{
 			},
 		},
 		class: {
-			"LuaLazyLoadedValue":{
-				generic_params:["T"],
+			"LuaLazyLoadedValue": {
+				generic_params: ["T"],
 				generic_methods: [
 					{
 						name: "get",
 						return_values: ["T"],
-					}
-				]
+					},
+				],
 			},
-			"LuaCustomTable":{
-				generic_params:["K","V"],
+			"LuaCustomTable": {
+				generic_params: ["K", "V"],
 				indexed: {
 					key: "K",
 					value: "V",
 				},
 			},
-			"LuaGuiElement":{
+			"LuaGuiElement": {
 				indexed: {
 					key: {
 						complex_type: "union",
 						options: [
 							"string",
-							"uint"
-						]
-					}
-				}
+							"uint",
+						],
+					},
+				},
 			},
 		},
 		define: {
 			"defines.prototypes": {
-				subkeys: ["string", "string"]
-			}
-		}
+				subkeys: ["string", "string"],
+			},
+		},
 	},
 };

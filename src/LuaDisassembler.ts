@@ -4,60 +4,60 @@ import { BufferStream } from "./BufferStream";
 
 /* eslint-disable no-bitwise */
 export enum LuaOpcode {
-	OP_MOVE,/*	A B	R(A) := R(B)					*/
-	OP_LOADK,/*	A Bx	R(A) := Kst(Bx)					*/
-	OP_LOADKX,/*	A 	R(A) := Kst(extra arg)				*/
-	OP_LOADBOOL,/*	A B C	R(A) := (Bool)B; if (C) pc++			*/
-	OP_LOADNIL,/*	A B	R(A), R(A+1), ..., R(A+B) := nil		*/
-	OP_GETUPVAL,/*	A B	R(A) := UpValue[B]				*/
+	OP_MOVE, /*	A B	R(A) := R(B)					*/
+	OP_LOADK, /*	A Bx	R(A) := Kst(Bx)					*/
+	OP_LOADKX, /*	A 	R(A) := Kst(extra arg)				*/
+	OP_LOADBOOL, /*	A B C	R(A) := (Bool)B; if (C) pc++			*/
+	OP_LOADNIL, /*	A B	R(A), R(A+1), ..., R(A+B) := nil		*/
+	OP_GETUPVAL, /*	A B	R(A) := UpValue[B]				*/
 
-	OP_GETTABUP,/*	A B C	R(A) := UpValue[B][RK(C)]			*/
-	OP_GETTABLE,/*	A B C	R(A) := R(B)[RK(C)]				*/
+	OP_GETTABUP, /*	A B C	R(A) := UpValue[B][RK(C)]			*/
+	OP_GETTABLE, /*	A B C	R(A) := R(B)[RK(C)]				*/
 
-	OP_SETTABUP,/*	A B C	UpValue[A][RK(B)] := RK(C)			*/
-	OP_SETUPVAL,/*	A B	UpValue[B] := R(A)				*/
-	OP_SETTABLE,/*	A B C	R(A)[RK(B)] := RK(C)				*/
+	OP_SETTABUP, /*	A B C	UpValue[A][RK(B)] := RK(C)			*/
+	OP_SETUPVAL, /*	A B	UpValue[B] := R(A)				*/
+	OP_SETTABLE, /*	A B C	R(A)[RK(B)] := RK(C)				*/
 
-	OP_NEWTABLE,/*	A B C	R(A) := {} (size = B,C)				*/
+	OP_NEWTABLE, /*	A B C	R(A) := {} (size = B,C)				*/
 
-	OP_SELF,/*	A B C	R(A+1) := R(B); R(A) := R(B)[RK(C)]		*/
+	OP_SELF, /*	A B C	R(A+1) := R(B); R(A) := R(B)[RK(C)]		*/
 
-	OP_ADD,/*	A B C	R(A) := RK(B) + RK(C)				*/
-	OP_SUB,/*	A B C	R(A) := RK(B) - RK(C)				*/
-	OP_MUL,/*	A B C	R(A) := RK(B) * RK(C)				*/
-	OP_DIV,/*	A B C	R(A) := RK(B) / RK(C)				*/
-	OP_MOD,/*	A B C	R(A) := RK(B) % RK(C)				*/
-	OP_POW,/*	A B C	R(A) := RK(B) ^ RK(C)				*/
-	OP_UNM,/*	A B	R(A) := -R(B)					*/
-	OP_NOT,/*	A B	R(A) := not R(B)				*/
-	OP_LEN,/*	A B	R(A) := length of R(B)				*/
+	OP_ADD, /*	A B C	R(A) := RK(B) + RK(C)				*/
+	OP_SUB, /*	A B C	R(A) := RK(B) - RK(C)				*/
+	OP_MUL, /*	A B C	R(A) := RK(B) * RK(C)				*/
+	OP_DIV, /*	A B C	R(A) := RK(B) / RK(C)				*/
+	OP_MOD, /*	A B C	R(A) := RK(B) % RK(C)				*/
+	OP_POW, /*	A B C	R(A) := RK(B) ^ RK(C)				*/
+	OP_UNM, /*	A B	R(A) := -R(B)					*/
+	OP_NOT, /*	A B	R(A) := not R(B)				*/
+	OP_LEN, /*	A B	R(A) := length of R(B)				*/
 
-	OP_CONCAT,/*	A B C	R(A) := R(B).. ... ..R(C)			*/
+	OP_CONCAT, /*	A B C	R(A) := R(B).. ... ..R(C)			*/
 
-	OP_JMP,/*	A sBx	pc+=sBx; if (A) close all upvalues >= R(A) + 1	*/
-	OP_EQ,/*	A B C	if ((RK(B) == RK(C)) ~= A) then pc++		*/
-	OP_LT,/*	A B C	if ((RK(B) <  RK(C)) ~= A) then pc++		*/
-	OP_LE,/*	A B C	if ((RK(B) <= RK(C)) ~= A) then pc++		*/
+	OP_JMP, /*	A sBx	pc+=sBx; if (A) close all upvalues >= R(A) + 1	*/
+	OP_EQ, /*	A B C	if ((RK(B) == RK(C)) ~= A) then pc++		*/
+	OP_LT, /*	A B C	if ((RK(B) <  RK(C)) ~= A) then pc++		*/
+	OP_LE, /*	A B C	if ((RK(B) <= RK(C)) ~= A) then pc++		*/
 
-	OP_TEST,/*	A C	if not (R(A) <=> C) then pc++			*/
-	OP_TESTSET,/*	A B C	if (R(B) <=> C) then R(A) := R(B) else pc++	*/
+	OP_TEST, /*	A C	if not (R(A) <=> C) then pc++			*/
+	OP_TESTSET, /*	A B C	if (R(B) <=> C) then R(A) := R(B) else pc++	*/
 
-	OP_CALL,/*	A B C	R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1)) */
-	OP_TAILCALL,/*	A B C	return R(A)(R(A+1), ... ,R(A+B-1))		*/
-	OP_RETURN,/*	A B	return R(A), ... ,R(A+B-2)	(see note)	*/
+	OP_CALL, /*	A B C	R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1)) */
+	OP_TAILCALL, /*	A B C	return R(A)(R(A+1), ... ,R(A+B-1))		*/
+	OP_RETURN, /*	A B	return R(A), ... ,R(A+B-2)	(see note)	*/
 
-	OP_FORLOOP,/*	A sBx	R(A)+=R(A+2);
+	OP_FORLOOP, /*	A sBx	R(A)+=R(A+2);
 				if R(A) <?= R(A+1) then { pc+=sBx; R(A+3)=R(A) }*/
-	OP_FORPREP,/*	A sBx	R(A)-=R(A+2); pc+=sBx				*/
+	OP_FORPREP, /*	A sBx	R(A)-=R(A+2); pc+=sBx				*/
 
-	OP_TFORCALL,/*	A C	R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2));	*/
-	OP_TFORLOOP,/*	A sBx	if R(A+1) ~= nil then { R(A)=R(A+1); pc += sBx }*/
+	OP_TFORCALL, /*	A C	R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2));	*/
+	OP_TFORLOOP, /*	A sBx	if R(A+1) ~= nil then { R(A)=R(A+1); pc += sBx }*/
 
-	OP_SETLIST,/*	A B C	R(A)[(C-1)*FPF+i] := R(A+i), 1 <= i <= B	*/
+	OP_SETLIST, /*	A B C	R(A)[(C-1)*FPF+i] := R(A+i), 1 <= i <= B	*/
 
-	OP_CLOSURE,/*	A Bx	R(A) := closure(KPROTO[Bx])			*/
+	OP_CLOSURE, /*	A Bx	R(A) := closure(KPROTO[Bx])			*/
 
-	OP_VARARG,/*	A B	R(A), R(A+1), ..., R(A+B-2) = vararg		*/
+	OP_VARARG, /*	A B	R(A), R(A+1), ..., R(A+B-2) = vararg		*/
 
 	OP_EXTRAARG/*	Ax	extra (larger) argument for previous opcode	*/
 }
@@ -82,21 +82,18 @@ const phobos_header = [
 	0x00, // version
 ];
 
-function readHeader(b:BufferStream,header:number[])
-{
+function readHeader(b:BufferStream, header:number[]) {
 	for (let i = 0; i < header.length; i++) {
 		const n = b.readUInt8();
-		if (n !== header[i])
-		{
+		if (n !== header[i]) {
 			throw new Error(`Invalid Header at offset ${i}, expected ${header[i]} got ${n}`);
 		}
 	}
 }
 
-function readLuaStringBuffer(b:BufferStream):Buffer
-{
+function readLuaStringBuffer(b:BufferStream):Buffer {
 	const size = b.readBigUInt64LE();
-	const bb = (size > 1) ? b.read(Number(size)-1) : Buffer.alloc(0,0);
+	const bb = (size > 1) ? b.read(Number(size)-1) : Buffer.alloc(0, 0);
 	if (size > 0) {
 		b.readUInt8();
 	}
@@ -109,7 +106,7 @@ function readLuaStringBuffer(b:BufferStream):Buffer
 |           Ax          |   Op   |
 */
 export class LuaInstruction {
-	constructor(readonly raw:number){}
+	constructor(readonly raw:number) {}
 
 	public get Op() : LuaOpcode {
 		return this.raw & 0x3f;
@@ -142,8 +139,7 @@ export class LuaInstruction {
 	public get line() {
 		return this._line ?? 1;
 	}
-	public set line(value:number)
-	{
+	public set line(value:number) {
 		if (this._line === undefined) {
 			this._line = value;
 		} else {
@@ -154,8 +150,7 @@ export class LuaInstruction {
 	public get column() {
 		return this._column ?? 0;
 	}
-	public set column(value:number)
-	{
+	public set column(value:number) {
 		if (this._column === undefined) {
 			this._column = value;
 		} else {
@@ -166,8 +161,7 @@ export class LuaInstruction {
 	public get source_idx() {
 		return this._source_idx ?? 0;
 	}
-	public set source_idx(value:number)
-	{
+	public set source_idx(value:number) {
 		if (this._source_idx === undefined) {
 			this._source_idx = value;
 		} else {
@@ -181,8 +175,7 @@ class LuaUpval {
 	readonly instack:boolean;
 	readonly idx:number;
 
-	constructor(b:BufferStream)
-	{
+	constructor(b:BufferStream) {
 		this.instack = b.readUInt8() !== 0;
 		this.idx = b.readUInt8();
 	}
@@ -193,8 +186,7 @@ export class LuaLocal {
 	readonly start:number;
 	readonly end:number;
 
-	constructor(b:BufferStream)
-	{
+	constructor(b:BufferStream) {
 		this.name = readLuaStringBuffer(b).toString("utf8");
 		this.start = b.readUInt32LE();
 		this.end = b.readUInt32LE();
@@ -203,25 +195,25 @@ export class LuaLocal {
 
 export class LuaConstant {
 	public constructor(type:LuaConstType.Nil);
-	public constructor(type:LuaConstType.Boolean,value:boolean);
-	public constructor(type:LuaConstType.Number,value:number);
-	public constructor(type:LuaConstType.String,value:Buffer);
+	public constructor(type:LuaConstType.Boolean, value:boolean);
+	public constructor(type:LuaConstType.Number, value:number);
+	public constructor(type:LuaConstType.String, value:Buffer);
 	public constructor(
 		public readonly type:LuaConstType,
 		public readonly value?:boolean|number|Buffer
 	) {
 		switch (type) {
 			case LuaConstType.Nil:
-				if (value !== undefined) {throw new Error(`Invalid Lua Constant: ${type} ${value}`);}
+				if (value !== undefined) { throw new Error(`Invalid Lua Constant: ${type} ${value}`); }
 				break;
 			case LuaConstType.Boolean:
-				if (typeof value !== "boolean") {throw new Error(`Invalid Lua Constant: ${type} ${value}`);}
+				if (typeof value !== "boolean") { throw new Error(`Invalid Lua Constant: ${type} ${value}`); }
 				break;
 			case LuaConstType.Number:
-				if (typeof value !== "number") {throw new Error(`Invalid Lua Constant: ${type} ${value}`);}
+				if (typeof value !== "number") { throw new Error(`Invalid Lua Constant: ${type} ${value}`); }
 				break;
 			case LuaConstType.String:
-				if (!(value instanceof Buffer)) {throw new Error(`Invalid Lua Constant: ${type} ${value}`);}
+				if (!(value instanceof Buffer)) { throw new Error(`Invalid Lua Constant: ${type} ${value}`); }
 				break;
 			default:
 				throw new Error(`Invalid Lua Constant Type: ${type}`);
@@ -237,7 +229,7 @@ export class LuaConstant {
 			case LuaConstType.Number:
 				return this.value!.toString();
 			case LuaConstType.String:
-				return `"${(<Buffer>this.value).toString("utf8")}"`; //TODO: escape strings
+				return `"${(<Buffer> this.value).toString("utf8")}"`; //TODO: escape strings
 			default:
 				throw new Error(`Invalid Lua Constant Type: ${this.type} ${this.value}`);
 		}
@@ -263,9 +255,8 @@ export class LuaFunction {
 	readonly lastcolumn?:number;
 
 	constructor(b:BufferStream, withheader?:boolean) {
-		if (withheader)
-		{
-			readHeader(b,lua_header);
+		if (withheader) {
+			readHeader(b, lua_header);
 		}
 		this.firstline = b.readUInt32LE();
 		this.lastline = b.readUInt32LE();
@@ -329,14 +320,12 @@ export class LuaFunction {
 		}
 
 		// Check for Phobos extended debug info in last const
-		if (this.constants.length > 1)
-		{
+		if (this.constants.length > 1) {
 			try {
 				const phoconst = this.constants[this.constants.length-1];
-				if (phoconst.type === LuaConstType.String)
-				{
+				if (phoconst.type === LuaConstType.String) {
 					const phobuff = new BufferStream(<Buffer>phoconst.value);
-					readHeader(phobuff,phobos_header);
+					readHeader(phobuff, phobos_header);
 					const firstcolumn = phobuff.readUInt32LE();
 					const lastcolumn = phobuff.readUInt32LE();
 
@@ -390,29 +379,27 @@ export class LuaFunction {
 		let nextbase = base;
 		this._baseAddr = nextbase;
 		nextbase += this.instructions.length;
-		this.inner_functions.forEach(f => {
+		this.inner_functions.forEach(f=>{
 			nextbase = f.rebase(nextbase);
 		});
 		return nextbase;
 	}
 
-	public walk_functions(fn:(f:LuaFunction)=>void)
-	{
+	public walk_functions(fn:(f:LuaFunction)=>void) {
 		fn(this);
 		this.inner_functions.forEach(lf=>lf.walk_functions(fn));
 	}
 
 	private _sourcemap:Promise<SourceMapConsumer>;
-	public async getSourceMap(filename:string)
-	{
+	public async getSourceMap(filename:string) {
 		if (!this._sourcemap) {
 
-			const map = new SourceMapGenerator({file:filename});
+			const map = new SourceMapGenerator({file: filename});
 			for (let i = 0; i < this.instructions.length; i++) {
 				const mapping:Mapping = {
 					source: this.sources[this.instructions[i].source_idx],
-					original: {line: this.instructions[i].line, column:this.instructions[i].column},
-					generated: {line: i+1, column:0}
+					original: {line: this.instructions[i].line, column: this.instructions[i].column},
+					generated: {line: i+1, column: 0},
 				};
 				map.addMapping(mapping);
 			}
@@ -442,8 +429,8 @@ export class LuaFunction {
 		return;
 	}
 
-	public getInstructionsAtBase(base:number,count:number) : DebugProtocol.DisassembledInstruction[]|undefined {
-		if (count===0  || !this._baseAddr) {return;}
+	public getInstructionsAtBase(base:number, count:number) : DebugProtocol.DisassembledInstruction[]|undefined {
+		if (count===0  || !this._baseAddr) { return; }
 		if (this._baseAddr <= base && this._baseAddr+this.instructions.length > base) {
 			const offset = base - this._baseAddr;
 			const instrs:DebugProtocol.DisassembledInstruction[] = [];
@@ -456,7 +443,7 @@ export class LuaFunction {
 					instruction: this.getInstructionLabel(i+offset),
 					line: this.instructions[i+offset].line,
 					instructionBytes: this.instructions[i+offset].raw.toString(16),
-					symbol: i+offset===0 ? this.sources[this.instructions[i+offset].source_idx??0] +":"+this.firstline : undefined
+					symbol: i+offset===0 ? this.sources[this.instructions[i+offset].source_idx??0] +":"+this.firstline : undefined,
 				});
 			}
 			return instrs;
@@ -465,7 +452,7 @@ export class LuaFunction {
 	}
 
 	getDisassembledSingleFunction():string {
-		const instructions = this.instructions.map((i,pc)=>this.getInstructionLabel(pc));
+		const instructions = this.instructions.map((i, pc)=>this.getInstructionLabel(pc));
 		return [
 			`function at ${this.sources[0]}:${this.firstline}-${this.lastline}`,
 			`${this.is_vararg?"vararg":`${this.nparam} params`} ${this.upvals.length} upvals ${this.maxstack} maxstack`,
@@ -479,108 +466,108 @@ export class LuaFunction {
 		const next = this.instructions[pc+1];
 		switch (current.Op) {
 			case LuaOpcode.OP_LOADK:
-				return `LOADK     ${this.getRegisterLabel(pc,current.A)} := ${this.constants[current.Bx].label}`;
+				return `LOADK     ${this.getRegisterLabel(pc, current.A)} := ${this.constants[current.Bx].label}`;
 			case LuaOpcode.OP_LOADKX:
-				return `LOADKX    ${this.getRegisterLabel(pc,current.A)} := ${this.constants[next.Ax].label}`;
+				return `LOADKX    ${this.getRegisterLabel(pc, current.A)} := ${this.constants[next.Ax].label}`;
 			case LuaOpcode.OP_LOADBOOL:
-				return `LOADBOOL  ${this.getRegisterLabel(pc,current.A)} := ${current.B!==0}${current.C!==0?" pc++":""}`;
+				return `LOADBOOL  ${this.getRegisterLabel(pc, current.A)} := ${current.B!==0}${current.C!==0?" pc++":""}`;
 			case LuaOpcode.OP_LOADNIL:
-				return `LOADNIL   ${this.getRegisterLabel(pc,current.A)}...${this.getRegisterLabel(pc,current.A+current.B)})`;
+				return `LOADNIL   ${this.getRegisterLabel(pc, current.A)}...${this.getRegisterLabel(pc, current.A+current.B)})`;
 			case LuaOpcode.OP_GETUPVAL:
-				return `GETUPVAL  ${this.getRegisterLabel(pc,current.A)} := ${this.getUpvalLabel(current.B)}`;
+				return `GETUPVAL  ${this.getRegisterLabel(pc, current.A)} := ${this.getUpvalLabel(current.B)}`;
 			case LuaOpcode.OP_GETTABUP:
-				return `GETTABUP  ${this.getRegisterLabel(pc,current.A)} := ${this.getUpvalLabel(current.B)}[${this.getRegisterOrConstantLabel(pc,current.C)}]`;
+				return `GETTABUP  ${this.getRegisterLabel(pc, current.A)} := ${this.getUpvalLabel(current.B)}[${this.getRegisterOrConstantLabel(pc, current.C)}]`;
 			case LuaOpcode.OP_GETTABLE:
-				return `GETTABLE  ${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterLabel(pc,current.B)}[${this.getRegisterOrConstantLabel(pc,current.C)}]`;
+				return `GETTABLE  ${this.getRegisterLabel(pc, current.A)} := ${this.getRegisterLabel(pc, current.B)}[${this.getRegisterOrConstantLabel(pc, current.C)}]`;
 			case LuaOpcode.OP_SETTABUP:
-				return `SETTABUP  ${this.getUpvalLabel(current.A)}[${this.getRegisterOrConstantLabel(pc,current.B)}] := ${this.getRegisterOrConstantLabel(pc,current.C)}`;
+				return `SETTABUP  ${this.getUpvalLabel(current.A)}[${this.getRegisterOrConstantLabel(pc, current.B)}] := ${this.getRegisterOrConstantLabel(pc, current.C)}`;
 			case LuaOpcode.OP_SETUPVAL:
-				return `SETUPVAL  ${this.getUpvalLabel(current.B)} := ${this.getRegisterLabel(pc,current.A)}`;
+				return `SETUPVAL  ${this.getUpvalLabel(current.B)} := ${this.getRegisterLabel(pc, current.A)}`;
 			case LuaOpcode.OP_SETTABLE:
-				return `SETTABLE  ${this.getRegisterLabel(pc,current.A)}[${this.getRegisterOrConstantLabel(pc,current.B)}] := ${this.getRegisterOrConstantLabel(pc,current.C)}`;
+				return `SETTABLE  ${this.getRegisterLabel(pc, current.A)}[${this.getRegisterOrConstantLabel(pc, current.B)}] := ${this.getRegisterOrConstantLabel(pc, current.C)}`;
 			case LuaOpcode.OP_NEWTABLE:
-				{
-					const rawb = current.B;
-					const b = this.fb2int(rawb);
-					const rawc = current.C;
-					const c = this.fb2int(rawc);
-					const asize = rawb===b?`${b}`:`${rawb}->${b}`;
-					const hsize = rawc===c?`${c}`:`${rawc}->${c}`;
-					return `NEWTABLE  ${this.getRegisterLabel(pc,current.A)} := {} size(${asize},${hsize})`;
-				}
+			{
+				const rawb = current.B;
+				const b = this.fb2int(rawb);
+				const rawc = current.C;
+				const c = this.fb2int(rawc);
+				const asize = rawb===b?`${b}`:`${rawb}->${b}`;
+				const hsize = rawc===c?`${c}`:`${rawc}->${c}`;
+				return `NEWTABLE  ${this.getRegisterLabel(pc, current.A)} := {} size(${asize},${hsize})`;
+			}
 			case LuaOpcode.OP_SELF:
-				return `SELF      ${this.getRegisterLabel(pc,current.A+1)} := ${this.getRegisterLabel(pc,current.B)}; ${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterLabel(pc,current.B)}[${this.getRegisterOrConstantLabel(pc,current.C)}]`;
+				return `SELF      ${this.getRegisterLabel(pc, current.A+1)} := ${this.getRegisterLabel(pc, current.B)}; ${this.getRegisterLabel(pc, current.A)} := ${this.getRegisterLabel(pc, current.B)}[${this.getRegisterOrConstantLabel(pc, current.C)}]`;
 
 			case LuaOpcode.OP_ADD:
-				return `ADD       ${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterOrConstantLabel(pc,current.B)} + ${this.getRegisterOrConstantLabel(pc,current.C)}`;
+				return `ADD       ${this.getRegisterLabel(pc, current.A)} := ${this.getRegisterOrConstantLabel(pc, current.B)} + ${this.getRegisterOrConstantLabel(pc, current.C)}`;
 			case LuaOpcode.OP_SUB:
-				return `SUB       ${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterOrConstantLabel(pc,current.B)} - ${this.getRegisterOrConstantLabel(pc,current.C)}`;
+				return `SUB       ${this.getRegisterLabel(pc, current.A)} := ${this.getRegisterOrConstantLabel(pc, current.B)} - ${this.getRegisterOrConstantLabel(pc, current.C)}`;
 			case LuaOpcode.OP_MUL:
-				return `MUL       ${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterOrConstantLabel(pc,current.B)} * ${this.getRegisterOrConstantLabel(pc,current.C)}`;
+				return `MUL       ${this.getRegisterLabel(pc, current.A)} := ${this.getRegisterOrConstantLabel(pc, current.B)} * ${this.getRegisterOrConstantLabel(pc, current.C)}`;
 			case LuaOpcode.OP_DIV:
-				return `DIV       ${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterOrConstantLabel(pc,current.B)} / ${this.getRegisterOrConstantLabel(pc,current.C)}`;
+				return `DIV       ${this.getRegisterLabel(pc, current.A)} := ${this.getRegisterOrConstantLabel(pc, current.B)} / ${this.getRegisterOrConstantLabel(pc, current.C)}`;
 			case LuaOpcode.OP_MOD:
-				return `MOD       ${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterOrConstantLabel(pc,current.B)} % ${this.getRegisterOrConstantLabel(pc,current.C)}`;
+				return `MOD       ${this.getRegisterLabel(pc, current.A)} := ${this.getRegisterOrConstantLabel(pc, current.B)} % ${this.getRegisterOrConstantLabel(pc, current.C)}`;
 			case LuaOpcode.OP_POW:
-				return `POW       ${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterOrConstantLabel(pc,current.B)} ^ ${this.getRegisterOrConstantLabel(pc,current.C)}`;
+				return `POW       ${this.getRegisterLabel(pc, current.A)} := ${this.getRegisterOrConstantLabel(pc, current.B)} ^ ${this.getRegisterOrConstantLabel(pc, current.C)}`;
 
 			case LuaOpcode.OP_MOVE:
-				return `MOVE      ${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterLabel(pc,current.B)}`;
+				return `MOVE      ${this.getRegisterLabel(pc, current.A)} := ${this.getRegisterLabel(pc, current.B)}`;
 			case LuaOpcode.OP_UNM:
-				return `UNM       ${this.getRegisterLabel(pc,current.A)} := -${this.getRegisterLabel(pc,current.B)}`;
+				return `UNM       ${this.getRegisterLabel(pc, current.A)} := -${this.getRegisterLabel(pc, current.B)}`;
 			case LuaOpcode.OP_NOT:
-				return `NOT       ${this.getRegisterLabel(pc,current.A)} := not ${this.getRegisterLabel(pc,current.B)}`;
+				return `NOT       ${this.getRegisterLabel(pc, current.A)} := not ${this.getRegisterLabel(pc, current.B)}`;
 			case LuaOpcode.OP_LEN:
-				return `LEN       ${this.getRegisterLabel(pc,current.A)} := length of ${this.getRegisterLabel(pc,current.B)}`;
+				return `LEN       ${this.getRegisterLabel(pc, current.A)} := length of ${this.getRegisterLabel(pc, current.B)}`;
 
 			case LuaOpcode.OP_CONCAT:
-				return `CONCAT    ${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterLabel(pc,current.B)}.. ... ..${this.getRegisterLabel(pc,current.C)}`;
+				return `CONCAT    ${this.getRegisterLabel(pc, current.A)} := ${this.getRegisterLabel(pc, current.B)}.. ... ..${this.getRegisterLabel(pc, current.C)}`;
 
 			case LuaOpcode.OP_JMP:
 				return `JMP       pc+=${current.sBx}${current.A?`; close >= ${current.A-1}`:""}`;
 
 			case LuaOpcode.OP_EQ:
-				return `EQ        if(${this.getRegisterOrConstantLabel(pc,current.B)} ${current.A?"~=":"=="} ${this.getRegisterOrConstantLabel(pc,current.B)}) then pc++`;
+				return `EQ        if(${this.getRegisterOrConstantLabel(pc, current.B)} ${current.A?"~=":"=="} ${this.getRegisterOrConstantLabel(pc, current.B)}) then pc++`;
 			case LuaOpcode.OP_LT:
-				return `LT        if(${this.getRegisterOrConstantLabel(pc,current.B)} ${current.A?">=":"<"} ${this.getRegisterOrConstantLabel(pc,current.B)}) then pc++`;
+				return `LT        if(${this.getRegisterOrConstantLabel(pc, current.B)} ${current.A?">=":"<"} ${this.getRegisterOrConstantLabel(pc, current.B)}) then pc++`;
 			case LuaOpcode.OP_LE:
-				return `LE        if(${this.getRegisterOrConstantLabel(pc,current.B)} ${current.A?">":"<="} ${this.getRegisterOrConstantLabel(pc,current.B)}) then pc++`;
+				return `LE        if(${this.getRegisterOrConstantLabel(pc, current.B)} ${current.A?">":"<="} ${this.getRegisterOrConstantLabel(pc, current.B)}) then pc++`;
 
 			case LuaOpcode.OP_TEST:
-				return `TEST      if ${current.C?"not ":""}${this.getRegisterLabel(pc,current.A)} then pc++`;
+				return `TEST      if ${current.C?"not ":""}${this.getRegisterLabel(pc, current.A)} then pc++`;
 			case LuaOpcode.OP_TESTSET:
-				return `TESTSET   if ${current.C?"":"not "}${this.getRegisterLabel(pc,current.A)} then ${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterLabel(pc,current.B)} else pc++`;
+				return `TESTSET   if ${current.C?"":"not "}${this.getRegisterLabel(pc, current.A)} then ${this.getRegisterLabel(pc, current.A)} := ${this.getRegisterLabel(pc, current.B)} else pc++`;
 
 			case LuaOpcode.OP_CALL:
-				return `CALL      ${this.getRegisterLabel(pc,current.A)}(${current.B?current.B-1:"var"} args ${current.C?current.C-1:"var"} returns)`;
+				return `CALL      ${this.getRegisterLabel(pc, current.A)}(${current.B?current.B-1:"var"} args ${current.C?current.C-1:"var"} returns)`;
 
 			case LuaOpcode.OP_TAILCALL:
-				return `TAILCALL  return ${this.getRegisterLabel(pc,current.A)}(${current.B?current.B-1:"var"} args)`;
+				return `TAILCALL  return ${this.getRegisterLabel(pc, current.A)}(${current.B?current.B-1:"var"} args)`;
 
 			case LuaOpcode.OP_RETURN:
-				return `RETURN    return ${current.B?current.B-1:"var"} results ${current.B>1?`starting at ${this.getRegisterLabel(pc,current.A)}`:""}`;
+				return `RETURN    return ${current.B?current.B-1:"var"} results ${current.B>1?`starting at ${this.getRegisterLabel(pc, current.A)}`:""}`;
 
 			case LuaOpcode.OP_FORLOOP:
-				return `FORLOOP   ${this.getRegisterLabel(pc,current.A)} += ${this.getRegisterLabel(pc,current.A+2)}; if ${this.getRegisterLabel(pc,current.A)} <= ${this.getRegisterLabel(pc,current.A+1)} then { pc+=${current.sBx}; ${this.getRegisterLabel(pc,current.A+3)} := ${this.getRegisterLabel(pc,current.A)} }`;
+				return `FORLOOP   ${this.getRegisterLabel(pc, current.A)} += ${this.getRegisterLabel(pc, current.A+2)}; if ${this.getRegisterLabel(pc, current.A)} <= ${this.getRegisterLabel(pc, current.A+1)} then { pc+=${current.sBx}; ${this.getRegisterLabel(pc, current.A+3)} := ${this.getRegisterLabel(pc, current.A)} }`;
 			case LuaOpcode.OP_FORPREP:
-				return `FORPREP   ${this.getRegisterLabel(pc,current.A)} -= ${this.getRegisterLabel(pc,current.A+2)}; pc += ${current.sBx}`;
+				return `FORPREP   ${this.getRegisterLabel(pc, current.A)} -= ${this.getRegisterLabel(pc, current.A+2)}; pc += ${current.sBx}`;
 
 			case LuaOpcode.OP_TFORCALL:
-				return `TFORCALL  ${this.getRegisterLabel(pc,current.A+3)}...${this.getRegisterLabel(pc,current.A+2+current.C)} := ${this.getRegisterLabel(pc,current.A)}(${this.getRegisterLabel(pc,current.A+1)},${this.getRegisterLabel(pc,current.A+2)})`;
+				return `TFORCALL  ${this.getRegisterLabel(pc, current.A+3)}...${this.getRegisterLabel(pc, current.A+2+current.C)} := ${this.getRegisterLabel(pc, current.A)}(${this.getRegisterLabel(pc, current.A+1)},${this.getRegisterLabel(pc, current.A+2)})`;
 			case LuaOpcode.OP_TFORLOOP:
-				return `TFORLOOP  if ${this.getRegisterLabel(pc,current.A+1)} ~= nil then { ${this.getRegisterLabel(pc,current.A)} := ${this.getRegisterLabel(pc,current.A+1)}; pc += ${current.sBx} }`;
+				return `TFORLOOP  if ${this.getRegisterLabel(pc, current.A+1)} ~= nil then { ${this.getRegisterLabel(pc, current.A)} := ${this.getRegisterLabel(pc, current.A+1)}; pc += ${current.sBx} }`;
 
 			case LuaOpcode.OP_SETLIST:
 				const C = (current.C ? current.C : next.Ax) - 1;
 				const FPF = 50;
-				return `SETLIST   ${this.getRegisterLabel(pc,current.A)}[${(C*FPF)+1}...${(current.B?(C*FPF)+current.B:"")}] := ${this.getRegisterLabel(pc,current.A+1)}...${current.B?this.getRegisterLabel(pc,current.A+current.B):"top"}`;
+				return `SETLIST   ${this.getRegisterLabel(pc, current.A)}[${(C*FPF)+1}...${(current.B?(C*FPF)+current.B:"")}] := ${this.getRegisterLabel(pc, current.A+1)}...${current.B?this.getRegisterLabel(pc, current.A+current.B):"top"}`;
 
 			case LuaOpcode.OP_CLOSURE:
 				const func = this.inner_functions[current.Bx];
-				return `CLOSURE   ${this.getRegisterLabel(pc,current.A)} := closure(${func.sources[0]}:${func.firstline}-${func.lastline})`;
+				return `CLOSURE   ${this.getRegisterLabel(pc, current.A)} := closure(${func.sources[0]}:${func.firstline}-${func.lastline})`;
 
 			case LuaOpcode.OP_VARARG:
-				return `VARARG    ${this.getRegisterLabel(pc,current.A)}...${current.B?this.getRegisterLabel(pc,current.A+current.B-2):"top"}`;
+				return `VARARG    ${this.getRegisterLabel(pc, current.A)}...${current.B?this.getRegisterLabel(pc, current.A+current.B-2):"top"}`;
 			case LuaOpcode.OP_EXTRAARG:
 				return `EXTRAARG`;
 
@@ -592,19 +579,17 @@ export class LuaFunction {
 	// sizes in newtable are packed into a "float byte" type for expanded range:
 	// (eeeeexxx), where the real value is (1xxx) * 2^(eeeee - 1) if
 	// eeeee != 0 and (xxx) otherwise.
-	private fb2int(x:number):number
-	{
+	private fb2int(x:number):number {
 		const e = (x>>3)&0x1f;
 		return e===0?x:(((x&7)+8)<<(e-1));
 	}
 
 
 	private getRegisterOrConstantLabel(pc:number, idx:number) {
-		if (idx & 0x100)
-		{
+		if (idx & 0x100) {
 			return this.constants[idx & 0xff].label;
 		} else {
-			return this.getRegisterLabel(pc,idx);
+			return this.getRegisterLabel(pc, idx);
 		}
 	}
 
@@ -612,12 +597,11 @@ export class LuaFunction {
 		return `Up(${this.upvals[idx]?.name ?? idx})`;
 	}
 
-	private getRegisterLabel(pc:number,idx:number) : string {
+	private getRegisterLabel(pc:number, idx:number) : string {
 		let stack = 0;
 		for (let i = 0; i < this.locals.length; i++) {
 			const loc = this.locals[i];
-			if (loc.start <= pc+1)
-			{
+			if (loc.start <= pc+1) {
 				if (loc.end >= pc+1) {
 					if (stack === idx ) {
 						return `R(${loc.name})`;

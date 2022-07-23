@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 export class Keychain {
 	constructor(
 		private readonly secrets: vscode.SecretStorage
-	){
+	) {
 
 	}
 

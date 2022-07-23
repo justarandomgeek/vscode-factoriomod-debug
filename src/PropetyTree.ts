@@ -17,9 +17,7 @@ function readPTreeString(b:BufferStream) {
 	const empty = b.readUInt8() !== 0;
 	if (empty) {
 		return "";
-	}
-
-	else {
+	} else {
 		let size = b.readUInt8();
 		if (size === 255) {
 			size = b.readUInt32LE();
@@ -30,7 +28,7 @@ function readPTreeString(b:BufferStream) {
 }
 
 export abstract class PropertyTree {
-	protected constructor(){}
+	protected constructor() {}
 
 	static load(b:BufferStream) : PropertyTreeData {
 		const type:PropertyTreeType = b.readUInt8();
@@ -45,31 +43,30 @@ export abstract class PropertyTree {
 			case PropertyTreeType.string:
 				return readPTreeString(b);
 			case PropertyTreeType.list:
-				{
-					const count = b.readUInt32LE();
-					const arr = <PropertyTreeData[]>[];
-					for (let i = 0; i < count; i++) {
-						readPTreeString(b);
-						const value = PropertyTree.load(b);
-						arr.push(value);
-					}
-					return arr;
+			{
+				const count = b.readUInt32LE();
+				const arr = <PropertyTreeData[]>[];
+				for (let i = 0; i < count; i++) {
+					readPTreeString(b);
+					const value = PropertyTree.load(b);
+					arr.push(value);
 				}
+				return arr;
+			}
 			case PropertyTreeType.dictionary:
-				{
-					const count = b.readUInt32LE();
-					const rec:PropertyTreeDict = {};
-					for (let i = 0; i < count; i++) {
-						const keystr = readPTreeString(b);
-						if (!keystr)
-						{
-							throw new Error("Missing key in PropertyTree Dictionary");
-						}
-						const value = PropertyTree.load(b);
-						rec[keystr] = value;
+			{
+				const count = b.readUInt32LE();
+				const rec:PropertyTreeDict = {};
+				for (let i = 0; i < count; i++) {
+					const keystr = readPTreeString(b);
+					if (!keystr) {
+						throw new Error("Missing key in PropertyTree Dictionary");
 					}
-					return rec;
+					const value = PropertyTree.load(b);
+					rec[keystr] = value;
 				}
+				return rec;
+			}
 			default:
 				throw new Error(`Invalid datatype in PropertyTree ${type}`);
 		}
@@ -80,17 +77,16 @@ export abstract class PropertyTree {
 			return Buffer.from([1]); // no string
 		}
 
-		const strbuff = Buffer.from(str,"utf8");
+		const strbuff = Buffer.from(str, "utf8");
 
 		let size = Buffer.alloc(1);
 
-		if (strbuff.length < 255)
-		{
+		if (strbuff.length < 255) {
 			size.writeInt8(strbuff.length);
 		} else {
 			size = Buffer.alloc(5);
 			size.writeInt8(255);
-			size.writeUInt32LE(strbuff.length,1);
+			size.writeUInt32LE(strbuff.length, 1);
 		}
 		return Buffer.concat([
 			Buffer.from([0]), // has string
@@ -106,47 +102,45 @@ export abstract class PropertyTree {
 	static save(value:PropertyTreeData):Buffer {
 		switch (typeof value) {
 			case "string":
-				{
-					return Buffer.concat([
-						PropertyTree.typeTag(PropertyTreeType.string),
-						PropertyTree.saveString(value)
-					]);
-				}
+			{
+				return Buffer.concat([
+					PropertyTree.typeTag(PropertyTreeType.string),
+					PropertyTree.saveString(value),
+				]);
+			}
 			case "boolean":
 				return Buffer.concat([
 					PropertyTree.typeTag(PropertyTreeType.bool),
-					Buffer.from([value?1:0])
+					Buffer.from([value?1:0]),
 				]);
 
 
 			case "number":
-				{
-					const b = Buffer.alloc(8);
-					b.writeDoubleLE(value);
-					return Buffer.concat([
-						PropertyTree.typeTag(PropertyTreeType.number),
-						b
-					]);
-				}
+			{
+				const b = Buffer.alloc(8);
+				b.writeDoubleLE(value);
+				return Buffer.concat([
+					PropertyTree.typeTag(PropertyTreeType.number),
+					b,
+				]);
+			}
 			default:
-				if (value === null)
-				{
+				if (value === null) {
 					return PropertyTree.typeTag(PropertyTreeType.none);
 				}
 
-				if (Array.isArray(value))
-				{
+				if (Array.isArray(value)) {
 					const size = Buffer.alloc(4);
 					size.writeInt32LE(value.length);
 					return Buffer.concat([
 						PropertyTree.typeTag(PropertyTreeType.list),
 						size,
-						Buffer.concat(value.map((v) => {
+						Buffer.concat(value.map((v)=>{
 							return Buffer.concat([
 								PropertyTree.saveString(""), // no key for list
-								PropertyTree.save(v)
+								PropertyTree.save(v),
 							]);
-						}))
+						})),
 					]);
 				}
 
@@ -159,7 +153,7 @@ export abstract class PropertyTree {
 							buffs.push(
 								Buffer.concat([
 									PropertyTree.saveString(k),
-									PropertyTree.save(v)
+									PropertyTree.save(v),
 								]));
 						}
 					}
@@ -170,7 +164,7 @@ export abstract class PropertyTree {
 					return Buffer.concat([
 						PropertyTree.typeTag(PropertyTreeType.dictionary),
 						size,
-						Buffer.concat(buffs)
+						Buffer.concat(buffs),
 					]);
 				}
 		}

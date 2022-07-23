@@ -2,7 +2,7 @@ type ApiConcept<V extends ApiVersions> =
 	V extends 1|2 ? ApiConceptV1<V> :
 	ApiConceptV3<V>;
 
-type Extends<T,X> = T extends X ? T : never;
+type Extends<T, X> = T extends X ? T : never;
 
 type ApiVersions = 1|2|3;
 interface ApiDocs<V extends ApiVersions = ApiVersions> {
@@ -110,7 +110,7 @@ type ApiMethod<V extends ApiVersions> = ApiWithNotes<V> & ApiWithParameters<V> &
 	readonly table_is_optional?: boolean
 	readonly return_type?: V extends 1 ? ApiType<V> : never
 	readonly return_description?: V extends 1 ? string : never
-	readonly return_values: V extends 1 ? never : Omit<ApiParameter<V>,"name">[]
+	readonly return_values: V extends 1 ? never : Omit<ApiParameter<V>, "name">[]
 	readonly raises?: V extends 1 ? never : ApiEventRaised[]
 };
 

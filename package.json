@@ -32,7 +32,7 @@
   "scripts": {
     "prepare": "tsc -p ./src",
     "compile": "tsc -p ./src",
-    "lint": "eslint -c ./src/.eslintrc.js --ext .ts ./src",
+    "lint": "eslint -c ./src/.eslintrc.json --ext .ts ./src",
     "watch": "tsc -w -p ./src",
     "vscode:prepublish": "bash ./mod/makerelease.sh",
     "package": "vsce package",

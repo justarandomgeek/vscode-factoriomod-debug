@@ -1,4 +1,4 @@
-module.exports = {
+{
     "env": {
         "browser": true,
         "es6": true,
@@ -30,6 +30,17 @@ module.exports = {
         "@typescript-eslint/semi": [
             "error"
         ],
+        "brace-style": ["error", "1tbs", { "allowSingleLine": true }],
+        "block-spacing": "error",
+        "space-before-blocks": "error",
+        "keyword-spacing":"error",
+        "arrow-spacing":["error",{"before":false,"after":false}],
+        "switch-colon-spacing":"error",
+        "comma-spacing":"error",
+        "comma-style":"error",
+        "comma-dangle": ["error", "always-multiline"],
+        "key-spacing":"error",
+        "indent": ["error", "tab", { "SwitchCase":1, "flatTernaryExpressions": true } ],
         "curly": "error",
         "eqeqeq": [
             "error",
@@ -37,7 +48,13 @@ module.exports = {
         ],
         "no-bitwise": "error",
         "no-redeclare": "error",
-        "no-unused-expressions": "error",
+        "no-unused-expressions": [
+            "error",
+            {
+                "allowShortCircuit":true,
+                "allowTernary": true
+            }
+        ],
         "no-var": "error"
     }
-};
+}
