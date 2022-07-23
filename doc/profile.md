@@ -1,6 +1,6 @@
 # Profiling
 
-Setting `"hookMode": "profile"` in your launch config to enables profiling. This mode does not provide debug feaures (stepping, inspection, etc), but instead provides inline timing/hitcount data for every line and function executed in control stage. Flamegraph, higlighting and rulers are also provided to assist in finding hotspots. Mods may recognize the this mode by the presence of the global variable `__Profiler`.
+Setting `"hookMode": "profile"` in your launch config to enables profiling. This mode does not provide debug feaures (stepping, inspection, etc), but instead provides inline timing/hitcount data for every line and function executed in control stage. Flamegraph, highlighting and rulers are also provided to assist in finding hotspots. Mods may recognize the this mode by the presence of the global variable `__Profiler`. Mods **MUST NOT** create this variable themselves, or write to any fields within it.
 
 The profiler also provides a remote inteface `profiler` with the following functions:
 

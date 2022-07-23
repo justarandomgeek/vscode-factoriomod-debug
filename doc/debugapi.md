@@ -1,3 +1,7 @@
+## Detecting Debugging
+
+Mods may detect that the debugger is attached by the presence of the global variable `__DebugAdapter`. Mods **MUST NOT** create this variable themselves, or write to any fields within it.
+
 ## String Interpolation
 
 Several locations in the interface use string interpolation with expressions in `{}`. The inner expression is evaluated as lua code. `{[}` and `{]}` can be used to emit literal `{` and `}`.
