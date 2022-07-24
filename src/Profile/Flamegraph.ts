@@ -1,16 +1,14 @@
 import * as d3 from "d3";
 import { flamegraph } from "d3-flame-graph";
 import { ProfileTreeNode } from "./Profile";
+import "d3-flame-graph/dist/d3-flamegraph.css";
 
 declare const window: any, document: any, acquireVsCodeApi: any;
 
 const vscode = acquireVsCodeApi();
 const chart = flamegraph().height(window.innerHeight - 20).width(window.innerWidth - 60);
-const formatNum = function (num:number, digits:number) {
-	return num.toFixed(digits);
-};
 chart.label(function (d) {
-	return d.data.name + ' (' + formatNum(100 * (d.x1 - d.x0), 3) + '%, ' + formatNum(d.value, 3) + ' ms)';
+	return `${d.data.name} (${(100 * (d.x1 - d.x0)).toFixed(3)}%, ${d.value.toFixed(3)} ms)`;
 });
 const treeData = {
 	"name": "root",

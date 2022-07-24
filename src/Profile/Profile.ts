@@ -3,8 +3,6 @@ import { assert } from "console";
 
 //@ts-ignore
 import FlamegraphHtml from "./Flamegraph.html";
-//@ts-ignore
-import FlamegraphCSS from "d3-flame-graph/dist/d3-flamegraph.css";
 
 function NaN_safe_max(a:number, b:number):number {
 	if (isNaN(a)) { return b; }
@@ -309,17 +307,9 @@ export class Profile implements vscode.Disposable  {
 			}
 		);
 		const flameview = this.flamePanel.webview;
-
-		console.log(FlamegraphHtml);
-		console.log(FlamegraphCSS);
-
-		const css = vscode.Uri.joinPath(this.context.extensionUri, "dist", <string>FlamegraphCSS);
-
 		flameview.html = (<string>FlamegraphHtml)
-			.replace("$d3-flamegraph.css$", flameview.asWebviewUri(css).toString())
-			.replace("$flamegraph.js$", flameview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "/dist/Flamegraph.js")).toString());
-
-		console.log(flameview.html);
+			.replace("$Flamegraph.css$", flameview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "/dist/Flamegraph.css")).toString())
+			.replace("$Flamegraph.js$", flameview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "/dist/Flamegraph.js")).toString());
 
 		flameview.onDidReceiveMessage(
 			(mesg:{command:"init"}|{command:"click";name:string;filename?:string;line?:number})=>{
