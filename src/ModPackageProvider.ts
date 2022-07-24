@@ -4,11 +4,11 @@ import * as os from 'os';
 import * as path from 'path';
 import * as Git from './git';
 import * as semver from 'semver';
-import * as archiver from 'archiver';
+import archiver from 'archiver';
 import { spawn } from 'child_process';
 import { BufferSplitter } from './BufferSplitter';
 import { ModManager } from './ModManager';
-import * as FormData from 'form-data';
+import FormData from 'form-data';
 import fetch, { Headers } from 'node-fetch';
 import { Keychain } from './Keychain';
 interface ModPackageScripts {
@@ -781,13 +781,9 @@ class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>, 
 		this.subscriptions.push(vscode.tasks.registerTaskProvider("factorio", new ModTaskProvider(this.modPackages)));
 
 		this.subscriptions.push(
-			vscode.commands.registerCommand("factorio.openchangelog", async (mp:ModPackage)=>{
-				try {
-					vscode.window.showTextDocument(vscode.Uri.joinPath(mp.resourceUri, "../changelog.txt"));
-				} catch (error) {
-					vscode.window.showErrorMessage(error);
-				}
-			}));
+			vscode.commands.registerCommand("factorio.openchangelog",
+				async (mp:ModPackage)=>vscode.window.showTextDocument(vscode.Uri.joinPath(mp.resourceUri, "../changelog.txt"))
+			));
 
 		this.subscriptions.push(
 			vscode.commands.registerCommand("factorio.compile", async (mp:ModPackage)=>{
@@ -890,7 +886,7 @@ class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>, 
 					}
 				}
 			}
-			return items.sort(ModPackage.sort);
+			return (items as ModPackage[]).sort(ModPackage.sort);
 		} else if (element instanceof ModPackage) {
 			const items: vscode.TreeItem[] = [];
 			if (this.modPackages) {
@@ -904,7 +900,7 @@ class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>, 
 					});
 				}
 			}
-			return items.sort(ModPackage.sort);
+			return (items as ModPackage[]).sort(ModPackage.sort);
 		} else {
 			return [];
 		}

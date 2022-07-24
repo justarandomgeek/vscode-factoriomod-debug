@@ -16,10 +16,12 @@
 		"noUnusedParameters": false,
 		"noFallthroughCasesInSwitch": true,
 		"noImplicitReturns": true,
+		"esModuleInterop": true,
 		"lib": [
 			"WebWorker",
 			"ES2020"
 		],
+		"strict": true
 	},
 	"exclude": [
 		"node_modules"

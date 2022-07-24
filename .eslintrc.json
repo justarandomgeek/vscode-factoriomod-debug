@@ -1,4 +1,5 @@
 {
+    "root": true,
     "env": {
         "browser": true,
         "es6": true,
@@ -6,13 +7,17 @@
     },
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
-        "project": "./src/tsconfig.json",
+        "ecmaVersion": 6,
+        "project": "./tsconfig.json",
         "sourceType": "module"
     },
     "plugins": [
         "@typescript-eslint"
     ],
-    "ignorePatterns": ["git.d.ts"],
+    "ignorePatterns": [
+        "git.d.ts",
+        "node_modules"
+    ],
     "rules": {
         "@typescript-eslint/member-delimiter-style": [
             "error",

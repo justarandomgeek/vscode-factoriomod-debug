@@ -30,14 +30,17 @@
     "url": "https://github.com/justarandomgeek/vscode-factoriomod-debug/issues"
   },
   "scripts": {
-    "prepare": "tsc -p ./src",
-    "compile": "tsc -p ./src",
-    "lint": "eslint -c ./src/.eslintrc.json --ext .ts ./src",
-    "watch": "tsc -w -p ./src",
-    "vscode:prepublish": "bash ./mod/makerelease.sh",
+    "compile": "tsc -p ./",
+    "lint": "eslint src --ext ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "esbuild-base": "esbuild ./src/extension.ts --bundle --tsconfig=./tsconfig.json --external:vscode --format=cjs --platform=node --outfile=dist/extension.js",
+    "watch": "npm run -S esbuild-base -- --sourcemap --sources-content=false --watch",
+    "build": "npm run -S esbuild-base -- --sourcemap --sources-content=false",
+    "vscode:prepublish": "rimraf dist && bash ./mod/makerelease.sh && npm run -S esbuild-base -- --minify",
     "package": "vsce package",
     "publish": "vsce publish",
-    "publish-prerelease": "vsce publish --pre-release"
+    "publish-prerelease": "vsce publish --pre-release",
+    "test": "npm run typecheck"
   },
   "dependencies": {
     "@vscode/debugadapter": "^1.55.1",
@@ -65,11 +68,13 @@
     "@typescript-eslint/eslint-plugin": "^4.33.0",
     "@typescript-eslint/parser": "^4.33.0",
     "@vscode/debugadapter-testsupport": "^1.55.1",
+    "esbuild": "^0.14.49",
     "eslint": "^7.32.0",
+    "rimraf": "^3.0.2",
     "typescript": "^4.6.3",
     "vsce": "^2.7.0"
   },
-  "main": "./out/extension",
+  "main": "./dist/extension.js",
   "activationEvents": [
     "onDebug",
     "onCommand:workbench.action.tasks.runTask",
@@ -336,12 +341,12 @@
           "factorio.docs.generateDocs": {
             "type": "boolean",
             "description": "Generate docs files when selecting a Factorio version.",
-            "default":true
+            "default": true
           },
           "factorio.docs.offerUpdate": {
             "type": "boolean",
             "description": "Offer to update docs when they seem out of date.",
-            "default":true
+            "default": true
           },
           "factorio.docs.numberStyle": {
             "description": "Type of annotations to generate for specialized number types",
@@ -369,44 +374,72 @@
           },
           "factorio.docs.builtinCustomStyle": {
             "description": "Customize the generation of annotations for builtin types",
-            "type":"object",
+            "type": "object",
             "additionalProperties": {
-              "type":"object",
-              "required": ["kind"],
+              "type": "object",
+              "required": [
+                "kind"
+              ],
               "properties": {
                 "kind": {
                   "description": "The kind of annotation to use for this type",
-                  "enum": ["none", "alias", "class"]
+                  "enum": [
+                    "none",
+                    "alias",
+                    "class"
+                  ]
                 }
               },
               "oneOf": [
                 {
                   "properties": {
-                    "kind": {"const":"none"}
-                  }
-                },
-                {
-                  "required": ["kind", "base"],
-                  "properties": {
-                    "kind": {"const":"alias"},
-                    "base": {
-                      "description": "The base type this alias refers to",
-                      "type":"string",
-                      "examples": ["number", "integer"]
+                    "kind": {
+                      "const": "none"
                     }
                   }
                 },
                 {
-                  "required": ["kind", "base"],
+                  "required": [
+                    "kind",
+                    "base"
+                  ],
                   "properties": {
-                    "kind": {"const":"class"},
+                    "kind": {
+                      "const": "alias"
+                    },
+                    "base": {
+                      "description": "The base type this alias refers to",
+                      "type": "string",
+                      "examples": [
+                        "number",
+                        "integer"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "required": [
+                    "kind",
+                    "base"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "class"
+                    },
                     "base": {
                       "description": "The base classes, if any, for this class",
-                      "type":"array", "items": {"type":"string", "examples": ["number", "integer"]}
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "examples": [
+                          "number",
+                          "integer"
+                        ]
+                      }
                     },
                     "operators": {
                       "description": "If this class should have math operators",
-                      "type":"boolean"
+                      "type": "boolean"
                     }
                   }
                 }
