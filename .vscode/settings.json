@@ -1,9 +1,14 @@
 // Place your settings in this file to overwrite default and user settings.FALSE
 {
+    "files.exclude": {
+        "dist":true,
+        "out":true,
+        "node_modules":true,
+    },
     "typescript.tsc.autoDetect": "off",
-	"files.trimTrailingWhitespace": true,
-	"editor.insertSpaces": false,
-	"Lua.workspace.ignoreDir": [
+    "files.trimTrailingWhitespace": true,
+    "editor.insertSpaces": false,
+    "Lua.workspace.ignoreDir": [
         ".vscode"
     ],
     "Lua.workspace.library": [
@@ -12,7 +17,6 @@
         "d:\\factorio\\factoriogit\\data\\core\\lualib"
     ],
     "Lua.runtime.plugin": ".vscode/lua/plugin.lua",
-    "Lua.workspace.preloadFileSize": 5000,
     "Lua.diagnostics.globals": [
         "mods",
         "log",

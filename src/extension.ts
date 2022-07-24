@@ -8,7 +8,7 @@ import { activateLocaleLangProvider } from './LocaleLangProvider';
 import { activateChangeLogLangProvider } from './ChangeLogLangProvider';
 import { activateModPackageProvider } from './ModPackageProvider';
 import { FactorioVersionSelector } from './VersionSelector';
-import { ProfileRenderer } from './ProfileRenderer';
+import { ProfileRenderer } from './Profile/ProfileRenderer';
 
 export function activate(context: vscode.ExtensionContext) {
 

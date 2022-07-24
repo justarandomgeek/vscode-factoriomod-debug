@@ -13,7 +13,7 @@ interface ModList{
 }
 
 export class ModManager {
-	private modList:ModList;
+	private modList:ModList = { mods: [] };
 
 	constructor(private readonly modsPath:string) {
 		this.reload();

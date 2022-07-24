@@ -1,6 +1,11 @@
 import * as vscode from "vscode";
 import { assert } from "console";
 
+//@ts-ignore
+import FlamegraphHtml from "./Flamegraph.html";
+//@ts-ignore
+import FlamegraphCSS from "d3-flame-graph/dist/d3-flamegraph.css";
+
 function NaN_safe_max(a:number, b:number):number {
 	if (isNaN(a)) { return b; }
 	if (isNaN(b)) { return a; }
@@ -79,7 +84,7 @@ class ProfileModData {
 	file = new Map<string, ProfileFileData>();
 }
 
-class ProfileTreeNode {
+export class ProfileTreeNode {
 	readonly children:ProfileTreeNode[] = [];
 
 	constructor(
@@ -304,12 +309,17 @@ export class Profile implements vscode.Disposable  {
 			}
 		);
 		const flameview = this.flamePanel.webview;
-		flameview.html = (await vscode.workspace.fs.readFile(
-			vscode.Uri.joinPath(this.context.extensionUri, "profile_flamegraph.html"))).toString().replace(
-			/(src|href)="([^"]+)"/g, (_, attr, value)=>{
-				return `${attr}="${flameview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, value))}"`;
-			}
-		);
+
+		console.log(FlamegraphHtml);
+		console.log(FlamegraphCSS);
+
+		const css = vscode.Uri.joinPath(this.context.extensionUri, "dist", <string>FlamegraphCSS);
+
+		flameview.html = (<string>FlamegraphHtml)
+			.replace("$d3-flamegraph.css$", flameview.asWebviewUri(css).toString())
+			.replace("$flamegraph.js$", flameview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "/dist/Flamegraph.js")).toString());
+
+		console.log(flameview.html);
 
 		flameview.onDidReceiveMessage(
 			(mesg:{command:"init"}|{command:"click";name:string;filename?:string;line?:number})=>{

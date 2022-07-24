@@ -383,8 +383,8 @@ export class FactorioVersionSelector {
 		return this._active_version;
 	}
 
-	private async tryJsonDocs(fv:FactorioVersion, throwOnError?:false): Promise<ApiDocGenerator|undefined>
-	private async tryJsonDocs(fv:FactorioVersion, throwOnError:true) : Promise<ApiDocGenerator>
+	private async tryJsonDocs(fv:FactorioVersion, throwOnError?:false): Promise<ApiDocGenerator|undefined>;
+	private async tryJsonDocs(fv:FactorioVersion, throwOnError:true) : Promise<ApiDocGenerator>;
 	private async tryJsonDocs(fv:FactorioVersion, throwOnError?:boolean) {
 		const docpath = Uri.joinPath(Uri.file(substitutePathVariables(fv.factorioPath)),
 			fv.docsPath ? fv.docsPath :
