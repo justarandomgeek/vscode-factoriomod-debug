@@ -113,7 +113,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		const own = getter(c);
 		const bases = c.base_classes
 			?.map(b=>this.classes.get(b))
-			.filter(b=>!!b)
+			.filter((b):b is ApiClass<V>=>!!b)
 			.map(getter) ?? [];
 
 		return [own, ...bases].flat();

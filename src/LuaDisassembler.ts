@@ -390,7 +390,7 @@ export class LuaFunction {
 		this.inner_functions.forEach(lf=>lf.walk_functions(fn));
 	}
 
-	private _sourcemap:Promise<SourceMapConsumer>;
+	private _sourcemap?:Promise<SourceMapConsumer>;
 	public async getSourceMap(filename:string) {
 		if (!this._sourcemap) {
 

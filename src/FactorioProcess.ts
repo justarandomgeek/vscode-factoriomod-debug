@@ -12,7 +12,7 @@ const stdoutsplit = [Buffer.from("\n"), {
 
 export class FactorioProcess extends EventEmitter {
 	private readonly factorio: ChildProcess;
-	private readonly hasNativeDebug: boolean;
+	private readonly hasNativeDebug?: boolean;
 
 	constructor(factorioPath:string, factorioArgs:string[], nativeDebugger?:string) {
 		super();

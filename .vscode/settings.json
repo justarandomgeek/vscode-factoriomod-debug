@@ -1,7 +1,6 @@
 // Place your settings in this file to overwrite default and user settings.FALSE
 {
-	"javascript.validate.enable": false,
-	"typescript.tsdk": "node_modules/typescript/lib",
+    "typescript.tsc.autoDetect": "off",
 	"files.trimTrailingWhitespace": true,
 	"editor.insertSpaces": false,
 	"Lua.workspace.ignoreDir": [
