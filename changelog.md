@@ -1,4 +1,7 @@
 
+### 2022-07-25
+- Fix `global` not getting replaced when having `..` (concat operator) before it
+
 ### 2022-07-21
 - Fix `global` not getting replaced when having a `.` (dot) as the last character on the previous line in a comment
 
