@@ -18,7 +18,8 @@
 		"noImplicitReturns": true,
 		"esModuleInterop": true,
 		"lib": [
-			"ES2020"
+			"ES2020",
+			"DOM"
 		],
 		"strict": true
 	},

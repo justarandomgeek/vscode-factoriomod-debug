@@ -8,19 +8,20 @@ import { DebugProtocol } from '@vscode/debugprotocol';
 import * as path from 'path';
 import * as os from 'os';
 import * as semver from 'semver';
-import * as vscode from 'vscode';
-import { Uri } from 'vscode';
+import type * as vscode from 'vscode';
+import { URI, Utils } from 'vscode-uri';
 import { bufferChunks, encodeBreakpoints, luaBlockQuote, objectToLua } from './EncodingUtil';
 import { FactorioProcess } from './FactorioProcess';
-import { ModInfo } from './ModPackageProvider';
+import type { ModInfo } from './ModPackageProvider';
 import { ModManager } from './ModManager';
 import { ModSettings } from './ModSettings';
 import { LuaFunction } from './LuaDisassembler';
 import { BufferStream } from './BufferStream';
-import { ActiveFactorioVersion } from './VersionSelector';
+import { ActiveFactorioVersion } from './FactorioVersion';
+
 
 interface ModPaths{
-	uri: Uri
+	uri: URI
 	name: string
 	version: string
 	info: ModInfo
@@ -97,7 +98,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	private nextRef = 1;
 
 	private factorio?: FactorioProcess;
-	private stdinQueue:{buffer:Buffer;resolve:resolver<boolean>;consumed?:Promise<void>;token?:vscode.CancellationToken}[] = [];
+	private stdinQueue:{buffer:Buffer;resolve:resolver<boolean>;consumed?:Promise<void>;signal?:AbortSignal}[] = [];
 
 	private launchArgs?: LaunchRequestArguments;
 
@@ -111,13 +112,15 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	 * We configure the default implementation of a debug adapter here.
 	 */
 	public constructor(
-		private readonly context: vscode.ExtensionContext,
-		private readonly activeVersion: ActiveFactorioVersion,
-		private readonly fs: {
-			readFile(file:Uri):Thenable<Uint8Array>
-			writeFile(file:Uri, content:Uint8Array):Thenable<void>
-			stat(item:Uri):Thenable<vscode.FileStat>
-		},
+		private readonly packageUri: URI,
+		private readonly activeVersion: Pick<ActiveFactorioVersion, "configPathIsOverriden"|"configPath"|"dataPath"|"writeDataPath"|"factorioPath"|"nativeDebugger"|"docs">,
+		private readonly fs: Pick<vscode.FileSystem, "readFile"|"writeFile"|"stat">,
+		private readonly editorInterface?: {
+			readonly tasks?: typeof vscode.tasks
+			readonly findWorkspaceFiles?: typeof vscode.workspace.findFiles
+			readonly getExtension?: typeof vscode.extensions.getExtension
+			readonly executeCommand: typeof vscode.commands.executeCommand
+		}
 	) {
 		super();
 
@@ -197,13 +200,15 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		args.hookMode = args.hookMode ?? "debug";
 		args.trace = args.trace ?? false;
 
-		const tasks = (await vscode.tasks.fetchTasks({type: "factorio"})).filter(
-			(task)=>task.definition.command === "compile"
-		);
+		if (this.editorInterface?.tasks) {
+			const tasks = (await this.editorInterface?.tasks.fetchTasks({type: "factorio"})).filter(
+				(task)=>task.definition.command === "compile"
+			);
 
-		if (tasks.length > 0) {
-			this.sendEvent(new OutputEvent(`Running ${tasks.length} compile tasks: ${tasks.map(task=>task.name).join(", ")}\n`, "stdout"));
-			await Promise.all(tasks.map(FactorioModDebugSession.runTask));
+			if (tasks.length > 0) {
+				this.sendEvent(new OutputEvent(`Running ${tasks.length} compile tasks: ${tasks.map(task=>task.name).join(", ")}\n`, "stdout"));
+				await Promise.all(tasks.map(this.runTask, this));
+			}
 		}
 
 		args.modsPath = args.modsPath.replace(/\\/g, "/");
@@ -215,7 +220,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			if (!args.adjustMods) { args.adjustMods = {}; }
 			if (!args.allowDisableBaseMod) { args.adjustMods["base"] = true; }
 
-			await this.fs.readFile(Uri.joinPath(this.context.extensionUri, "./modpackage/mods.json"))
+			await this.fs.readFile(Utils.joinPath(this.packageUri, "./modpackage/mods.json"))
 				.then((packagedModsList)=>{
 					const manager = new ModManager(args.modsPath);
 					if (args.disableExtraMods) {
@@ -234,7 +239,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 						for (const mod in packages) {
 							if (packages.hasOwnProperty(mod)) {
 								const modpackage = packages[mod];
-								const zippath = this.context.asAbsolutePath(`./modpackage/${mod}.zip`);
+								const zippath = Utils.joinPath(this.packageUri, `./modpackage/${mod}.zip`).fsPath;
 								const result = manager.installMod(mod, modpackage.version, zippath, modpackage.deleteOld);
 								this.sendEvent(new OutputEvent(`package install ${mod} ${JSON.stringify(result)}\n`, "stdout"));
 							}
@@ -256,8 +261,10 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				});
 		}
 
-		const infos = await vscode.workspace.findFiles('**/info.json');
-		await Promise.all(infos.map(this.updateInfoJson, this));
+		if (this.editorInterface?.findWorkspaceFiles) {
+			const infos = await this.editorInterface.findWorkspaceFiles('**/info.json');
+			await Promise.all(infos.map(this.updateInfoJson, this));
+		}
 
 		args.factorioArgs = args.factorioArgs||[];
 		if (!args.noDebug) {
@@ -282,7 +289,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		}
 
 		if (args.adjustModSettings) {
-			const modSettingsUri = Uri.file(path.join(args.modsPath, "mod-settings.dat"));
+			const modSettingsUri = URI.file(path.join(args.modsPath, "mod-settings.dat"));
 			const settings = new ModSettings(Buffer.from(await this.fs.readFile(modSettingsUri)));
 			for (const s of args.adjustModSettings) {
 				settings.set(s.scope, s.name, s.value);
@@ -544,7 +551,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		if (matches) {
 			const thismodule = this._modules.get(matches[1]);
 			if (thismodule?.symbolFilePath) {
-				return Uri.joinPath(Uri.parse(thismodule.symbolFilePath), matches[2]).toString();
+				return Utils.joinPath(URI.parse(thismodule.symbolFilePath), matches[2]).toString();
 			}
 		}
 
@@ -566,14 +573,14 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 
 	protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
-		let bpuri:Uri;
+		let bpuri:URI;
 		let bppath:string;
 		if (args.source.path) {
 			const inpath = <string>args.source.path;
 			if (inpath.match(/^[a-zA-Z]:/)) { // matches c:\... or c:/... style windows paths, single drive letter
-				bpuri = Uri.file(inpath.replace(/\\/g, "/"));
+				bpuri = URI.file(inpath.replace(/\\/g, "/"));
 			} else { // everything else is already a URI
-				bpuri = Uri.parse(inpath);
+				bpuri = URI.parse(inpath);
 			}
 			bppath = this.convertClientPathToDebugger(bpuri.toString());
 		} else {
@@ -660,14 +667,14 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	protected async variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments, request?: DebugProtocol.Request) {
 		let consume:resolver<void>;
 		const consumed = new Promise<void>((resolve)=>consume=resolve);
-		const cts = new vscode.CancellationTokenSource();
+		const ac = new AbortController();
 		const vars = await Promise.race([
 			new Promise<DebugProtocol.Variable[]>(async (resolve)=>{
 				this._vars.set(response.request_seq, resolve);
 				if (!await this.writeOrQueueStdin(
 					`__DebugAdapter.variables(${args.variablesReference},${response.request_seq},${args.filter? `"${args.filter}"`:"nil"},${args.start || "nil"},${args.count || "nil"})\n`,
 					consumed,
-					cts.token)) {
+					ac.signal)) {
 					this._vars.delete(response.request_seq);
 					consume!();
 					resolve([
@@ -684,7 +691,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				// just time out if we're in a menu with no lua running to empty the queue...
 				// in which case it's just expired anyway
 				setTimeout(()=>{
-					cts.cancel();
+					ac.abort();
 					resolve(<DebugProtocol.Variable[]>[
 						{
 							name: "",
@@ -709,7 +716,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			response.success = false;
 			response.message = vars[0].value;
 		}
-		cts.dispose();
 		this.sendResponse(response);
 	}
 
@@ -730,14 +736,14 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	protected async evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments, request?: DebugProtocol.Request) {
 		let consume:resolver<void>;
 		const consumed = new Promise<void>((resolve)=>consume=resolve);
-		const cts = new vscode.CancellationTokenSource();
+		const ac = new AbortController();
 		const body = await Promise.race([
 			new Promise<EvaluateResponseBody>(async (resolve)=>{
 				this._evals.set(response.request_seq, resolve);
 				if (!await this.writeOrQueueStdin(
 					`__DebugAdapter.evaluate(${args.frameId??"nil"},"${args.context}",${luaBlockQuote(Buffer.from(args.expression.replace(/\n/g, " ")))},${response.request_seq})\n`,
 					consumed,
-					cts.token)) {
+					ac.signal)) {
 					this._evals.delete(response.request_seq);
 					consume!();
 					resolve({
@@ -752,7 +758,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				// just time out if we're in a menu with no lua running to empty the queue...
 				// in which case it's just expired anyway
 				setTimeout(()=>{
-					cts.cancel();
+					ac.abort();
 					resolve(<EvaluateResponseBody>{
 						result: `No Lua State Available seq=${response.request_seq}`,
 						type: "error",
@@ -778,7 +784,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 								`{Missing Translation ID ${body.timer}}`;
 			body.result += "\n⏱️ " + time;
 		}
-		cts.dispose();
 		this.sendResponse(response);
 	}
 
@@ -953,14 +958,14 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		if (ref) {
 			let consume:resolver<void>;
 			const consumed = new Promise<void>((resolve)=>consume=resolve);
-			const cts = new vscode.CancellationTokenSource();
+			const ac = new AbortController();
 			const body = await Promise.race([
 				new Promise<string>(async (resolve)=>{
 					this._dumps.set(ref, resolve);
 					if (!await this.writeOrQueueStdin(
 						`__DebugAdapter.source(${ref})\n`,
 						consumed,
-						cts.token)) {
+						ac.signal)) {
 						this._dumps.delete(ref);
 						consume!();
 						resolve(`Expired source ref=${ref}`);
@@ -970,14 +975,13 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					// just time out if we're in a menu with no lua running to empty the queue...
 					// in which case it's just expired anyway
 					setTimeout(()=>{
-						cts.cancel();
+						ac.abort();
 						resolve(`No Lua State Available ref=${ref} seq=${response.request_seq}`);
 					}, this.launchArgs!.runningTimeout ?? 2000);
 				}),
 			]);
 			consume!();
 			response.body = { content: body };
-			cts.dispose();
 		}
 		this.sendResponse(response);
 	}
@@ -1000,11 +1004,14 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		return new Source(path.basename(filePath), this.convertDebuggerPathToClient(filePath));
 	}
 
-	public static async runTask(task: vscode.Task) {
-		const execution = await vscode.tasks.executeTask(task);
+	public async runTask(task: vscode.Task) {
+		if (!this.editorInterface?.tasks) {
+			return undefined;
+		}
+		const execution = await this.editorInterface.tasks.executeTask(task);
 
 		return new Promise<void>(resolve=>{
-			const disposable = vscode.tasks.onDidEndTask(e=>{
+			const disposable = this.editorInterface!.tasks!.onDidEndTask(e=>{
 				if (e.execution === execution) {
 					disposable.dispose();
 					resolve();
@@ -1013,7 +1020,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		});
 	}
 
-	private async updateInfoJson(uri:Uri) {
+	private async updateInfoJson(uri:URI) {
 		try {
 			let jsonpath = uri.path;
 			if (os.platform() === "win32" && jsonpath.startsWith("/")) { jsonpath = jsonpath.substr(1); }
@@ -1057,7 +1064,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.factorio?.writeStdin(Buffer.concat([s instanceof Buffer ? s : Buffer.from(s), Buffer.from("\n")]));
 	}
 
-	private async writeOrQueueStdin(s:string|Buffer, consumed?:Promise<void>, token?:vscode.CancellationToken):Promise<boolean> {
+	private async writeOrQueueStdin(s:string|Buffer, consumed?:Promise<void>, signal?:AbortSignal):Promise<boolean> {
 		if (this.launchArgs!.trace) {
 			this.sendEvent(new OutputEvent(`${this.inPrompt?"<":"q<"} ${s instanceof Buffer ? `Buffer[${s.length}]` : s.replace(/^[\r\n]*/, "").replace(/[\r\n]*$/, "")}\n`, "console"));
 		}
@@ -1067,7 +1074,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			if (consumed) { await consumed; }
 			return true;
 		} else {
-			const p = new Promise<boolean>((resolve)=>this.stdinQueue.push({buffer: b, resolve: resolve, consumed: consumed, token: token}));
+			const p = new Promise<boolean>((resolve)=>this.stdinQueue.push({buffer: b, resolve: resolve, consumed: consumed, signal: signal}));
 			return p;
 		}
 	}
@@ -1075,7 +1082,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	private async runQueuedStdin() {
 		if (this.stdinQueue.length > 0) {
 			for await (const b of this.stdinQueue) {
-				if (b.token?.isCancellationRequested) {
+				if (b.signal?.aborted) {
 					b.resolve(false);
 				} else {
 					this.writeStdin(b.buffer, true);
@@ -1176,14 +1183,14 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.inPrompt = false;
 	}
 
-	private async trydir(dir:Uri, module:DebugProtocol.Module): Promise<boolean> {
+	private async trydir(dir:URI, module:DebugProtocol.Module): Promise<boolean> {
 		try {
 			const stat = await this.fs.stat(dir);
 			// eslint-disable-next-line no-bitwise
-			if (stat.type&vscode.FileType.Directory) {
+			if (stat.type&2/*vscode.FileType.Directory*/) {
 
 				const modinfo:ModInfo = JSON.parse(Buffer.from(
-					await this.fs.readFile(Uri.joinPath(dir, "info.json"))).toString("utf8"));
+					await this.fs.readFile(Utils.joinPath(dir, "info.json"))).toString("utf8"));
 				if (modinfo.name===module.name && semver.eq(modinfo.version, module.version!, {"loose": true})) {
 					module.symbolFilePath = dir.toString();
 					module.symbolStatus = "Loaded Mod Directory";
@@ -1192,7 +1199,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				}
 			}
 		} catch (ex) {
-			if ((<vscode.FileSystemError>ex).code !== "FileNotFound") {
+			if ((<vscode.FileSystemError>ex).code !== "FileNotFound" && (<vscode.FileSystemError>ex).code !== "ENOENT") {
 				this.sendEvent(new OutputEvent(`failed loading ${module.name} ${module.version} from modspath: ${ex}\n`, "stderr"));
 			}
 			return false;
@@ -1201,17 +1208,17 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 
 	private async updateModules(modules: DebugProtocol.Module[]) {
-		const zipext = vscode.extensions.getExtension("slevesque.vscode-zipexplorer");
+		const zipext = this.editorInterface?.getExtension?.("slevesque.vscode-zipexplorer");
 		if (zipext) {
 			await zipext.activate();
-			await vscode.commands.executeCommand("zipexplorer.clear");
+			await this.editorInterface?.executeCommand("zipexplorer.clear");
 		}
 		for (const module of modules) {
 			try {
 				this._modules.set(module.name, module);
 
 				if (module.name === "#user") {
-					module.symbolFilePath = Uri.file(await this.activeVersion.writeDataPath()).toString();
+					module.symbolFilePath = URI.file(await this.activeVersion.writeDataPath()).toString();
 					module.symbolStatus = "Loaded Write Data Directory";
 					this.sendEvent(new OutputEvent(`loaded ${module.name} from config ${module.symbolFilePath}\n`, "stdout"));
 					continue;
@@ -1225,7 +1232,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 				if (module.name === "core" || module.name === "base") {
 					// find `core` and `base` in data
-					module.symbolFilePath = Uri.joinPath(Uri.file(await this.activeVersion.dataPath()), module.name).toString();
+					module.symbolFilePath = Utils.joinPath(URI.file(await this.activeVersion.dataPath()), module.name).toString();
 					module.symbolStatus = "Loaded Data Directory";
 					this.sendEvent(new OutputEvent(`loaded ${module.name} from data ${module.symbolFilePath}\n`, "stdout"));
 					continue;
@@ -1249,16 +1256,16 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				if (this.launchArgs!.modsPath) {
 					// find it in mods dir:
 					// 1) unversioned folder
-					let dir = Uri.joinPath(Uri.file(this.launchArgs!.modsPath), module.name);
+					let dir = Utils.joinPath(URI.file(this.launchArgs!.modsPath), module.name);
 					if (await this.trydir(dir, module)) { continue; };
 
 					// 2) versioned folder
-					dir = Uri.joinPath(Uri.file(this.launchArgs!.modsPath), module.name+"_"+module.version);
+					dir = Utils.joinPath(URI.file(this.launchArgs!.modsPath), module.name+"_"+module.version);
 					if (await this.trydir(dir, module)) { continue; };
 
 					// 3) versioned zip
 					if (zipext) {
-						const zipuri = Uri.joinPath(Uri.file(this.launchArgs!.modsPath), module.name+"_"+module.version+".zip");
+						const zipuri = Utils.joinPath(URI.file(this.launchArgs!.modsPath), module.name+"_"+module.version+".zip");
 						let stat:vscode.FileStat|undefined;
 						try {
 							stat = await this.fs.stat(zipuri);
@@ -1268,14 +1275,14 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 							}
 						}
 						// eslint-disable-next-line no-bitwise
-						if (stat && (stat.type&vscode.FileType.File)) {
+						if (stat && (stat.type&1/*vscode.FileType.File*/)) {
 							try {
 								// if zip exists, try to mount it
 								//TODO: can i check if it's already mounted somehow?
 								//TODO: can i actually read dirname inside? doesn't seem to be registered as an fs handler
-								await vscode.commands.executeCommand("zipexplorer.exploreZipFile", zipuri);
+								await this.editorInterface?.executeCommand("zipexplorer.exploreZipFile", zipuri);
 
-								const zipinside = Uri.joinPath(zipuri, module.name+"_"+module.version).with({scheme: "zip"});
+								const zipinside = Utils.joinPath(zipuri, module.name+"_"+module.version).with({scheme: "zip"});
 								module.symbolFilePath = zipinside.toString();
 								module.symbolStatus = "Loaded Zip";
 								this.sendEvent(new OutputEvent(`loaded ${module.name} ${module.version} from mod zip ${zipuri.toString()}\n`, "stdout"));

@@ -1,9 +1,8 @@
 import * as d3 from "d3";
 import { flamegraph } from "d3-flame-graph";
-import { ProfileTreeNode } from "./Profile";
+import type { ProfileTreeNode } from "./Profile";
 import "d3-flame-graph/dist/d3-flamegraph.css";
-
-declare const window: any, document: any, acquireVsCodeApi: any;
+import type {} from "vscode-webview";
 
 const vscode = acquireVsCodeApi();
 const chart = flamegraph().height(window.innerHeight - 20).width(window.innerWidth - 60);

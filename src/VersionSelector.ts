@@ -1,207 +1,11 @@
 import * as vscode from 'vscode';
-import * as ini from 'ini';
 import * as os from 'os';
 import * as path from 'path';
-import { Uri } from "vscode";
+import { URI, Utils } from "vscode-uri";
 import { ApiDocGenerator } from './ApiDocs/ApiDocGenerator';
 import { overlay } from './ApiDocs/Overlay';
+import { ActiveFactorioVersion, FactorioVersion, substitutePathVariables } from './FactorioVersion';
 const fs = vscode.workspace.fs;
-interface FactorioVersion {
-	name: string
-	active?: true
-
-	factorioPath: string
-	configPath?: string
-	docsPath?: string
-
-	nativeDebugger?: string
-}
-
-function substitutePathVariables(aPath:string) {
-	if (aPath.match(/^~[\\\/]/)) {
-		aPath = path.posix.join(
-			os.homedir().replace(/\\/g, "/"),
-			aPath.replace(/^~[\\\/]/, "") );
-	}
-
-	aPath = aPath.replace("${userHome}", os.homedir());
-
-	if (vscode.workspace.workspaceFolders?.[0]) {
-		aPath = aPath.replace("${workspaceFolder}", vscode.workspace.workspaceFolders[0].uri.fsPath);
-	}
-
-	aPath = aPath.replace(/\$\{env:(\w+)}/g, (match, p1)=>process.env[p1] ?? match);
-
-	return aPath;
-}
-
-interface FactorioConfigIni {
-	path?:{
-		"read-data"?:string
-		"write-data"?:string
-	}
-	other?:{
-		"cache-prototype-data"?:boolean
-	}
-};
-
-
-export class ActiveFactorioVersion {
-	constructor(
-		private readonly fv:FactorioVersion,
-		public readonly docs:ApiDocGenerator,
-	) {
-	}
-
-
-	public get name() {
-		return this.fv.name;
-	}
-
-	public get factorioPath() {
-		return substitutePathVariables(this.fv.factorioPath);
-	}
-
-	public configPathIsOverriden() {
-		return !!this.fv.configPath;
-	}
-	public async configPath() {
-		if (this.fv.configPath) {
-			return substitutePathVariables(this.fv.configPath);
-		}
-
-		// find config-path.cfg then config.ini and dataPath/modsPath defaults
-		const cfgpath = path.resolve(path.dirname(this.factorioPath), "../../config-path.cfg" );
-		try {
-			const configdata = ini.parse((await fs.readFile(Uri.file(cfgpath))).toString());
-			return path.resolve(
-				this.translatePath(configdata["config-path"]),
-				"./config.ini");
-		} catch (error) {
-		}
-		// try for a config.ini in systemwritepath
-		return this.translatePath("__PATH__system-write-data__/config/config.ini");
-	}
-
-	public get nativeDebugger() {
-		return this.fv.nativeDebugger && substitutePathVariables(this.fv.nativeDebugger);
-	}
-
-
-	private iniData? : FactorioConfigIni|Thenable<FactorioConfigIni>;
-	private async configIni() {
-		if (!this.iniData) {
-			this.iniData =
-				fs.readFile(Uri.file(await this.configPath()))
-					.then(dat=>ini.parse(dat.toString()));
-		}
-		return this.iniData;
-	}
-
-	public async isPrototypeCacheEnabled() {
-		let configIni = await this.configIni();
-		return configIni.other?.["cache-prototype-data"];
-	}
-
-	public async disablePrototypeCache() {
-		this.iniData = undefined;
-		const configUri = Uri.file(await this.configPath());
-		let filedata = (await fs.readFile(configUri)).toString();
-		filedata = filedata.replace("cache-prototype-data=", "; cache-prototype-data=");
-		await fs.writeFile(configUri, Buffer.from(filedata));
-		this.iniData = ini.parse(filedata);
-	}
-
-	public async checkSteamAppID() {
-		const factorioPath = Uri.file(this.factorioPath);
-		const stats = await Promise.allSettled(
-			[ "../steam_api64.dll", "../libsteam_api.dylib", "../libsteam_api.so"]
-				.map(s=>fs.stat(Uri.joinPath(factorioPath, s)))
-		);
-		if (stats.find(psr=>psr.status==="fulfilled")) {
-			const appidUri = Uri.joinPath(factorioPath, "../steam_appid.txt");
-			const appidStat = await Promise.allSettled([fs.stat(appidUri)]);
-			if (!appidStat.find(psr=>psr.status==="fulfilled")) {
-				if ("Yes" === await vscode.window.showInformationMessage("This is a steam install, and will require `steam_appid.txt` in order to be used for debugging. Create it now?", "Yes", "No")) {
-					try {
-						fs.writeFile(appidUri, Buffer.from("427520"));
-					} catch (error) {
-						vscode.window.showErrorMessage(`failed to write "427520" to ${appidUri}: ${error}`);
-					}
-				}
-			}
-		}
-	}
-
-	public async defaultModsPath() {
-		const configModsPath = (await this.configIni())?.path?.["write-data"];
-		if (!configModsPath) {
-			throw "path.write-data missing in config.ini";
-		}
-		return path.posix.normalize(path.resolve(this.translatePath(configModsPath), "mods"));
-	}
-
-	public async dataPath() {
-		const configDataPath = (await this.configIni()).path?.["read-data"];
-		if (!configDataPath) {
-			throw "path.read-data missing in config.ini";
-		}
-		return path.posix.normalize(this.translatePath(configDataPath));
-	}
-
-	public async lualibPath() {
-		return path.posix.normalize(path.resolve(await this.dataPath(), "core", "lualib"));
-	}
-
-	public async writeDataPath() {
-		const configDataPath = (await this.configIni()).path?.["write-data"];
-		if (!configDataPath) {
-			throw "path.write-data missing in config.ini";
-		}
-		return path.posix.normalize(this.translatePath(configDataPath));
-	}
-
-	translatePath(p:string):string {
-		if (p.startsWith("__PATH__executable__")) { return path.join(path.dirname(this.factorioPath), p.replace("__PATH__executable__", "")); }
-
-		if (p.startsWith("__PATH__system-write-data__")) {
-			// windows: %appdata%/Factorio
-			// linux: ~/.factorio
-			// mac: ~/Library/Application Support/factorio
-			const syswrite =
-				os.platform() === "win32" ? path.resolve(process.env.APPDATA!, "Factorio") :
-				os.platform() === "linux" ? path.resolve(os.homedir(), ".factorio") :
-				os.platform() === "darwin" ? path.resolve(os.homedir(), "Library/Application Support/factorio" ) :
-				"??";
-			return path.join(syswrite, p.replace("__PATH__system-write-data__", ""));
-		}
-		if (p.startsWith("__PATH__system-read-data__")) {
-			// linux: /usr/share/factorio
-			// mac: factorioPath/../data
-			// else (windows,linuxsteam): factorioPath/../../data
-			const sysread =
-				os.platform() === "linux" ? "/usr/share/factorio" :
-				os.platform() === "darwin" ? path.resolve(path.dirname(this.factorioPath), "../data" ) :
-				path.resolve(path.dirname(this.factorioPath), "../../data" );
-
-			return path.join(sysread, p.replace("__PATH__system-read-data__", ""));
-		}
-
-		return p;
-	}
-
-	public is(other:FactorioVersion) {
-		const fv = this.fv;
-		return fv.name === other.name &&
-			fv.factorioPath === other.factorioPath &&
-			fv.nativeDebugger === other.nativeDebugger &&
-			fv.docsPath === other.docsPath &&
-			fv.configPath === other.configPath;
-	}
-}
-
-
-
 
 const detectPaths:FactorioVersion[] = [
 	{name: "Steam", factorioPath: "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Factorio\\bin\\x64\\factorio.exe"},
@@ -252,7 +56,7 @@ export class FactorioVersionSelector {
 		if (!docs) { return; }
 
 		this.bar.text = `Factorio ${docs.application_version} (${active_version.name})`;
-		this._active_version = new ActiveFactorioVersion(active_version, docs);
+		this._active_version = new ActiveFactorioVersion(vscode.workspace.fs, active_version, docs, vscode.workspace.workspaceFolders);
 
 		if (config.get("docs.offerUpdate", true)) {
 			this.checkDocs();
@@ -274,7 +78,7 @@ export class FactorioVersionSelector {
 				.filter(s=>!hasversions.includes(s.factorioPath))
 				.map(async s=>{
 					try {
-						const stat = await fs.stat(Uri.file(substitutePathVariables(s.factorioPath)));
+						const stat = await fs.stat(URI.file(substitutePathVariables(s.factorioPath, vscode.workspace.workspaceFolders)));
 						// eslint-disable-next-line no-bitwise
 						if (stat.type & vscode.FileType.File) {
 							return s;
@@ -346,7 +150,7 @@ export class FactorioVersionSelector {
 				filters: { "JSON Docs": ["json"] },
 			});
 			if (!file) { return; }
-			active_version.docsPath = path.relative(substitutePathVariables(active_version.factorioPath), file[0].fsPath);
+			active_version.docsPath = path.relative(substitutePathVariables(active_version.factorioPath, vscode.workspace.workspaceFolders), file[0].fsPath);
 			try {
 				docs = await this.tryJsonDocs(active_version, true);
 			} catch (error) {
@@ -367,11 +171,11 @@ export class FactorioVersionSelector {
 		config.update("versions", versions);
 		this.bar.text = `Factorio ${docs.application_version} (${active_version.name})`;
 		const previous_active = this._active_version;
-		this._active_version = new ActiveFactorioVersion(active_version, docs);
+		this._active_version = new ActiveFactorioVersion(vscode.workspace.fs, active_version, docs, vscode.workspace.workspaceFolders);
 
 		await Promise.allSettled([
 			this.generateDocs(previous_active),
-			this._active_version.checkSteamAppID(),
+			this._active_version.checkSteamAppID(vscode.window),
 		]);
 	}
 
@@ -386,7 +190,7 @@ export class FactorioVersionSelector {
 	private async tryJsonDocs(fv:FactorioVersion, throwOnError?:false): Promise<ApiDocGenerator|undefined>;
 	private async tryJsonDocs(fv:FactorioVersion, throwOnError:true) : Promise<ApiDocGenerator>;
 	private async tryJsonDocs(fv:FactorioVersion, throwOnError?:boolean) {
-		const docpath = Uri.joinPath(Uri.file(substitutePathVariables(fv.factorioPath)),
+		const docpath = Utils.joinPath(URI.file(substitutePathVariables(fv.factorioPath, vscode.workspace.workspaceFolders)),
 			fv.docsPath ? fv.docsPath :
 			(os.platform() === "darwin") ? "../../doc-html/runtime-api.json" :
 			"../../../doc-html/runtime-api.json"
@@ -403,13 +207,13 @@ export class FactorioVersionSelector {
 	private findWorkspaceLibraryFolder() {
 		const config = vscode.workspace.getConfiguration("factorio");
 		const library = config.get<string>("workspace.library");
-		if (library) { return Uri.file(substitutePathVariables(library)); }
+		if (library) { return URI.file(substitutePathVariables(library, vscode.workspace.workspaceFolders)); }
 
 		const a = vscode.workspace.workspaceFolders?.find(wf=>wf.name===".vscode")?.uri;
-		if (a) { return Uri.joinPath(a, "factorio"); }
+		if (a) { return Utils.joinPath(a, "factorio"); }
 
 		const b = vscode.workspace.workspaceFolders?.[0]?.uri;
-		if (b) { return Uri.joinPath(b, ".vscode", "factorio"); }
+		if (b) { return Utils.joinPath(b, ".vscode", "factorio"); }
 
 		return;
 	}
@@ -427,7 +231,7 @@ export class FactorioVersionSelector {
 			return;
 		}
 
-		const filecontent = (await fs.readFile(Uri.joinPath(workspaceLibrary, file[0]))).toString();
+		const filecontent = (await fs.readFile(Utils.joinPath(workspaceLibrary, file[0]))).toString();
 
 		const matches = filecontent.match(/--\$Factorio ([^\n]*)\n--\$Overlay ([^\n]*)\n/m);
 		if (!matches) {
@@ -476,7 +280,7 @@ export class FactorioVersionSelector {
 				(await fs.readDirectory(workspaceLibrary))
 					.map(async ([name, type])=>{
 						if (name.match(/runtime\-api.+\.lua/)) {
-							return fs.delete(Uri.joinPath(workspaceLibrary, name), {useTrash: true});
+							return fs.delete(Utils.joinPath(workspaceLibrary, name), {useTrash: true});
 						}
 					}));
 		} catch (error) {
@@ -484,7 +288,7 @@ export class FactorioVersionSelector {
 
 		const maxDocSize = await activeVersion.docs.generate_sumneko_docs(
 			async (filename:string, buff:Buffer)=>{
-				const save = Uri.joinPath(workspaceLibrary, filename);
+				const save = Utils.joinPath(workspaceLibrary, filename);
 				return fs.writeFile(save, buff);
 			});
 
@@ -515,9 +319,9 @@ export class FactorioVersionSelector {
 
 		const library: string[] = luaconfig.get("workspace.library") ?? [];
 
-		const removeLibraryPath = async (oldroot:Uri, ...seg:string[])=>{
+		const removeLibraryPath = async (oldroot:URI, ...seg:string[])=>{
 			if (oldroot) {
-				const oldpath = Uri.joinPath(oldroot, ...seg);
+				const oldpath = Utils.joinPath(oldroot, ...seg);
 				const oldindex = library.indexOf(oldpath.fsPath);
 				if (oldindex !== -1) {
 					library.splice(oldindex, 1);
@@ -525,9 +329,9 @@ export class FactorioVersionSelector {
 			}
 		};
 
-		const addLibraryPath =async (newroot:Uri, ...seg:string[])=>{
+		const addLibraryPath =async (newroot:URI, ...seg:string[])=>{
 			try {
-				const newpath = Uri.joinPath(newroot, ...seg);
+				const newpath = Utils.joinPath(newroot, ...seg);
 				if (!library.includes(newpath.fsPath) &&
 					// eslint-disable-next-line no-bitwise
 					((await fs.stat(newpath)).type & vscode.FileType.Directory)) {
@@ -542,7 +346,7 @@ export class FactorioVersionSelector {
 		const factorioconfig = vscode.workspace.getConfiguration("factorio");
 
 		if (previous_active && factorioconfig.get("workspace.manageLibraryDataLinks", true)) {
-			const oldroot = Uri.file(await previous_active.dataPath());
+			const oldroot = URI.file(await previous_active.dataPath());
 			await removeLibraryPath(oldroot);
 			await removeLibraryPath(oldroot, "core", "lualib");
 		}
@@ -557,7 +361,7 @@ export class FactorioVersionSelector {
 		await luaconfig.update("workspace.library", library);
 
 		if (factorioconfig.get("workspace.manageLibraryDataLinks", true)) {
-			const newroot = Uri.file(await activeVersion.dataPath());
+			const newroot = URI.file(await activeVersion.dataPath());
 			await addLibraryPath(newroot);
 			await addLibraryPath(newroot, "core", "lualib");
 		}

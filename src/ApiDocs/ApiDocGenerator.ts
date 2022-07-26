@@ -36,7 +36,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 	private readonly runtime_api_base:string;
 
-	constructor(docjson:string, private readonly docsettings:WorkspaceConfiguration) {
+	constructor(docjson:string, private readonly docsettings:Pick<WorkspaceConfiguration, "get">) {
 		this.docs = JSON.parse(docjson);
 
 		if (this.docs.application !== "factorio") {
@@ -221,7 +221,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		return debuginfo;
 	}
 
-	public async generate_sumneko_docs(writeFile:(filename:string, buff:Buffer)=>any) {
+	public async generate_sumneko_docs(writeFile:(filename:string, buff:Buffer)=>void|Promise<void>) {
 		const x = Math.max(...await Promise.all([
 			this.generate_sumneko_section("builtin", writeFile),
 			this.generate_sumneko_section("defines", writeFile),

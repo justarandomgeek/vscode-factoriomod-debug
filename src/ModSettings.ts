@@ -69,5 +69,18 @@ export class ModSettings {
 	get(type:ModSettingsScope, key:string) : ModSettingsType|undefined {
 		return this.settings[type][key]?.value;
 	}
+
+	*list() {
+		for (const scope in this.settings) {
+			for (const setting in this.settings[scope as ModSettingsScope]) {
+				const value = this.settings[scope as ModSettingsScope][setting];
+				yield {
+					scope: scope,
+					setting: setting,
+					value: value.value,
+				};
+			}
+		}
+	}
 }
 

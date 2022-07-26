@@ -17,7 +17,7 @@ export function activate(context: vscode.ExtensionContext) {
 	const provider = new FactorioModConfigurationProvider(versionSelector);
 	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('factoriomod', provider));
 
-	const factory = new InlineDebugAdapterFactory(context, versionSelector);
+	const factory = new DebugAdapterFactory(context, versionSelector);
 
 	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('factoriomod', factory));
 	context.subscriptions.push(factory);
@@ -130,21 +130,40 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 	}
 }
 
-class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
+class DebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
 	constructor(
 		private readonly context: vscode.ExtensionContext,
 		private readonly versionSelector: FactorioVersionSelector,
 	) {}
 
-	async createDebugAdapterDescriptor(_session: vscode.DebugSession) {
+	async createDebugAdapterDescriptor(session: vscode.DebugSession, executable: vscode.DebugAdapterExecutable) {
 		const activeVersion = await this.versionSelector.getActiveVersion();
 		if (!activeVersion) { return; }
-		return new vscode.DebugAdapterInlineImplementation(
-			new FactorioModDebugSession(
-				this.context,
-				activeVersion,
-				vscode.workspace.fs
-			));
+
+		const runMode = vscode.workspace.getConfiguration("factorio.debug").get<string>("runMode", "inline");
+		switch (runMode) {
+			case "inline":
+			default:
+				return new vscode.DebugAdapterInlineImplementation(
+					new FactorioModDebugSession(
+						this.context.extensionUri,
+						activeVersion,
+						vscode.workspace.fs,
+						{
+							tasks: vscode.tasks,
+							findWorkspaceFiles: vscode.workspace.findFiles,
+							getExtension: vscode.extensions.getExtension,
+							executeCommand: vscode.commands.executeCommand,
+						}
+					));
+			//@ts-expect-error
+			case "externalInspect":
+				executable.args.unshift("--no-lazy", "--inspect-brk");
+				//fallthrough
+			case "external":
+				executable.args.push(...await activeVersion.debugLaunchArgs());
+				return executable;
+		}
 	}
 
 	dispose() {
