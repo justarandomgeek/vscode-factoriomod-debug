@@ -8,6 +8,8 @@
 * Offer to regenerate docs when they seem to be out of date
 * Generate operators for sumneko 3.5
 * Option to not generate docs when selecting a version
+* Bundle extension with esbuild (overall ~1/4 download size)
+* WIP support for running debug adapter and some mod management commands outside vscode for other editors/debug adapter clients
 
 ## 1.1.21
 
