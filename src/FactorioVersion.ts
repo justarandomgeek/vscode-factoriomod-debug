@@ -59,7 +59,7 @@ export class ActiveFactorioVersion {
 		const args = [];
 		args.push(this.factorioPath);
 		if (this.fv.docsPath) {
-			args.push("--doc", this.fv.docsPath);
+			args.push("--docs", this.fv.docsPath);
 		}
 		if (this.configPathIsOverriden()) {
 			args.push("--config", await this.configPath());

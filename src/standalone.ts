@@ -115,16 +115,16 @@ program.command("docs <docjson> <outdir>").action(async (docjson:string, outdir:
 	});
 });
 
-program.command("debug <factorioPath>")
-	.option("-d, --docs <docsPath>")
+const debugcommand = program.command("debug <factorioPath>");
+debugcommand.option("-d, --docs <docsPath>")
 	.option("-c, --config <configPath>")
 	.action(async (factorioPath:string)=>{
 		const packageUri = Utils.resolvePath(URI.file(__dirname), "..");
 		const fv: FactorioVersion = {
 			name: "standalone",
 			factorioPath: factorioPath,
-			configPath: program.opts().configPath,
-			docsPath: program.opts().docsPath,
+			configPath: debugcommand.opts().config,
+			docsPath: debugcommand.opts().docs,
 		};
 		const docsPath = Utils.joinPath(URI.file(factorioPath),
 			fv.docsPath ? fv.docsPath :
