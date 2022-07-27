@@ -1,4 +1,3 @@
-import { Mapping, SourceMapConsumer, SourceMapGenerator } from 'source-map';
 import { DebugProtocol } from '@vscode/debugprotocol';
 import { BufferStream } from "./BufferStream";
 
@@ -389,28 +388,6 @@ export class LuaFunction {
 		fn(this);
 		this.inner_functions.forEach(lf=>lf.walk_functions(fn));
 	}
-
-	private _sourcemap?:Promise<SourceMapConsumer>;
-	public async getSourceMap(filename:string) {
-		if (!this._sourcemap) {
-
-			const map = new SourceMapGenerator({file: filename});
-			for (let i = 0; i < this.instructions.length; i++) {
-				const mapping:Mapping = {
-					source: this.sources[this.instructions[i].source_idx],
-					original: {line: this.instructions[i].line, column: this.instructions[i].column},
-					generated: {line: i+1, column: 0},
-				};
-				map.addMapping(mapping);
-			}
-
-			this._sourcemap = new SourceMapConsumer(map.toJSON());
-		}
-
-		return this._sourcemap;
-
-	}
-
 
 	public getFunctionAtStartLine(startline:number) : LuaFunction|undefined {
 		if (this.firstline === startline) {

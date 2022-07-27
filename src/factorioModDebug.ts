@@ -853,8 +853,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			const dumpid = source.path ?? source.sourceReference;
 			const dump = new LuaFunction(new BufferStream(Buffer.from(loaded.dump, "base64")), true);
 			this.nextdump = dump.rebase(this.nextdump);
-			//TODO load .map files for file sources named in debug symbols (recursively?)
-			// into this.sourceMaps
 
 			const lines = new Set<number>();
 
