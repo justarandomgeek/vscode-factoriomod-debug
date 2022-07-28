@@ -29,7 +29,6 @@ program
 			],
 			loader: {
 				".html": "text",
-				".zip": "binary",
 			},
 			platform: "node",
 			bundle: true,
