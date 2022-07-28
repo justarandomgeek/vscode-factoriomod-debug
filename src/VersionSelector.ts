@@ -317,9 +317,9 @@ export class FactorioVersionSelector {
 		updates.push(luaconfig.update("runtime.version", "Lua 5.2"));
 
 
-		const library: string[] = luaconfig.get("workspace.library") ?? [];
+		const library = luaconfig.get<string[]>("workspace.library", []);
 
-		const removeLibraryPath = async (oldroot:URI, ...seg:string[])=>{
+		const removeLibraryPath = (oldroot:URI, ...seg:string[])=>{
 			if (oldroot) {
 				const oldpath = Utils.joinPath(oldroot, ...seg);
 				const oldindex = library.indexOf(oldpath.fsPath);
@@ -347,15 +347,15 @@ export class FactorioVersionSelector {
 
 		if (previous_active && factorioconfig.get("workspace.manageLibraryDataLinks", true)) {
 			const oldroot = URI.file(await previous_active.dataPath());
-			await removeLibraryPath(oldroot);
-			await removeLibraryPath(oldroot, "core", "lualib");
+			removeLibraryPath(oldroot);
+			removeLibraryPath(oldroot, "core", "lualib");
 		}
 
 		if (factorioconfig.get("workspace.manageLibraryDocsLink", true)) {
 			const workspacelib = vscode.workspace.asRelativePath(workspaceLibrary);
 			const index = library.indexOf(workspacelib);
 			if (index!==-1) {
-				library.splice(index);
+				library.splice(index, 1);
 			}
 		}
 		await luaconfig.update("workspace.library", library);
