@@ -60,7 +60,7 @@ local json_encode = require("__debugadapter__/json.lua").encode
 local datastring = require("__debugadapter__/datastring.lua")
 local ReadBreakpoints = datastring.ReadBreakpoints
 
----@type table<string,table<number,SourceBreakpoint>>
+---@type table<string,table<number,DebugProtocol.SourceBreakpoint>>
 local breakpoints = {}
 ---@type number|nil
 local stepdepth = nil
@@ -142,7 +142,7 @@ do
           end
         end
         if filebreaks then
-          ---@type SourceBreakpoint
+          ---@type DebugProtocol.SourceBreakpoint
           local b = filebreaks[line]
           if b then
             -- 0 is getinfo, 1 is sethook callback, 2 is at breakpoint
@@ -372,7 +372,7 @@ function DAstep.attach()
   end
 end
 ---@param source string
----@param breaks SourceBreakpoint[]
+---@param breaks DebugProtocol.SourceBreakpoint[]
 function DAstep.setBreakpoints(source,breaks)
   if breaks then
     local filebreaks = {}
@@ -421,7 +421,7 @@ function DAstep.updateBreakpoints(change)
 end
 
 ---@param source string
----@return Breakpoint[] | Breakpoint
+---@return DebugProtocol.Breakpoint[] | DebugProtocol.Breakpoint
 function DAstep.dumpBreakpoints(source)
   if source then
     return breakpoints[source]

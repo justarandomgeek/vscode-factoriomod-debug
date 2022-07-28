@@ -25,7 +25,7 @@ end
 
 ---@param startFrame integer | nil
 ---@param forRemote boolean | nil
----@return StackFrame[]
+---@return DebugProtocol.StackFrame[]
 function DAStacks.stackTrace(startFrame, forRemote, seq)
   local offset = 5 -- 0 getinfo, 1 stackTrace, 2 debug command, 3 debug.debug,
   -- in normal stepping:                       4 sethook callback, 5 at breakpoint
@@ -35,7 +35,7 @@ function DAStacks.stackTrace(startFrame, forRemote, seq)
     offset = offset + 1
   end
   local i = (startFrame or 0) + offset
-  ---@type StackFrame[]
+  ---@type DebugProtocol.StackFrame[]
   local stackFrames = {}
   while true do
     local info = debug.getinfo(i,"nSlutf")
@@ -69,13 +69,14 @@ function DAStacks.stackTrace(startFrame, forRemote, seq)
     local sourceIsCode = source == "=(dostring)"
     local noLuaSource = (not sourceIsCode) and source:sub(1,1) == "="
     local noSource = isC or noLuaSource
+    ---@type DebugProtocol.StackFrame
     local stackFrame = {
       id = i,
       name = framename,
       line = noSource and 0 or info.currentline,
       column = noSource and 0 or 1,
-      moduleId = forRemote and script.mod_name,
-      presentationHint = forRemote and "subtle",
+      moduleId = forRemote and script.mod_name or nil,
+      presentationHint = forRemote and "subtle" or nil,
     }
     if not isC then
       local dasource = {
@@ -178,7 +179,7 @@ end
 ---@field source string What caused this stack to be recorded
 ---@field extra any An extra label frame to add when printing stack traces
 ---@field mod_name string The mod name this stack came from
----@field stack StackFrame[] pre-prepared stack frames
+---@field stack DebugProtocol.StackFrame[] pre-prepared stack frames
 
 ---@type cross_stack[]
 local stacks = {}

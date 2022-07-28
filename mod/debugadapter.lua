@@ -106,7 +106,7 @@ end
 
 ---@prints Module[]
 function __DebugAdapter.modules()
-  ---@type Module[]
+  ---@type DebugProtocol.Module[]
   local modules = {}
   modules[1] = { id = "core", name = "core", }
   modules[2] = { id = "level", name = "level", }
@@ -120,26 +120,26 @@ function __DebugAdapter.modules()
 end
 
 ---@param frameId integer
----@prints Scope[]
+---@prints DebugProtocol.Scope[]
 function __DebugAdapter.scopes(frameId)
   if debug.getinfo(frameId,"f") then
-    ---@type Scope[]
+    ---@type DebugProtocol.Scope[]
     local scopes = {}
     -- Locals
-    scopes[#scopes+1] = { name = "Locals", variablesReference = variables.scopeRef(frameId,"Locals"), }
+    scopes[#scopes+1] = { name = "Locals", variablesReference = variables.scopeRef(frameId,"Locals"), expensive=false }
     -- Upvalues
-    scopes[#scopes+1] = { name = "Upvalues", variablesReference = variables.scopeRef(frameId,"Upvalues") }
+    scopes[#scopes+1] = { name = "Upvalues", variablesReference = variables.scopeRef(frameId,"Upvalues"), expensive=false }
     -- Factorio `global`
     if global then
-      scopes[#scopes+1] = { name = "Factorio global", variablesReference = variables.tableRef(global) }
+      scopes[#scopes+1] = { name = "Factorio global", variablesReference = variables.tableRef(global), expensive=false }
     end
     -- Lua Globals
-    scopes[#scopes+1] = { name = "Lua Globals", variablesReference = variables.tableRef(_ENV) }
+    scopes[#scopes+1] = { name = "Lua Globals", variablesReference = variables.tableRef(_ENV), expensive=false }
 
     print("DBGscopes: " .. json.encode({frameId = frameId, scopes = scopes}))
   else
     print("DBGscopes: " .. json.encode({frameId = frameId, scopes = {
-      { name = "[Variables Currently Unavailable]", variablesReference = 0 }
+      { name = "[Variables Currently Unavailable]", variablesReference = 0, expensive=false }
     }}))
   end
 end

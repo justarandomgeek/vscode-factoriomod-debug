@@ -440,7 +440,7 @@ function DAEval.evaluate(frameId,context,expression,seq,formod)
   local info = not frameId or debug.getinfo(frameId,"f")
 
   -- Variable is close enough to EvaluateResult
-  ---@type Variable
+  ---@type DebugProtocol.Variable
   local evalresult
   if info then
     local timer,success,result

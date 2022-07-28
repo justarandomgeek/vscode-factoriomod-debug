@@ -143,10 +143,10 @@ DataString.ReadString = ReadString
 
 ---@param strdata string
 ---@param i integer
----@return SourceBreakpoint breakpoint
+---@return DebugProtocol.SourceBreakpoint breakpoint
 ---@return integer nextIndex
 local function ReadSourceBreakpoint(strdata,i)
-    ---@type SourceBreakpoint
+    ---@type DebugProtocol.SourceBreakpoint
     local bp = {}
 
     bp.line,i = ReadVarInt(strdata,i)
@@ -170,7 +170,7 @@ DataString.ReadSourceBreakpoint = ReadSourceBreakpoint
 
 ---@param strdata string
 ---@return string? filename
----@return SourceBreakpoint[]? breakpoints
+---@return DebugProtocol.SourceBreakpoint[]? breakpoints
 local function ReadBreakpoints(strdata)
     local i = 1
     local bytecount = #strdata
@@ -182,7 +182,7 @@ local function ReadBreakpoints(strdata)
     local filename
     filename,i = ReadString(strdata,i)
 
-    ---@type SourceBreakpoint[]
+    ---@type DebugProtocol.SourceBreakpoint[]
     local bps = {}
 
     val,i = sbyte(strdata,i),i+1
@@ -192,7 +192,7 @@ local function ReadBreakpoints(strdata)
     if val ~= 0xff then
         for j = 1,val,1 do
             val,i = ReadVarInt(strdata,i)
-            ---@type SourceBreakpoint
+            ---@type DebugProtocol.SourceBreakpoint
             bps[#bps+1] = { line = val }
         end
     end
@@ -203,7 +203,7 @@ local function ReadBreakpoints(strdata)
     if val == 0xfe then val = 10 end
     if val ~= 0xff then
         for j = 1,val,1 do
-            ---@type SourceBreakpoint
+            ---@type DebugProtocol.SourceBreakpoint
             local bp
             bp,i = ReadSourceBreakpoint(strdata,i)
             bps[#bps+1] = bp

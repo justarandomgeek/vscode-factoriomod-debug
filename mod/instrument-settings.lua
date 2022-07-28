@@ -1,5 +1,5 @@
 local json = require('__debugadapter__/json.lua')
----@type Module[]
+---@type DebugProtocol.Module[]
 local modules = {
   { id = "core", name = "core", },
   { id = "level", name = "level", },

@@ -295,7 +295,7 @@ end
 --- Generate a variablesReference for a source string and prepare a Source
 ---@param source string
 ---@param checkonly? boolean
----@return Source?
+---@return DebugProtocol.Source?
 function variables.sourceRef(source,checkonly)
   local refs = variables.longrefs
 
@@ -575,7 +575,7 @@ DAvars.describe = variables.describe
 ---@param name string | nil
 ---@param value any
 ---@param evalName string | nil
----@return Variable
+---@return DebugProtocol.Variable
 function variables.create(name,value,evalName)
   local lineitem,vtype = variables.describe(value)
   local variablesReference = 0
@@ -692,7 +692,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
       end
     end
   end
-  ---@type Variable[]
+  ---@type DebugProtocol.Variable[]
   local vars = {}
   if varRef then
     if varRef.type == "Locals" then
