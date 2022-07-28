@@ -17,7 +17,7 @@ export function activate(context: vscode.ExtensionContext) {
 	const provider = new FactorioModConfigurationProvider(versionSelector);
 	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('factoriomod', provider));
 
-	const factory = new DebugAdapterFactory(context, versionSelector);
+	const factory = new DebugAdapterFactory(versionSelector);
 
 	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('factoriomod', factory));
 	context.subscriptions.push(factory);
@@ -132,7 +132,6 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 
 class DebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
 	constructor(
-		private readonly context: vscode.ExtensionContext,
 		private readonly versionSelector: FactorioVersionSelector,
 	) {}
 
@@ -146,7 +145,6 @@ class DebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
 			default:
 				return new vscode.DebugAdapterInlineImplementation(
 					new FactorioModDebugSession(
-						this.context.extensionUri,
 						activeVersion,
 						vscode.workspace.fs,
 						{

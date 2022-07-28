@@ -119,7 +119,6 @@ const debugcommand = program.command("debug <factorioPath>");
 debugcommand.option("-d, --docs <docsPath>")
 	.option("-c, --config <configPath>")
 	.action(async (factorioPath:string)=>{
-		const packageUri = Utils.resolvePath(URI.file(__dirname), "..");
 		const fv: FactorioVersion = {
 			name: "standalone",
 			factorioPath: factorioPath,
@@ -135,7 +134,7 @@ debugcommand.option("-d, --docs <docsPath>")
 		const activeVersion = new ActiveFactorioVersion(fsAccessor, fv, new ApiDocGenerator(docsjson, settingsGetter));
 
 		// start a single session that communicates via stdin/stdout
-		const session = new FactorioModDebugSession(packageUri, activeVersion, fsAccessor);
+		const session = new FactorioModDebugSession(activeVersion, fsAccessor);
 		process.on('SIGTERM', ()=>{
 			session.shutdown();
 		});

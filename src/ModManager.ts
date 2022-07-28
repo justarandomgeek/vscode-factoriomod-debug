@@ -34,7 +34,7 @@ export class ModManager {
 	}
 
 
-	public installMod(name:string, version:string, zippath:string, deleteold?:boolean):{
+	public installMod(name:string, version:string, zip:Buffer, deleteold?:boolean):{
 		using:string
 		from:"folder"|"versioned_folder"|"existing"|"installed"
 		previous?:boolean|string
@@ -73,7 +73,7 @@ export class ModManager {
 			return { using: version, from: "existing", previous: previous };
 		}
 		// install from provided zip
-		fs.copyFileSync(zippath, path.resolve(this.modsPath, `${name}_${version}.zip`));
+		fs.writeFileSync(path.resolve(this.modsPath, `${name}_${version}.zip`), zip);
 		let replaced:string|undefined;
 		if (deleteold) {
 			const oldmods = fs.readdirSync(this.modsPath, "utf8").filter(

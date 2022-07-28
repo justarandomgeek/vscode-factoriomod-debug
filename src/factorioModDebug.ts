@@ -19,6 +19,10 @@ import { LuaFunction } from './LuaDisassembler';
 import { BufferStream } from './BufferStream';
 import { ActiveFactorioVersion } from './FactorioVersion';
 
+import { version } from "../package.json";
+
+//@ts-ignore UInt8Array from esbuild
+import DebugAdapterZip from "factoriomod:../mod";
 
 interface ModPaths{
 	uri: URI
@@ -112,7 +116,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	 * We configure the default implementation of a debug adapter here.
 	 */
 	public constructor(
-		private readonly packageUri: URI,
 		private readonly activeVersion: Pick<ActiveFactorioVersion, "configPathIsOverriden"|"configPath"|"dataPath"|"writeDataPath"|"factorioPath"|"nativeDebugger"|"docs">,
 		private readonly fs: Pick<vscode.FileSystem, "readFile"|"writeFile"|"stat">,
 		private readonly editorInterface?: {
@@ -220,45 +223,26 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			if (!args.adjustMods) { args.adjustMods = {}; }
 			if (!args.allowDisableBaseMod) { args.adjustMods["base"] = true; }
 
-			await this.fs.readFile(Utils.joinPath(this.packageUri, "./modpackage/mods.json"))
-				.then((packagedModsList)=>{
-					const manager = new ModManager(args.modsPath);
-					if (args.disableExtraMods) {
-						manager.disableAll();
-					}
-					for (const mod in args.adjustMods) {
-						if (args.adjustMods.hasOwnProperty(mod)) {
-							const adjust = args.adjustMods[mod];
-							manager.set(mod, adjust);
-						}
-					}
-					const packages:{[key:string]:{version:string;debugOnly?:boolean;deleteOld?:boolean}} = JSON.parse(Buffer.from(packagedModsList).toString("utf8"));
-					if (!args.noDebug) {
-						manager.set("coverage", false);
-						manager.set("profiler", false);
-						for (const mod in packages) {
-							if (packages.hasOwnProperty(mod)) {
-								const modpackage = packages[mod];
-								const zippath = Utils.joinPath(this.packageUri, `./modpackage/${mod}.zip`).fsPath;
-								const result = manager.installMod(mod, modpackage.version, zippath, modpackage.deleteOld);
-								this.sendEvent(new OutputEvent(`package install ${mod} ${JSON.stringify(result)}\n`, "stdout"));
-							}
-						}
-					} else {
-						for (const mod in packages) {
-							if (packages.hasOwnProperty(mod)) {
-								const modpackage = packages[mod];
-								if (modpackage.debugOnly) {
-									manager.set(mod, false);
-								}
-							}
-						}
-					}
-					manager.write();
-					this.sendEvent(new OutputEvent(`debugadapter ${args.noDebug?"disabled":"enabled"} in mod-list.json\n`, "stdout"));
-				}, (reason)=>{
-					this.sendEvent(new OutputEvent(`package list missing in extension:\n${reason}\n`, "stdout"));
-				});
+			const manager = new ModManager(args.modsPath);
+			if (args.disableExtraMods) {
+				manager.disableAll();
+			}
+			for (const mod in args.adjustMods) {
+				if (args.adjustMods.hasOwnProperty(mod)) {
+					const adjust = args.adjustMods[mod];
+					manager.set(mod, adjust);
+				}
+			}
+			if (!args.noDebug) {
+				manager.set("coverage", false);
+				manager.set("profiler", false);
+				const result = manager.installMod("debugadapter", version, DebugAdapterZip, true);
+				this.sendEvent(new OutputEvent(`package install debugadapter ${JSON.stringify(result)}\n`, "stdout"));
+			} else {
+				manager.set("debugadapter", false);
+			}
+			manager.write();
+			this.sendEvent(new OutputEvent(`debugadapter ${args.noDebug?"disabled":"enabled"} in mod-list.json\n`, "stdout"));
 		}
 
 		if (this.editorInterface?.findWorkspaceFiles) {
