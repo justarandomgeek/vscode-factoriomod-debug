@@ -36,7 +36,7 @@
     "esbuild": "ts-node ./build.ts",
     "watch": "npm run -S esbuild -- --map --watch",
     "build": "npm run -S esbuild -- --map",
-    "stats": "npm run -S build -- --meta && esbuild-visualizer --metadata ./out/meta.json --filename ./out/stats.html",
+    "stats": "npm run -S build -- --minify --meta && esbuild-visualizer --metadata ./out/meta.json --filename ./out/stats.html",
     "vscode:prepublish": "rimraf dist && npm run -S esbuild -- --minify",
     "package": "vsce package",
     "publish": "vsce publish",
@@ -77,6 +77,9 @@
     "ts-node": "^10.9.1",
     "typescript": "^4.7.4",
     "vsce": "^2.7.0",
+    "vscode-languageclient": "^8.0.2",
+    "vscode-languageserver": "^8.0.2",
+    "vscode-languageserver-textdocument": "^1.0.5",
     "vscode-uri": "^3.0.3"
   },
   "main": "./dist/extension.js",

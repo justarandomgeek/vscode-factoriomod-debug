@@ -18,7 +18,7 @@
 			"preLaunchTask": "npm: build",
 		},
 		{
-			"name": "Attach To External Debug Adapter",
+			"name": "Attach To External Debug Adapter/LSP",
 			"type": "node",
 			"request": "attach",
 			"continueOnAttach": true,
@@ -48,4 +48,13 @@
 			"preLaunchTask": "npm: build",
 		},
 	],
+	"compounds": [
+		{
+			"name": "Extension + LSP",
+			"configurations": [
+				"Extension",
+				"Attach To External Debug Adapter/LSP"
+			]
+		}
+	]
 }

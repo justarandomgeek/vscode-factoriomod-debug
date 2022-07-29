@@ -9,7 +9,7 @@ import { ApiDocGenerator } from './ApiDocs/ApiDocGenerator';
 import { ModSettings } from './ModSettings';
 import { FactorioModDebugSession } from './factorioModDebug';
 import { ActiveFactorioVersion, FactorioVersion } from "./FactorioVersion";
-
+import { runLanguageServer } from "./Language/Server";
 
 const fsAccessor:  Pick<FileSystem, "readFile"|"writeFile"|"stat"> = {
 	async readFile(uri:URI) {
@@ -114,6 +114,14 @@ program.command("docs <docjson> <outdir>").action(async (docjson:string, outdir:
 		await fsp.writeFile(Utils.joinPath(outuri, filename).fsPath, buff);
 	});
 });
+
+program.command("lsp")
+	//vscode-languageserver handles these arguments
+	.allowUnknownOption(true)
+	.allowExcessArguments(true)
+	.action(()=>{
+		runLanguageServer();
+	});
 
 const debugcommand = program.command("debug <factorioPath>");
 debugcommand.option("-d, --docs <docsPath>")

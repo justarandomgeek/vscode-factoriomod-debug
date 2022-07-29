@@ -4,14 +4,12 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import { FactorioModDebugSession } from './factorioModDebug';
-import { activateLocaleLangProvider } from './LocaleLangProvider';
-import { activateChangeLogLangProvider } from './ChangeLogLangProvider';
 import { activateModPackageProvider } from './ModPackageProvider';
 import { FactorioVersionSelector } from './VersionSelector';
 import { ProfileRenderer } from './Profile/ProfileRenderer';
+import * as LanguageClient from "./Language/Client";
 
 export function activate(context: vscode.ExtensionContext) {
-
 	const versionSelector = new FactorioVersionSelector(context);
 
 	const provider = new FactorioModConfigurationProvider(versionSelector);
@@ -22,15 +20,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('factoriomod', factory));
 	context.subscriptions.push(factory);
 
-	const diagnosticCollection = vscode.languages.createDiagnosticCollection('factorio');
-	context.subscriptions.push(diagnosticCollection);
-
-	activateChangeLogLangProvider(context, diagnosticCollection);
-	activateLocaleLangProvider(context, diagnosticCollection);
-
-	context.subscriptions.push(vscode.workspace.onDidDeleteFiles(deleted=>{
-		deleted.files.forEach(uri=>{ diagnosticCollection.set(uri, undefined); });
-	}));
+	LanguageClient.activate(context);
 
 	activateModPackageProvider(context);
 
@@ -38,7 +28,7 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-	// nothing to do
+	LanguageClient.deactivate();
 }
 
 class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvider {
