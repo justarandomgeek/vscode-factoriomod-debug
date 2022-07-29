@@ -56,11 +56,11 @@ program
 						});
 						build.onLoad({ filter: /.*/, namespace: 'factoriomod' }, async (args)=>{
 							const archive = archiver('zip', { zlib: { level: 9 }});
-							const info = <ModInfo>JSON.parse(await fsp.readFile(path.join(args.path, "info.json"), "utf8"));
+							const info = <ModInfo>JSON.parse(await fsp.readFile(path.join(args.path, "info.json.template"), "utf8"));
 							info.version = version;
-							archive.append(JSON.stringify(info), { name: "info.json", prefix: `${info.name}_${info.version}` });
+							await fsp.writeFile(path.join(args.path, "info.json"), JSON.stringify(info));
 							const files:string[] = [];
-							const globber = readdirGlob(args.path, {pattern: '**', nodir: true, ignore: ["info.json"]});
+							const globber = readdirGlob(args.path, {pattern: '**', nodir: true, ignore: ["*.template"]});
 							globber.on('match', (match:{ relative:string; absolute:string })=>{
 								files.push(match.absolute);
 								archive.file(match.absolute, { name: match.relative, prefix: `${info.name}_${info.version}` });

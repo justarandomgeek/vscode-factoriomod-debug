@@ -7,3 +7,4 @@ npm-debug.log
 mock-debug.txt
 *.vsix
 *.zip
+mod/info.json
