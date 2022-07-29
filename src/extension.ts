@@ -146,7 +146,7 @@ class DebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
 					));
 			//@ts-expect-error
 			case "externalInspect":
-				executable.args.unshift("--no-lazy", "--inspect-brk");
+				executable.args.unshift("--no-lazy", "--inspect-brk=34198");
 				//fallthrough
 			case "external":
 				executable.args.push(...await activeVersion.debugLaunchArgs());

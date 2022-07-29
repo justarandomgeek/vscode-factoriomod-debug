@@ -18,10 +18,26 @@
 			"preLaunchTask": "npm: build",
 		},
 		{
-			"name": "Attach To External Debug Adapter/LSP",
+			"name": "Attach To External Debug Adapter",
 			"type": "node",
 			"request": "attach",
 			"continueOnAttach": true,
+			"port": 34198,
+			"skipFiles": [
+				"<node_internals>/**",
+				"<node_modules>/**"
+			],
+			"outFiles": [
+				"${workspaceFolder}/dist/**/*.js"
+			],
+		},
+
+		{
+			"name": "Attach To External LSP",
+			"type": "node",
+			"request": "attach",
+			"continueOnAttach": true,
+			"port": 34199,
 			"skipFiles": [
 				"<node_internals>/**",
 				"<node_modules>/**"
@@ -48,13 +64,4 @@
 			"preLaunchTask": "npm: build",
 		},
 	],
-	"compounds": [
-		{
-			"name": "Extension + LSP",
-			"configurations": [
-				"Extension",
-				"Attach To External Debug Adapter/LSP"
-			]
-		}
-	]
 }
