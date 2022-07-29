@@ -33,7 +33,6 @@ const fsAccessor:  Pick<FileSystem, "readFile"|"writeFile"|"stat"> = {
 	},
 };
 
-
 const modscommand = program.command("mods")
 	.option("--modsPath <modsPath>", undefined, process.cwd());
 modscommand.command("enable <modname> [version]").action(async (modname:string, version?:string)=>{
@@ -46,13 +45,16 @@ modscommand.command("disable <modname>").action(async (modname:string)=>{
 	manager.set(modname, false);
 	manager.write();
 });
-//modscommand.command("install <modname>").action(async (modname:string)=>{
-//TODO: install from internal packages or mod portal
-//});
+modscommand.command("install <modname>")
+	.option("--keepOld")
+	.action(async (modname:string, options:{keepOld?:boolean})=>{
+		const manager = new ModManager(modscommand.opts().modsPath);
+		console.log(manager.installMod(modname, ["bundle"], options.keepOld));
+	});
 
 const settingscommand = program.command("settings")
 	.option("--modsPath <modsPath>", undefined, process.cwd());
-settingscommand.command("list [scope]").action(async ()=>{
+settingscommand.command("list").action(async ()=>{
 	const modSettingsUri = Utils.joinPath(URI.file(settingscommand.opts().modsPath), "mod-settings.dat");
 	const settings = new ModSettings(Buffer.from(await fsp.readFile(modSettingsUri.fsPath)));
 	for (const setting of settings.list()) {
@@ -96,7 +98,6 @@ settingscommand.command("set <scope> <name> <value>").action(async (scope:string
 			settings.set(scope, name, value);
 		}
 	}
-
 	await fsp.writeFile(modSettingsUri.fsPath, settings.save());
 });
 
@@ -115,23 +116,21 @@ program.command("docs <docjson> <outdir>").action(async (docjson:string, outdir:
 	});
 });
 
-program.command("lsp")
-	//vscode-languageserver handles these arguments
-	.allowUnknownOption(true)
-	.allowExcessArguments(true)
-	.action(()=>{
-		runLanguageServer();
-	});
 
-const debugcommand = program.command("debug <factorioPath>");
-debugcommand.option("-d, --docs <docsPath>")
+//vscode-languageserver handles these arguments
+program.command("lsp").allowUnknownOption(true).allowExcessArguments(true).action(()=>{
+	runLanguageServer();
+});
+
+program.command("debug <factorioPath>")
+	.option("-d, --docs <docsPath>")
 	.option("-c, --config <configPath>")
-	.action(async (factorioPath:string)=>{
+	.action(async (factorioPath:string, options:{docs?:string; config?:string})=>{
 		const fv: FactorioVersion = {
 			name: "standalone",
 			factorioPath: factorioPath,
-			configPath: debugcommand.opts().config,
-			docsPath: debugcommand.opts().docs,
+			configPath: options.config,
+			docsPath: options.docs,
 		};
 		const docsPath = Utils.joinPath(URI.file(factorioPath),
 			fv.docsPath ? fv.docsPath :

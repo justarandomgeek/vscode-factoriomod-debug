@@ -19,11 +19,6 @@ import { LuaFunction } from './LuaDisassembler';
 import { BufferStream } from './BufferStream';
 import { ActiveFactorioVersion } from './FactorioVersion';
 
-import { version } from "../package.json";
-
-//@ts-ignore UInt8Array from esbuild
-import DebugAdapterZip from "factoriomod:../mod";
-
 interface ModPaths{
 	uri: URI
 	name: string
@@ -236,7 +231,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			if (!args.noDebug) {
 				manager.set("coverage", false);
 				manager.set("profiler", false);
-				const result = manager.installMod("debugadapter", version, DebugAdapterZip, true);
+				const result = manager.installMod("debugadapter", ["bundle"]);
 				this.sendEvent(new OutputEvent(`package install debugadapter ${JSON.stringify(result)}\n`, "stdout"));
 			} else {
 				manager.set("debugadapter", false);

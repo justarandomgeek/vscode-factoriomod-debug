@@ -2,6 +2,17 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { ModInfo } from './ModPackageProvider';
 
+import { version as bundleVersion } from "../package.json";
+
+//@ts-ignore UInt8Array from esbuild
+import DebugAdapterZip from "factoriomod:../mod";
+
+const bundled:{[name:string]:{version:string; zip:Uint8Array}} = {
+	["debugadapter"]: {
+		version: bundleVersion,
+		zip: DebugAdapterZip,
+	},
+};
 
 interface ModEntry{
 	name: string
@@ -33,13 +44,18 @@ export class ModManager {
 		fs.writeFileSync(listPath, JSON.stringify(this.modList, null, 2), 'utf8');
 	}
 
-
-	public installMod(name:string, version:string, zip:Buffer, deleteold?:boolean):{
+	public installMod(name:string, origin:"bundle"[]=["bundle"], keepOld?:boolean):{
 		using:string
 		from:"folder"|"versioned_folder"|"existing"|"installed"
 		previous?:boolean|string
 		replaced?:string
 		} {
+
+		//TODO: support installing from portal too
+		const bundle = name in bundled ? bundled[<keyof typeof bundled>name] : undefined;
+		if (!bundle) { throw new Error(`No bundled package for ${name}`); }
+		const version = bundle.version;
+
 		const modstate = this.modList.mods.find(m=>m.name === name);
 		const previous = modstate?.enabled ? modstate.version ?? true : modstate?.enabled;
 
@@ -73,9 +89,9 @@ export class ModManager {
 			return { using: version, from: "existing", previous: previous };
 		}
 		// install from provided zip
-		fs.writeFileSync(path.resolve(this.modsPath, `${name}_${version}.zip`), zip);
+		fs.writeFileSync(path.resolve(this.modsPath, `${name}_${version}.zip`), bundle.zip);
 		let replaced:string|undefined;
-		if (deleteold) {
+		if (!keepOld) {
 			const oldmods = fs.readdirSync(this.modsPath, "utf8").filter(
 				s=>s.startsWith(name) && s.endsWith(".zip") && s !== `${name}_${version}.zip`);
 			if (oldmods.length === 1) {
