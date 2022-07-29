@@ -1,6 +1,6 @@
 import * as fsp from 'fs/promises';
 import * as path from 'path';
-import { build } from "esbuild";
+import { build, analyzeMetafile } from "esbuild";
 import { program } from 'commander';
 import archiver from 'archiver';
 import { ModInfo } from './src/ModPackageProvider';
@@ -14,8 +14,8 @@ program
 	.option("--watch")
 	.option("--meta")
 	.option("--minify")
-	.action(async ()=>{
-		const opts = program.opts();
+	.option("--analyze")
+	.action(async (options:{map?:boolean; watch?:boolean; meta?:boolean; minify?:boolean; analyze?:boolean})=>{
 		const result = await build({
 			tsconfig: "./tsconfig.json",
 			entryPoints: {
@@ -35,11 +35,11 @@ program
 			format: "cjs",
 			outdir: "dist",
 			logLevel: "info",
-			watch: opts.watch,
-			sourcemap: opts.map,
+			watch: options.watch,
+			sourcemap: options.map,
 			sourcesContent: false,
-			metafile: opts.meta,
-			minify: opts.minify,
+			metafile: options.meta || options.analyze,
+			minify: options.minify,
 			plugins: [
 				{
 					name: 'factoriomod',
@@ -86,7 +86,10 @@ program
 				},
 			],
 		}).catch(()=>process.exit(1));
-		if (opts.meta) {
+		if (options.meta) {
 			await fsp.writeFile('./out/meta.json', JSON.stringify(result.metafile));
+		}
+		if (options.analyze) {
+			console.log(await analyzeMetafile(result.metafile!, { color: true, verbose: true }));
 		}
 	}).parseAsync();
