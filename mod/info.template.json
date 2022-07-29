@@ -1,10 +1,10 @@
 {
-    "name": "debugadapter",
-    "factorio_version": "1.1",
-    "title": "Debug Adapter for Factorio Mods",
-    "author": "justarandomgeek",
-    "homepage": "",
-    "contact": "",
-    "description": "An implementation of Debug Adapter Protocol for mods. For use with the associated vscode extension. This is a developer tool, not meant for actual gameplay. It is intentionally desync unsafe. Do not use it in multiplayer.",
-    "dependencies": ["!coverage", "!profiler"]
-  }
+  "name": "debugadapter",
+  "factorio_version": "1.1",
+  "title": "Debug Adapter for Factorio Mods",
+  "author": "justarandomgeek",
+  "homepage": "",
+  "contact": "",
+  "description": "An implementation of Debug Adapter Protocol for mods. For use with the associated vscode extension. This is a developer tool, not meant for actual gameplay. It is intentionally desync unsafe. Do not use it in multiplayer.",
+  "dependencies": ["!coverage", "!profiler"]
+}
