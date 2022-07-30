@@ -37,7 +37,6 @@ export function activate(context: ExtensionContext) {
 
 	// Options to control the language client
 	const clientOptions: LanguageClientOptions = {
-		// Register the server for plain text documents
 		documentSelector: [
 			{ language: 'factorio-locale' },
 			{ language: 'factorio-changelog' },
