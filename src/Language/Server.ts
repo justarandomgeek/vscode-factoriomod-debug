@@ -11,8 +11,8 @@ import {
 	TextDocument,
 } from 'vscode-languageserver-textdocument';
 
-import * as ChangeLog from "./ChangeLog";
-import * as Locale from "./Locale";
+import { ChangeLogLanguageService } from './ChangeLog';
+import { LocaleLanguageService } from "./Locale";
 
 export function runLanguageServer() {
 
@@ -22,6 +22,9 @@ export function runLanguageServer() {
 
 	// Create a simple text document manager.
 	const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
+
+	const ChangeLog = new ChangeLogLanguageService();
+	const Locale = new LocaleLanguageService();
 
 	let hasWorkspaceFolderCapability = false;
 	let hasDiagnosticRelatedInformationCapability = false;
