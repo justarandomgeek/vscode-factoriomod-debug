@@ -64,7 +64,6 @@ export function runLanguageServer() {
 		}
 	});
 
-
 	documents.onDidClose(e=>{
 		connection.sendDiagnostics({ uri: e.document.uri, diagnostics: [] });
 	});
@@ -94,9 +93,9 @@ export function runLanguageServer() {
 		if (document) {
 			switch (document.languageId) {
 				case "factorio-locale":
-					return Locale.provideDocumentSymbols(document);
+					return Locale.onDocumentSymbol(document);
 				case "factorio-changelog":
-					return ChangeLog.provideDocumentSymbols(document);
+					return ChangeLog.onDocumentSymbol(document);
 			}
 		}
 		return null;
@@ -107,9 +106,9 @@ export function runLanguageServer() {
 		if (document) {
 			switch (document.languageId) {
 				case "factorio-locale":
-					return Locale.provideCodeActions(document, request.range, request.context);
+					return Locale.onCodeAction(document, request.range, request.context);
 				case "factorio-changelog":
-					return ChangeLog.provideCodeActions(document, request.range, request.context);
+					return ChangeLog.onCodeAction(document, request.range, request.context);
 			}
 		}
 		return null;
@@ -120,7 +119,7 @@ export function runLanguageServer() {
 		if (document) {
 			switch (document.languageId) {
 				case "factorio-locale":
-					return Locale.provideDocumentColors(document);
+					return Locale.onDocumentColor(document);
 				case "factorio-changelog":
 					return null;
 			}
@@ -133,7 +132,7 @@ export function runLanguageServer() {
 		if (document) {
 			switch (document.languageId) {
 				case "factorio-locale":
-					return Locale.provideColorPresentations(request.color, request.range);
+					return Locale.onColorPresentation(request.color, request.range);
 				case "factorio-changelog":
 					return null;
 			}

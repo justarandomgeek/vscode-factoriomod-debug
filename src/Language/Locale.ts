@@ -28,7 +28,7 @@ export async function validateTextDocument(textDocument: TextDocument): Promise<
 	const locale = textDocument.getText().split(/\r?\n/);
 	const diags: Diagnostic[] = [];
 
-	const symbols = provideDocumentSymbols(textDocument);
+	const symbols = onDocumentSymbol(textDocument);
 
 	let currentSection:string|undefined;
 	const sections = new Map<string|undefined, Set<String>>();
@@ -137,7 +137,7 @@ export async function validateTextDocument(textDocument: TextDocument): Promise<
 }
 
 
-export function provideDocumentSymbols(document: TextDocument): DocumentSymbol[] {
+export function onDocumentSymbol(document: TextDocument): DocumentSymbol[] {
 	const symbols: DocumentSymbol[] = [];
 	let category: DocumentSymbol | undefined;
 
@@ -181,7 +181,7 @@ export function provideDocumentSymbols(document: TextDocument): DocumentSymbol[]
 	return symbols;
 }
 
-export function provideCodeActions(document: TextDocument, range: Range, context: CodeActionContext): CodeAction[] {
+export function onCodeAction(document: TextDocument, range: Range, context: CodeActionContext): CodeAction[] {
 	if (document.languageId === "factorio-locale") {
 		return context.diagnostics.filter(diag=>!!diag.code).map((diag)=>{
 			switch (diag.code) {
@@ -314,7 +314,7 @@ function colorToStrings(color: Color): string[] {
 
 	return names;
 }
-export function provideDocumentColors(document: TextDocument): ColorInformation[] {
+export function onDocumentColor(document: TextDocument): ColorInformation[] {
 	const colors: ColorInformation[] = [];
 
 	for (let i = 0; i < document.lineCount; i++) {
@@ -343,7 +343,7 @@ export function provideDocumentColors(document: TextDocument): ColorInformation[
 	}
 	return colors;
 }
-export function provideColorPresentations(color: Color, range: Range): ColorPresentation[] {
+export function onColorPresentation(color: Color, range: Range): ColorPresentation[] {
 	return colorToStrings(color).map(colorstring=>{
 		return {
 			label: colorstring,

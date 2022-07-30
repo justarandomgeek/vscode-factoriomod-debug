@@ -152,7 +152,7 @@ export async function validateTextDocument(textDocument: TextDocument): Promise<
 	return diags;
 }
 
-export function provideDocumentSymbols(document: TextDocument): DocumentSymbol[] {
+export function onDocumentSymbol(document: TextDocument): DocumentSymbol[] {
 	const symbols: DocumentSymbol[] = [];
 	let version: DocumentSymbol | undefined;
 	let category: DocumentSymbol | undefined;
@@ -231,7 +231,7 @@ export function provideDocumentSymbols(document: TextDocument): DocumentSymbol[]
 	return symbols;
 }
 
-export function provideCodeActions(document: TextDocument, range: Range, context: CodeActionContext): CodeAction[] {
+export function onCodeAction(document: TextDocument, range: Range, context: CodeActionContext): CodeAction[] {
 	if (document.languageId === "factorio-changelog") {
 		return context.diagnostics.filter(diag=>!!diag.code).map((diag)=>{
 			switch (diag.code) {
