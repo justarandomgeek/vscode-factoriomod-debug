@@ -268,7 +268,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		}
 
 		if (args.adjustModSettings) {
-			const modSettingsUri = URI.file(path.join(args.modsPath, "mod-settings.dat"));
+			const modSettingsUri = Utils.joinPath(URI.file(args.modsPath), "mod-settings.dat");
 			const settings = new ModSettings(Buffer.from(await this.fs.readFile(modSettingsUri)));
 			for (const s of args.adjustModSettings) {
 				settings.set(s.scope, s.name, s.value);
@@ -1006,7 +1006,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				const moddata = JSON.parse(jsonstr);
 				if (moddata) {
 					const mp = {
-						uri: uri.with({path: path.posix.dirname(uri.path)}),
+						uri: Utils.dirname(uri),
 						name: moddata.name,
 						version: moddata.version,
 						info: moddata,
