@@ -1,3 +1,4 @@
+import * as fsp from 'fs/promises';
 import {
 	createConnection,
 	TextDocuments,
@@ -5,6 +6,8 @@ import {
 	InitializeParams,
 	TextDocumentSyncKind,
 	InitializeResult,
+	DocumentUri,
+	FileChangeType,
 } from 'vscode-languageserver/node';
 
 import {
@@ -13,8 +16,15 @@ import {
 
 import { ChangeLogLanguageService } from './ChangeLog';
 import { LocaleLanguageService } from "./Locale";
+import { URI, Utils } from 'vscode-uri';
+
+//@ts-ignore
+import readdirGlob from 'readdir-glob';
 
 export function runLanguageServer() {
+
+	const ChangeLog = new ChangeLogLanguageService();
+	const Locale = new LocaleLanguageService();
 
 	// Create a connection for the server, using Node's IPC as a transport.
 	// Also include all preview / proposed LSP features.
@@ -23,13 +33,50 @@ export function runLanguageServer() {
 	// Create a simple text document manager.
 	const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
-	const ChangeLog = new ChangeLogLanguageService();
-	const Locale = new LocaleLanguageService();
+	async function getDocument(uri:DocumentUri) {
+		let document = documents.get(uri);
+		if (document) { return document; }
+
+		const docuri = URI.parse(uri);
+		if (docuri.scheme === "file" && docuri.path.endsWith(".cfg")) {
+			//TODO: proper language detection. for now we're only loading locale offline...
+			document = TextDocument.create(uri, "factorio-locale", 1, await fsp.readFile(docuri.fsPath, "utf8"));
+			return document;
+		}
+
+		return undefined;
+	}
+
+	async function scanFile(file:DocumentUri) {
+		const document = await getDocument(file);
+		if (document && document.languageId === "factorio-locale") {
+			Locale.loadDocument(document);
+		}
+	}
+
+	async function scanWorkspaceFolder(folder:DocumentUri) {
+		const uri = URI.parse(folder);
+		if (uri.scheme === "file") {
+			const globber = readdirGlob(uri.fsPath, {pattern: '**/locale/*/*.cfg'});
+			globber.on('match', (match:{ relative:string; absolute:string })=>{
+				scanFile(URI.file(match.absolute).toString());
+			});
+			globber.on('error', (err:unknown)=>{
+				throw err;
+			});
+			await new Promise<void>((resolve)=>{
+				globber.on('end', ()=>{
+					resolve();
+				});
+			});
+		}
+	}
+
 
 	let hasWorkspaceFolderCapability = false;
 	let hasDiagnosticRelatedInformationCapability = false;
 
-	connection.onInitialize((params: InitializeParams)=>{
+	connection.onInitialize(async (params: InitializeParams)=>{
 		const capabilities = params.capabilities;
 
 		hasWorkspaceFolderCapability = !!(
@@ -47,49 +94,124 @@ export function runLanguageServer() {
 				documentSymbolProvider: true,
 				codeActionProvider: true,
 				colorProvider: true,
+
+				definitionProvider: true,
 			},
 		};
 		if (hasWorkspaceFolderCapability) {
 			result.capabilities.workspace = {
 				workspaceFolders: {
 					supported: true,
+					changeNotifications: true,
 				},
 			};
+
+			// scan workspace
+			await Promise.all(params.workspaceFolders!.map((folder)=>scanWorkspaceFolder(folder.uri)));
+
 		}
 		return result;
 	});
 
 	connection.onInitialized(()=>{
 		if (hasWorkspaceFolderCapability) {
-			connection.workspace.onDidChangeWorkspaceFolders(_event=>{
-				connection.console.log('Workspace folder change event received.');
+			connection.workspace.onDidChangeWorkspaceFolders(async (event)=>{
+				for (const removed of event.removed) {
+					Locale.clearFolder(removed.uri);
+				}
+				for (const added of event.added) {
+					await scanWorkspaceFolder(added.uri);
+				}
 			});
 		}
 	});
 
-	documents.onDidClose(e=>{
-		connection.sendDiagnostics({ uri: e.document.uri, diagnostics: [] });
+	documents.onDidClose(event=>{
+		switch (event.document.languageId) {
+			case "factorio-locale":
+				connection.sendDiagnostics({ uri: event.document.uri, diagnostics: [] });
+				break;
+
+			case "factorio-changelog":
+				connection.sendDiagnostics({ uri: event.document.uri, diagnostics: [] });
+				break;
+		}
 	});
 
 	// The content of a text document has changed. This event is emitted
 	// when the text document first opened or when its content has changed.
-	documents.onDidChangeContent(change=>{
-		validateTextDocument(change.document);
-	});
-
-	async function validateTextDocument(textDocument: TextDocument): Promise<void> {
-		switch (textDocument.languageId) {
+	documents.onDidChangeContent(async (change)=>{
+		switch (change.document.languageId) {
 			case "factorio-locale":
-				connection.sendDiagnostics({ uri: textDocument.uri, diagnostics: await Locale.validateTextDocument(textDocument) });
+				Locale.loadDocument(change.document);
+				connection.sendDiagnostics({ uri: change.document.uri, diagnostics: await Locale.validateTextDocument(change.document) });
 				break;
 			case "factorio-changelog":
-				connection.sendDiagnostics({ uri: textDocument.uri, diagnostics: await ChangeLog.validateTextDocument(textDocument) });
-				break;
-
-			default:
+				connection.sendDiagnostics({ uri: change.document.uri, diagnostics: await ChangeLog.validateTextDocument(change.document) });
 				break;
 		}
-	}
+	});
+
+	connection.onDefinition(async (request)=>{
+		const doc = await getDocument(request.textDocument.uri);
+		if (doc && doc.languageId==="lua") {
+			const line = doc.getText({
+				start: {
+					line: request.position.line,
+					character: 0,
+				},
+				end: {
+					line: request.position.line,
+					character: Number.MAX_VALUE,
+				},
+			});
+
+			for (const match of line.matchAll(/(['"])((?:[^\\](?<!\1)|\\['"0abfnrtv\\]|\\\d{1,3}|\\x[0-9a-fA-F]{2})*)\1/g)) {
+				if (match.index &&
+					match.index <= request.position.character &&
+					match.index + match[0].length >= request.position.character) {
+					//TODO: parse the lua escapes if any. raw values only for now...
+					const name = match[2];
+					const range = {
+						start: {
+							line: request.position.line,
+							character: match.index,
+						},
+						end: {
+							line: request.position.line,
+							character: match.index + match[0].length,
+						},
+					};
+					const defs = Locale.findDefinitions(name);
+					return defs.map(def=>Object.assign({
+						originSelectionRange: range,
+					}, def));
+				}
+			}
+		}
+		return null;
+	});
+
+
+	connection.onDidChangeWatchedFiles(async (change)=>{
+		for (const filechange of change.changes) {
+			switch (filechange.type) {
+				case FileChangeType.Deleted:
+					Locale.clearDocument(filechange.uri);
+					break;
+
+				case FileChangeType.Changed:
+				case FileChangeType.Created:
+					const document = await getDocument(filechange.uri);
+					if (document && document.languageId ==="factorio-locale") {
+						Locale.loadDocument(document);
+					}
+					break;
+				default:
+					break;
+			}
+		}
+	});
 
 	connection.onDocumentSymbol((request)=>{
 		const document = documents.get(request.textDocument.uri);
@@ -142,12 +264,6 @@ export function runLanguageServer() {
 		}
 		return null;
 	});
-
-	connection.onDidChangeWatchedFiles(_change=>{
-		// Monitored files have change in VSCode
-		connection.console.log('We received an file change event');
-	});
-
 
 	// Make the text document manager listen on the connection
 	// for open, change and close text document events

@@ -11,9 +11,11 @@ import {
 	Color,
 	ColorInformation,
 	ColorPresentation,
+	LocationLink,
 } from 'vscode-languageserver/node';
 
 import {
+	DocumentUri,
 	TextDocument,
 } from 'vscode-languageserver-textdocument';
 
@@ -228,7 +230,11 @@ export class LocaleLanguageService {
 		return diags;
 	}
 
-	public onDocumentSymbol(document: TextDocument): DocumentSymbol[] {
+	readonly definitions:Map<DocumentUri, { name:string; link:LocationLink }[]> = new Map();
+	readonly documentSymbols:Map<DocumentUri, DocumentSymbol[]> = new Map();
+
+	public loadDocument(document: TextDocument) {
+		const definitions:{ name:string; link:LocationLink }[] = [];
 		const symbols: DocumentSymbol[] = [];
 		let category: DocumentSymbol | undefined;
 
@@ -263,13 +269,67 @@ export class LocaleLanguageService {
 					if (category) {
 						category.children!.push(s);
 						category.range.end = range.end;
+						definitions.push({
+							name: `${category.name}.${s.name}`,
+							link: {
+								targetUri: document.uri,
+								targetRange: range,
+								targetSelectionRange: s.selectionRange,
+							},
+						});
 					} else {
 						symbols.push(s);
+						definitions.push({
+							name: s.name,
+							link: {
+								targetUri: document.uri,
+								targetRange: range,
+								targetSelectionRange: s.selectionRange,
+							},
+						});
 					}
 				}
 			}
 		}
-		return symbols;
+		this.definitions.set(document.uri, definitions);
+		this.documentSymbols.set(document.uri, symbols);
+	}
+
+	public clearDocument(uri:DocumentUri) {
+		if (this.definitions.has(uri)) {
+			this.definitions.delete(uri);
+		}
+		if (this.documentSymbols.has(uri)) {
+			this.documentSymbols.delete(uri);
+		}
+	}
+
+	public clearFolder(uri:DocumentUri) {
+		for (const key of this.definitions.keys()) {
+			if (key.startsWith(uri)) {
+				this.definitions.delete(key);
+			}
+		}
+		for (const key of this.documentSymbols.keys()) {
+			if (key.startsWith(uri)) {
+				this.documentSymbols.delete(key);
+			}
+		}
+	}
+
+	public onDocumentSymbol(document: TextDocument): DocumentSymbol[] {
+		if (!this.documentSymbols.has(document.uri)) {
+			this.loadDocument(document);
+		}
+		return this.documentSymbols.get(document.uri) ?? [];
+	}
+
+	public findDefinitions(name:string) {
+		const defs = [];
+		for (const fromdoc of this.definitions.values()) {
+			defs.push(...fromdoc.filter(def=>def.name===name).map(def=>def.link));
+		}
+		return defs;
 	}
 
 	public onCodeAction(document: TextDocument, range: Range, context: CodeActionContext): CodeAction[] {

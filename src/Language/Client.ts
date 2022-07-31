@@ -40,6 +40,7 @@ export function activate(context: ExtensionContext) {
 		documentSelector: [
 			{ language: 'factorio-locale' },
 			{ language: 'factorio-changelog' },
+			{ language: 'lua' },
 		],
 		synchronize: {
 			fileEvents: [
