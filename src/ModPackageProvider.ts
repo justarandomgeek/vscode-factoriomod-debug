@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
+import { createReadStream, createWriteStream } from "fs";
+import * as fsp from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
 import * as Git from './git';
@@ -402,7 +403,8 @@ class ModPackage extends vscode.TreeItem {
 	private async DateStampChangelog(term:ModTaskTerminal): Promise<boolean|number> {
 		const moddir = path.dirname(this.resourceUri.fsPath);
 		const changelogpath = path.join(moddir, "changelog.txt");
-		if (fs.existsSync(changelogpath)) {
+		try {
+			await fsp.access(changelogpath);
 			//datestamp current section
 			const changelogdoc = await vscode.workspace.openTextDocument(changelogpath);
 			const syms = <vscode.DocumentSymbol[]> await vscode.commands.executeCommand<(vscode.SymbolInformation|vscode.DocumentSymbol)[]>("vscode.executeDocumentSymbolProvider", changelogdoc.uri);
@@ -427,7 +429,7 @@ class ModPackage extends vscode.TreeItem {
 				if (code !== 0) { return code; }
 			}
 			return true;
-		} else {
+		} catch (error) {
 			term.write(`No Changelog found\r\n`);
 			if (this.scripts?.datestamp) {
 				const code = await runScript(term, "datestamp", this.scripts.datestamp, moddir,
@@ -449,7 +451,7 @@ class ModPackage extends vscode.TreeItem {
 	}
 
 	public static async BuildZip(moddir:string, packagepath:string, ignore:string[], name:string, version:string): Promise<number> {
-		const zipoutput = fs.createWriteStream(packagepath);
+		const zipoutput = createWriteStream(packagepath);
 		const archive = archiver('zip', { zlib: { level: 9 }});
 		archive.pipe(zipoutput);
 		archive.glob("**", { cwd: moddir, root: moddir, nodir: true, ignore: ignore }, { prefix: `${name}_${version}` });
@@ -522,7 +524,8 @@ class ModPackage extends vscode.TreeItem {
 		const moddir = path.dirname(this.resourceUri.fsPath);
 		const changelogpath = path.join(moddir, "changelog.txt");
 		let changelogdoc: vscode.TextDocument|undefined;
-		if (fs.existsSync(changelogpath)) {
+		try {
+			await fsp.access(changelogpath);
 			//datestamp current section
 			changelogdoc = await vscode.workspace.openTextDocument(changelogpath);
 			//insert new section
@@ -533,7 +536,7 @@ class ModPackage extends vscode.TreeItem {
 			"  Changes:\n"
 			// no placeholder line because prefix alone is not valid...
 			);
-		}
+		} catch (error) {}
 		await vscode.workspace.applyEdit(we);
 		await infodoc.save();
 		// eslint-disable-next-line no-unused-expressions
@@ -589,7 +592,7 @@ class ModPackage extends vscode.TreeItem {
 			const finish_form = new FormData();
 			finish_form.append(
 				"file",
-				fs.createReadStream(packagepath),
+				createReadStream(packagepath),
 				{
 					filename: `${this.label}_${packageversion}.zip`,
 					contentType: 'application/x-zip-compressed',
@@ -750,7 +753,7 @@ class ModPackage extends vscode.TreeItem {
 			if (code !== 0) { return; }
 		}
 		if (config.get<boolean>("factorio.package.removeZipAfterPublish", false)) {
-			fs.unlinkSync(packagepath);
+			await fsp.unlink(packagepath);
 		}
 	}
 
