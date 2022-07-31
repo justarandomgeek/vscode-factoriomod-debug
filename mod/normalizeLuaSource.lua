@@ -36,6 +36,8 @@ local function normalizeLuaSource(source)
   local first = ssub(source,1,1)
   if first == "=" then return source end
   if first ~= "@" then return "=(dostring)" end
+  -- don't bother with any further fancy recognition unless we're actually in `level`...
+  if not levelpath then return source end
   ---@type string|nil
   local known = knownSources[source]
   if known then return known end
