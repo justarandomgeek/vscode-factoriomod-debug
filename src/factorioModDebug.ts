@@ -176,13 +176,11 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 
 	protected terminateRequest(response: DebugProtocol.TerminateResponse, args: DebugProtocol.TerminateArguments): void {
-		this.terminate();
-		this.sendResponse(response);
+		this.terminate().then(()=>this.sendResponse(response));
 	}
 
 	protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments): void {
-		this.terminate();
-		this.sendResponse(response);
+		this.terminate().then(()=>this.sendResponse(response));
 	}
 
 	protected async launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments) {
@@ -219,6 +217,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			if (!args.allowDisableBaseMod) { args.adjustMods["base"] = true; }
 
 			const manager = new ModManager(args.modsPath);
+			await manager.Loaded;
 			if (args.disableExtraMods) {
 				manager.disableAll();
 			}
@@ -231,12 +230,12 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			if (!args.noDebug) {
 				manager.set("coverage", false);
 				manager.set("profiler", false);
-				const result = manager.installMod("debugadapter", ["bundle"]);
+				const result = await manager.installMod("debugadapter", ["bundle"]);
 				this.sendEvent(new OutputEvent(`package install debugadapter ${JSON.stringify(result)}\n`, "stdout"));
 			} else {
 				manager.set("debugadapter", false);
 			}
-			manager.write();
+			await manager.write();
 			this.sendEvent(new OutputEvent(`debugadapter ${args.noDebug?"disabled":"enabled"} in mod-list.json\n`, "stdout"));
 		}
 
@@ -348,7 +347,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 						this.inPrompt = wasInPrompt;
 					}
 				} else if (event === "terminate") {
-					this.terminate();
+					await this.terminate();
 				} else if (event.startsWith("step")) {
 					// notify stoponstep
 					await this.runQueuedStdin();
@@ -1300,7 +1299,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.writeStdin(Buffer.concat(changes));
 	}
 
-	private terminate() {
+	private async terminate() {
 		this.factorio?.kill?.();
 		const modsPath = this.launchArgs!.modsPath;
 		if (modsPath) {
@@ -1309,8 +1308,9 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			} else {
 				try {
 					const manager = new ModManager(modsPath);
+					await manager.Loaded;
 					manager.set("debugadapter", false);
-					manager.write();
+					await manager.write();
 					this.sendEvent(new OutputEvent(`debugadapter disabled in mod-list.json\n`, "stdout"));
 				} catch (error) {
 					this.sendEvent(new OutputEvent(`failed to disable debugadapter in mod-list.json:\n${error}\n`, "stdout"));

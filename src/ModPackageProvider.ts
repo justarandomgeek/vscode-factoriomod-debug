@@ -267,6 +267,7 @@ class ModTaskProvider implements vscode.TaskProvider {
 		def.modsPath = def.modsPath.replace(/\\/g, "/");
 		term.write(`Using modsPath ${def.modsPath}\n`);
 		const manager = new ModManager(def.modsPath);
+		await manager.Loaded;
 		if (!def.allowDisableBaseMod) { def.adjustMods["base"] = true; }
 		if (def.disableExtraMods) {
 			term.write(`All Mods disabled\n`);
@@ -284,7 +285,7 @@ class ModTaskProvider implements vscode.TaskProvider {
 			}
 		}
 		try {
-			manager.write();
+			await manager.write();
 		} catch (error) {
 			term.write(`Failed to save mod list:\n${error}\n`);
 		}

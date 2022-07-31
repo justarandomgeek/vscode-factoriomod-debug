@@ -37,19 +37,22 @@ const modscommand = program.command("mods")
 	.option("--modsPath <modsPath>", undefined, process.cwd());
 modscommand.command("enable <modname> [version]").action(async (modname:string, version?:string)=>{
 	const manager = new ModManager(modscommand.opts().modsPath);
+	await manager.Loaded;
 	manager.set(modname, version??true);
-	manager.write();
+	await manager.write();
 });
 modscommand.command("disable <modname>").action(async (modname:string)=>{
 	const manager = new ModManager(modscommand.opts().modsPath);
+	await manager.Loaded;
 	manager.set(modname, false);
-	manager.write();
+	await manager.write();
 });
 modscommand.command("install <modname>")
 	.option("--keepOld")
 	.action(async (modname:string, options:{keepOld?:boolean})=>{
 		const manager = new ModManager(modscommand.opts().modsPath);
-		console.log(manager.installMod(modname, ["bundle"], options.keepOld));
+		await manager.Loaded;
+		console.log(await manager.installMod(modname, ["bundle"], options.keepOld));
 	});
 
 const settingscommand = program.command("settings")

@@ -1,4 +1,4 @@
-import * as fs from 'fs';
+import * as fsp from 'fs/promises';
 import * as path from 'path';
 import { ModInfo } from './ModPackageProvider';
 
@@ -26,80 +26,84 @@ interface ModList{
 export class ModManager {
 	private modList:ModList = { mods: [] };
 
+	public readonly Loaded:Promise<void>;
 	constructor(private readonly modsPath:string) {
-		this.reload();
+		this.Loaded = this.reload();
 	}
 
-	public reload() {
+	public async reload() {
 		const listPath = path.resolve(this.modsPath, "./mod-list.json");
-		if (fs.existsSync(listPath)) {
-			this.modList = JSON.parse(fs.readFileSync(listPath, 'utf8'));
-		} else {
+		try {
+			this.modList = JSON.parse(await fsp.readFile(listPath, 'utf8'));
+		} catch (error) {
 			this.modList = { mods: [] };
 		}
 	}
 
-	public write() {
+	public async write() {
 		const listPath = path.resolve(this.modsPath, "./mod-list.json");
-		fs.writeFileSync(listPath, JSON.stringify(this.modList, null, 2), 'utf8');
+		return fsp.writeFile(listPath, JSON.stringify(this.modList, null, 2), 'utf8');
 	}
 
-	public installMod(name:string, origin:"bundle"[]=["bundle"], keepOld?:boolean):{
+	public async installMod(name:string, origin:"bundle"[]=["bundle"], keepOld?:boolean):Promise<{
 		using:string
 		from:"folder"|"versioned_folder"|"existing"|"installed"
 		previous?:boolean|string
 		replaced?:string
-		} {
+		}> {
 
 		//TODO: support installing from portal too
-		const bundle = name in bundled ? bundled[<keyof typeof bundled>name] : undefined;
+		const bundle = bundled[name];
 		if (!bundle) { throw new Error(`No bundled package for ${name}`); }
 		const version = bundle.version;
 
 		const modstate = this.modList.mods.find(m=>m.name === name);
 		const previous = modstate?.enabled ? modstate.version ?? true : modstate?.enabled;
 
-		function checkDir(dirpath:string) {
+		async function checkDir(dirpath:string) {
 			const dirinfopath = path.resolve(dirpath, "info.json");
-			if (fs.existsSync(dirinfopath)) {
-				const jsonstr = fs.readFileSync(dirinfopath, "utf8");
+			try {
+				const jsonstr = await fsp.readFile(dirinfopath, "utf8");
 				if (jsonstr) {
 					const dirinfo:ModInfo = JSON.parse(jsonstr);
 					if (dirinfo.name === name && dirinfo.version === version) {
 						return true;
 					}
 				}
-			}
+			} catch (error) {}
 			return false;
 		}
 
 		// check for dir `modname` with correct info.json inside
-		if (checkDir(path.resolve(this.modsPath, name))) {
+		if (await checkDir(path.resolve(this.modsPath, name))) {
 			this.set(name, version);
 			return { using: version, from: "folder", previous: previous };
 		}
 		// check for dir `modname_version` with correct info.json inside
-		if (checkDir(path.resolve(this.modsPath, `${name}_${version}`))) {
+		if (await checkDir(path.resolve(this.modsPath, `${name}_${version}`))) {
 			this.set(name, version);
 			return { using: version, from: "versioned_folder", previous: previous };
 		}
 		// check for `modname_version.zip`
-		if (fs.existsSync(path.resolve(this.modsPath, `${name}_${version}.zip`))) {
+		try {
+			await fsp.access(path.resolve(this.modsPath, `${name}_${version}.zip`));
 			this.set(name, version);
 			return { using: version, from: "existing", previous: previous };
-		}
+		} catch (error) {}
+
 		// install from provided zip
-		fs.writeFileSync(path.resolve(this.modsPath, `${name}_${version}.zip`), bundle.zip);
+		const written = fsp.writeFile(path.resolve(this.modsPath, `${name}_${version}.zip`), bundle.zip);
 		let replaced:string|undefined;
 		if (!keepOld) {
-			const oldmods = fs.readdirSync(this.modsPath, "utf8").filter(
+			const oldmods = (await fsp.readdir(this.modsPath, "utf8")).filter(
 				s=>s.startsWith(name) && s.endsWith(".zip") && s !== `${name}_${version}.zip`);
 			if (oldmods.length === 1) {
-				fs.unlinkSync(path.resolve(this.modsPath, oldmods[0]));
+				await fsp.unlink(path.resolve(this.modsPath, oldmods[0]));
 				replaced = oldmods[0].substring(name.length+1, oldmods[0].length-4);
 			}
 		}
 		this.set(name, version);
+		await written;
 		return { using: version, from: "installed", previous: previous, replaced: replaced };
 	}
 
