@@ -1,7 +1,7 @@
 'use strict';
 import * as vscode from 'vscode';
 import * as path from 'path';
-import * as fs from 'fs';
+import * as fsp from 'fs/promises';
 import * as os from 'os';
 import { FactorioModDebugSession } from './factorioModDebug';
 import { activateModPackageProvider } from './ModPackageProvider';
@@ -82,12 +82,12 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 			if (modspath.match(/[\\\/]$/)) {
 				modspath = modspath.replace(/[\\\/]+$/, "");
 			}
-			if (fs.existsSync(modspath)) {
+			try {
+				await fsp.access(modspath);
 				config.modsPath = modspath;
-			} else {
-				return vscode.window.showInformationMessage("modsPath specified in launch configuration does not exist").then(_=>{
-					return undefined;	// abort launch
-				});
+			} catch (error) {
+				vscode.window.showInformationMessage("modsPath specified in launch configuration does not exist");
+				return undefined;	// abort launch
 			}
 		} else {
 			// modsPath not configured: detect from config.ini or mods-list.json in workspace
