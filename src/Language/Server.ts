@@ -16,7 +16,7 @@ import {
 
 import { ChangeLogLanguageService } from './ChangeLog';
 import { LocaleLanguageService } from "./Locale";
-import { URI, Utils } from 'vscode-uri';
+import { URI } from 'vscode-uri';
 
 //@ts-ignore
 import readdirGlob from 'readdir-glob';
@@ -71,7 +71,6 @@ export function runLanguageServer() {
 			});
 		}
 	}
-
 
 	let hasWorkspaceFolderCapability = false;
 	let hasDiagnosticRelatedInformationCapability = false;

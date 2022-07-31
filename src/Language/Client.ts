@@ -45,7 +45,6 @@ export function activate(context: ExtensionContext) {
 		synchronize: {
 			fileEvents: [
 				workspace.createFileSystemWatcher('**/locale/*/*.cfg'),
-				workspace.createFileSystemWatcher('**/changelog.txt'),
 			],
 		},
 	};
