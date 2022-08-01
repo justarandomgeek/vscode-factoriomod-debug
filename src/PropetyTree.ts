@@ -1,4 +1,4 @@
-import { BufferStream } from "./BufferStream";
+import type { BufferStream } from "./BufferStream";
 
 export type PropertyTreePrimitive = null|boolean|number|string;
 export type PropertyTreeData = PropertyTreePrimitive|PropertyTreeData[]|PropertyTreeDict;

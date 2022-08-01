@@ -3,7 +3,7 @@ import { createReadStream, createWriteStream } from "fs";
 import * as fsp from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
-import * as Git from './git';
+import type * as Git from './git';
 import * as semver from 'semver';
 import archiver from 'archiver';
 import { spawn } from 'child_process';

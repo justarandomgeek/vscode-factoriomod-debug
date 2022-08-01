@@ -35,6 +35,7 @@
         "@typescript-eslint/semi": [
             "error"
         ],
+        "no-duplicate-imports":"error",
         "brace-style": ["error", "1tbs", { "allowSingleLine": true }],
         "block-spacing": "error",
         "space-before-blocks": "error",

@@ -13,6 +13,8 @@
 		"preserveConstEnums": true,
 		"strictNullChecks": true,
 		"noUnusedParameters": false,
+		"importsNotUsedAsValues": "error",
+		"isolatedModules": true,
 		"noFallthroughCasesInSwitch": true,
 		"noImplicitReturns": true,
 		"esModuleInterop": true,

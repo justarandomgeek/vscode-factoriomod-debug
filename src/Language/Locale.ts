@@ -14,7 +14,7 @@ import {
 	LocationLink,
 } from 'vscode-languageserver/node';
 
-import {
+import type {
 	DocumentUri,
 	TextDocument,
 } from 'vscode-languageserver-textdocument';

@@ -9,7 +9,7 @@ import {
 	Range,
 } from 'vscode-languageserver/node';
 
-import {
+import type {
 	TextDocument,
 } from 'vscode-languageserver-textdocument';
 

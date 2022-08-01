@@ -1,4 +1,4 @@
-import { WorkspaceConfiguration } from "vscode";
+import type { WorkspaceConfiguration } from "vscode";
 import { WritableStream as WritableMemoryStream } from "memory-streams";
 import { overlay } from "./Overlay";
 

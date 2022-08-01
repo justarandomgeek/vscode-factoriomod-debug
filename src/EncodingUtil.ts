@@ -1,4 +1,4 @@
-import { DebugProtocol } from '@vscode/debugprotocol';
+import type { DebugProtocol } from '@vscode/debugprotocol';
 
 export function luaBlockQuote(inbuff:Buffer) {
 	const tailmatch = inbuff.toString().match(/\]=*$/);

@@ -4,7 +4,7 @@ import {
 	StoppedEvent, OutputEvent,
 	Thread, Source, Module, ModuleEvent, InitializedEvent, Scope, Variable, Event, TerminatedEvent, LoadedSourceEvent,
 } from '@vscode/debugadapter';
-import { DebugProtocol } from '@vscode/debugprotocol';
+import type { DebugProtocol } from '@vscode/debugprotocol';
 import * as path from 'path';
 import * as os from 'os';
 import * as semver from 'semver';
@@ -17,7 +17,7 @@ import { ModManager } from './ModManager';
 import { ModSettings } from './ModSettings';
 import { LuaFunction } from './LuaDisassembler';
 import { BufferStream } from './BufferStream';
-import { ActiveFactorioVersion } from './FactorioVersion';
+import type { ActiveFactorioVersion } from './FactorioVersion';
 
 interface ModPaths{
 	uri: URI

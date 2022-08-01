@@ -3,7 +3,7 @@ import * as path from 'path';
 import { build, analyzeMetafile } from "esbuild";
 import { program } from 'commander';
 import archiver from 'archiver';
-import { ModInfo } from './src/ModPackageProvider';
+import type { ModInfo } from './src/ModPackageProvider';
 import { version } from './package.json';
 
 //@ts-ignore

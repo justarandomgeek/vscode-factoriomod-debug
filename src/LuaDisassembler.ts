@@ -1,4 +1,4 @@
-import { DebugProtocol } from '@vscode/debugprotocol';
+import type { DebugProtocol } from '@vscode/debugprotocol';
 import { BufferStream } from "./BufferStream";
 
 /* eslint-disable no-bitwise */

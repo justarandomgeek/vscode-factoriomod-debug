@@ -1,6 +1,6 @@
 import * as fsp from 'fs/promises';
 import * as path from 'path';
-import { ModInfo } from './ModPackageProvider';
+import type { ModInfo } from './ModPackageProvider';
 
 import { version as bundleVersion } from "../package.json";
 
