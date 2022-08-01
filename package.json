@@ -33,6 +33,7 @@
     "compile": "tsc -p ./",
     "lint": "eslint src --ext ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck-watch": "tsc -p tsconfig.json --noEmit --watch",
     "esbuild": "ts-node ./build.ts",
     "watch": "npm run -S esbuild -- --map --watch",
     "build": "npm run -S esbuild -- --map",

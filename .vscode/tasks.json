@@ -19,6 +19,19 @@
 			"problemMatcher": "$esbuild-watch",
 			"isBackground": true,
 			"label": "npm: watch"
+		},
+		{
+			"type": "npm",
+			"script": "typecheck",
+			"problemMatcher": "$tsc",
+			"label": "npm: typecheck"
+		},
+		{
+			"type": "npm",
+			"script": "typecheck-watch",
+			"isBackground": true,
+			"problemMatcher": "$tsc-watch",
+			"label": "npm: typecheck-watch"
 		}
 	]
 }
