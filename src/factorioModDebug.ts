@@ -104,7 +104,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	private inPrompt:boolean = false;
 	private pauseRequested:boolean = false;
 
-	private readonly workspaceModInfo = new Array<ModPaths>();
+	private readonly workspaceModInfo:ModPaths[] = [];
 
 	/**
 	 * Creates a new debug adapter that is used for one debug session.
@@ -113,12 +113,12 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	public constructor(
 		private readonly activeVersion: Pick<ActiveFactorioVersion, "configPathIsOverriden"|"configPath"|"dataPath"|"writeDataPath"|"factorioPath"|"nativeDebugger"|"docs">,
 		private readonly fs: Pick<vscode.FileSystem, "readFile"|"writeFile"|"stat">,
-		private readonly editorInterface?: {
-			readonly tasks?: typeof vscode.tasks
+		private readonly editorInterface: {
 			readonly findWorkspaceFiles?: typeof vscode.workspace.findFiles
+			readonly tasks?: typeof vscode.tasks
 			readonly getExtension?: typeof vscode.extensions.getExtension
-			readonly executeCommand: typeof vscode.commands.executeCommand
-		}
+			readonly executeCommand?: typeof vscode.commands.executeCommand
+		} = {}
 	) {
 		super();
 
@@ -196,8 +196,8 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		args.hookMode = args.hookMode ?? "debug";
 		args.trace = args.trace ?? false;
 
-		if (this.editorInterface?.tasks) {
-			const tasks = (await this.editorInterface?.tasks.fetchTasks({type: "factorio"})).filter(
+		if (this.editorInterface.tasks) {
+			const tasks = (await this.editorInterface.tasks.fetchTasks({type: "factorio"})).filter(
 				(task)=>task.definition.command === "compile"
 			);
 
@@ -239,7 +239,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			this.sendEvent(new OutputEvent(`debugadapter ${args.noDebug?"disabled":"enabled"} in mod-list.json\n`, "stdout"));
 		}
 
-		if (this.editorInterface?.findWorkspaceFiles) {
+		if (this.editorInterface.findWorkspaceFiles) {
 			const infos = await this.editorInterface.findWorkspaceFiles('**/info.json');
 			await Promise.all(infos.map(this.updateInfoJson, this));
 		}
@@ -981,13 +981,13 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 
 	public async runTask(task: vscode.Task) {
-		if (!this.editorInterface?.tasks) {
+		if (!this.editorInterface.tasks) {
 			return undefined;
 		}
 		const execution = await this.editorInterface.tasks.executeTask(task);
 
 		return new Promise<void>(resolve=>{
-			const disposable = this.editorInterface!.tasks!.onDidEndTask(e=>{
+			const disposable = this.editorInterface.tasks!.onDidEndTask(e=>{
 				if (e.execution === execution) {
 					disposable.dispose();
 					resolve();
@@ -1184,10 +1184,10 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 
 	private async updateModules(modules: DebugProtocol.Module[]) {
-		const zipext = this.editorInterface?.getExtension?.("slevesque.vscode-zipexplorer");
+		const zipext = this.editorInterface.getExtension?.("slevesque.vscode-zipexplorer");
 		if (zipext) {
 			await zipext.activate();
-			await this.editorInterface?.executeCommand("zipexplorer.clear");
+			await this.editorInterface.executeCommand!("zipexplorer.clear");
 		}
 		for (const module of modules) {
 			try {
@@ -1256,7 +1256,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 								// if zip exists, try to mount it
 								//TODO: can i check if it's already mounted somehow?
 								//TODO: can i actually read dirname inside? doesn't seem to be registered as an fs handler
-								await this.editorInterface?.executeCommand("zipexplorer.exploreZipFile", zipuri);
+								await this.editorInterface.executeCommand!("zipexplorer.exploreZipFile", zipuri);
 
 								const zipinside = Utils.joinPath(zipuri, module.name+"_"+module.version).with({scheme: "zip"});
 								module.symbolFilePath = zipinside.toString();

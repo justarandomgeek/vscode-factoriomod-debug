@@ -56,13 +56,16 @@ export class ActiveFactorioVersion {
 	}
 
 	public async debugLaunchArgs() {
-		const args = [];
+		const args:string[] = [];
 		args.push(this.factorioPath);
 		if (this.fv.docsPath) {
 			args.push("--docs", this.fv.docsPath);
 		}
 		if (this.configPathIsOverriden()) {
 			args.push("--config", await this.configPath());
+		}
+		if (this.workspaceFolders) {
+			args.push("--workspace", ...this.workspaceFolders.map(wf=>wf.uri.fsPath));
 		}
 		return args;
 	}

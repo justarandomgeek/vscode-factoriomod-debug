@@ -11,6 +11,9 @@ import { FactorioModDebugSession } from './factorioModDebug';
 import { ActiveFactorioVersion, FactorioVersion } from "./FactorioVersion";
 import { runLanguageServer } from "./Language/Server";
 
+//@ts-ignore
+import readdirGlob from 'readdir-glob';
+
 const fsAccessor:  Pick<FileSystem, "readFile"|"writeFile"|"stat"> = {
 	async readFile(uri:URI) {
 		return fsp.readFile(uri.fsPath);
@@ -128,7 +131,8 @@ program.command("lsp").allowUnknownOption(true).allowExcessArguments(true).actio
 program.command("debug <factorioPath>")
 	.option("-d, --docs <docsPath>")
 	.option("-c, --config <configPath>")
-	.action(async (factorioPath:string, options:{docs?:string; config?:string})=>{
+	.option("-w, --workspace <workspacePath...>")
+	.action(async (factorioPath:string, options:{docs?:string; config?:string; workspace?:string[]})=>{
 		const fv: FactorioVersion = {
 			name: "standalone",
 			factorioPath: factorioPath,
@@ -144,7 +148,26 @@ program.command("debug <factorioPath>")
 		const activeVersion = new ActiveFactorioVersion(fsAccessor, fv, new ApiDocGenerator(docsjson, settingsGetter));
 
 		// start a single session that communicates via stdin/stdout
-		const session = new FactorioModDebugSession(activeVersion, fsAccessor);
+		const session = new FactorioModDebugSession(activeVersion, fsAccessor, {
+			async findWorkspaceFiles(include) {
+				const found:URI[] = [];
+				for (const folder of options.workspace ?? [process.cwd()]) {
+					const globber = readdirGlob(folder, {pattern: include});
+					globber.on('match', (match:{ relative:string; absolute:string })=>{
+						found.push(URI.file(match.absolute));
+					});
+					globber.on('error', (err:unknown)=>{
+						throw err;
+					});
+					await new Promise<void>((resolve)=>{
+						globber.on('end', ()=>{
+							resolve();
+						});
+					});
+				}
+				return found;
+			},
+		});
 		process.on('SIGTERM', ()=>{
 			session.shutdown();
 		});
