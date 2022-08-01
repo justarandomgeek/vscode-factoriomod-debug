@@ -267,9 +267,8 @@ class ModTaskProvider implements vscode.TaskProvider {
 	}
 
 	private AdjustModsTask(def:AdjustModsDefinition) {
-		const runtime = process.execPath;
+		const runtime = "node";
 		const args = [
-			"--ms-enable-electron-run-as-node",
 			this.context.asAbsolutePath("./dist/standalone.js"),
 			"mods", "--modsPath", def.modsPath, "adjust",
 		];
@@ -282,11 +281,7 @@ class ModTaskProvider implements vscode.TaskProvider {
 		for (const mod in def.adjustMods) {
 			args.push(`${mod}=${def.adjustMods[mod]}`);
 		}
-		return new vscode.ProcessExecution(runtime, args, {
-			env: {
-				ELECTRON_RUN_AS_NODE: "1",
-			},
-		});
+		return new vscode.ProcessExecution(runtime, args);
 	}
 }
 
