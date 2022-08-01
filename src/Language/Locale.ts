@@ -118,6 +118,8 @@ function colorToStrings(color: Color): string[] {
 
 export class LocaleLanguageService {
 
+	public hasDiagnosticRelatedInformationCapability:boolean = false;
+
 	public async validateTextDocument(textDocument: TextDocument): Promise<Diagnostic[]> {
 		const locale = textDocument.getText().split(/\r?\n/);
 		const diags: Diagnostic[] = [];
@@ -145,13 +147,13 @@ export class LocaleLanguageService {
 							source: "factorio-locale",
 							severity: DiagnosticSeverity.Error,
 							range: { start: { line: i, character: line.indexOf(currentSection) }, end: { line: i, character: line.indexOf(currentSection)+currentSection.length }},
-							relatedInformation: [{
+							relatedInformation: this.hasDiagnosticRelatedInformationCapability ? [{
 								location: {
 									uri: textDocument.uri,
 									range: previous.range,
 								},
 								message: "First defined here",
-							}],
+							}] : undefined,
 							code: "section.merge",
 							data: {
 								firstsym: previous,
@@ -166,13 +168,13 @@ export class LocaleLanguageService {
 							source: "factorio-locale",
 							severity: DiagnosticSeverity.Error,
 							range: { start: { line: i, character: line.indexOf(currentSection) }, end: { line: i, character: line.indexOf(currentSection)+currentSection.length }},
-							relatedInformation: [{
+							relatedInformation: this.hasDiagnosticRelatedInformationCapability ? [{
 								location: {
 									uri: textDocument.uri,
 									range: previous.range,
 								},
 								message: "First defined here",
-							}],
+							}] : undefined,
 						});
 						sections.set(currentSection, new Set<String>());
 					} else {
@@ -204,14 +206,13 @@ export class LocaleLanguageService {
 							source: "factorio-locale",
 							severity: DiagnosticSeverity.Error,
 							range: { start: { line: i, character: line.indexOf(key) }, end: { line: i, character: line.indexOf(key)+key.length }},
-							relatedInformation: [{
+							relatedInformation: this.hasDiagnosticRelatedInformationCapability ? [{
 								location: {
 									uri: textDocument.uri,
 									range: previous.range,
 								},
 								message: "First defined here",
-							}],
-
+							}] : undefined,
 						});
 					} else {
 						sections.get(currentSection)!.add(key);

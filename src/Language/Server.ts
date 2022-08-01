@@ -73,7 +73,6 @@ export function runLanguageServer() {
 	}
 
 	let hasWorkspaceFolderCapability = false;
-	let hasDiagnosticRelatedInformationCapability = false;
 
 	connection.onInitialize(async (params: InitializeParams)=>{
 		const capabilities = params.capabilities;
@@ -81,7 +80,7 @@ export function runLanguageServer() {
 		hasWorkspaceFolderCapability = !!(
 			capabilities.workspace && !!capabilities.workspace.workspaceFolders
 		);
-		hasDiagnosticRelatedInformationCapability = !!(
+		Locale.hasDiagnosticRelatedInformationCapability = !!(
 			capabilities.textDocument &&
 			capabilities.textDocument.publishDiagnostics &&
 			capabilities.textDocument.publishDiagnostics.relatedInformation
