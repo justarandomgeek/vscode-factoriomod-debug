@@ -31,7 +31,6 @@
 				"${workspaceFolder}/dist/**/*.js"
 			],
 		},
-
 		{
 			"name": "Attach To External LSP",
 			"type": "node",
