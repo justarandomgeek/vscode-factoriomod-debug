@@ -57,6 +57,42 @@ modscommand.command("install <modname>")
 		await manager.Loaded;
 		console.log(await manager.installMod(modname, ["bundle"], options.keepOld));
 	});
+modscommand.command("adjust <changes...>")
+	.option("--allowDisableBase")
+	.option("--disableExtra")
+	.action(async (changes:string[], options:{allowDisableBase?:boolean; disableExtra?:boolean})=>{
+		const manager = new ModManager(modscommand.opts().modsPath);
+		await manager.Loaded;
+		if (options.disableExtra) {
+			console.log(`All Mods disabled`);
+			manager.disableAll();
+		}
+		for (const change of changes) {
+			const match = change.match(/^(.*)=(true|false|(?:\d+\.){2}\d+)$/);
+			if (!match) {
+				console.log(`Doing nothing with invalid adjust arg "${change}"`);
+			} else {
+				const mod = match[1];
+				const adjust =
+					match[2] ==="true" ? true :
+					match[2] ==="false" ? false :
+					match[2];
+				manager.set(mod, adjust);
+				console.log(`${mod} ${
+					adjust === true ? "enabled" :
+					adjust === false ? "disabled" :
+					"enabled version " + adjust
+				}`);
+			}
+		}
+
+		if (!options.allowDisableBase) { manager.set("base", true); }
+		try {
+			await manager.write();
+		} catch (error) {
+			console.log(`Failed to save mod list:\n${error}`);
+		}
+	});
 
 const settingscommand = program.command("settings")
 	.option("--modsPath <modsPath>", undefined, process.cwd());

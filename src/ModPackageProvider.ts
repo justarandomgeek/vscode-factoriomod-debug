@@ -8,7 +8,6 @@ import * as semver from 'semver';
 import archiver from 'archiver';
 import { spawn } from 'child_process';
 import { BufferSplitter } from './BufferSplitter';
-import { ModManager } from './ModManager';
 import FormData from 'form-data';
 import fetch, { Headers } from 'node-fetch';
 import { Keychain } from './Keychain';
@@ -65,7 +64,7 @@ export async function activateModPackageProvider(context:vscode.ExtensionContext
 		context.subscriptions.push(vscode.commands.registerCommand("factorio.clearApiKey", async ()=>{
 			await keychain.ClearApiKey();
 		}));
-		const treeDataProvider = new ModsTreeDataProvider(keychain);
+		const treeDataProvider = new ModsTreeDataProvider(context, keychain);
 		context.subscriptions.push(treeDataProvider);
 		const view = vscode.window.createTreeView('factoriomods', { treeDataProvider: treeDataProvider });
 		context.subscriptions.push(view);
@@ -126,7 +125,10 @@ async function MigrateAPIKeyStorage(keychain:Keychain) {
 }
 
 class ModTaskProvider implements vscode.TaskProvider {
-	constructor(private readonly modPackages: Map<string, ModPackage>) {}
+	constructor(
+		private readonly context:vscode.ExtensionContext,
+		private readonly modPackages: Map<string, ModPackage>
+	) {}
 
 
 	provideTasks(token?: vscode.CancellationToken | undefined): vscode.ProviderResult<vscode.Task[]> {
@@ -264,40 +266,26 @@ class ModTaskProvider implements vscode.TaskProvider {
 		});
 	}
 
-	private async AdjustMods(term:ModTaskTerminal, def:AdjustModsDefinition): Promise<void> {
-		def.modsPath = def.modsPath.replace(/\\/g, "/");
-		term.write(`Using modsPath ${def.modsPath}\n`);
-		const manager = new ModManager(def.modsPath);
-		await manager.Loaded;
-		if (!def.allowDisableBaseMod) { def.adjustMods["base"] = true; }
+	private AdjustModsTask(def:AdjustModsDefinition) {
+		const runtime = process.execPath;
+		const args = [
+			"--ms-enable-electron-run-as-node",
+			this.context.asAbsolutePath("./dist/standalone.js"),
+			"mods", "--modsPath", def.modsPath, "adjust",
+		];
+		if (def.allowDisableBaseMod) {
+			args.push("--allowDisableBase");
+		}
 		if (def.disableExtraMods) {
-			term.write(`All Mods disabled\n`);
-			manager.disableAll();
+			args.push("--disableExtra");
 		}
 		for (const mod in def.adjustMods) {
-			if (def.adjustMods.hasOwnProperty(mod)) {
-				const adjust = def.adjustMods[mod];
-				manager.set(mod, adjust);
-				term.write(`${mod} ${
-					adjust === true ? "enabled" :
-					adjust === false ? "disabled" :
-					"enabled version " + adjust
-				}\n`);
-			}
+			args.push(`${mod}=${def.adjustMods[mod]}`);
 		}
-		try {
-			await manager.write();
-		} catch (error) {
-			term.write(`Failed to save mod list:\n${error}\n`);
-		}
-	}
-
-	private AdjustModsTask(def:AdjustModsDefinition): vscode.CustomExecution {
-		return new vscode.CustomExecution(async ()=>{
-			return new ModTaskPseudoterminal(async term=>{
-				await this.AdjustMods(term, def);
-				term.close();
-			});
+		return new vscode.ProcessExecution(runtime, args, {
+			env: {
+				ELECTRON_RUN_AS_NODE: "1",
+			},
 		});
 	}
 }
@@ -773,7 +761,10 @@ class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>, 
 
 	private readonly modPackages: Map<string, ModPackage>;
 	private readonly subscriptions:{dispose():void}[] = [this._onDidChangeTreeData];
-	constructor(private readonly keychain:Keychain) {
+	constructor(
+		private readonly context:vscode.ExtensionContext,
+		private readonly keychain:Keychain
+	) {
 		this.modPackages = new Map<string, ModPackage>();
 		vscode.workspace.findFiles('**/info.json').then(infos=>{ infos.forEach(this.updateInfoJson, this); });
 		const infoWatcher = vscode.workspace.createFileSystemWatcher('**/info.json');
@@ -782,7 +773,7 @@ class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>, 
 		this.subscriptions.push(infoWatcher.onDidDelete(this.removeInfoJson, this));
 		this.subscriptions.push(infoWatcher);
 
-		this.subscriptions.push(vscode.tasks.registerTaskProvider("factorio", new ModTaskProvider(this.modPackages)));
+		this.subscriptions.push(vscode.tasks.registerTaskProvider("factorio", new ModTaskProvider(this.context, this.modPackages)));
 
 		this.subscriptions.push(
 			vscode.commands.registerCommand("factorio.openchangelog",
