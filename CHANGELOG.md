@@ -4,6 +4,10 @@
 
 ## 1.1.23
 
+* Fixed library management incorrectly truncating the end of the array
+* Convert Locale and Changelog support to LSP
+* Small DAP protocol fixes
+* Go To Definition and Completion support for locale keys in Lua
 
 ## 1.1.22
 
