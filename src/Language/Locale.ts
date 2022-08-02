@@ -333,6 +333,14 @@ export class LocaleLanguageService {
 		return defs;
 	}
 
+	public getCompletions() {
+		const defs = [];
+		for (const fromdoc of this.definitions.values()) {
+			defs.push(fromdoc.map(def=>def.name));
+		}
+		return [...new Set(defs.flat())];
+	}
+
 	public onCodeAction(document: TextDocument, range: Range, context: CodeActionContext): CodeAction[] {
 		if (document.languageId === "factorio-locale") {
 			return context.diagnostics.filter(diag=>!!diag.code).map((diag)=>{

@@ -20,11 +20,13 @@ import { URI } from 'vscode-uri';
 
 //@ts-ignore
 import readdirGlob from 'readdir-glob';
+import { LuaLanguageService } from './Lua';
 
 export function runLanguageServer() {
 
 	const ChangeLog = new ChangeLogLanguageService();
 	const Locale = new LocaleLanguageService();
+	const Lua = new LuaLanguageService(Locale);
 
 	// Create a connection for the server, using Node's IPC as a transport.
 	// Also include all preview / proposed LSP features.
@@ -94,6 +96,9 @@ export function runLanguageServer() {
 				colorProvider: true,
 
 				definitionProvider: true,
+				completionProvider: {
+					triggerCharacters: ['"', "'", "."],
+				},
 			},
 		};
 		if (hasWorkspaceFolderCapability) {
@@ -153,43 +158,18 @@ export function runLanguageServer() {
 	connection.onDefinition(async (request)=>{
 		const doc = await getDocument(request.textDocument.uri);
 		if (doc && doc.languageId==="lua") {
-			const line = doc.getText({
-				start: {
-					line: request.position.line,
-					character: 0,
-				},
-				end: {
-					line: request.position.line,
-					character: Number.MAX_VALUE,
-				},
-			});
-
-			for (const match of line.matchAll(/(['"])((?:[^\\](?<!\1)|\\['"0abfnrtv\\]|\\\d{1,3}|\\x[0-9a-fA-F]{2})*)\1/g)) {
-				if (match.index &&
-					match.index <= request.position.character &&
-					match.index + match[0].length >= request.position.character) {
-					//TODO: parse the lua escapes if any. raw values only for now...
-					const name = match[2];
-					const range = {
-						start: {
-							line: request.position.line,
-							character: match.index,
-						},
-						end: {
-							line: request.position.line,
-							character: match.index + match[0].length,
-						},
-					};
-					const defs = Locale.findDefinitions(name);
-					return defs.map(def=>Object.assign({
-						originSelectionRange: range,
-					}, def));
-				}
-			}
+			return Lua.onDefinition(request, doc);
 		}
 		return null;
 	});
 
+	connection.onCompletion(async (request)=>{
+		const doc = await getDocument(request.textDocument.uri);
+		if (doc && doc.languageId==="lua") {
+			return Lua.onCompletion(request, doc);
+		}
+		return undefined;
+	});
 
 	connection.onDidChangeWatchedFiles(async (change)=>{
 		for (const filechange of change.changes) {
