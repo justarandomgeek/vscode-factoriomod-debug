@@ -333,10 +333,21 @@ export class LocaleLanguageService {
 		return defs;
 	}
 
-	public getCompletions() {
+	public getCompletions(prefix?:string) {
 		const defs = [];
 		for (const fromdoc of this.definitions.values()) {
-			defs.push(fromdoc.map(def=>def.name));
+			if (prefix) {
+				defs.push(fromdoc.map(def=>def.name).filter(name=>name.startsWith(prefix)));
+			} else {
+				defs.push(fromdoc.map(def=>def.name).map(name=>{
+					const dot = name.indexOf(".");
+					if (dot === -1) {
+						return name;
+					} else {
+						return name.substring(0, dot+1);
+					}
+				}));
+			}
 		}
 		return [...new Set(defs.flat())];
 	}

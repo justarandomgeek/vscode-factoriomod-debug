@@ -98,6 +98,7 @@ export function runLanguageServer() {
 				definitionProvider: true,
 				completionProvider: {
 					triggerCharacters: ['"', "'", "."],
+					allCommitCharacters: ["."],
 				},
 			},
 		};
@@ -166,7 +167,10 @@ export function runLanguageServer() {
 	connection.onCompletion(async (request)=>{
 		const doc = await getDocument(request.textDocument.uri);
 		if (doc && doc.languageId==="lua") {
-			return Lua.onCompletion(request, doc);
+			return {
+				isIncomplete: true,
+				items: Lua.onCompletion(request, doc),
+			};
 		}
 		return undefined;
 	});

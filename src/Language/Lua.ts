@@ -1,4 +1,6 @@
-import type {
+import {
+	CompletionItem,
+	CompletionItemKind,
 	CompletionParams,
 	DefinitionParams,
 } from 'vscode-languageserver/node';
@@ -66,12 +68,29 @@ export class LuaLanguageService {
 		// match a string ending exactly after the cursor
 		const match = line.match(/(['"])((?:[^\\](?<!\1)|\\['"0abfnrtv\\]|\\\d{1,3}|\\x[0-9a-fA-F]{2})*)\1$/);
 		if (match) {
-			return this.Locale.getCompletions()
-				.map(key=>({
-					label: key,
+			const lastDot = match[2].lastIndexOf(".");
+			const prefix = lastDot !== -1 ? match[2].substring(0, lastDot+1) : "";
+			return this.Locale.getCompletions(prefix)
+				.map<CompletionItem>(key=>({
+					label: key.endsWith(".") ? key.substring(0, key.length-1) : key,
+					kind: key.endsWith(".") ? CompletionItemKind.Enum : CompletionItemKind.EnumMember,
+					commitCharacters: key.endsWith(".") ? ["."] : [],
+					textEdit: {
+						newText: key.endsWith(".") ? key.substring(0, key.length-1) : key,
+						range: {
+							start: {
+								line: request.position.line,
+								character: match.index!+1,
+							},
+							end: {
+								line: request.position.line,
+								character: request.position.character,
+							},
+						},
+					},
 				}));
 		}
-		return undefined;
+		return [];
 	}
 
 }
