@@ -465,19 +465,19 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				await this.loadedSourceEvent(JSON.parse(mesg.substring(11).trim()));
 			} else if (mesg.startsWith("DBGscopes: ")) {
 				const scopes = JSON.parse(mesg.substring(11).trim());
-				this._scopes.get(scopes.frameId)!(scopes.scopes);
+				this._scopes.get(scopes.frameId)?.(scopes.scopes);
 				this._scopes.delete(scopes.frameId);
 			} else if (mesg.startsWith("DBGvars: ")) {
 				const vars = JSON.parse(mesg.substring(9).trim());
-				this._vars.get(vars.seq)!(vars.vars);
+				this._vars.get(vars.seq)?.(vars.vars);
 				this._vars.delete(vars.seq);
 			} else if (mesg.startsWith("DBGsetvar: ")) {
 				const result = JSON.parse(mesg.substring(11).trim());
-				this._setvars.get(result.seq)!(result.body);
+				this._setvars.get(result.seq)?.(result.body);
 				this._setvars.delete(result.seq);
 			} else if (mesg.startsWith("DBGeval: ")) {
 				const evalresult:EvaluateResponseBody = JSON.parse(mesg.substring(9).trim());
-				this._evals.get(evalresult.seq)!(evalresult);
+				this._evals.get(evalresult.seq)?.(evalresult);
 				this._evals.delete(evalresult.seq);
 			} else if (mesg.startsWith("DBGtranslate: ")) {
 				const sub = mesg.substr(14);
