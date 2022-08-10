@@ -481,7 +481,7 @@ function DAEval.evaluate(frameId,context,expression,seq,formod)
       ---@cast result any
       local outmesg = result
       local tmesg = type(result)
-      if tmesg == "table" and (result--[[@as LuaObject]].object_name == "LuaProfiler" or (not getmetatable(result) and type(result[1])=="string")) then
+      if tmesg == "table" and (result--[[@as LuaObject]].object_name == "LuaProfiler" or (not getmetatable(result) and #result>=1 and type(result[1])=="string")) then
         outmesg = "{LocalisedString "..variables.translate(result).."}"
       elseif tmesg ~= "string" then
         outmesg = variables.describe(result)

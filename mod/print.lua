@@ -33,7 +33,7 @@ function DAprint.print(expr,alsoLookIn,upStack,category,noexprs)
       local v = variables.create(nil,{exprs}, nil)
       ref = v.variablesReference
     end
-  elseif variables.translate and texpr == "table" and (expr.object_name == "LuaProfiler" or (not getmetatable(expr) and type(expr[1])=="string")) then
+  elseif variables.translate and texpr == "table" and (expr.object_name == "LuaProfiler" or (not getmetatable(expr) and #expr>=1 and type(expr[1])=="string")) then
     result = "{LocalisedString "..variables.translate(expr).."}"
   else
     if texpr == "table" then

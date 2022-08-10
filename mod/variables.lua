@@ -612,7 +612,7 @@ function variables.create(name,value,evalName)
       for k,v in next,value,namesStartAfter do
         namedVariables = namedVariables + 1
       end
-      if not mt and namedVariables == 0 and type(value[1]) == "string" then
+      if not mt and namedVariables == 0 and indexedVariables >= 1 and type(value[1]) == "string" then
         -- no meta, array-like, and starts with a string, maybe a localisedstring? at least try...
         namedVariables = 1
       end
@@ -898,7 +898,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
 
           -- rough heuristic for matching LocalisedStrings
           -- tables with no meta, and [1] that is string
-          if filter == "named" and not mt and type(varRef.table[1]) == "string" then
+          if filter == "named" and not mt and #varRef.table >= 1 and type(varRef.table[1]) == "string" then
             -- print a translation for this with unique id
             local i,mesg = variables.translate(varRef.table)
             vars[#vars + 1] = {
