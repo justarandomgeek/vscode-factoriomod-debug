@@ -8,6 +8,7 @@
 * Convert Locale and Changelog support to LSP
 * Small DAP protocol fixes
 * Go To Definition and Completion support for locale keys in Lua
+* Fixed an issue where preparing debug views of a table could inadvertantly cause it to rehash ("invalid key to next" when iterating while deleting)
 
 ## 1.1.22
 
