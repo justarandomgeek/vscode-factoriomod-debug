@@ -4,6 +4,7 @@
 The debugger also injects runtime diagnostics into all hooked mods:
 
   * Global Assignment: A warning will be issued on the first assignment to an undefined global variable. `__DebugAdapter.defineGlobal(name)` can be used to disable this warning for the given name.
+  * Event Handler Replacement: A warning will be issued when an event handler is registered to an event that already has a handler that is not equal to the new one.
 
 ## Factorio API autocompletion
 
