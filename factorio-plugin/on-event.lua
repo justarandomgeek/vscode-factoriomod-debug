@@ -5,7 +5,8 @@ local util = require("factorio-plugin.util")
 ---@param event_id_param string
 ---@return string|nil
 local function get_class_name(event_id_param)
-  local id = event_id_param:match("[a-zA-Z_][a-zA-Z0-9_]*$") ---@type string|nil
+  ---@type string|nil
+  local id = event_id_param:match("[a-zA-Z_][a-zA-Z0-9_]*$")
   if id and (id:match("^on_()") or id:match("^script_()")) then
     return id
   end
@@ -39,15 +40,18 @@ local function replace(_, text, diffs)
     local param, s_func_param
     local is_table = text:sub(s_param, s_param) == "{"
     if is_table then
-      param, s_func_param = text:match("^(%b{})%s*,()", s_param) ---@type string|nil, integer
+      ---@type string|nil, integer
+      param, s_func_param = text:match("^(%b{})%s*,()", s_param)
     else
-      param, s_func_param = text:match("^([^,)]-)%s*,()", s_param) ---@type string|nil, integer
+      ---@type string|nil, integer
+      param, s_func_param = text:match("^([^,)]-)%s*,()", s_param)
     end
 
     if param then
       process_func_param(s_func_param, function()
         if is_table then
-          local classes = {} ---@type string[]
+          ---@type string[]
+          local classes = {}
           local f = 1
           for match, f_match in param:gmatch("%s*([^{},]-)%s*,()")--[[@as fun():string, integer]] do
             f = f_match
@@ -62,8 +66,7 @@ local function replace(_, text, diffs)
     end
   end
 
-  for preceding_text, s_param
-  in
+  for preceding_text, s_param in
     util.gmatch_at_start_of_line(text, "([^\n]-)on_event%s*%(%s*()")--[[@as fun():string, integer]]
   do
     if not preceding_text:find("--", 1, true) then
@@ -71,8 +74,7 @@ local function replace(_, text, diffs)
     end
   end
 
-  for preceding_text, s_param
-  in
+  for preceding_text, s_param in
     util.gmatch_at_start_of_line(text, "([^\n]-)[Ee]vent%s*%.%s*register%s*%(%s*()")--[[@as fun():string, integer]]
   do
     if not preceding_text:find("--", 1, true) then
@@ -80,8 +82,7 @@ local function replace(_, text, diffs)
     end
   end
 
-  for preceding_text, class_name, s_func_param
-  in
+  for preceding_text, class_name, s_func_param in
     util.gmatch_at_start_of_line(text, "([^\n]-)[Ee]vent%s*%.%s*([a-zA-Z_][a-zA-Z0-9_]*)%s*%(()")--[[@as fun():string, string, integer]]
   do
     if not preceding_text:find("--", 1, true) then

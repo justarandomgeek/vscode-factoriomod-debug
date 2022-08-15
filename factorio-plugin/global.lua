@@ -28,7 +28,8 @@ local function replace(uri, text, diffs)
     this_mod = this_mod:gsub("[^a-zA-Z0-9_]","_")
     local global_name = "__"..this_mod.."__global"
 
-    local global_matches = {} ---@type {[integer]: integer}
+    ---@type {[integer]: integer}
+    local global_matches = {}
     for start, finish in text:gmatch("%f[a-zA-Z0-9_]()global()%s*[=.%[]")--[[@as fun():integer, integer]] do
       global_matches[start] = finish
     end

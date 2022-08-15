@@ -18,10 +18,9 @@ local function replace(_, text, diffs)
   ---@return comma_or_paren|nil  -- Does this only return the two literal strings/nil
   ---@return integer|nil
   local function process_param(chain_diff, p_param_start)
-
     ---@type integer, string|nil, integer, comma_or_paren|nil, integer
     local s_param, param, f_param, comma_or_paren, p_param_finish
-    = text:match("^%s*()[\"']([^\"']*)[\"']()%s*([,)])()", p_param_start)
+      = text:match("^%s*()[\"']([^\"']*)[\"']()%s*([,)])()", p_param_start)
 
     if not param then
       return
@@ -32,14 +31,12 @@ local function replace(_, text, diffs)
     chain_diff[i + 1] = {i = f_param}
     util.use_source_to_index(chain_diff, i, param, true)
 
-    ---@diagnostic disable-next-line
     return param, comma_or_paren, p_param_finish
   end
 
   -- remote.add_interface
 
-  for preceding_text, s_entire_thing, s_add, f_add, p_open_paren, p_param_1
-  in
+  for preceding_text, s_entire_thing, s_add, f_add, p_open_paren, p_param_1 in
     util.gmatch_at_start_of_line(text, "([^\n]-)()remote%s*%.%s*()add_interface()%s*()%(()") --[[@as fun(): string, integer, integer, integer, integer, integer]]
   do
     if not preceding_text:find("--", 1, true) then
@@ -80,8 +77,7 @@ local function replace(_, text, diffs)
   -- this in particular needs to work as you're typing, not just once you're done
   -- which significantly complicates things, like we can't use the commas as reliable anchors
 
-  for preceding_text, s_call, f_call, p_open_paren, s_param_1
-  in
+  for preceding_text, s_call, f_call, p_open_paren, s_param_1 in
     util.gmatch_at_start_of_line(text, "([^\n]-)remote%s*%.%s*()call()%s*()%(()")--[[@as fun():string, integer, integer, integer, integer]]
   do
     if not preceding_text:find("--", 1, true) then

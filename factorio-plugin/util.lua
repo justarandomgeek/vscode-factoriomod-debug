@@ -20,7 +20,8 @@
 local function gmatch_at_start_of_line(s, pattern, init)
   local first = true
   local unpack = table.unpack
-  local gmatch_iterator = s:gmatch("\n"..pattern) ---@type fun(): string|integer, ...
+  ---@type fun(): string|integer, ...
+  local gmatch_iterator = s:gmatch("\n"..pattern)
   return function()
     if first then
       first = false
@@ -71,7 +72,8 @@ end
 ---@param source string
 ---@return string|false
 local function try_parse_string_literal(source)
-  local str, f_str = source:match("^[\"']([^\"']*)[\"']%s*()") ---@type string, integer
+  ---@type string, integer
+  local str, f_str = source:match("^[\"']([^\"']*)[\"']%s*()")
   return f_str == #str and str
 end
 
@@ -113,7 +115,7 @@ local function add_chain_diff(chain_diff, diffs)
       diffs[count] = {
         start = prev_chain_diff_elem.i,
         finish = chain_diff_elem.i - 1, -- finish is treated as including, which we don't want
-        text = prev_chain_diff_elem.text
+        text = prev_chain_diff_elem.text,
       }
     end
     prev_chain_diff_elem = chain_diff_elem
@@ -125,7 +127,7 @@ local function add_chain_diff(chain_diff, diffs)
     diffs[count] = {
       start = prev_chain_diff_elem.i,
       finish = prev_chain_diff_elem.i - 1,
-      text = prev_chain_diff_elem.text
+      text = prev_chain_diff_elem.text,
     }
   end
 end
