@@ -21,7 +21,7 @@ local function gmatch_at_start_of_line(s, pattern, init)
   local first = true
   local unpack = table.unpack
   ---@type fun(): string|integer, ...
-  local gmatch_iterator = s:gmatch("\n"..pattern)
+  local gmatch_iterator = s:gmatch("\n"..pattern, init)
   return function()
     if first then
       first = false
