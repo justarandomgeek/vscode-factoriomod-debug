@@ -1,7 +1,10 @@
 --##
 
 local util = require("factorio-plugin.util")
-local workspace = require("workspace")
+local workspace
+if not __plugin_dev then
+  workspace = require("workspace")
+end
 
 ---Rename `global` so we can tell them apart!
 ---@param uri string @ The uri of file
@@ -13,7 +16,7 @@ local function replace(uri, text, diffs)
   local this_mod = uri:match("mods[\\/]([^\\/]+)[\\/]")
   if not this_mod then
     if __plugin_dev then
-      this_mod = "FallbackModName"
+      this_mod = "PluginDevModName"
     else
       this_mod = this_mod or workspace.getRootUri(uri)
       this_mod = this_mod and this_mod:match("[^/\\]+$")

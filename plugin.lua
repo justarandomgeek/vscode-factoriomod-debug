@@ -7,15 +7,23 @@
 
 ---Dev Notes: confirm "path/to/lua-language-server/script/", in Lua.Workspace.Library for completions
 
+-- define `__plugin_dev` variable used during development with https://github.com/JanSharp/SumnekoLuaPluginDevEnv
+---@diagnostic disable-next-line
+if false then __plugin_dev = true end
+
 -- allow for require to search relative to this plugin file
 -- open for improvements!
-local fs = require("bee.filesystem")
-local workspace = require("workspace")
-local scope = require("workspace.scope")
-local plugin_path = fs.path(scope.getScope(workspace.rootUri):get('pluginPath'))
-local new_path = (plugin_path:parent_path() / "?.lua"):string()
-if not package.path:find(new_path, 1, true) then
-  package.path = package.path..";"..new_path
+local workspace
+local scope
+if not __plugin_dev then
+  local fs = require("bee.filesystem")
+  workspace = require("workspace")
+  scope = require("workspace.scope")
+  local plugin_path = fs.path(scope.getScope(workspace.rootUri):get('pluginPath'))
+  local new_path = (plugin_path:parent_path() / "?.lua"):string()
+  if not package.path:find(new_path, 1, true) then
+    package.path = package.path..";"..new_path
+  end
 end
 ---End of require stuff
 
@@ -35,8 +43,10 @@ local on_event = require("factorio-plugin.on-event")
 ---@param text string @ The content of file
 ---@return nil|Diff[]
 function OnSetText(uri, text)
-  if not workspace.isReady(uri) then return end
-  if scope.getScope(uri):isLinkedUri(uri) then return end
+  if not __plugin_dev then
+    if not workspace.isReady(uri) then return end
+    if scope.getScope(uri):isLinkedUri(uri) then return end
+  end
 
   ---I can't see a reason to process ---@meta files
   ---Speeds up loading by not reading annotation files
