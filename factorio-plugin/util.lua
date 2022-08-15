@@ -45,9 +45,9 @@ local function extend_chain_diff_elem_text(elem, text)
   end
 end
 
----@param diffs Diff[]
----@param start number
----@param finish number
+---@param diffs Diff.ArrayWithCount
+---@param start integer
+---@param finish integer
 ---@param replacement string
 local function add_diff(diffs, start, finish, replacement)
   local count = diffs.count
@@ -60,6 +60,7 @@ local function add_diff(diffs, start, finish, replacement)
   }
 end
 
+---@param diffs Diff.ArrayWithCount
 local function remove_diff(diffs)
   local count = diffs.count
   diffs[count] = nil
@@ -69,9 +70,9 @@ end
 ---if 'source' is a string wrapped in "" or '' get the string inside those quotes
 ---otherwise returns nil
 ---@param source string
----@return string|nil
+---@return string|false
 local function try_parse_string_literal(source)
-  ---@type string|number
+  ---@type string, integer
   local str, f_str = source:match("^[\"']([^\"']*)[\"']%s*()")
   return f_str == #str and str
 end
@@ -96,12 +97,12 @@ local function use_source_to_index(chain_diff, i_in_chain_diff, source, is_liter
 end
 
 ---@class ChainDiffElem
----@field i number @ index within the text of the file
+---@field i integer @ index within the text of the file
 ---@field text nil|string @ text replacing from this elem's `i` including to the next elem's `i` excluding. When nil no diff will be created. If the last elem has `text` it will treat it as if there was another elem after with with the same `i`
 
 ---creates diffs according to the chain_diff. See ChainDiffElem class description for how it works
 ---@param chain_diff ChainDiffElem[]
----@param diffs Diff[]
+---@param diffs Diff.ArrayWithCount
 local function add_chain_diff(chain_diff, diffs)
   local prev_chain_diff_elem = chain_diff[1]
   if not prev_chain_diff_elem then return end

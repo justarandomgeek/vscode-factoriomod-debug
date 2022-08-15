@@ -2,10 +2,12 @@
 
 local util = require("factorio-plugin.util")
 
----@param uri string @ The uri of file
+---@alias comma_or_paren ','|`)`
+
+---@param _ string @ The uri of file
 ---@param text string @ The content of file
 ---@param diffs Diff[] @ The diffs to add more diffs to
-local function replace(uri, text, diffs)
+local function replace(_, text, diffs)
 
   ---parse one param and use it to index into the previous table
   ---creates 2 new elements in the chain_diff where the first one
@@ -13,16 +15,17 @@ local function replace(uri, text, diffs)
   ---@param chain_diff ChainDiffElem[]
   ---@param p_param_start integer
   ---@return string|nil
-  ---@return '","'|'")"'|string|'nil'
-  ---@return number|nil
+  ---@return comma_or_paren|nil  -- Does this only return the two literal strings/nil
+  ---@return integer|nil
   local function process_param(chain_diff, p_param_start)
-    ---@type string|number|nil
+    ---@type integer, string|nil, integer, comma_or_paren|nil, integer
     local s_param, param, f_param, comma_or_paren, p_param_finish
       = text:match("^%s*()[\"']([^\"']*)[\"']()%s*([,)])()", p_param_start)
 
     if not param then
-      return nil
+      return
     end
+
     local i = #chain_diff + 1
     chain_diff[i] = {i = s_param}
     chain_diff[i + 1] = {i = f_param}
@@ -33,15 +36,12 @@ local function replace(uri, text, diffs)
 
   -- remote.add_interface
 
-  ---@type string|number
-  for preceding_text, s_entire_thing, s_add, f_add, p_open_paren, p_param_1
-  in
-    util.gmatch_at_start_of_line(text, "([^\n]-)()remote%s*%.%s*()add_interface()%s*()%(()")
+  for preceding_text, s_entire_thing, s_add, f_add, p_open_paren, p_param_1 in
+    util.gmatch_at_start_of_line(text, "([^\n]-)()remote%s*%.%s*()add_interface()%s*()%(()") --[[@as fun(): string, integer, integer, integer, integer, integer]]
   do
     if not preceding_text:find("--", 1, true) then
 
-      ---@type ChainDiffElem[]
-      local chain_diff = {}
+      local chain_diff = {} ---@type ChainDiffElem[]
       local open_paren_diff = {i = p_open_paren, text = ""}
       chain_diff[1] = open_paren_diff
 
@@ -51,15 +51,14 @@ local function replace(uri, text, diffs)
       end
 
       if name_comma_or_paren == "," then
-        -- p_closing_paren is one past the actual closing parenthesis
-        ---@type number
+        ---@type integer|nil, integer  p_closing_paren is one past the actual closing parenthesis
         local p_closing_paren, f_entire_thing = text:match("^%b()()[^\n]*()", p_open_paren)
 
         if p_closing_paren
           and not text:sub(s_entire_thing, f_entire_thing):find("--##", 1, true)
         then
           util.extend_chain_diff_elem_text(chain_diff[3], "=")
-          chain_diff[4] = {i = s_param_2}
+          chain_diff[4] = {i = s_param_2 --[[@as integer]]}
           util.add_diff(diffs, s_add - 1, s_add, text:sub(s_add - 1, s_add - 1).."--\n")
           util.add_diff(diffs, s_add, f_add,
             "__all_remote_interfaces---@diagnostic disable-line:undefined-field\n")
@@ -78,18 +77,15 @@ local function replace(uri, text, diffs)
   -- this in particular needs to work as you're typing, not just once you're done
   -- which significantly complicates things, like we can't use the commas as reliable anchors
 
-  ---@type string|number
-  for preceding_text, s_call, f_call, p_open_paren, s_param_1
-  in
-    util.gmatch_at_start_of_line(text, "([^\n]-)remote%s*%.%s*()call()%s*()%(()")
+  for preceding_text, s_call, f_call, p_open_paren, s_param_1 in
+    util.gmatch_at_start_of_line(text, "([^\n]-)remote%s*%.%s*()call()%s*()%(()")--[[@as fun():string, integer, integer, integer, integer]]
   do
     if not preceding_text:find("--", 1, true) then
       util.add_diff(diffs, s_call - 1, s_call, text:sub(s_call - 1, s_call - 1).."--\n")
       util.add_diff(diffs, s_call, f_call,
         "__all_remote_interfaces---@diagnostic disable-line:undefined-field\n")
 
-      ---@type ChainDiffElem[]
-      local chain_diff = {}
+      local chain_diff = {} ---@type ChainDiffElem[]
       local open_paren_diff = {i = p_open_paren, text = ""}
       chain_diff[1] = open_paren_diff
 
@@ -98,6 +94,7 @@ local function replace(uri, text, diffs)
         util.remove_diff(diffs)
         goto continue
       end
+      ---@cast s_param_2 -nil
 
       if name_comma_or_paren == "," then
         local func, func_comma_or_paren, p_finish = process_param(chain_diff, s_param_2)
@@ -105,6 +102,7 @@ local function replace(uri, text, diffs)
           util.remove_diff(diffs)
           goto continue
         end
+        ---@cast p_finish -nil
 
         chain_diff[6] = {i = p_finish}
         if func_comma_or_paren == ")" then

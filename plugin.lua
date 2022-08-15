@@ -5,64 +5,31 @@
 -- what do the different prefixes for gmatch results mean:
 -- s = start, f = finish, p = position, no prefix = an actual string capture
 
-local scp
+---Dev Notes: confirm "path/to/lua-language-server/script/", in Lua.Workspace.Library for completions
+
+-- define `__plugin_dev` variable used during development with https://github.com/JanSharp/SumnekoLuaPluginDevEnv
+---@diagnostic disable-next-line
+if false then __plugin_dev = true end
+
 -- allow for require to search relative to this plugin file
 -- open for improvements!
-if not __plugin_dev and not _G.__factorio_plugin_initialized then
-  _G.__factorio_plugin_initialized = true
-
-  ---@type table
-  local config = require("config")
-  ---@type table
+local workspace
+local scope
+if not __plugin_dev then
   local fs = require("bee.filesystem")
-  ---@type table
-  local workspace = require("workspace")
-
-  -- now it's getting incredibly hacky, I should look into making a PR
-  local is_2_6_0_or_later = debug.getinfo(config.get, "u").nparams > 1
-  ---@type userdata
-  local plugin_path
-  if is_2_6_0_or_later then
-    local info = debug.getinfo(3, "uf")
-    for i = 1, info.nups do
-      local name, value = debug.getupvalue(info.func, i)
-      if name == "scp" then
-        scp = value
-      end
-    end
-    if not scp then
-      local i = 1
-      while true do
-        local name, value = debug.getlocal(3, i)
-        if not name then break end
-        if name == "scp" then
-          scp = value
-        end
-        i = i + 1
-      end
-    end
-    assert(scp, "Unable to get currently used scope/folder. This is very most likely \z
-      caused by internal changes of the language server \z
-      in which case the plugin needs to be changed/updated."
-    )
-
-    plugin_path = fs.path(workspace.getAbsolutePath(scp.uri, config.get(scp.uri, 'Lua.runtime.plugin')))
-  else -- sumneko.lua < 2.6.0
-    plugin_path = fs.path(workspace.getAbsolutePath(config.get('Lua.runtime.plugin')))
-  end
-
-  ---@type string
+  workspace = require("workspace")
+  scope = require("workspace.scope")
+  local plugin_path = fs.path(scope.getScope(workspace.rootUri):get('pluginPath'))
   local new_path = (plugin_path:parent_path() / "?.lua"):string()
   if not package.path:find(new_path, 1, true) then
     package.path = package.path..";"..new_path
   end
 end
+---End of require stuff
 
 local require_module = require("factorio-plugin.require")
 local global = require("factorio-plugin.global")
-local narrow = require("factorio-plugin.narrow")
 local remote = require("factorio-plugin.remote")
-local type_list = require("factorio-plugin.type-list")
 local on_event = require("factorio-plugin.on-event")
 
 ---@class Diff
@@ -70,19 +37,26 @@ local on_event = require("factorio-plugin.on-event")
 ---@field finish integer @ The number of bytes at the end of the replacement
 ---@field text string @ What to replace
 
+---@alias Diff.ArrayWithCount {[integer]: Diff, ["count"]: integer}
+
 ---@param uri string @ The uri of file
 ---@param text string @ The content of file
 ---@return nil|Diff[]
 function OnSetText(uri, text)
-  if text:sub(1, 4) == "--##" then return end
+  if not __plugin_dev then
+    if not workspace.isReady(uri) then return end
+    if scope.getScope(uri):isLinkedUri(uri) then return end
+  end
 
-  local diffs = {count = 0}
+  ---I can't see a reason to process ---@meta files
+  ---Speeds up loading by not reading annotation files
+  if text:sub(1, 8) == "---@meta" or text:sub(1, 4) == "--##" then return end
+
+  local diffs = {count = 0} ---@type Diff.ArrayWithCount
 
   require_module.replace(uri, text, diffs)
-  global.replace(uri, text, diffs, scp)
-  narrow.replace(uri, text, diffs)
+  global.replace(uri, text, diffs)
   remote.replace(uri, text, diffs)
-  type_list.replace(uri, text, diffs)
   on_event.replace(uri, text, diffs)
 
   diffs.count = nil

@@ -1,4 +1,12 @@
 
+### 2022-08-15
+- Update for `sumneko.lua` `>= 3.4.1` (best would be to use `>= 3.5.0`, see entry about `---@typelist` below)
+- Drop support for `sumneko.lua` `2.x`
+- Remove `require` path separator normalization as it is not handled by `sumneko.lua` itself
+- Remove `---@narrow` as `sumneko.lua` now has `---@cast foo Bar` and `--[[@as Bar]]`
+- Remove `---@typelist` as `sumneko.lua` `3.5.0` supports type lists for `---@type`
+- Merge PR#3 by Nexela: https://github.com/JanSharp/FactorioSumnekoLuaPlugin/pull/3
+
 ### 2022-07-25
 - Fix `global` not getting replaced when having `..` (concat operator) before it
 
