@@ -11,13 +11,16 @@ local function replace(uri, text, diffs)
   ---Single Workspace/Folder OK, Multi Workspace OK, mods as root OK, mods_path as root uses __mods_path__
   ---Match on mods folder
   local this_mod = uri:match("mods[\\/]([^\\/]+)[\\/]")
-  this_mod = this_mod and this_mod:match("[^/\\]+$")
-  this_mod = this_mod or workspace.getRootUri(uri):match("[^/\\]+$")
-
   if not this_mod then
-    -- In a multi user workspace workspace.rootUri = the first workspace (workspace.getFirstScope())
-    log.warn("Mod folder name not found, Using fallback.")
-    this_mod = "FallbackModName"
+    if __plugin_dev then
+      this_mod = "FallbackModName"
+    else
+      this_mod = this_mod or workspace.getRootUri(uri)
+      this_mod = this_mod and this_mod:match("[^/\\]+$")
+      -- if `this_mod` is still nil at this point then we simply do nothing. using a fallback would
+      -- ultimately do nothing because all cases where it didn't find a mod name would use the fallback,
+      -- causing it to behave just the same as it would without using a fallback
+    end
   end
 
   if this_mod then
