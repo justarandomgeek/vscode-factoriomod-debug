@@ -19,9 +19,6 @@ if not package.path:find(new_path, 1, true) then
 end
 ---End of require stuff
 
-local workspace = require("workspace")
-local scope = require("workspace.scope")
-
 local require_module = require("factorio-plugin.require")
 local global = require("factorio-plugin.global")
 local remote = require("factorio-plugin.remote")
