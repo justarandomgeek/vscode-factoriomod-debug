@@ -139,18 +139,18 @@ Would look something similar to this to the language server
 ```lua
 script.on_event(defines.events.on_tick,
 ---@diagnostic disable-next-line:undefined-doc-name
----@param event on_tick
+---@param event EventData.on_tick
 function(event)
 end)
 
 event.register(defines.events.on_built_entity,
 ---@diagnostic disable-next-line:undefined-doc-name
----@param e on_built_entity
+---@param e EventData.on_built_entity
 function(e) end)
 
 Event.on_built_entity(
 ---@diagnostic disable-next-line:undefined-doc-name
----@param e on_built_entity
+---@param e EventData.on_built_entity
 function(e) end)
 ```
 
@@ -174,7 +174,7 @@ script.on_event({
   defines.events.on_built_entity,
 },
 ---@diagnostic disable-next-line:undefined-doc-name
----@param event script_raised_built|on_built_entity
+---@param event EventData.script_raised_built|EventData.on_built_entity
 function(event)
 end)
 
@@ -183,7 +183,7 @@ event.register({
   defines.events.on_built_entity,
 },
 ---@diagnostic disable-next-line:undefined-doc-name
----@param e script_raised_built|on_built_entity
+---@param e EventData.script_raised_built|EventData.on_built_entity
 function(e) end)
 ```
 
@@ -206,7 +206,7 @@ end)
 
 script.on_event(on_custom_event,
 ---@diagnostic disable-next-line:undefined-doc-name
----@param event on_custom_event
+---@param event EventData.on_custom_event
 function(event)
 end)
 
