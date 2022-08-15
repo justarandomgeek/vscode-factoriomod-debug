@@ -6,6 +6,7 @@
 - Remove `---@narrow` as `sumneko.lua` now has `---@cast foo Bar` and `--[[@as Bar]]`
 - Remove `---@typelist` as `sumneko.lua` `3.5.0` supports type lists for `---@type`
 - Merge PR#3 by Nexela: https://github.com/JanSharp/FactorioSumnekoLuaPlugin/pull/3
+- Fix missing `EventData.` prefix for `on_event` calls with multiple defines in a table
 
 ### 2022-07-25
 - Fix `global` not getting replaced when having `..` (concat operator) before it

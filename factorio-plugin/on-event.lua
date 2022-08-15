@@ -8,10 +8,10 @@ local function get_class_name(event_id_param)
   ---@type string|nil
   local id = event_id_param:match("[a-zA-Z_][a-zA-Z0-9_]*$")
   if id and (id:match("^on_()") or id:match("^script_()")) then
-    return id
+    return "EventData."..id
   end
   if event_id_param:match("^['\"%[]()") then
-    return "CustomInputEvent"
+    return "EventData.CustomInputEvent"
   end
 end
 
@@ -30,7 +30,7 @@ local function replace(_, text, diffs)
       if class_name then
         util.add_diff(diffs, s_func_param, s_func,
           "\n---@diagnostic disable-next-line:undefined-doc-name\n---@param "
-          ..param_name.." EventData."..class_name.."\n")
+          ..param_name.." "..class_name.."\n")
       end
     end
   end
@@ -86,7 +86,7 @@ local function replace(_, text, diffs)
     util.gmatch_at_start_of_line(text, "([^\n]-)[Ee]vent%s*%.%s*([a-zA-Z_][a-zA-Z0-9_]*)%s*%(()")--[[@as fun():string, string, integer]]
   do
     if not preceding_text:find("--", 1, true) then
-      process_func_param(s_func_param, function() return class_name end)
+      process_func_param(s_func_param, function() return "EventData."..class_name end)
     end
   end
 end
