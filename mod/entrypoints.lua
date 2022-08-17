@@ -291,6 +291,7 @@ end
 
 ---@param name string
 function newcommands.remove_command(name)
+  labelhandler(nil, "command /" .. name)
   return oldcommands.remove_command(name)
 end
 
