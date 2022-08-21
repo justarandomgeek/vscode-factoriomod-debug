@@ -1,8 +1,6 @@
 phobos, phobos-tidy, phobos-format
 update mod description from readme on publish (or other configurable file?)
 generate config.ini stub when not found?
-try again to use git extension api for commit/push?
-watch task to begin on project open
 profile "reset" button
 profile save for offline viewing
 replace data:extend with one that warns on non-arraylike?
@@ -17,3 +15,8 @@ disassembler/sourcemap
 set /data and /data/core/lualib library paths
 
 convert eval _ENV to capturing upvals directly. needs some help from the vm to create new upvals and close them when needed at end of block.
+
+quiet global var warnings in sims
+event_handler lib replacing handlers
+
+openvsx? https://github.com/eclipse/openvsx/wiki/Publishing-Extensions
