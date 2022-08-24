@@ -16,7 +16,4 @@ set /data and /data/core/lualib library paths
 
 convert eval _ENV to capturing upvals directly. needs some help from the vm to create new upvals and close them when needed at end of block.
 
-quiet global var warnings in sims
-event_handler lib replacing handlers
-
 openvsx? https://github.com/eclipse/openvsx/wiki/Publishing-Extensions

@@ -13,6 +13,7 @@
   * No longer automatically runs `compile` tasks before debug session. Use `preLaunchTask` if you want these tasks still run.
   * Publish subtasks have been reordered for easier recovery from failed uploads
   * Default publish branch now follows the value of `git config init.defaultBranch`
+* Disabled `checkGlobals` in simulations by default.
 
 ## 1.1.22
 

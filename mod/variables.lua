@@ -110,6 +110,10 @@ gmeta.__debugline = "<Global Self Reference>"
 gmeta.__debugtype = "_ENV"
 gmeta.__debugcontents = iterutil.sectioned_contents(env_sections,env_opts)
 
+if __DebugAdapter.checkGlobals == nil and script and script.level.is_simulation then
+  __DebugAdapter.checkGlobals = false
+end
+
 if __DebugAdapter.checkGlobals ~= false then
   local definedGlobals = {_=true}
   function DAvars.defineGlobal(name)
