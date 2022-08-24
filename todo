@@ -12,8 +12,6 @@ disassembler/sourcemap
 
 > If you put a breakpoint and it doesn't count because the file isn't saved, said breakpoint doesn't become real after you save the file. So you have to re-add it.
 
-set /data and /data/core/lualib library paths
-
 convert eval _ENV to capturing upvals directly. needs some help from the vm to create new upvals and close them when needed at end of block.
 
 openvsx? https://github.com/eclipse/openvsx/wiki/Publishing-Extensions
