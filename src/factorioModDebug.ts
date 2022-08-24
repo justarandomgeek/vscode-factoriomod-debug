@@ -115,7 +115,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		private readonly fs: Pick<vscode.FileSystem, "readFile"|"writeFile"|"stat">,
 		private readonly editorInterface: {
 			readonly findWorkspaceFiles?: typeof vscode.workspace.findFiles
-			readonly tasks?: typeof vscode.tasks
 			readonly getExtension?: typeof vscode.extensions.getExtension
 			readonly executeCommand?: typeof vscode.commands.executeCommand
 		} = {}
@@ -195,17 +194,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		args.hookControl = args.hookControl ?? true;
 		args.hookMode = args.hookMode ?? "debug";
 		args.trace = args.trace ?? false;
-
-		if (this.editorInterface.tasks) {
-			const tasks = (await this.editorInterface.tasks.fetchTasks({type: "factorio"})).filter(
-				(task)=>task.definition.command === "compile"
-			);
-
-			if (tasks.length > 0) {
-				this.sendEvent(new OutputEvent(`Running ${tasks.length} compile tasks: ${tasks.map(task=>task.name).join(", ")}\n`, "stdout"));
-				await Promise.all(tasks.map(this.runTask, this));
-			}
-		}
 
 		args.modsPath = args.modsPath.replace(/\\/g, "/");
 		// check for folder or symlink and leave it alone, if zip update if mine is newer
@@ -978,22 +966,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	private createSource(filePath: string): Source {
 		return new Source(path.basename(filePath), this.convertDebuggerPathToClient(filePath));
-	}
-
-	public async runTask(task: vscode.Task) {
-		if (!this.editorInterface.tasks) {
-			return undefined;
-		}
-		const execution = await this.editorInterface.tasks.executeTask(task);
-
-		return new Promise<void>(resolve=>{
-			const disposable = this.editorInterface.tasks!.onDidEndTask(e=>{
-				if (e.execution === execution) {
-					disposable.dispose();
-					resolve();
-				}
-			});
-		});
 	}
 
 	private async updateInfoJson(uri:URI) {

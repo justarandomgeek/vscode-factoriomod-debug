@@ -31,6 +31,8 @@ program
 				".html": "text",
 			},
 			platform: "node",
+			// `module` first for jsonc-parser
+			mainFields: ['module', 'main'],
 			bundle: true,
 			format: "cjs",
 			outdir: "dist",

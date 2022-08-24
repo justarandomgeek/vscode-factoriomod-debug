@@ -37,16 +37,15 @@ These tasks can also be accessed in VSCode's Tasks system. Custom scripts will r
 
 All-in-one command.
 
-  * verify no uncommitted changes, on `master` (or branch set in `info.json#/package/git_publish_branch`)
+  * verify no uncommitted changes, on default branch (`git config init.defaultBranch`, or branch set in `info.json#/package/git_publish_branch`)
   * run `info.json#/package/scripts/prepublish` if set
   * run **Datestamp**
   * git commit "preparing release of version x.y.z", tag x.y.z
   * run **Package**
   * git tag, unless `info.json#/package/no_git_tag` is set
-  * run **Increment Version**
   * run `info.json#/package/scripts/publish` if set
+  * upload to mod portal, unless `info.json#/package/no_portal_upload` is set
+  * run `info.json#/package/scripts/postpublish` if set, with extra environment variable `FACTORIO_MODPACKAGE` with the filename of the built zip in a temporary folder.
+  * run **Increment Version**
   * commit "moved to version x.y.z"
   * push to git upstream, unless `info.json#/package/no_git_push` is set
-  * upload to mod portal, unless `info.json#/package/no_portal_upload` is set
-  * run `info.json#/package/scripts/postpublish` if set, with extra environment variable `FACTORIO_MODPACKAGE` with the filename of the built zip.
-  * remove zip if `factorio.package.removeZipAfterPublish` is set

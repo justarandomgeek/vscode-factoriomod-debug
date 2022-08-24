@@ -9,6 +9,10 @@
 * Small DAP protocol fixes
 * Go To Definition and Completion support for locale keys in Lua
 * Fixed an issue where preparing debug views of a table could inadvertantly cause it to rehash ("invalid key to next" when iterating while deleting)
+* Tasks all converted to standalone processes:
+  * No longer automatically runs `compile` tasks before debug session. Use `preLaunchTask` if you want these tasks still run.
+  * Publish subtasks have been reordered for easier recovery from failed uploads
+  * Default publish branch now follows the value of `git config init.defaultBranch`
 
 ## 1.1.22
 

@@ -49,8 +49,7 @@
             },
             "git_publish_branch": {
               "type":["string", "null"],
-              "default": "master",
-              "description": "Name of branch to Publish from. Defaults to \"master\" if not present. Set `null` to allow any branch."
+              "description": "Name of branch to Publish from. Defaults to the value of `git config init.defaultBranch` if not present. Set `null` to allow any branch."
             },
             "no_portal_upload": {
               "type":"boolean",

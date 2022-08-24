@@ -138,7 +138,6 @@ class DebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
 						activeVersion,
 						vscode.workspace.fs,
 						{
-							tasks: vscode.tasks,
 							findWorkspaceFiles: vscode.workspace.findFiles,
 							getExtension: vscode.extensions.getExtension,
 							executeCommand: vscode.commands.executeCommand,

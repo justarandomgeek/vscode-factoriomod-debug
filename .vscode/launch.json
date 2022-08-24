@@ -46,13 +46,31 @@
 			],
 		},
 		{
+			"name": "Attach To External Tasks",
+			"type": "node",
+			"request": "attach",
+			"continueOnAttach": true,
+			"port": 34200,
+			"skipFiles": [
+				"<node_internals>/**",
+				"<node_modules>/**"
+			],
+			"outFiles": [
+				"${workspaceFolder}/dist/**/*.js"
+			],
+		},
+		{
 			"name": "Standalone Commands",
 			"type": "node",
 			"request": "launch",
-			"program": "./dist/standalone.js",
+			"program": "${workspaceFolder}/dist/standalone.js",
+			"cwd": "${env:APPDATA}/Factorio/mods/jargtestmod",
+			"env": {
+				"FACTORIO_UPLOAD_API_KEY":""
+			},
 			"args": [
 			],
-			"console": "internalConsole",
+			"console": "integratedTerminal",
 			"skipFiles": [
 				"<node_internals>/**",
 				"<node_modules>/**"
