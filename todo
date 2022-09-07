@@ -14,4 +14,6 @@ disassembler/sourcemap
 
 convert eval _ENV to capturing upvals directly. needs some help from the vm to create new upvals and close them when needed at end of block.
 
+profiler tree view break out `__index`/`__newindex` by class/property?
+
 openvsx? https://github.com/eclipse/openvsx/wiki/Publishing-Extensions
