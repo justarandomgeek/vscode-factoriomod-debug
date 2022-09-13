@@ -14,7 +14,7 @@
   * Publish subtasks have been reordered for easier recovery from failed uploads
   * Default publish branch now follows the value of `git config init.defaultBranch`
 * Disabled `checkGlobals` in simulations by default.
-* Fixed and incorrect warning when unregistering/reregistering command handlers.
+* Fixed an incorrect warning when unregistering/reregistering command handlers.
 
 ## 1.1.22
 
