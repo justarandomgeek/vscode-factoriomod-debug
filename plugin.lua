@@ -44,7 +44,6 @@ local on_event = require("factorio-plugin.on-event")
 ---@return nil|Diff[]
 function OnSetText(uri, text)
   if not __plugin_dev then
-    if not workspace.isReady(uri) then return end
     if scope.getScope(uri):isLinkedUri(uri) then return end
   end
 

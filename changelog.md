@@ -1,4 +1,7 @@
 
+### 2022-09-23
+- Fix plugin race condition when first opening a workspace
+
 ### 2022-08-15
 - Update for `sumneko.lua` `>= 3.4.1` (best would be to use `>= 3.5.0`, see entry about `---@typelist` below)
 - Drop support for `sumneko.lua` `2.x`
