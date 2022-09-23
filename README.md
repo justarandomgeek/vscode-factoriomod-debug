@@ -64,6 +64,30 @@ If the plugin is causing the language server to report syntax errors when there 
 
 # Features
 
+## Plugin Arguments
+
+With `sumneko.lua` `3.5.1` the setting `Lua.runtime.pluginArgs` was added, which is an array of strings.
+
+### `--ignore`
+
+Tell the plugin to ignore the following paths which may be paths to files or directories, absolute or relative, where relative paths are relative to the root of the current workspace.
+
+The paths following `--ignore` do not support any patterns, simply any file matching a path in the list, or any file inside a matching directory will be ignored.
+
+I'm not entirely sure if you must use `\` as separators on windows, it might actually works with both `/` or `\`.
+
+This example will ignore all files in the directory `foo/bar` and the file `bat.lua`:
+
+```json
+{
+  "Lua.runtime.pluginArgs": [
+    "--ignore",
+    "foo/bar",
+    "bat.lua",
+  ],
+}
+```
+
 ## Introduction
 
 What the plugin fundamentally does is make the lua extension (to which i'll refer to as lua language server) think files look different than they actually do. This allows for the language server to understand custom syntax, which factorio doesn't have a lot of, but it does help with a few things.

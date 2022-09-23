@@ -15,10 +15,12 @@ if false then __plugin_dev = true end
 -- open for improvements!
 local workspace
 local scope
+local furi
 if not __plugin_dev then
   local fs = require("bee.filesystem")
   workspace = require("workspace")
   scope = require("workspace.scope")
+  furi = require("file-uri")
   local plugin_path = fs.path(scope.getScope(workspace.rootUri):get('pluginPath'))
   local new_path = (plugin_path:parent_path() / "?.lua"):string()
   if not package.path:find(new_path, 1, true) then
@@ -39,12 +41,43 @@ local on_event = require("factorio-plugin.on-event")
 
 ---@alias Diff.ArrayWithCount {[integer]: Diff, ["count"]: integer}
 
+---@type string
+local workspace_uti = select(2, ...)
+---@type string[]
+local plugin_args = select(3, ...)
+---@type table<string, true>
+local ignored_paths = {}
+
+if not __plugin_dev then
+  local ignoring = false
+  for _, arg in ipairs(plugin_args) do
+    if arg == "--ignore" then
+      ignoring = true
+    else
+      if ignoring then
+        arg = workspace.getAbsolutePath(workspace_uti, arg)
+        if arg then
+          ignored_paths[workspace.normalize(arg)] = true
+        end
+      end
+    end
+  end
+end
+
 ---@param uri string @ The uri of file
 ---@param text string @ The content of file
 ---@return nil|Diff[]
 function OnSetText(uri, text)
   if not __plugin_dev then
-    if scope.getScope(uri):isLinkedUri(uri) then return end
+    local path = furi.decode(uri)
+    if path then
+      for ignored_path in pairs(ignored_paths) do
+        if path:sub(1, #ignored_path) == ignored_path then
+          -- log.info("Plugin ignoring "..path.." because of ignored path "..ignored_path)
+          return
+        end
+      end
+    end
   end
 
   ---I can't see a reason to process ---@meta files
