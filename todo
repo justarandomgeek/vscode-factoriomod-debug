@@ -16,4 +16,6 @@ convert eval _ENV to capturing upvals directly. needs some help from the vm to c
 
 profiler tree view break out `__index`/`__newindex` by class/property?
 
+split package to standalone tool / extension
+
 openvsx? https://github.com/eclipse/openvsx/wiki/Publishing-Extensions
