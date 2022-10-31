@@ -7,7 +7,7 @@ local util = require("factorio-plugin.util")
 local function get_class_name(event_id_param)
   ---@type string|nil
   local id = event_id_param:match("[a-zA-Z_][a-zA-Z0-9_]*$")
-  if id and (id:match("^on_()") or id:match("^script_()")) then
+  if id and (id:match("^on_()") or id:match("^script_()")) and id ~= "on_configuration_changed" then
     return "EventData."..id
   end
   if event_id_param:match("^['\"%[]()") then

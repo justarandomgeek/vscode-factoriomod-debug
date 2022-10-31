@@ -1,4 +1,7 @@
 
+### 2022-10-31
+- Change on_event to never consider `on_configuration_changed` to be an event, because it is not registered through `script.on_event`
+
 ### 2022-09-23
 - Fix plugin race condition when first opening a workspace
 - Add `--ignore` pluginArg to tell the plugin to ignore files or directories
