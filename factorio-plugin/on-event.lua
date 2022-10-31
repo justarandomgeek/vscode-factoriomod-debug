@@ -85,7 +85,7 @@ local function replace(_, text, diffs)
   for preceding_text, class_name, s_func_param in
     util.gmatch_at_start_of_line(text, "([^\n]-)[Ee]vent%s*%.%s*([a-zA-Z_][a-zA-Z0-9_]*)%s*%(()")--[[@as fun():string, string, integer]]
   do
-    if not preceding_text:find("--", 1, true) then
+    if class_name ~= "on_configuration_changed" and not preceding_text:find("--", 1, true) then
       process_func_param(s_func_param, function() return "EventData."..class_name end)
     end
   end
