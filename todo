@@ -16,6 +16,8 @@ convert eval _ENV to capturing upvals directly. needs some help from the vm to c
 
 profiler tree view break out `__index`/`__newindex` by class/property?
 
+offer to remove old runtime-api.lua from library if any
+
 split package to standalone tool / extension
 
 openvsx? https://github.com/eclipse/openvsx/wiki/Publishing-Extensions
