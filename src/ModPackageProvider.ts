@@ -30,6 +30,11 @@ export interface ModInfo {
 	// my extensions for packaging:
 	package?: {
 		ignore?: string[]
+		extra?: {
+			root: string
+			glob?: string
+			ignore?: string[]
+		}[]
 		no_git_push?: boolean
 		no_git_tag?: boolean
 		git_publish_branch?: string|null

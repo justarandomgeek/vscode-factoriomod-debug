@@ -294,6 +294,18 @@ async function doPackageZip(info:ModInfo): Promise<archiver.Archiver> {
 		nodir: true,
 		ignore: [`**/${info.name}_*.zip`].concat(info.package?.ignore||[]),
 	}, { prefix: `${info.name}_${info.version}` });
+
+	if (info.package?.extra) {
+		for (const extra of info.package.extra) {
+			archive.glob(extra.glob ?? "**", {
+				cwd: extra.root,
+				root: extra.root,
+				nodir: true,
+				ignore: extra.ignore,
+			}, { prefix: `${info.name}_${info.version}` });
+		}
+	}
+
 	return archive;
 }
 

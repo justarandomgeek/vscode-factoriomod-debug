@@ -22,7 +22,7 @@ These tasks can also be accessed in VSCode's Tasks system. Custom scripts will r
 ### Package
   * run `info.json#/package/scripts/compile` if set
   * run `info.json#/package/scripts/prepackage` if set
-  * build a zip including all files in the mod directory except dotfiles, zip files, and files matching the list of globs in `info.json#/package/ignore`.
+  * build a zip including all files in the mod directory except dotfiles, zip files named `modname_*.zip`, and files matching the list of globs in `info.json#/package/ignore`. If you need to include other files, you can list additional root directories in `info.json#/package/extra`. You are responsible for ensuring that you don't include directories that result in two files of the same name in the zip! (Because my zip library doesn't tell me when this happens.)
 
 ### Increment Version
   * increment version in info.json

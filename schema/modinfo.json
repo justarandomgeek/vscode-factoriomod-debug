@@ -39,6 +39,33 @@
                 "format": "glob"
               }
             },
+            "extra":{
+              "type":"array",
+              "description": "Directories containing extra files to include in the zip package",
+              "items": {
+                "type":"object",
+                "required": ["root"],
+                "properties":{
+                  "root":{
+                    "type":"string",
+                    "description": "Directory containing extra files to include in the zip package"
+                  },
+                  "glob":{
+                    "type":"string",
+                    "description": "Glob for matching files to include from this directory",
+                    "default": "**"
+                  },
+                  "ignore":{
+                    "type":"array",
+                    "description": "Globs to ignore in this root",
+                    "items": {
+                      "type":"string",
+                      "format": "glob"
+                    }
+                  }
+                }
+              }
+            },
             "no_git_push": {
               "type":"boolean",
               "description": "Don't automatically `git push` in Publish"
