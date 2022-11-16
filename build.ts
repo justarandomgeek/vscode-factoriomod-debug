@@ -1,8 +1,11 @@
 import * as fsp from 'fs/promises';
 import * as path from 'path';
 import { build, analyzeMetafile } from "esbuild";
+import ImportGlobPlugin from 'esbuild-plugin-import-glob';
+
 import { program } from 'commander';
 import archiver from 'archiver';
+
 import type { ModInfo } from './src/ModPackageProvider';
 import { version } from './package.json';
 
@@ -29,6 +32,7 @@ program
 			],
 			loader: {
 				".html": "text",
+				".lua": "text",
 			},
 			platform: "node",
 			// `module` first for jsonc-parser
@@ -43,6 +47,7 @@ program
 			metafile: options.meta || options.analyze,
 			minify: options.minify,
 			plugins: [
+				ImportGlobPlugin(),
 				{
 					name: 'factoriomod',
 					setup(build) {

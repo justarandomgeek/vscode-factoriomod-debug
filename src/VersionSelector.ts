@@ -19,7 +19,7 @@ export class FactorioVersionSelector {
 	private readonly bar:vscode.StatusBarItem;
 
 	constructor(
-		context:vscode.ExtensionContext,
+		private context:vscode.ExtensionContext,
 	) {
 		this.bar = vscode.window.createStatusBarItem("factorio-version", vscode.StatusBarAlignment.Left, 10);
 		this.bar.name = "Factorio Version Selector";
@@ -205,17 +205,7 @@ export class FactorioVersionSelector {
 	}
 
 	private findWorkspaceLibraryFolder() {
-		const config = vscode.workspace.getConfiguration("factorio");
-		const library = config.get<string>("workspace.library");
-		if (library) { return URI.file(substitutePathVariables(library, vscode.workspace.workspaceFolders)); }
-
-		const a = vscode.workspace.workspaceFolders?.find(wf=>wf.name===".vscode")?.uri;
-		if (a) { return Utils.joinPath(a, "factorio"); }
-
-		const b = vscode.workspace.workspaceFolders?.[0]?.uri;
-		if (b) { return Utils.joinPath(b, ".vscode", "factorio"); }
-
-		return;
+		return this.context.storageUri;
 	}
 
 	private async checkDocs() {
@@ -224,14 +214,14 @@ export class FactorioVersionSelector {
 		const workspaceLibrary = this.findWorkspaceLibraryFolder();
 		if (!workspaceLibrary) { return; }
 
-		const file = (await fs.readDirectory(workspaceLibrary)).find(([name, type])=>name.match(/runtime\-api.+\.lua/));
+		const file = (await fs.readDirectory(Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/library"))).find(([name, type])=>name.match(/runtime\-api.+\.lua/));
 		if (!file) {
 			// no generated files?
 			this.offerRefreshDocs("unknown", "unknown");
 			return;
 		}
 
-		const filecontent = (await fs.readFile(Utils.joinPath(workspaceLibrary, file[0]))).toString();
+		const filecontent = (await fs.readFile(Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/library", file[0]))).toString();
 
 		const matches = filecontent.match(/--\$Factorio ([^\n]*)\n--\$Overlay ([^\n]*)\n/m);
 		if (!matches) {
@@ -277,45 +267,26 @@ export class FactorioVersionSelector {
 
 		try {
 			await Promise.all(
-				(await fs.readDirectory(workspaceLibrary))
+				(await fs.readDirectory(Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/library")))
 					.map(async ([name, type])=>{
-						if (name.match(/runtime\-api.+\.lua/)) {
-							return fs.delete(Utils.joinPath(workspaceLibrary, name), {useTrash: true});
-						}
+						return fs.delete(Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/library", name), {useTrash: true});
 					}));
 		} catch (error) {
 		}
 
-		const maxDocSize = await activeVersion.docs.generate_sumneko_docs(
+		await activeVersion.docs.generate_sumneko_3rd(
 			async (filename:string, buff:Buffer)=>{
-				const save = Utils.joinPath(workspaceLibrary, filename);
+				const save = Utils.joinPath(workspaceLibrary, "sumneko-3rd", filename);
+				return fs.writeFile(save, buff);
+			});
+
+		await activeVersion.docs.generate_sumneko_docs(
+			async (filename:string, buff:Buffer)=>{
+				const save = Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/library", filename);
 				return fs.writeFile(save, buff);
 			});
 
 		const luaconfig = vscode.workspace.getConfiguration("Lua");
-		const updates = [];
-		const preloadFileSize = luaconfig.get<number>("workspace.preloadFileSize", 0);
-		const docFileSize = Math.trunc(maxDocSize/1000)+1;
-		if (preloadFileSize < docFileSize) {
-			if ((await vscode.window.showWarningMessage(`workspace.preloadFileSize value ${preloadFileSize}kb is too small to load the generated definitions file (${docFileSize}kb). Increase workspace.preloadFileSize?`, "Yes", "No")) === "Yes") {
-				updates.push(luaconfig.update("workspace.preloadFileSize", docFileSize));
-			}
-		}
-
-		const globals = luaconfig.get<string[]>("diagnostics.globals") ?? [];
-		[
-			"mods", "table_size", "log", "localised_print", "serpent",
-			"global",
-			"__DebugAdapter", "__Profiler",
-		].forEach(s=>{
-			if (!globals.includes(s)) {
-				globals.push(s);
-			}
-		});
-		updates.push(luaconfig.update("diagnostics.globals", globals));
-
-		updates.push(luaconfig.update("runtime.version", "Lua 5.2"));
-
 
 		const library = luaconfig.get<string[]>("workspace.library", []);
 
@@ -340,8 +311,6 @@ export class FactorioVersionSelector {
 			} catch {}
 		};
 
-		await Promise.all(updates);
-
 		// remove and re-add library links to force sumneko to update...
 		const factorioconfig = vscode.workspace.getConfiguration("factorio");
 
@@ -351,13 +320,6 @@ export class FactorioVersionSelector {
 			removeLibraryPath(oldroot, "core", "lualib");
 		}
 
-		if (factorioconfig.get("workspace.manageLibraryDocsLink", true)) {
-			const workspacelib = vscode.workspace.asRelativePath(workspaceLibrary);
-			const index = library.indexOf(workspacelib);
-			if (index!==-1) {
-				library.splice(index, 1);
-			}
-		}
 		await luaconfig.update("workspace.library", library);
 
 		if (factorioconfig.get("workspace.manageLibraryDataLinks", true)) {
@@ -366,13 +328,11 @@ export class FactorioVersionSelector {
 			await addLibraryPath(newroot, "core", "lualib");
 		}
 
-		if (factorioconfig.get("workspace.manageLibraryDocsLink", true)) {
-			const workspacelib = vscode.workspace.asRelativePath(workspaceLibrary);
-			if (!library.includes(workspacelib)) {
-				library.push(workspacelib);
-			}
-		}
 		await luaconfig.update("workspace.library", library);
+
+		//TODO: read/modify/write?
+		await luaconfig.update("workspace.userThirdParty", []);
+		await luaconfig.update("workspace.userThirdParty", [ Utils.joinPath(workspaceLibrary, "sumneko-3rd").fsPath ]);
 
 	}
 }

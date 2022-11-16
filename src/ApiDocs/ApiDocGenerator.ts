@@ -1,7 +1,7 @@
 import type { WorkspaceConfiguration } from "vscode";
 import { WritableStream as WritableMemoryStream } from "memory-streams";
 import { overlay } from "./Overlay";
-
+import sumneko3rdFiles from "../Sumneko3rd";
 
 type ApiBuiltinCustom =
 	{kind:"none"} |
@@ -221,8 +221,12 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		return debuginfo;
 	}
 
+	public async generate_sumneko_3rd(writeFile:(filename:string, buff:Buffer)=>void|Promise<void>) {
+		return Promise.all(sumneko3rdFiles.map(file=>writeFile(file.name, Buffer.from(file.content))));
+	}
+
 	public async generate_sumneko_docs(writeFile:(filename:string, buff:Buffer)=>void|Promise<void>) {
-		const x = Math.max(...await Promise.all([
+		await Promise.all([
 			this.generate_sumneko_section("builtin", writeFile),
 			this.generate_sumneko_section("defines", writeFile),
 			this.generate_sumneko_section("events", writeFile),
@@ -230,11 +234,9 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			this.generate_sumneko_section("custom", writeFile),
 			this.generate_sumneko_section("concepts", writeFile),
 			this.generate_sumneko_section("global_functions", writeFile),
-		]));
+		]);
 
-		return Math.max(x,
-			await this.generate_sumneko_section("table_types", writeFile),
-		);
+		return this.generate_sumneko_section("table_types", writeFile);
 	}
 
 	private async generate_sumneko_section(name:"builtin"|"defines"|"events"|"custom"|"table_types"|"concepts"|"global_functions", writeFile:(filename:string, buff:Buffer)=>any) {
