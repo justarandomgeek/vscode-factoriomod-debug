@@ -1,7 +1,5 @@
-Copyright (c) justarandomgeek
+Copyright (c) justarandomgeek, Jan Mischak, Nexela
 based on `Mock Debug` Copyright (c) Microsoft Corporation
-
-All rights reserved.
 
 MIT License
 
