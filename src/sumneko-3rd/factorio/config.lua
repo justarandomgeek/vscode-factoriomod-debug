@@ -45,7 +45,7 @@ for _, name in ipairs({
 end
 
 for _, name in ipairs({
-  "mods", "serpent",
+  "mods",
   "global",
   "__DebugAdapter", "__Profiler",
 }) do
