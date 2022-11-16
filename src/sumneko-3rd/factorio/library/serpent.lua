@@ -74,7 +74,9 @@ function serpent.load(str, options) end
 ---@class serpent.options
 ---@field safe boolean enable safety checks when using `serpent.load`. default: true
 ---@field indent string triggers long multi-line output.
----@field comment boolean provide stringified value in a comment (up to `maxelevel` of depth).
+---@field comment boolean|integer provide stringified value in a comment (up to `maxelevel` of depth).
+---@field refcomment boolean|integer describe the previous location of self-reference tables
+---@field tablecomment boolean|integer provide comment on first appearance of table values
 ---@field sortkeys boolean|serpent.sort_function
 ---@field sparse boolean force sparese encoding (no nil filling based on #t).
 ---@field compact boolean remove spaces.
