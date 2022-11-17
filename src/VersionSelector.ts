@@ -276,7 +276,7 @@ export class FactorioVersionSelector {
 
 		await activeVersion.docs.generate_sumneko_3rd(
 			async (filename:string, buff:Buffer)=>{
-				const save = Utils.joinPath(workspaceLibrary, "sumneko-3rd", filename);
+				const save = Utils.joinPath(workspaceLibrary, filename);
 				return fs.writeFile(save, buff);
 			});
 

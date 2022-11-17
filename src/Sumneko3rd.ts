@@ -5,7 +5,7 @@ import { default as files, filenames } from './sumneko-3rd/**/*.lua';
 for (let i = 0; i < files.length; i++) {
 	sumneko3rdFiles.push({
 		name: filenames[i],
-		content: files[i],
+		content: files[i].default,
 	});
 }
 
