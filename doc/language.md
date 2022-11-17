@@ -11,8 +11,6 @@ The debugger also injects runtime diagnostics into all hooked mods:
 
 Sumneko EmmyLua docs and workspace settings for the Factorio API will be automatically generated when selecting a Factorio version for debugging. Together with the [sumneko.lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua) language server, this enables autocompletion and other language server features for the Factorio API.
 
-You can configure the generation location with the setting `"factorio.workspace.library"`.
-
 The following settings will be automatically configured:
   * `"Lua.diagnostics.globals"` will have entries added for variables not presently covered by the generated files (this list will change over time as docs expand):
     * `mods`

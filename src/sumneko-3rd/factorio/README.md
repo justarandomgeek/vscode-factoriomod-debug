@@ -5,59 +5,6 @@ This is a plugin for the [sumneko.lua](https://github.com/sumneko/lua-language-s
 
 To keep up with this project check the [changelog](changelog.md).
 
-# Installing and updating
-
-## How to install - clone
-
-To use this plugin clone this repository into your `.vscode/lua` folder:
-
-- If you don't already have git installed, download it from [here](https://git-scm.com/).
-- In vscode right click on your `.vscode` folder and click `Open in Integrated Terminal`.
-- In the terminal run:
-```powershell
-git clone --single-branch --branch master https://github.com/JanSharp/FactorioSumnekoLuaPlugin.git lua
-```
-This will clone the master branch of this repository into the `lua` folder from the current directory, which is the `.vscode` directory.
-
-Since `sumneko.lua` 2.0.0 `Lua.runtime.plugin` defaults to `""` instead of `".vscode/lua/plugin.lua"`
-so you'll have to configure this setting to `".vscode/lua/plugin.lua"` yourself. Best would be to do this per workspace for security.
-
-After installing make sure to reload vscode.
-
-## How to update
-
-To update the plugin simply use `git pull`. The master branch should always be in a functional state.
-
-- In vscode right click on your `.vscode/lua` folder and click `Open in Integrated Terminal`.
-- In the terminal run:
-```powershell
-git pull
-```
-Or use any other method of using git you're comfortable with.
-
-After updating make sure to reload vscode.
-
-## But i'm different
-
-If you happen to have a different setup and cannot put the repository in its default location, clone it to wherever you want (the folder does not have to be called `lua` anymore at that point) and then configure the `Lua.runtime.plugin` setting. The file name of the plugin entrypoint is `plugin.lua`. It can be a relative path from the root of the workspace directory. (Best would be to do this per workspace for security.)
-
-### But i'm also very new
-
-If you're new to command line programs and you cannot use the `Open in Integrated Terminal` in your case, simply use the `cd` "command" (i think it's called) in any command line to navigate to the directory you want to clone the repository into.
-
-For example open a command line window or terminal of some kind (on windows i'd use `git bash` which comes with git. Just search for it in the start menu).
-```
-cd C:/dev/factorio/modding
-git clone --single-branch --branch master https://github.com/JanSharp/FactorioSumnekoLuaPlugin.git
-```
-And to update:
-```
-cd C:/dev/factorio/modding/FactorioSumnekoLuaPlugin
-git pull
-```
-(git bash doesn't like back slashes)
-And if the workspace is at `C:/dev/factorio/modding` the `Lua.runtime.plugin` would be set to `FactorioSumnekoLuaPlugin/plugin.lua`, most likely as a workspace setting, not system wide setting.
-
 # Help, it broke!
 
 If the plugin is causing the language server to report syntax errors when there really aren't any and you need a temporary "solution" before reporting the issue and waiting for a fix simply put `--##` at the very very start of the file. If it is a problem that it has to be at the very start of the file please create an issue with a reason/an example for it.
