@@ -33,8 +33,8 @@ configs = {
 }
 
 for _, name in ipairs({
-  "io", "os", "coroutine",
-  "package",
+  "io", "os", "coroutine", -- totally gone
+  "package", "math", -- modified
 }) do
   configs[#configs+1] = {
     key    = 'Lua.runtime.builtin',
