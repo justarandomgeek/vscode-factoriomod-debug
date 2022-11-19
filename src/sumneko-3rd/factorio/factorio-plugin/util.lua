@@ -15,17 +15,16 @@
 ---the same goes for the first oddity about matching the whole pattern. it could be fixed, but is not worth it
 ---@param s string
 ---@param pattern string
----@param init? integer
 ---@return fun(): string|integer, ...
-local function gmatch_at_start_of_line(s, pattern, init)
+local function gmatch_at_start_of_line(s, pattern)
   local first = true
   local unpack = table.unpack
   ---@type fun(): string|integer, ...
-  local gmatch_iterator = s:gmatch("\n"..pattern, init)
+  local gmatch_iterator = s:gmatch("\n"..pattern)
   return function()
     if first then
       first = false
-      local result = {s:match("^"..pattern, init)}
+      local result = {s:match("^"..pattern)}
       if result[1] then
         return unpack(result)
       end
