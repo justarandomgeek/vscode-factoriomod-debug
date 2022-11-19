@@ -62,7 +62,7 @@ local ReadBreakpoints = datastring.ReadBreakpoints
 
 ---@type table<string,table<number,DebugProtocol.SourceBreakpoint>>
 local breakpoints = {}
----@type number|nil
+---@type number?
 local stepdepth = nil
 
 local runningBreak
@@ -79,7 +79,8 @@ do
   end
 end
 
-local step_instr = false
+---@type boolean?
+local step_instr
 local function hook_rate()
   if step_instr then
     return "cr", 1
@@ -153,8 +154,8 @@ do
 
             if b.condition then
               local success,conditionResult = __DebugAdapter.evaluateInternal(frameId,nil,"breakpoint",b.condition)
-              if success then
-                isHit = conditionResult
+              if success and conditionResult then
+                isHit = true
               end
             end
 
@@ -371,8 +372,9 @@ function DAstep.attach()
     on_error(on_exception)
   end
 end
+
 ---@param source string
----@param breaks DebugProtocol.SourceBreakpoint[]
+---@param breaks? DebugProtocol.SourceBreakpoint[]
 function DAstep.setBreakpoints(source,breaks)
   if breaks then
     local filebreaks = {}
@@ -410,18 +412,23 @@ function DAstep.canRemoteCall()
 end
 
 ---@param change string
+---@private
 function DAstep.updateBreakpoints(change)
   -- pass it around to everyone if possible, else just set it here...
   if DAstep.canRemoteCall() and remote.interfaces["debugadapter"] then
     remote.call("debugadapter", "updateBreakpoints", change)
   else
     local source,changedbreaks = ReadBreakpoints(change)
-    DAstep.setBreakpoints(source,changedbreaks)
+    if source then
+      DAstep.setBreakpoints(source,changedbreaks)
+    else
+
+    end
   end
 end
 
----@param source string
----@return DebugProtocol.Breakpoint[] | DebugProtocol.Breakpoint
+---@overload fun(source:string):table<number,DebugProtocol.SourceBreakpoint>
+---@overload fun():table<string,table<number,DebugProtocol.SourceBreakpoint>>
 function DAstep.dumpBreakpoints(source)
   if source then
     return breakpoints[source]
@@ -430,7 +437,7 @@ function DAstep.dumpBreakpoints(source)
   end
 end
 
----@param depth number
+---@param depth? number
 ---@param instruction? boolean
 function DAstep.step(depth,instruction)
   if depth and stepdepth then
@@ -444,8 +451,8 @@ function DAstep.step(depth,instruction)
   end
 end
 
----@return number stepdepth
----@return boolean step_instr
+---@return number? stepdepth
+---@return boolean? step_instr
 function DAstep.currentStep()
   return stepdepth, step_instr
 end

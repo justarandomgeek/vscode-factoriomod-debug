@@ -183,14 +183,14 @@ end
 
 ---@type cross_stack[]
 local stacks = {}
----@type string|nil
+---@type number?
 local cross_stepping
----@type boolean|nil
+---@type boolean?
 local cross_step_instr
 
 ---@param stack cross_stack
----@param stepping string
----@param step_instr boolean
+---@param stepping? number
+---@param step_instr? boolean
 function DAStacks.pushStack(stack,stepping,step_instr)
   if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
     remote.call("debugadapter", "pushStack", stack,stepping,step_instr)
@@ -201,7 +201,7 @@ function DAStacks.pushStack(stack,stepping,step_instr)
   end
 end
 
----@return string? stepping
+---@return number? stepping
 ---@return boolean? step_instr
 function DAStacks.popStack()
   if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
@@ -218,14 +218,14 @@ end
 ---@return cross_stack[]
 function DAStacks.peekStacks()
   if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
-    return remote.call("debugadapter", "peekStacks")
+    return remote.call("debugadapter", "peekStacks") --[[@as (cross_stack[])]]
   else
     return stacks
   end
 end
 
----@param stepping string
----@param step_instr boolean
+---@param stepping? number
+---@param step_instr? boolean
 function DAStacks.crossStepping(stepping,step_instr)
   if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
     return remote.call("debugadapter", "crossStepping", stepping)
@@ -235,7 +235,7 @@ function DAStacks.crossStepping(stepping,step_instr)
   end
 end
 
----@return string? cross_stepping
+---@return number? cross_stepping
 ---@return boolean? cross_step_instr
 function DAStacks.peekStepping()
   if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then

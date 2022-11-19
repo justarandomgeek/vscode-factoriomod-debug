@@ -39,7 +39,7 @@ local function callAll(funcname,...)
   for remotename,_ in pairs(remote.interfaces) do
     local modname = match(remotename,"^__debugadapter_(.+)$")
     if modname then
-      ---@type Any
+      ---@type Any?
       local result = call(remotename,funcname,...)
       results[modname] = result
     end

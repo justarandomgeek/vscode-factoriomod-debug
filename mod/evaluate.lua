@@ -242,7 +242,7 @@ __DebugAdapter.stepIgnore(evalmeta)
 ---@param context string|nil
 ---@param expression string
 ---@param timed nil|boolean
----@overload fun(frameId:integer|nil,alsoLookIn:table|nil,context:string|nil,expression:string,timed:true): LuaProfiler,boolean,DebugAdapter.CountedResult
+---@overload fun(frameId:integer|nil,alsoLookIn:table|nil,context:string|nil,expression:string,timed:true): LuaProfiler?,boolean,DebugAdapter.CountedResult|string?
 ---@overload fun(frameId:integer|nil,alsoLookIn:table|nil,context:string|nil,expression:string,timed?:false|nil): boolean,...
 function DAEval.evaluateInternal(frameId,alsoLookIn,context,expression,timed)
   ---@type table
@@ -377,7 +377,7 @@ function DAEval.stringInterp(str,frameId,alsoLookIn,context)
         evals[evalidx] = result
         evalidx = evalidx+1
         return variables.describe(result)
-      else
+      else --[[@cast result string]]
         evals[evalidx] = variables.error(result)
         evalidx = evalidx+1
         return "<error>"
