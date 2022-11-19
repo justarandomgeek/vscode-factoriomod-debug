@@ -12,16 +12,13 @@
         ".vscode"
     ],
     "Lua.workspace.library": [
-        "C:\\Users\\Thomas\\AppData\\Roaming\\Factorio\\mods\\.vscode\\factorio",
+        "C:\\Users\\Thomas\\AppData\\Roaming\\Code - Insiders\\User\\workspaceStorage\\674a9ea7afd7b0e3f6f94b3463fd49b4\\justarandomgeek.factoriomod-debug\\sumneko-3rd\\factorio\\library",
         "d:\\factorio\\factoriogit\\data",
         "d:\\factorio\\factoriogit\\data\\core\\lualib"
     ],
     "Lua.runtime.plugin": ".vscode/lua/plugin.lua",
     "Lua.diagnostics.globals": [
         "mods",
-        "log",
-        "table_size",
-        "localised_print",
         "on_error",
     ],
     "Lua.diagnostics.neededFileStatus": {
