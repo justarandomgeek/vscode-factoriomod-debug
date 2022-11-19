@@ -33,6 +33,7 @@
         "package": "disable",
         "coroutine": "disable",
         "io": "disable",
-        "os": "disable"
+        "os": "disable",
+        "debug": "disable"
     }
 }
