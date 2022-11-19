@@ -5,7 +5,7 @@ local unpack = table.unpack
 ---@param t table<K,V[]>
 ---@param k K
 ---@return K nextk
----@return ...@unpacked values
+---@return V[] ...@unpacked values
 local function nextuple(t,k)
   local nextk,nextv = next(t,k)
   return nextk,unpack(nextv)
@@ -77,6 +77,7 @@ local function sectioned_contents(sections, section_opts)
   end
 end
 
+---@class DebugAdapter.iterutil
 return {
   nextuple = nextuple,
   sectioned_next= sectioned_next,

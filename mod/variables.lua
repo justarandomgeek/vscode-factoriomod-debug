@@ -192,7 +192,6 @@ do
 end
 
 do
-  ---@type fun(ls:LocalisedString)
   local localised_print = localised_print
 
   ---Translate a LocalisedString
@@ -446,8 +445,8 @@ end
 ---@param classname string
 ---@param object LuaObject
 ---@param short? boolean
----@return string
----@return any
+---@return string lineitem
+---@return string classname
 local function describeLuaObject(classname,object,short)
   ---@type string
   local lineitem
@@ -643,6 +642,9 @@ function variables.create(name,value,evalName)
   }
 end
 
+--- Generate a debug error object
+---@param message string
+---@return table
 function variables.error(message)
   return setmetatable({},{
     __debugline = message,

@@ -1,4 +1,3 @@
-local json = {}
 local string = string
 local sformat = string.format
 local sbyte = string.byte
@@ -14,6 +13,10 @@ local type = type
 ---@param f function
 ---@return function
 local stepIgnore = __DebugAdapter and __DebugAdapter.stepIgnore or function(f) return f end
+
+
+---@class DebugAdapter.json
+local json = {}
 
 local function encode_nil()
   return "null"
