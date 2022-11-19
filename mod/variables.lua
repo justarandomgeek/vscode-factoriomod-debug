@@ -52,9 +52,11 @@ local DAvars = {}
 local variables = {
   -- normal refs are cleared after every continue
   ---@type {[integer]:DAvarslib.Ref}
+  ---@private
   refs = setmetatable({},refsmeta),
   -- long refs live forever, except objects that must not be kept for saving
   ---@type {[integer]:DAvarslib.Ref}
+  ---@private
   longrefs = setmetatable({},longrefsmeta),
   -- objects to pass up to the parent __DebugAdapter
   __ = DAvars,
@@ -170,6 +172,7 @@ do
 
   ---Called by VSCode to pass in a new block of refs
   ---@param ref any
+  ---@private
   function DAvars.transferRef(ref)
     nextRefID = ref
     nextEnd = ref+65535
