@@ -31,4 +31,11 @@
         //"no-unknown": "Information"
     },
     "Lua.runtime.version": "Lua 5.2",
+    "Lua.runtime.builtin": {
+        "math": "disable",
+        "package": "disable",
+        "coroutine": "disable",
+        "io": "disable",
+        "os": "disable"
+    }
 }
