@@ -35,16 +35,15 @@ luaObjectInfo.lineItem = {
   ---@param stack LuaItemStack
   ---@param short boolean | nil
   ---@return string
-  ---@return any[]?
   LuaItemStack = function(stack,short)
     if stack.valid_for_read then
       if not short then
-        return __DebugAdapter.stringInterp(
+        return (__DebugAdapter.stringInterp(
           [[<LuaItemStack>{[}name={name}, count={count}{]}]],
           nil,
           stack,
           "luaobjectline"
-        )
+        ))
       else
         return [[<LuaItemStack>]]
       end
