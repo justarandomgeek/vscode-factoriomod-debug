@@ -959,7 +959,11 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 				return this.add_table_type(this.tablebuff, api_type, table_class_name, view_documentation_link);
 			}
 			case "function":
-				return `fun(${api_type.parameters.map((p, i)=>`param${i+1}:${this.format_sumneko_type(p, modify_getter(`_param${i+1}`))}`).join(",")})`;
+				if (api_type.parameters.length === 0 ) {
+					return `function`;
+				} else {
+					return `fun(${api_type.parameters.map((p, i)=>`param${i+1}:${this.format_sumneko_type(p, modify_getter(`_param${i+1}`))}`).join(",")})`;
+				}
 			case "literal":
 				switch (typeof api_type.value) {
 					case "number":
