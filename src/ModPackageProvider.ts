@@ -246,15 +246,11 @@ class ModTaskProvider implements vscode.TaskProvider {
 		return undefined;
 	}
 
-	private async ConfigError(term:ModTaskTerminal, def:vscode.TaskDefinition, error:string): Promise<void> {
-		term.write(error+"\n");
-		term.write(JSON.stringify(def, undefined, 2));
-	}
-
 	private ConfigErrorTask(def:vscode.TaskDefinition, error:string): vscode.CustomExecution {
 		return new vscode.CustomExecution(async ()=>{
 			return new ModTaskPseudoterminal(async term=>{
-				await this.ConfigError(term, def, error);
+				term.write(error+"\n");
+				term.write(JSON.stringify(def, undefined, 2));
 				term.close();
 			});
 		});
