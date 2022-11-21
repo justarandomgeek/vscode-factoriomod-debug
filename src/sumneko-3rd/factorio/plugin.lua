@@ -11,23 +11,12 @@
 ---@diagnostic disable-next-line
 if false then __plugin_dev = true end
 
--- allow for require to search relative to this plugin file
--- open for improvements!
 local workspace
-local scope
 local furi
 if not __plugin_dev then
-  local fs = require("bee.filesystem")
   workspace = require("workspace")
-  scope = require("workspace.scope")
   furi = require("file-uri")
-  local plugin_path = fs.path(scope.getScope(workspace.rootUri):get('pluginPath'))
-  local new_path = (plugin_path:parent_path() / "?.lua"):string()
-  if not package.path:find(new_path, 1, true) then
-    package.path = package.path..";"..new_path
-  end
 end
----End of require stuff
 
 local require_module = require("factorio-plugin.require")
 local global = require("factorio-plugin.global")
