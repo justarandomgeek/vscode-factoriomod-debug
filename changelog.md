@@ -1,4 +1,7 @@
 
+### 2022-11-21
+- Remove internal hack for multi file plugins since it now supported by `sumneko.lua` itself (since somewhere around `3.5.1`)
+
 ### 2022-10-31
 - Change on_event to never consider `on_configuration_changed` to be an event, because it is not registered through `script.on_event`
 
