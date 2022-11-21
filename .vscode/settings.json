@@ -13,8 +13,7 @@
     ],
     "Lua.workspace.library": [
         "C:\\Users\\Thomas\\AppData\\Roaming\\Code - Insiders\\User\\workspaceStorage\\674a9ea7afd7b0e3f6f94b3463fd49b4\\justarandomgeek.factoriomod-debug\\sumneko-3rd\\factorio\\library",
-        "d:\\factorio\\factoriogit\\data",
-        "d:\\factorio\\factoriogit\\data\\core\\lualib"
+        "d:\\factorio\\factoriogit\\data"
     ],
     "Lua.runtime.plugin": ".vscode/lua/plugin.lua",
     "Lua.diagnostics.globals": [
