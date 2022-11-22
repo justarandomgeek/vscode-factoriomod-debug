@@ -30,6 +30,7 @@ import { ActiveFactorioVersion, FactorioVersion } from "./FactorioVersion";
 import { runLanguageServer } from "./Language/Server";
 import { ChangeLogLanguageService } from "./Language/ChangeLog";
 
+import sumneko3rdFiles from "./Sumneko3rd";
 
 const fsAccessor:  Pick<FileSystem, "readFile"|"writeFile"|"stat"> = {
 	async readFile(uri:URI) {
@@ -52,6 +53,35 @@ const fsAccessor:  Pick<FileSystem, "readFile"|"writeFile"|"stat"> = {
 		};
 	},
 };
+
+async function getConfig<T extends {}>(section:string, defaults:T):Promise<T> {
+	return Object.assign(
+		defaults,
+		await new Promise((resolve)=>{
+			if (process.send) {
+				const gotconfig = (msg:{cmd:string;section:string;config:{}})=>{
+					if (msg.cmd === "config" && msg.section === section) {
+						resolve(msg.config);
+					}
+					process.off("message", gotconfig);
+				};
+				process.on("message", gotconfig);
+				process.send({cmd: "getConfig", section: section});
+			} else {
+				resolve(undefined);
+			}
+		})
+	);
+}
+
+async function getConfigGetter<T extends {}>(section:string, defaults:T) {
+	const config = await getConfig(section, defaults);
+	return {
+		get: function<K extends keyof T>(key:K, defaultValue?:T[K]) {
+			return config[key] ?? defaultValue;
+		},
+	};
+}
 
 const modscommand = program.command("mods")
 	.option("--modsPath <modsPath>", undefined, process.cwd());
@@ -448,7 +478,6 @@ program.command("upload <zipname> [name]")
 		await doPackageUpload(packagezip, name);
 	});
 
-
 program.command("publish")
 	.action(async ()=>{
 		const json = await fsp.readFile("info.json", "utf8");
@@ -457,33 +486,19 @@ program.command("publish")
 		console.log(`Publishing: ${process.cwd()} ${info.version}`);
 
 		//when launched from vscode, transfer config over, otherwise defaults
-		const config = Object.assign(
-			{
-				preparingCommitMessage: "preparing release of version $VERSION",
-				movedToCommitMessage: "moved to version $VERSION",
-				autoCommitAuthor: "compilatron <compilatron@justarandomgeek.com>",
-				tagName: "$VERSION",
-				tagMessage: undefined,
-			},
-			await new Promise((resolve)=>{
-				if (process.send) {
-					process.once("message", (msg:{cmd:string;config:{}})=>{
-						if (msg.cmd === "config") {
-							resolve(msg.config);
-						}
-					});
-					process.send({cmd: "getConfig"});
-				} else {
-					resolve(undefined);
-				}
-			})
-		) as {
+		const config:{
 			preparingCommitMessage:string
 			movedToCommitMessage:string
 			autoCommitAuthor:string
 			tagName: string
 			tagMessage?: string
-		};
+		} = await getConfig("package", {
+			preparingCommitMessage: "preparing release of version $VERSION",
+			movedToCommitMessage: "moved to version $VERSION",
+			autoCommitAuthor: "compilatron <compilatron@justarandomgeek.com>",
+			tagName: "$VERSION",
+			tagMessage: undefined,
+		});
 
 		const repoStatus = await new Promise((resolve)=>{
 			exec("git status --porcelain", (error, stdout, stderr)=>{
@@ -624,19 +639,27 @@ program.command("publish")
 		}
 	});
 
-const docsettings = {};
-const settingsGetter = {
-	get: function(key:string, defaultValue?:any) {
-		return (key in docsettings && docsettings[<keyof typeof docsettings>key]) ?? defaultValue;
-	},
-};
-program.command("docs <docjson> <outdir>").action(async (docjson:string, outdir:string)=>{
-	const docs = new ApiDocGenerator((await fsp.readFile(docjson, "utf8")).toString(), settingsGetter);
+program.command("sumneko-3rd [outdir]")
+	.option("-d, --docs <docsjson>", "Include runtime docs")
+	.action(async (outdir:string|undefined, options:{docs?:string})=>{
+		await Promise.all(sumneko3rdFiles.map(async (file)=>{
+			const filepath = path.join(outdir ?? process.cwd(), file.name);
+			await fsp.mkdir(path.dirname(filepath), { recursive: true });
+			return fsp.writeFile(filepath, Buffer.from(file.content));
+		}));
+		if (options.docs) {
+			await docscommand(options.docs, path.join(outdir ?? process.cwd(), "factorio", "library"));
+		}
+	});
+
+program.command("docs <docjson> <outdir>").action(docscommand);
+async function docscommand(docjson:string, outdir:string) {
+	const docs = new ApiDocGenerator((await fsp.readFile(docjson, "utf8")).toString(), await getConfigGetter("doc", {}));
 	await fsp.mkdir(outdir, { recursive: true });
 	await docs.generate_sumneko_docs(async (filename:string, buff:Buffer)=>{
 		await fsp.writeFile(path.join(outdir, filename), buff);
 	});
-});
+};
 
 
 //vscode-languageserver handles these arguments
@@ -661,7 +684,7 @@ program.command("debug <factorioPath>")
 			"../../../doc-html/runtime-api.json"
 		);
 		const docsjson = await fsp.readFile(docsPath.fsPath, "utf8");
-		const activeVersion = new ActiveFactorioVersion(fsAccessor, fv, new ApiDocGenerator(docsjson, settingsGetter));
+		const activeVersion = new ActiveFactorioVersion(fsAccessor, fv, new ApiDocGenerator(docsjson, await getConfigGetter("doc", {})));
 
 		// start a single session that communicates via stdin/stdout
 		const session = new FactorioModDebugSession(activeVersion, fsAccessor, {

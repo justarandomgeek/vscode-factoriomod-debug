@@ -1,7 +1,6 @@
 import type { WorkspaceConfiguration } from "vscode";
 import { WritableStream as WritableMemoryStream } from "memory-streams";
 import { overlay } from "./Overlay";
-import sumneko3rdFiles from "../Sumneko3rd";
 
 type ApiBuiltinCustom =
 	{kind:"none"} |
@@ -219,10 +218,6 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		});
 
 		return debuginfo;
-	}
-
-	public async generate_sumneko_3rd(writeFile:(filename:string, buff:Buffer)=>void|Promise<void>) {
-		return Promise.all(sumneko3rdFiles.map(file=>writeFile(file.name, Buffer.from(file.content))));
 	}
 
 	public async generate_sumneko_docs(writeFile:(filename:string, buff:Buffer)=>void|Promise<void>) {

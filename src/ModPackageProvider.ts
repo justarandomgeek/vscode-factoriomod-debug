@@ -618,7 +618,7 @@ interface ModTaskTerminal {
 	close():void
 }
 
-async function forkScript(term:ModTaskTerminal, module:string, args:string[], cwd:string, env?:NodeJS.ProcessEnv, stdin?:string): Promise<number> {
+export async function forkScript(term:ModTaskTerminal, module:string, args:string[], cwd:string, env?:NodeJS.ProcessEnv, stdin?:string): Promise<number> {
 	const config = vscode.workspace.getConfiguration("factorio");
 	const scriptenv = Object.assign({}, process.env, env || {} );
 
@@ -631,12 +631,11 @@ async function forkScript(term:ModTaskTerminal, module:string, args:string[], cw
 			stdio: "pipe",
 		});
 
-		scriptProc.on("message", (message:{cmd:string})=>{
+		scriptProc.on("message", (message:{cmd:"getConfig"; section:string})=>{
 			switch (message.cmd) {
 				case "getConfig":
-					scriptProc.send({cmd: "config", config: config.get("package")});
+					scriptProc.send({cmd: "config", section: message.section, config: config.get(message.section)});
 					break;
-
 				default:
 					break;
 			}

@@ -5,6 +5,7 @@ import { URI, Utils } from "vscode-uri";
 import { ApiDocGenerator } from './ApiDocs/ApiDocGenerator';
 import { overlay } from './ApiDocs/Overlay';
 import { ActiveFactorioVersion, FactorioVersion, substitutePathVariables } from './FactorioVersion';
+import { forkScript } from './ModPackageProvider';
 const fs = vscode.workspace.fs;
 
 const detectPaths:FactorioVersion[] = [
@@ -274,17 +275,16 @@ export class FactorioVersionSelector {
 		} catch (error) {
 		}
 
-		await activeVersion.docs.generate_sumneko_3rd(
-			async (filename:string, buff:Buffer)=>{
-				const save = Utils.joinPath(workspaceLibrary, filename);
-				return fs.writeFile(save, buff);
-			});
 
-		await activeVersion.docs.generate_sumneko_docs(
-			async (filename:string, buff:Buffer)=>{
-				const save = Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/library", filename);
-				return fs.writeFile(save, buff);
-			});
+		const sumneko3rd = Utils.joinPath(workspaceLibrary, "sumneko-3rd");
+		await forkScript(
+			{ close() {}, write(data) {} },
+			this.context.asAbsolutePath("./dist/standalone.js"),
+			[
+				"sumneko-3rd",
+				"-d", activeVersion.docsPath,
+			],
+			sumneko3rd.fsPath);
 
 		const luaconfig = vscode.workspace.getConfiguration("Lua");
 

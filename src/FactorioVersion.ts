@@ -78,6 +78,14 @@ export class ActiveFactorioVersion {
 		return substitutePathVariables(this.fv.factorioPath, this.workspaceFolders);
 	}
 
+	public get docsPath() {
+		return path.join(this.factorioPath,
+			this.fv.docsPath ? this.fv.docsPath :
+			(os.platform() === "darwin") ? "../../doc-html/runtime-api.json" :
+			"../../../doc-html/runtime-api.json"
+		);
+	}
+
 	public configPathIsOverriden() {
 		return !!this.fv.configPath;
 	}
