@@ -80,5 +80,26 @@
 			],
 			"preLaunchTask": "npm: watch",
 		},
+		{
+			"name": "Standalone Sumneko 3rd",
+			"type": "node",
+			"request": "launch",
+			"program": "${workspaceFolder}/dist/standalone.js",
+			"cwd": "${workspaceFolder}",
+			"args": [
+				"sumneko-3rd",
+				"-d","d:/factorio/factoriogit/scripts/lua_doc/doc-files/runtime-api.json",
+				"${workspaceFolder}/out/sumneko-3rd",
+			],
+			"console": "integratedTerminal",
+			"skipFiles": [
+				"<node_internals>/**",
+				"<node_modules>/**"
+			],
+			"outFiles": [
+				"${workspaceFolder}/dist/**/*.js"
+			],
+			"preLaunchTask": "npm: watch",
+		},
 	],
 }
