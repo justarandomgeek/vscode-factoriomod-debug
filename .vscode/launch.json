@@ -101,5 +101,26 @@
 			],
 			"preLaunchTask": "npm: watch",
 		},
+		{
+			"name": "Standalone Sumneko Docs",
+			"type": "node",
+			"request": "launch",
+			"program": "${workspaceFolder}/dist/standalone.js",
+			"cwd": "${workspaceFolder}",
+			"args": [
+				"docs",
+				"d:/factorio/factoriogit/scripts/lua_doc/doc-files/runtime-api.json",
+				"${workspaceFolder}/out/docs",
+			],
+			"console": "integratedTerminal",
+			"skipFiles": [
+				"<node_internals>/**",
+				"<node_modules>/**"
+			],
+			"outFiles": [
+				"${workspaceFolder}/dist/**/*.js"
+			],
+			"preLaunchTask": "npm: watch",
+		},
 	],
 }
