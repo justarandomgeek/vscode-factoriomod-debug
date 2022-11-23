@@ -3,9 +3,9 @@ import * as os from 'os';
 import * as path from 'path';
 import { URI, Utils } from "vscode-uri";
 import { ApiDocGenerator } from './ApiDocs/ApiDocGenerator';
-import { overlay } from './ApiDocs/Overlay';
 import { ActiveFactorioVersion, FactorioVersion, substitutePathVariables } from './FactorioVersion';
 import { forkScript } from './ModPackageProvider';
+import { version as bundleVersion } from "../package.json";
 const fs = vscode.workspace.fs;
 
 const detectPaths:FactorioVersion[] = [
@@ -219,14 +219,14 @@ export class FactorioVersionSelector {
 
 			const filecontent = (await fs.readFile(Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/library", file[0]))).toString();
 
-			const matches = filecontent.match(/--\$Factorio ([^\n]*)\n--\$Overlay ([^\n]*)\n/m);
+			const matches = filecontent.match(/--\$Factorio ([^\n]*)\n--\$(?:Overlay|Generator) ([^\n]*)\n/m);
 			if (!matches) {
 				// no header at all? offer to regen...
 				this.generateDocs();
 				return;
 			}
 
-			if (matches[1] !== activeVersion.docs.application_version || Number(matches[2]) !== overlay.version) {
+			if (matches[1] !== activeVersion.docs.application_version || matches[2] !== bundleVersion) {
 				// header mismatch, offer to regen...
 				this.generateDocs();
 				return;

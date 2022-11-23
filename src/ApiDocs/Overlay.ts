@@ -3,7 +3,6 @@ let i = 100000;
 type OverlayApiVersion = 3;
 
 export const overlay:{
-	version: number
 	custom: (ApiWithParameters<OverlayApiVersion>&{name:string})[]
 	adjust: {
 		table: { [classname:string]: ApiWithParameters<OverlayApiVersion> }
@@ -24,8 +23,6 @@ export const overlay:{
 	}
 
 } = {
-	version: 5,
-
 	// whole classes not preset in json
 	custom: [
 		{
