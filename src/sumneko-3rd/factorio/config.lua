@@ -1,4 +1,4 @@
--- config.lua
+---@diagnostic disable: lowercase-global
 
 -- The name to use when suggesting this emulation. If omitted,
 -- the name of the folder will be used
