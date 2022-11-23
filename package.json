@@ -333,11 +333,6 @@
             "description": "Generate docs files when selecting a Factorio version.",
             "default": true
           },
-          "factorio.docs.offerUpdate": {
-            "type": "boolean",
-            "description": "Offer to update docs when they seem out of date.",
-            "default": true
-          },
           "factorio.docs.numberStyle": {
             "description": "Type of annotations to generate for specialized number types",
             "default": "aliasNative",
@@ -454,18 +449,12 @@
             "default": "latest"
           },
           "factorio.workspace.library": {
-            "type": "string",
-            "description": "Location to generate factorio typedef files. If unspecified, will use `.vscode/factorio` in your workspace."
+            "deprecationMessage": "Generated files are now placed in workspace private storage."
           },
           "factorio.workspace.manageLibraryDataLinks": {
             "type": "boolean",
             "default": true,
-            "description": "Automatically manage /data and /data/core/lualib links in `\"Lua.workspace.library\"`."
-          },
-          "factorio.workspace.manageLibraryDocsLink": {
-            "type": "boolean",
-            "default": true,
-            "description": "Automatically manage generated docs link in `\"Lua.workspace.library\"`."
+            "description": "Automatically manage /data link in `\"Lua.workspace.library\"`."
           },
           "factorio.debug.runMode": {
             "description": "Run mode for Debug Adapter",

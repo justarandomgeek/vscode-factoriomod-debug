@@ -59,9 +59,7 @@ export class FactorioVersionSelector {
 		this.bar.text = `Factorio ${docs.application_version} (${active_version.name})`;
 		this._active_version = new ActiveFactorioVersion(vscode.workspace.fs, active_version, docs, vscode.workspace.workspaceFolders);
 
-		if (config.get("docs.offerUpdate", true)) {
-			this.checkDocs();
-		}
+		this.checkDocs();
 	}
 
 	private async selectVersionCommand() {
@@ -205,78 +203,62 @@ export class FactorioVersionSelector {
 		}
 	}
 
-	private findWorkspaceLibraryFolder() {
-		return this.context.storageUri;
-	}
-
 	private async checkDocs() {
 		const activeVersion = await this.getActiveVersion();
 		if (!activeVersion) { return; }
-		const workspaceLibrary = this.findWorkspaceLibraryFolder();
+		const workspaceLibrary = this.context.storageUri;
 		if (!workspaceLibrary) { return; }
 
-		const file = (await fs.readDirectory(Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/library"))).find(([name, type])=>name.match(/runtime\-api.+\.lua/));
-		if (!file) {
-			// no generated files?
-			this.offerRefreshDocs("unknown", "unknown");
-			return;
-		}
-
-		const filecontent = (await fs.readFile(Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/library", file[0]))).toString();
-
-		const matches = filecontent.match(/--\$Factorio ([^\n]*)\n--\$Overlay ([^\n]*)\n/m);
-		if (!matches) {
-			// no header at all? offer to regen...
-			this.offerRefreshDocs("unknown", "unknown");
-			return;
-		}
-
-		if (matches[1] !== activeVersion.docs.application_version || Number(matches[2]) !== overlay.version) {
-			// header mismatch, offer to regen...
-			this.offerRefreshDocs(matches[1], matches[2]);
-			return;
-		}
-	}
-
-	private async offerRefreshDocs(old_factorio:string, old_overlay:string) {
-		const regen = await vscode.window.showInformationMessage(
-			`It looks like your Factorio intellisense files are out of date. Would you like to regenerate them now? \
-			Files: ${old_factorio}/${old_overlay} Current: ${this._active_version!.docs.application_version}/${overlay.version}`,
-			"Yes", "No", "Never");
-
-		switch (regen) {
-			case "Yes":
+		try {
+			const file = (await fs.readDirectory(Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/library"))).find(([name, type])=>name.match(/runtime\-api.+\.lua/));
+			if (!file) {
+				// no generated files?
 				this.generateDocs();
-				break;
+				return;
+			}
 
-			case "Never":
-				vscode.workspace.getConfiguration("factorio").update("docs.offerUpdate", false);
-				break;
+			const filecontent = (await fs.readFile(Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/library", file[0]))).toString();
+
+			const matches = filecontent.match(/--\$Factorio ([^\n]*)\n--\$Overlay ([^\n]*)\n/m);
+			if (!matches) {
+				// no header at all? offer to regen...
+				this.generateDocs();
+				return;
+			}
+
+			if (matches[1] !== activeVersion.docs.application_version || Number(matches[2]) !== overlay.version) {
+				// header mismatch, offer to regen...
+				this.generateDocs();
+				return;
+			}
+		} catch (error) {
+			// failed to check existing files at all...
+			this.generateDocs();
+			return;
 		}
 	}
-
 
 	private async generateDocs(previous_active?:ActiveFactorioVersion) {
 		if (!vscode.workspace.getConfiguration("factorio").get("docs.generateDocs", true)) { return; }
 		const activeVersion = await this.getActiveVersion();
 		if (!activeVersion) { return; }
-		const workspaceLibrary = this.findWorkspaceLibraryFolder();
+		const workspaceLibrary = this.context.storageUri;
 		if (!workspaceLibrary) {
 			vscode.window.showErrorMessage("Unable to generate docs: cannot locate workspace library");
 			return;
 		}
 
+		const sumneko3rd = Utils.joinPath(workspaceLibrary, "sumneko-3rd");
+		await fs.createDirectory(sumneko3rd);
+
 		try {
-			await Promise.all(
-				(await fs.readDirectory(Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/library")))
-					.map(async ([name, type])=>{
-						return fs.delete(Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/library", name), {useTrash: true});
-					}));
+			await Promise.allSettled([
+				fs.delete(Utils.joinPath(sumneko3rd, "factorio", "library"), {recursive: true}),
+				fs.delete(Utils.joinPath(sumneko3rd, "factorio", "factorio-plugin"), {recursive: true}),
+			]);
 		} catch (error) {
 		}
 
-
-		const sumneko3rd = Utils.joinPath(workspaceLibrary, "sumneko-3rd");
 		await forkScript(
 			{ close() {}, write(data) {} },
 			this.context.asAbsolutePath("./dist/standalone.js"),
@@ -317,7 +299,6 @@ export class FactorioVersionSelector {
 		if (previous_active && factorioconfig.get("workspace.manageLibraryDataLinks", true)) {
 			const oldroot = URI.file(await previous_active.dataPath());
 			removeLibraryPath(oldroot);
-			removeLibraryPath(oldroot, "core", "lualib");
 		}
 
 		await luaconfig.update("workspace.library", library);
@@ -325,7 +306,6 @@ export class FactorioVersionSelector {
 		if (factorioconfig.get("workspace.manageLibraryDataLinks", true)) {
 			const newroot = URI.file(await activeVersion.dataPath());
 			await addLibraryPath(newroot);
-			await addLibraryPath(newroot, "core", "lualib");
 		}
 
 		await luaconfig.update("workspace.library", library);
@@ -334,5 +314,9 @@ export class FactorioVersionSelector {
 		await luaconfig.update("workspace.userThirdParty", []);
 		await luaconfig.update("workspace.userThirdParty", [ Utils.joinPath(workspaceLibrary, "sumneko-3rd").fsPath ]);
 
+		const sumneko = vscode.extensions.getExtension("sumneko.lua");
+		if (sumneko && !sumneko.isActive) {
+			await sumneko.activate();
+		}
 	}
 }
