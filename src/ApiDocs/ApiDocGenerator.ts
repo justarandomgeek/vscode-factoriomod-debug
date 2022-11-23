@@ -364,34 +364,30 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			const name = `${name_prefix}${define.name}`;
 			const doctext = this.convert_sumneko_description(define.description, this.view_documentation(name));
 			output.write(doctext);
-			output.write(`---@class ${name}\n`);
-
+			//there aren't any with both values and subkeys for now,
+			//we'll deal with that if it ever happens...
 			if (define.values) {
+				output.write(`---@enum ${name}\n`);
+				output.write(`${name}={\n`);
 				define.values.forEach(value=>{
 					output.write(this.convert_sumneko_description(value.description, this.view_documentation(`${name}.${value.name}`)));
-					output.write(`---@class ${name}.${to_lua_ident(value.name)} : ${name} \n`);
+					output.write(`${to_lua_ident(value.name)} = #{},\n`);
 				});
-			}
-
-			const adjust = overlay.adjust.define[name];
-			let indextag = "";
-			if (adjust?.subkeys) {
-				indextag = ": " + adjust.subkeys
-					.map(s=>({start: `{[${s}]:`, end: `}`}))
-					.reduceRight((s, c)=>`${c.start}${s}${c.end}`, "0");
-			}
-
-			output.write(doctext);
-			output.write(`---@class ${name}.__index${indextag}\n`);
-			const child_prefix = `${name}.`;
-			if (define.values) {
-				define.values.forEach(value=>{
-					output.write(`---@field ${to_lua_ident(value.name)} ${name}.${to_lua_ident(value.name)} \n`);
-				});
-			}
-			output.write(`${name}={}\n`);
-			if (define.subkeys) {
-				define.subkeys.forEach(subkey=>generate(subkey, child_prefix));
+				output.write(`}\n`);
+			} else {
+				const adjust = overlay.adjust.define[name];
+				let indextag = "";
+				if (adjust?.subkeys) {
+					indextag = ": " + adjust.subkeys
+						.map(s=>({start: `{[${s}]:`, end: `}`}))
+						.reduceRight((s, c)=>`${c.start}${s}${c.end}`, "0");
+				}
+				output.write(`---@class ${name}${indextag}\n`);
+				output.write(`${name}={}\n`);
+				if (define.subkeys) {
+					const child_prefix = `${name}.`;
+					define.subkeys.forEach(subkey=>generate(subkey, child_prefix));
+				}
 			}
 		};
 
