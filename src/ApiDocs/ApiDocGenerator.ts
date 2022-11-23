@@ -227,7 +227,6 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			this.generate_sumneko_section("defines", writeFile),
 			this.generate_sumneko_section("events", writeFile),
 			this.generate_sumneko_classes(writeFile),
-			this.generate_sumneko_section("custom", writeFile),
 			this.generate_sumneko_section("concepts", writeFile),
 			this.generate_sumneko_section("global_functions", writeFile),
 		]);
@@ -235,7 +234,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		return this.generate_sumneko_section("table_types", writeFile);
 	}
 
-	private async generate_sumneko_section(name:"builtin"|"defines"|"events"|"custom"|"table_types"|"concepts"|"global_functions", writeFile:(filename:string, buff:Buffer)=>any) {
+	private async generate_sumneko_section(name:"builtin"|"defines"|"events"|"table_types"|"concepts"|"global_functions", writeFile:(filename:string, buff:Buffer)=>any) {
 		const ms = new WritableMemoryStream();
 		this.generate_sumneko_header(ms, name);
 		this[`generate_sumneko_${name}`](ms);
@@ -725,9 +724,6 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		}
 	}
 
-	private generate_sumneko_custom(output:WritableMemoryStream) {
-		overlay.custom.forEach(table=>this.add_table_type(output, table, table.name, ""));
-	}
 	private generate_sumneko_table_types(output:WritableMemoryStream) {
 		output.write(this.tablebuff.toBuffer());
 	}
