@@ -18,7 +18,6 @@
     ],
     "Lua.runtime.plugin": ".vscode/lua/plugin.lua",
     "Lua.diagnostics.globals": [
-        "mods",
         "on_error",
     ],
     "Lua.diagnostics.neededFileStatus": {

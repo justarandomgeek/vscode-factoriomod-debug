@@ -5,7 +5,6 @@ local modules = {
   { id = "level", name = "level", },
   { id = "#user", name = "#user", },
 }
----@type string
 for name,version in pairs(mods) do
   modules[#modules+1] = {
     id = name, name = name,
