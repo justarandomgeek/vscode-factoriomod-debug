@@ -32,6 +32,11 @@ import { ChangeLogLanguageService } from "./Language/ChangeLog";
 
 import sumneko3rdFiles from "./Sumneko3rd";
 
+export {
+	FactorioModDebugSession,
+	ApiDocGenerator,
+};
+
 const fsAccessor:  Pick<FileSystem, "readFile"|"writeFile"|"stat"> = {
 	async readFile(uri:URI) {
 		return fsp.readFile(uri.fsPath);
@@ -713,19 +718,21 @@ program.command("debug <factorioPath>")
 		session.start(process.stdin, process.stdout);
 	});
 
-program
-	.addHelpCommand()
-	.showHelpAfterError()
-	.showSuggestionAfterError()
-	// when launched by vscode-pretending-to-be-node this detects electron
-	// but has node-style args, so force it...
-	.parseAsync(process.argv, {from: "node"})
-	.catch((err)=>{
-		console.error(err);
-	})
-	.then(()=>{
-		// close IPC if it was open from parent...
-		if (process.send) {
-			process.disconnect();
-		}
-	});
+if (require.main === module) {
+	program
+		.addHelpCommand()
+		.showHelpAfterError()
+		.showSuggestionAfterError()
+		// when launched by vscode-pretending-to-be-node this detects electron
+		// but has node-style args, so force it...
+		.parseAsync(process.argv, {from: "node"})
+		.catch((err)=>{
+			console.error(err);
+		})
+		.then(()=>{
+			// close IPC if it was open from parent...
+			if (process.send) {
+				process.disconnect();
+			}
+		});
+}

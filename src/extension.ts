@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fsp from 'fs/promises';
 import * as os from 'os';
-import { FactorioModDebugSession } from './factorioModDebug';
+import { FactorioModDebugSession } from './standalone';
 import { activateModPackageProvider } from './ModPackageProvider';
 import { FactorioVersionSelector } from './VersionSelector';
 import { ProfileRenderer } from './Profile/ProfileRenderer';

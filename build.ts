@@ -29,6 +29,7 @@ program
 			external: [
 				"vscode",
 				"vscode-webview",
+				"./standalone",
 			],
 			loader: {
 				".html": "text",
