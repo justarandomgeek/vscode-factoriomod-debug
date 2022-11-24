@@ -27,9 +27,9 @@ configs = {
   {
     key    = 'Lua.runtime.special',
     action = 'prop',
-    prop   = 'require',
-    value  = 'require',
-},
+    prop   = '__object_name',
+    value  = 'type',
+  },
 }
 
 for _, name in ipairs({

@@ -34,5 +34,8 @@
         "io": "disable",
         "os": "disable",
         "debug": "disable"
+    },
+    "Lua.runtime.special": {
+        "__object_name":"type",
     }
 }
