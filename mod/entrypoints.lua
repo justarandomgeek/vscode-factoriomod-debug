@@ -89,9 +89,10 @@ function DAEntrypoints.getEntryLabel(func)
 end
 
 ---Record a handler label for a function and return that functions
----@param func? function
+---@generic F:function
+---@param func? F
 ---@param entryname string
----@return function? func
+---@return F? func
 local function labelhandler(func,entryname)
   if func then
     if handlernames[func] then
@@ -286,7 +287,7 @@ local newcommands = {
 ---@param help string|LocalisedString
 ---@param f function
 function newcommands.add_command(name,help,f)
-  return oldcommands.add_command(name,help,labelhandler(f, "command /" .. name)--[[@as function]])
+  return oldcommands.add_command(name,help,labelhandler(f, "command /" .. name))
 end
 
 ---@param name string
