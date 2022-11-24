@@ -227,6 +227,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			this.generate_sumneko_section("defines", writeFile),
 			this.generate_sumneko_section("events", writeFile),
 			this.generate_sumneko_classes(writeFile),
+			this.generate_sumneko_section("LuaObjectNames", writeFile),
 			this.generate_sumneko_section("concepts", writeFile),
 			this.generate_sumneko_section("global_functions", writeFile),
 		]);
@@ -234,7 +235,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		return this.generate_sumneko_section("table_types", writeFile);
 	}
 
-	private async generate_sumneko_section(name:"builtin"|"defines"|"events"|"table_types"|"concepts"|"global_functions", writeFile:(filename:string, buff:Buffer)=>any) {
+	private async generate_sumneko_section(name:"builtin"|"defines"|"events"|"table_types"|"LuaObjectNames"|"concepts"|"global_functions", writeFile:(filename:string, buff:Buffer)=>any) {
 		const ms = new WritableMemoryStream();
 		this.generate_sumneko_header(ms, name);
 		this[`generate_sumneko_${name}`](ms);
@@ -408,16 +409,11 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			output.write("\n");
 		});
 	}
+	private generate_sumneko_LuaObjectNames(output:WritableMemoryStream) {
+		const names = this.docs.classes.map(c=>`"${c.name}"`);
+		output.write(`---@alias LuaObject.object_name ${names.join("|")}\n`);
+	}
 	private async generate_sumneko_classes(writeFile:(filename:string, buff:Buffer)=>any) {
-		{
-			const ms = new WritableMemoryStream();
-			this.generate_sumneko_header(ms, "LuaObjectNames");
-			ms.write(`\n`);
-			const names = this.docs.classes.map(c=>`"${c.name}"`);
-			ms.write(`---@alias LuaObject.object_name ${names.join("|")}\n`);
-			ms.write(`\n`);
-			await writeFile(`runtime-api-LuaObjectNames.lua`, ms.toBuffer());
-		}
 		return Promise.all(this.docs.classes.map(async aclass=>{
 			const ms = new WritableMemoryStream();
 			this.generate_sumneko_header(ms, aclass.name);
