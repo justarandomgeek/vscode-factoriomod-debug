@@ -409,17 +409,22 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		});
 	}
 	private async generate_sumneko_classes(writeFile:(filename:string, buff:Buffer)=>any) {
-		const classSizes = this.docs.classes.map(async aclass=>{
+		{
+			const ms = new WritableMemoryStream();
+			this.generate_sumneko_header(ms, "LuaObjectNames");
+			ms.write(`\n`);
+			const names = this.docs.classes.map(c=>`"${c.name}"`);
+			ms.write(`---@alias LuaObject.object_name ${names.join("|")}\n`);
+			ms.write(`\n`);
+			await writeFile(`runtime-api-LuaObjectNames.lua`, ms.toBuffer());
+		}
+		return Promise.all(this.docs.classes.map(async aclass=>{
 			const ms = new WritableMemoryStream();
 			this.generate_sumneko_header(ms, aclass.name);
 			this.add_sumneko_class(ms, aclass);
 			ms.write(`\n`);
-			const buff = ms.toBuffer();
-			await writeFile(`runtime-api-${aclass.name}.lua`, buff);
-			return buff.length;
-		});
-
-		return Math.max(...await Promise.all(classSizes));
+			await writeFile(`runtime-api-${aclass.name}.lua`, ms.toBuffer());
+		}));
 	}
 
 	private write_sumneko_field(
