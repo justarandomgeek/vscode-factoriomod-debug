@@ -205,3 +205,32 @@ remote.__all_remote_interfaces.foo.bar("arg 1", "arg 2")
 Then when you for example hover over the string `"bar"` in the `remote.call` call you should get intellisense showing the signature of the function bar as defined above.
 
 It also disables `undefined-field` diagnostics specifically for `__all_remote_interfaces` and does nothing if it finds `--` before `remote` on the same line.
+
+## LuaObject type narrowing
+
+A little disclaimer: For this to work one must have the `Lua.workspace.userThirdParty` setting pointing at a folder containing generated type annotations for factorio which also includes a `config.lua` file for `sumneko.lua` to understand that the internal function used by the plugin `__object_name` is similar to `type` as in it is able to narrow the type of a variable that is checked in an if statement, like `if type(foo) == "string" then --[[foo is a string here]] end`.
+
+This adds support to do `if foo.object_name == "LuaPlayer" then end` which then tells the language server that `foo` is actually a `LuaPlayer`, not just a generic `LuaObject` inside of the if statement.
+
+For example
+```lua
+---@type LuaObject
+local foo
+
+if foo.object_name == "LuaPlayer" then
+  game.print(foo.name)
+end
+```
+Would look something similar to this to the language server
+```lua
+---@type LuaObject
+local foo
+
+if __object_name(foo) == "LuaPlayer" then
+  game.print(foo.name)
+end
+```
+
+It also disables `undefined-global` diagnostics specifically for `__object_name`.
+
+It does nothing if `foo` is preceded by a `.` (dot) nor the keyword `function`, and does nothing if `--` is anywhere before the expression.
