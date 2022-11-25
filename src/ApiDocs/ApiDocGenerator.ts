@@ -705,7 +705,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 							break;
 						case "struct":
 							output.write(this.convert_sumneko_description(this.format_entire_description(concept, this.view_documentation(concept.name))));
-							output.write(`---@class ${concept.name}}\n\n`);
+							output.write(`---@class ${concept.name}\n`);
 							concept.type.attributes.forEach(a=>(<ApiDocGenerator<3>> this).add_attribute(output, concept.name, a));
 							break;
 
