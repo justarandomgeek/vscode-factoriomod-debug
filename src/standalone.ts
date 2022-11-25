@@ -22,13 +22,15 @@ import { applyEdits, Edit } from "jsonc-parser";
 import * as jsonc from "jsonc-parser";
 
 import type { ModInfo } from "./ModPackageProvider";
-import { ModManager } from './ModManager';
+import { ModManager, BundledMods } from './ModManager';
 import { ApiDocGenerator } from './ApiDocs/ApiDocGenerator';
 import { ModSettings } from './ModSettings';
 import { FactorioModDebugSession } from './factorioModDebug';
 import { ActiveFactorioVersion, FactorioVersion } from "./FactorioVersion";
 import { runLanguageServer } from "./Language/Server";
 import { ChangeLogLanguageService } from "./Language/ChangeLog";
+
+import { displayName, version as bundleVersion } from "../package.json";
 
 import sumneko3rdFiles from "./Sumneko3rd";
 
@@ -89,29 +91,36 @@ async function getConfigGetter<T extends {}>(section:string, defaults:T) {
 }
 
 const modscommand = program.command("mods")
-	.option("--modsPath <modsPath>", undefined, process.cwd());
-modscommand.command("enable <modname> [version]").action(async (modname:string, version?:string)=>{
-	const manager = new ModManager(modscommand.opts().modsPath);
-	await manager.Loaded;
-	manager.set(modname, version??true);
-	await manager.write();
-});
-modscommand.command("disable <modname>").action(async (modname:string)=>{
-	const manager = new ModManager(modscommand.opts().modsPath);
-	await manager.Loaded;
-	manager.set(modname, false);
-	await manager.write();
-});
+	.description("Mod management commands")
+	.option("--modsPath <modsPath>", "mods directory to operate on", process.cwd());
+modscommand.command("enable <modname> [version]")
+	.description("Enable a mod or select a specific version of it")
+	.action(async (modname:string, version?:string)=>{
+		const manager = new ModManager(modscommand.opts().modsPath);
+		await manager.Loaded;
+		manager.set(modname, version??true);
+		await manager.write();
+	});
+modscommand.command("disable <modname>")
+	.description("Disable a mod")
+	.action(async (modname:string)=>{
+		const manager = new ModManager(modscommand.opts().modsPath);
+		await manager.Loaded;
+		manager.set(modname, false);
+		await manager.write();
+	});
 modscommand.command("install <modname>")
-	.option("--keepOld")
+	.description(`Install a mod. Currently only supports bundled mods: ${Object.keys(BundledMods)}`)
+	.option("--keepOld", "Don't remove old versions if present")
 	.action(async (modname:string, options:{keepOld?:boolean})=>{
 		const manager = new ModManager(modscommand.opts().modsPath);
 		await manager.Loaded;
 		console.log(await manager.installMod(modname, ["bundle"], options.keepOld));
 	});
 modscommand.command("adjust <changes...>")
-	.option("--allowDisableBase")
-	.option("--disableExtra")
+	.description("Configure multiple mods at once: modname=true|false|x.y.z")
+	.option("--allowDisableBase", "Allow disabling the base mod")
+	.option("--disableExtra", "Disable any mods not named in the changeset")
 	.action(async (changes:string[], options:{allowDisableBase?:boolean; disableExtra?:boolean})=>{
 		const manager = new ModManager(modscommand.opts().modsPath);
 		await manager.Loaded;
@@ -147,53 +156,60 @@ modscommand.command("adjust <changes...>")
 	});
 
 const settingscommand = program.command("settings")
-	.option("--modsPath <modsPath>", undefined, process.cwd());
-settingscommand.command("list").action(async ()=>{
-	const modSettingsUri = Utils.joinPath(URI.file(settingscommand.opts().modsPath), "mod-settings.dat");
-	const settings = new ModSettings(Buffer.from(await fsp.readFile(modSettingsUri.fsPath)));
-	for (const setting of settings.list()) {
-		console.log(`${setting.scope} ${setting.setting} ${typeof setting.value==="string"?`"${setting.value}"`:setting.value}`);
-	}
-});
-settingscommand.command("get <scope> <name>").action(async (scope:string, name:string)=>{
-	switch (scope) {
-		case "startup":
-		case "runtime-global":
-		case "runtime-per-user":
-			break;
-		default:
-			console.log(`Unknown scope "${scope}"`);
-			return;
-	}
-	const modSettingsUri = Utils.joinPath(URI.file(settingscommand.opts().modsPath), "mod-settings.dat");
-	const settings = new ModSettings(Buffer.from(await fsp.readFile(modSettingsUri.fsPath)));
-	const value = settings.get(scope, name);
-	console.log(`${typeof value==="string"?`"${value}"`:value}`);
-});
-settingscommand.command("set <scope> <name> <value>").action(async (scope:string, name:string, value:string)=>{
-	switch (scope) {
-		case "startup":
-		case "runtime-global":
-		case "runtime-per-user":
-			break;
-		default:
-			console.log(`Unknown scope "${scope}"`);
-			return;
-	}
-	const modSettingsUri = Utils.joinPath(URI.file(settingscommand.opts().modsPath), "mod-settings.dat");
-	const settings = new ModSettings(Buffer.from(await fsp.readFile(modSettingsUri.fsPath)));
-	if (value === "true" || value ==="false") {
-		settings.set(scope, name, value==="true");
-	} else {
-		const numValue = Number(value);
-		if (!isNaN(numValue) && value!=="") {
-			settings.set(scope, name, numValue);
-		} else {
-			settings.set(scope, name, value);
+	.description("Edit mod settings")
+	.option("--modsPath <modsPath>", "mods directory to operate on", process.cwd());
+settingscommand.command("list")
+	.description("List all current saved values")
+	.action(async ()=>{
+		const modSettingsUri = Utils.joinPath(URI.file(settingscommand.opts().modsPath), "mod-settings.dat");
+		const settings = new ModSettings(Buffer.from(await fsp.readFile(modSettingsUri.fsPath)));
+		for (const setting of settings.list()) {
+			console.log(`${setting.scope} ${setting.setting} ${typeof setting.value==="string"?`"${setting.value}"`:setting.value}`);
 		}
-	}
-	await fsp.writeFile(modSettingsUri.fsPath, settings.save());
-});
+	});
+settingscommand.command("get <scope> <name>")
+	.description("Get the saved value of a setting")
+	.action(async (scope:string, name:string)=>{
+		switch (scope) {
+			case "startup":
+			case "runtime-global":
+			case "runtime-per-user":
+				break;
+			default:
+				console.log(`Unknown scope "${scope}"`);
+				return;
+		}
+		const modSettingsUri = Utils.joinPath(URI.file(settingscommand.opts().modsPath), "mod-settings.dat");
+		const settings = new ModSettings(Buffer.from(await fsp.readFile(modSettingsUri.fsPath)));
+		const value = settings.get(scope, name);
+		console.log(`${typeof value==="string"?`"${value}"`:value}`);
+	});
+settingscommand.command("set <scope> <name> <value>")
+	.description("Set the saved value of a setting")
+	.action(async (scope:string, name:string, value:string)=>{
+		switch (scope) {
+			case "startup":
+			case "runtime-global":
+			case "runtime-per-user":
+				break;
+			default:
+				console.log(`Unknown scope "${scope}"`);
+				return;
+		}
+		const modSettingsUri = Utils.joinPath(URI.file(settingscommand.opts().modsPath), "mod-settings.dat");
+		const settings = new ModSettings(Buffer.from(await fsp.readFile(modSettingsUri.fsPath)));
+		if (value === "true" || value ==="false") {
+			settings.set(scope, name, value==="true");
+		} else {
+			const numValue = Number(value);
+			if (!isNaN(numValue) && value!=="") {
+				settings.set(scope, name, numValue);
+			} else {
+				settings.set(scope, name, value);
+			}
+		}
+		await fsp.writeFile(modSettingsUri.fsPath, settings.save());
+	});
 
 async function getPackageinfo() {
 	try {
@@ -433,17 +449,20 @@ async function doPackageVersion(info:ModInfo, json:string) {
 }
 
 program.command("run <script>")
+	.description("Run a script from info.json#/package/scripts")
 	.action(async (scriptname:string)=>{
 		process.exit(await runPackageScript(scriptname, await getPackageinfo()));
 	});
 
 program.command("datestamp")
+	.description("Datestamp the current changelog section")
 	.action(async ()=>{
 		const info = await getPackageinfo();
 		await doPackageDatestamp(info);
 	});
 
 program.command("version")
+	.description("Increment the mod version")
 	.action(async ()=>{
 		const json = await fsp.readFile("info.json", "utf8");
 		const info = JSON.parse(json) as ModInfo;
@@ -452,6 +471,7 @@ program.command("version")
 
 
 program.command("package")
+	.description("Build a zip package")
 	.option("--outdir <outdir>", "", "")
 	.action(async (options)=>{
 		const info = await getPackageinfo();
@@ -464,6 +484,7 @@ program.command("package")
 	});
 
 program.command("upload <zipname> [name]")
+	.description("Upload a zip package to the mod portal")
 	.action(async (zipname:string, name?:string)=>{
 
 		if (!name) {
@@ -484,6 +505,7 @@ program.command("upload <zipname> [name]")
 	});
 
 program.command("publish")
+	.description("Package and publish a mod to the mod portal")
 	.action(async ()=>{
 		const json = await fsp.readFile("info.json", "utf8");
 		const info = JSON.parse(json) as ModInfo;
@@ -645,6 +667,7 @@ program.command("publish")
 	});
 
 program.command("sumneko-3rd [outdir]")
+	.description("Generate a library bundle for sumneko.lua LSP")
 	.option("-d, --docs <docsjson>", "Include runtime docs")
 	.action(async (outdir:string|undefined, options:{docs?:string})=>{
 		await Promise.all(sumneko3rdFiles.map(async (file)=>{
@@ -657,7 +680,9 @@ program.command("sumneko-3rd [outdir]")
 		}
 	});
 
-program.command("docs <docjson> <outdir>").action(docscommand);
+program.command("docs <docjson> <outdir>")
+	.description("Generate runtime api docs for sumneko.lua LSP")
+	.action(docscommand);
 async function docscommand(docjson:string, outdir:string) {
 	const docs = new ApiDocGenerator((await fsp.readFile(docjson, "utf8")).toString(), await getConfigGetter("doc", {}));
 	await fsp.mkdir(outdir, { recursive: true });
@@ -668,14 +693,18 @@ async function docscommand(docjson:string, outdir:string) {
 
 
 //vscode-languageserver handles these arguments
-program.command("lsp").allowUnknownOption(true).allowExcessArguments(true).action(()=>{
-	runLanguageServer();
-});
+program.command("lsp")
+	.description("Run LSP Server for Locale and Changelog features")
+	.allowUnknownOption(true).allowExcessArguments(true)
+	.action(()=>{
+		runLanguageServer();
+	});
 
 program.command("debug <factorioPath>")
-	.option("-d, --docs <docsPath>")
-	.option("-c, --config <configPath>")
-	.option("-w, --workspace <workspacePath...>")
+	.description("Launch a DAP debug session")
+	.option("-d, --docs <docsPath>", "path to runtime-api.json")
+	.option("-c, --config <configPath>", "path to config.ini")
+	.option("-w, --workspace <workspacePath...>", "path to workspace folders")
 	.action(async (factorioPath:string, options:{docs?:string; config?:string; workspace?:string[]})=>{
 		const fv: FactorioVersion = {
 			name: "standalone",
@@ -720,6 +749,7 @@ program.command("debug <factorioPath>")
 
 if (require.main === module) {
 	program
+		.description(`${displayName} ${bundleVersion}`)
 		.addHelpCommand()
 		.showHelpAfterError()
 		.showSuggestionAfterError()

@@ -7,7 +7,7 @@ import { version as bundleVersion } from "../package.json";
 //@ts-ignore UInt8Array from esbuild
 import DebugAdapterZip from "factoriomod:../mod";
 
-const bundled:{[name:string]:{version:string; zip:Uint8Array}} = {
+export const BundledMods:{[name:string]:{version:string; zip:Uint8Array}} = {
 	["debugadapter"]: {
 		version: bundleVersion,
 		zip: DebugAdapterZip,
@@ -53,7 +53,7 @@ export class ModManager {
 		}> {
 
 		//TODO: support installing from portal too
-		const bundle = bundled[name];
+		const bundle = BundledMods[name];
 		if (!bundle) { throw new Error(`No bundled package for ${name}`); }
 		const version = bundle.version;
 
