@@ -1,7 +1,7 @@
 
 # Introduction
 
-This is a plugin for the [sumneko.lua](https://github.com/sumneko/lua-language-server) vscode extension to help with factorio related syntax and intelisense.
+This is a plugin for the [sumneko.lua](https://github.com/sumneko/lua-language-server) vscode extension to help with factorio related syntax and intellisense.
 
 To keep up with this project check the [changelog](changelog.md).
 
@@ -98,7 +98,7 @@ In factorio to require files from other mods you use
 ```lua
 require("__modname__.filename")
 ```
-however the folder `__modname__` does not exist, which means the language server cannot find the file and cannot assist you with any kind of intelisense, mainly to know what the file returns and to navigate to definitions and find references.
+however the folder `__modname__` does not exist, which means the language server cannot find the file and cannot assist you with any kind of intellisense, mainly to know what the file returns and to navigate to definitions and find references.
 
 The plugin makes these look like this to the language server
 ```lua
@@ -106,11 +106,11 @@ require("modname.filename")
 ```
 That means if there is a folder with the name `modname` it can now find the files.
 
-(This might get improved to support folders with version numbers at the end. Zips may currently not even be possible with the extension, however it _might_ get supoort at some point too.)
+(This might get improved to support folders with version numbers at the end. Zips may currently not even be possible with the extension, however it _might_ get support at some point too.)
 
 ## Normalized require
 
-the module paths passed to `require` also get normilzed to follow `this.kind.of.pattern`, because it is the only pattern currently supported by the language server for it to locate files.
+the module paths passed to `require` also get normalized to follow `this.kind.of.pattern`, because it is the only pattern currently supported by the language server for it to locate files.
 
 For example
 ```lua
@@ -143,7 +143,7 @@ The specific behavior is hard to put in words but i shall try:\
 For all calls to `on_event`, `event.register` or `Event.register` it gets all event names a handler is being registered for which is either just the single one provided or the list of event "names". It then gets the parameter name used for the event data in the handler function provided (it only works when the function is defined in place, not for references to a previously defined function) and it adds an `@param` annotation for this parameter. For every event name previously found it tries to get the type name to use for this annotation by getting the last part in the indexing chain/expression and combines then with a `|` between each of them to tell the language server that it could be any of those given types, but it will only use the types that start with `on_` or `script_`.
 
 `flib` and `stdlib` add another way of registering handlers, such as `event.on_tick(function(e) end)`. These are much easier to explain:\
-It searches for `event.` or `Event.` followed by an identifier which gets called with a function being passed in as the first argument. Then it adds the annotaion just as before by getting the parameter name used for the event data for the handler and adds an `@param` annotation for this parameter using the found function name (the identifier after `event.` or `Event.`) as the type name for the parameter without any further filtering on the name.
+It searches for `event.` or `Event.` followed by an identifier which gets called with a function being passed in as the first argument. Then it adds the annotation just as before by getting the parameter name used for the event data for the handler and adds an `@param` annotation for this parameter using the found function name (the identifier after `event.` or `Event.`) as the type name for the parameter without any further filtering on the name.
 
 It doesn't do anything if it finds `--` somewhere in the line before whichever call it is processing.
 
@@ -241,7 +241,7 @@ end)
 
 ## Remotes
 
-To help with intelisense for remotes, such as go to definition or knowing about which parameters a remote interface function takes and what it returns the plugin makes `remote.call` and `remote.add_interface` calls look different to the language server.
+To help with intellisense for remotes, such as go to definition or knowing about which parameters a remote interface function takes and what it returns the plugin makes `remote.call` and `remote.add_interface` calls look different to the language server.
 
 For example
 ```lua
@@ -272,6 +272,6 @@ remote.__all_remote_interfaces.foo = ({
 remote.__all_remote_interfaces.foo.bar("arg 1", "arg 2")
 ```
 
-Then when you for example hover over the string `"bar"` in the `remote.call` call you should get intelisense showing the signature of the function bar as defined above.
+Then when you for example hover over the string `"bar"` in the `remote.call` call you should get intellisense showing the signature of the function bar as defined above.
 
 It also disables `undefined-field` diagnostics specifically for `__all_remote_interfaces` and does nothing if it finds `--` before `remote` on the same line.
