@@ -51,20 +51,12 @@ local function replace(_, text, diffs)
       end
 
       if name_comma_or_paren == "," then
-        ---@type integer|nil, integer  p_closing_paren is one past the actual closing parenthesis
-        local p_closing_paren, f_entire_thing = text:match("^%b()()[^\n]*()", p_open_paren)
-
-        if p_closing_paren
-          and not text:sub(s_entire_thing, f_entire_thing):find("--##", 1, true)
-        then
-          util.extend_chain_diff_elem_text(chain_diff[3], "=")
-          chain_diff[4] = {i = s_param_2 --[[@as integer]]}
-          util.add_diff(diffs, s_add - 1, s_add, text:sub(s_add - 1, s_add - 1).."--\n")
-          util.add_diff(diffs, s_add, f_add,
-            "__all_remote_interfaces---@diagnostic disable-line:undefined-field\n")
-          util.add_chain_diff(chain_diff, diffs)
-          util.add_diff(diffs, p_closing_paren - 1, p_closing_paren, "")
-        end
+        util.extend_chain_diff_elem_text(chain_diff[3], "=(")
+        chain_diff[4] = {i = s_param_2 --[[@as integer]]}
+        util.add_diff(diffs, s_add - 1, s_add, text:sub(s_add - 1, s_add - 1).."--\n")
+        util.add_diff(diffs, s_add, f_add,
+          "__all_remote_interfaces---@diagnostic disable-line:undefined-field\n")
+        util.add_chain_diff(chain_diff, diffs)
       end
 
       ::continue::

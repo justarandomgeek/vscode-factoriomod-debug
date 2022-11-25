@@ -1,4 +1,7 @@
 
+### 2022-11-25
+- Simplify `remote.add_interface` to no longer require removal of the closing `)`
+
 ### 2022-11-21
 - Remove internal hack for multi file plugins since it now supported by `sumneko.lua` itself (since somewhere around `3.5.1`)
 
