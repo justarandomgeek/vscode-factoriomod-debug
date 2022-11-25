@@ -1,6 +1,6 @@
 {
   "name": "factoriomod-debug",
-  "displayName": "Factorio Mod Debug",
+  "displayName": "Factorio Modding Tool Kit",
   "version": "1.1.24",
   "publisher": "justarandomgeek",
   "description": "Debug Tools for developing Factorio Mods",
@@ -86,6 +86,9 @@
     "vscode-uri": "^3.0.3"
   },
   "main": "./dist/extension.js",
+  "bin": {
+    "fmtk": "./dist/standalone.js"
+  },
   "activationEvents": [
     "onDebug",
     "onCommand:workbench.action.tasks.runTask",
