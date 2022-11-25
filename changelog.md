@@ -1,5 +1,6 @@
 
 ### 2022-11-25
+- Add conversion from `foo.object_name` to `__object_name(foo)` which in combination with a generated third party package for `sumneko.lua` makes it understand type narrowing on `object_name`
 - Simplify `remote.add_interface` to no longer require removal of the closing `)`
 
 ### 2022-11-21
