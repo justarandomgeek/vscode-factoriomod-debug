@@ -7,3 +7,7 @@ src
 out
 **/*.js.map
 node_modules
+build.ts
+todo
+.github
+**/*.pdn
