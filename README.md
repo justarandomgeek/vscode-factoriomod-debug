@@ -108,23 +108,6 @@ That means if there is a folder with the name `modname` it can now find the file
 
 (This might get improved to support folders with version numbers at the end. Zips may currently not even be possible with the extension, however it _might_ get support at some point too.)
 
-## Normalized require
-
-the module paths passed to `require` also get normalized to follow `this.kind.of.pattern`, because it is the only pattern currently supported by the language server for it to locate files.
-
-For example
-```lua
-require("folder.foo")
-require("folder/bar")
-require("folder/baz.lua")
-```
-Would look like this to the language server
-```lua
-require("folder.foo")
-require("folder.bar")
-require("folder.baz")
-```
-
 ## Factorio global
 
 If the language server sees multiple mods it can happen that it thinks your `global` contains keys/data it really doesn't because some other mod stores said data in global. For that reason the plugin tries its best to make `global` look like `__modname__global` to the language server.
