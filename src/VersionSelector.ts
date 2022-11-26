@@ -261,7 +261,7 @@ export class FactorioVersionSelector {
 
 		await forkScript(
 			{ close() {}, write(data) {} },
-			this.context.asAbsolutePath("./dist/standalone.js"),
+			this.context.asAbsolutePath("./dist/fmtk.js"),
 			[
 				"sumneko-3rd",
 				"-d", activeVersion.docsPath,

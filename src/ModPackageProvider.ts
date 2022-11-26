@@ -272,7 +272,7 @@ class ModTaskProvider implements vscode.TaskProvider {
 		return new vscode.CustomExecution(async ()=>{
 			return new ModTaskPseudoterminal(async term=>{
 				await forkScript(term,
-					this.context.asAbsolutePath("./dist/standalone.js"),
+					this.context.asAbsolutePath("./dist/fmtk.js"),
 					args,
 					process.cwd());
 				term.close();
@@ -363,7 +363,7 @@ class ModPackage extends vscode.TreeItem {
 		return new vscode.CustomExecution(async ()=>{
 			return new ModTaskPseudoterminal(async term=>{
 				await forkScript(term,
-					this.context.asAbsolutePath("./dist/standalone.js"),
+					this.context.asAbsolutePath("./dist/fmtk.js"),
 					["datestamp"],
 					vscode.Uri.joinPath(this.resourceUri, "..").fsPath);
 				await this.Update();
@@ -384,7 +384,7 @@ class ModPackage extends vscode.TreeItem {
 		return new vscode.CustomExecution(async ()=>{
 			return new ModTaskPseudoterminal(async term=>{
 				await forkScript(term,
-					this.context.asAbsolutePath("./dist/standalone.js"),
+					this.context.asAbsolutePath("./dist/fmtk.js"),
 					args,
 					vscode.Uri.joinPath(this.resourceUri, "..").fsPath);
 				await this.Update();
@@ -397,7 +397,7 @@ class ModPackage extends vscode.TreeItem {
 		return new vscode.CustomExecution(async ()=>{
 			return new ModTaskPseudoterminal(async term=>{
 				await forkScript(term,
-					this.context.asAbsolutePath("./dist/standalone.js"),
+					this.context.asAbsolutePath("./dist/fmtk.js"),
 					["version"],
 					vscode.Uri.joinPath(this.resourceUri, "..").fsPath);
 				await this.Update();
@@ -434,7 +434,7 @@ class ModPackage extends vscode.TreeItem {
 				const APIKey = await this.keychain.GetAPIKey();
 				if (APIKey) {
 					await forkScript(term,
-						this.context.asAbsolutePath("./dist/standalone.js"),
+						this.context.asAbsolutePath("./dist/fmtk.js"),
 						["upload", packagepath, this.label ],
 						vscode.Uri.joinPath(this.resourceUri, "..").fsPath,
 						{
@@ -453,7 +453,7 @@ class ModPackage extends vscode.TreeItem {
 				const APIKey = await this.keychain.GetAPIKey();
 				if (APIKey) {
 					await forkScript(term,
-						this.context.asAbsolutePath("./dist/standalone.js"),
+						this.context.asAbsolutePath("./dist/fmtk.js"),
 						["publish"],
 						vscode.Uri.joinPath(this.resourceUri, "..").fsPath,
 						{

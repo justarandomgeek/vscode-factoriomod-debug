@@ -811,7 +811,7 @@
       {
         "type": "factoriomod",
         "label": "Factorio Mod Debug",
-        "program": "./dist/standalone.js",
+        "program": "./dist/fmtk.js",
         "args": [
           "debug"
         ],

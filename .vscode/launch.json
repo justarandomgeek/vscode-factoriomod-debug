@@ -63,7 +63,7 @@
 			"name": "Standalone Commands",
 			"type": "node",
 			"request": "launch",
-			"program": "${workspaceFolder}/dist/standalone.js",
+			"program": "${workspaceFolder}/dist/fmtk.js",
 			"cwd": "${env:APPDATA}/Factorio/mods/jargtestmod",
 			"env": {
 				"FACTORIO_UPLOAD_API_KEY":""
@@ -84,7 +84,7 @@
 			"name": "Standalone Sumneko 3rd",
 			"type": "node",
 			"request": "launch",
-			"program": "${workspaceFolder}/dist/standalone.js",
+			"program": "${workspaceFolder}/dist/fmtk.js",
 			"cwd": "${workspaceFolder}",
 			"args": [
 				"sumneko-3rd",
@@ -105,7 +105,7 @@
 			"name": "Standalone Sumneko Docs",
 			"type": "node",
 			"request": "launch",
-			"program": "${workspaceFolder}/dist/standalone.js",
+			"program": "${workspaceFolder}/dist/fmtk.js",
 			"cwd": "${workspaceFolder}",
 			"args": [
 				"docs",
