@@ -22,7 +22,7 @@ do
     if chunk then
       objectChunks[#objectChunks+1] = chunk
     else
-      luaObjectInfo = load(table.concat(objectChunks),"=(objectinfo)","t")()
+      luaObjectInfo = load(table.concat(objectChunks),"=(objectinfo)","t")() --[[@as LuaObjectInfo]]
     end
   end
   print("DBG: object_info")
@@ -189,7 +189,7 @@ luaObjectInfo.check_eventlike = check_eventlike
 
 ---Check if a value is a LuaObject or LuaBindableObject
 ---@param obj any
----@return string|nil
+---@return LuaObject.object_name|nil
 local function try_object_name(obj)
   -- basic checks for LuaObject-like things: is table(<=1.1) or usedata(>=1.2), has masked meta
   if not validLuaObjectTypes[type(obj)] then return end

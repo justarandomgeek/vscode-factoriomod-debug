@@ -13,7 +13,6 @@ local debug = debug
 local mod_name = script.mod_name
 local pairs = pairs
 
----@type fun(stopped?:boolean):LuaProfiler
 local create_profiler
 do
   local validLuaObjectTypes = {table=true,userdata=true}
@@ -32,11 +31,11 @@ do
     -- it's in the registery for on_load, but with whatever ref id was free
     -- find it by its metatable, since that has a name on it at least...
     -- DON'T DO THIS! THIS IS A HORRIBLE HACK!
-    local gmt = reg["LuaGameScript"]
+    local gmt = reg["LuaGameScript"] --[[@as table?]]
     if gmt then -- but it's not there when instruments first run
       for _,t in pairs(reg) do
         if validLuaObjectTypes[type(t)] and dgetmetatable(t)==gmt then
-          create_profiler = t.create_profiler
+          create_profiler = (t--[[@as LuaGameScript]]).create_profiler
           return create_profiler(stopped)
         end
       end
@@ -131,11 +130,18 @@ local dumpnow
 ---@field reset fun()
 ---@field timer LuaProfiler
 
+---@class Profiler.callstack
+---@field linetimer Accumulator|nil
+---@field functimer Accumulator|nil
+---@field node flamenode
+---@field tail boolean
+
 ---@type HookTimer|nil
 local hooktimer
 ---@type Accumulator|nil the timer for the current line, if any
 local activeline
 -- the timers for lines higher up the callstack, if any
+---@type Profiler.callstack[]
 local callstack = {}
 -- timer tree for flamegraph
 

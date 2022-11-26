@@ -10,6 +10,8 @@ __DebugAdapter = __DebugAdapter or {
   -- evaluate needs this, but without hooks we can only end up in this lua state when remote.call is legal
   canRemoteCall = function() return true end,
 }
+
+---@param t table<string,any>
 local function DAMerge(t)
   for k, v in pairs(t) do
     __DebugAdapter[k] = v
@@ -34,6 +36,7 @@ end
 ---@param funcname string Name of remote function to call
 ---@return table<string,Any> Results indexed by mod name
 local function callAll(funcname,...)
+  ---@type table<string,Any>
   local results = {}
   local call = remote.call
   for remotename,_ in pairs(remote.interfaces) do

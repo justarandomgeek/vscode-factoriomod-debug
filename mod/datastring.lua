@@ -98,6 +98,7 @@ local function WriteVarInt(val)
         startshift = 30
     end
 
+    ---@type string[]
     local s = {}
     s[#s+1] = schar(bor(prefix, band(rshift(val,startshift),firstmask)))
     for shift=startshift-6,0,-6 do

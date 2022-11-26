@@ -51,12 +51,12 @@ local DAvars = {}
 ---@class DAvarslib
 local variables = {
   -- normal refs are cleared after every continue
-  ---@type {[integer]:DAvarslib.Ref}
   ---@private
+  ---@type {[integer]:DAvarslib.Ref}
   refs = setmetatable({},refsmeta),
   -- long refs live forever, except objects that must not be kept for saving
-  ---@type {[integer]:DAvarslib.Ref}
   ---@private
+  ---@type {[integer]:DAvarslib.Ref}
   longrefs = setmetatable({},longrefsmeta),
   -- objects to pass up to the parent __DebugAdapter
   __ = DAvars,

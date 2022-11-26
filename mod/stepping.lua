@@ -89,6 +89,7 @@ local function hook_rate()
   end
 end
 
+---@type table<string,true>
 local isDumpIgnore = {}
 
 --- Disable dumping (disassmbly, breakpoint location validation) for a file or list of files
@@ -377,6 +378,7 @@ end
 ---@param breaks? DebugProtocol.SourceBreakpoint[]
 function DAstep.setBreakpoints(source,breaks)
   if breaks then
+    ---@type table<number,DebugProtocol.SourceBreakpoint>
     local filebreaks = {}
     breakpoints[source] = filebreaks
     for _,bp in pairs(breaks) do

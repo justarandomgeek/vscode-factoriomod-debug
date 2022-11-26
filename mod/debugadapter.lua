@@ -31,6 +31,8 @@ end
 ---@class DebugAdapter : DebugAdapter.Config, DebugAdapter.Stepping, DebugAdapter.Variables, DebugAdapter.Evaluate, DebugAdapter.Print, DebugAdapter.Entrypoints, DebugAdapter.Stacks
 __DebugAdapter = __DebugAdapter or {} -- but might have been defined already for selective instrument mode
 local __DebugAdapter = __DebugAdapter
+
+---@param t table<string,any>
 local function DAMerge(t)
   for k, v in pairs(t) do
     __DebugAdapter[k] = v

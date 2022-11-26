@@ -63,9 +63,10 @@ local encode;
 
 ---Output a table formatted as a JSON object or array
 ---@param val table
----@param stack table|nil List of already-seen tables
+---@param stack table<table,true>|nil List of already-seen tables
 ---@return string json
 local function encode_table(val, stack)
+  ---@type string[]
   local res = {}
   stack = stack or {}
 
