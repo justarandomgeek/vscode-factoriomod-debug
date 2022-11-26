@@ -23,13 +23,13 @@ program
 			tsconfig: "./tsconfig.json",
 			entryPoints: {
 				extension: "./src/extension.ts",
-				standalone: "./src/standalone.ts",
+				fmtk: "./src/fmtk.ts",
 				Flamegraph: "./src/Profile/Flamegraph.ts",
 			},
 			external: [
 				"vscode",
 				"vscode-webview",
-				"./standalone",
+				"./fmtk",
 			],
 			loader: {
 				".html": "text",

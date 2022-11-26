@@ -86,7 +86,7 @@
   },
   "main": "./dist/extension.js",
   "bin": {
-    "fmtk": "./dist/standalone.js"
+    "fmtk": "./dist/fmtk.js"
   },
   "activationEvents": [
     "onDebug",
