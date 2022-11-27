@@ -9,10 +9,8 @@ A collection of tools for developing Factorio mods
  * [Language Server integration for Lua](doc/language-lua.md) via [sumneko.lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua)
  * [Packaging and Publishing](doc/package.md)
 
-## More Features
 
-  * [Language Features](doc/language.md)
-  * [Workspace Setup Tips](doc/workspace.md)
+ * [Workspace Setup Tips](doc/workspace.md)
 
 ## Support the Debugger
 
