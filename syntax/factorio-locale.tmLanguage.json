@@ -80,7 +80,15 @@
 				},
 				{ "include": "#parameter" },
 				{
-					"match": "(__)(CONTROL(?:_MODIFIER)?|ENTITY|ITEM|TILE)(__)(.+?)(__)",
+					"match": "(__)(CONTROL_(?:MOVE|(?:LEFT|RIGHT)_CLICK|KEY_(?:SHIFT|CTRL)|STYLE_(?:BEGIN|END)))(__)",
+					"captures": {
+						"1":{"name": "punctuation.definition.tag.begin.factorio-locale"},
+						"2":{"name": "entity.name.namespace.factorio-locale"},
+						"3":{"name": "punctuation.definition.tag.end.factorio-locale"}
+					}
+				},
+				{
+					"match": "(__)(CONTROL(?:_MODIFIER)?|ENTITY|ITEM|TILE|FLUID)(__)(.+?)(__)",
 					"captures": {
 						"1":{"name": "punctuation.definition.tag.begin.factorio-locale"},
 						"2":{"name": "entity.name.namespace.factorio-locale"},
@@ -102,11 +110,13 @@
 					}
 				},
 				{
-					"match": "(__)(CONTROL_(?:MOVE|STYLE_(?:BEGIN|END)))(__)",
+					"match": "(__)(ALT_CONTROL_(?:LEFT|RIGHT)_CLICK)(__)(\\d+)(__)",
 					"captures": {
 						"1":{"name": "punctuation.definition.tag.begin.factorio-locale"},
 						"2":{"name": "entity.name.namespace.factorio-locale"},
-						"3":{"name": "punctuation.definition.tag.end.factorio-locale"}
+						"3":{"name": "punctuation.definition.tag.middle.factorio-locale"},
+						"4":{"name": "constant.numeric.alt-control.factorio-locale"},
+						"5":{"name": "punctuation.definition.tag.middle.factorio-locale"}
 					}
 				},
 				{
