@@ -112,6 +112,10 @@
     "prefix": ["__TILE__", "TILE"],
     "body": "__TILE__${1:grass-1}__"
   },
+  "FLUID": {
+    "prefix": ["__FLUID__", "FLUID"],
+    "body": "__FLUID__${1:water}__"
+  },
   "ALT_CONTROL": {
     "prefix": ["__ALT_CONTROL__", "ALT_CONTROL"],
     "body": "__ALT_CONTROL__${1:1}__${2:build}__"
