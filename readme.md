@@ -5,7 +5,7 @@ A collection of tools for developing Factorio mods
  * [Debug Adapter](doc/debugadapter.md)
  * [Mod Profiling](doc/profile.md)
  * [JSON Validation](doc/language-json.md)
- * [Language Server for Locale and Changelog](doc/language-lsp.md)
+ * [Language Support for Locale and Changelog files](doc/language.md)
  * [Language Server integration for Lua](doc/language-lua.md) via [sumneko.lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua)
  * [Packaging and Publishing](doc/package.md)
 
