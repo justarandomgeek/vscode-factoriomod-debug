@@ -1,0 +1,30 @@
+{
+	"name": "Factorio",
+	"files": [
+		"control%.lua",
+		"data%.lua",
+		"data%-updates%.lua",
+		"data%-final%-fixes%.lua",
+		"settings%.lua",
+		"settings%-updates%.lua",
+		"settings%-final%-fixes%.lua"
+	],
+	"settings": {
+		"Lua.runtime.version": "Lua 5.2",
+		"Lua.runtime.special": {
+			"__object_name": "type"
+		},
+		"Lua.runtime.builtin": {
+			"io":"disable",
+			"os":"disable",
+			"coroutine":"disable",
+			"package":"disable",
+			"math":"disable",
+			"debug":"disable"
+		},
+		"Lua.diagnostics.globals": [
+			"global",
+			"__DebugAdapter", "__Profiler"
+		]
+	}
+}
