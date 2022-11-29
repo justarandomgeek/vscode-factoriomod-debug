@@ -555,11 +555,20 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 			const bases_tag = bases.length>0 ? `:${bases.join(',')}` :'';
 
-			const callable_tag = operators.find(op=>op.name==="call") ? '.__index' : '';
-
-			output.write(`---@class ${aclass.name}${callable_tag}${generic_tag}${bases_tag}\n`);
+			output.write(`---@class ${aclass.name}${generic_tag}${bases_tag}\n`);
 			if (operators.find((operator)=>!["index", "length", "call"].includes(operator.name))) {
 				throw "Unkown operator";
+			}
+
+			const callop = operators.find((op): op is ApiMethod<V>&{name:"call"}=>op.name==="call");
+			if (callop) {
+				const params = callop.parameters.map((p, i)=>`${p.name??`param${i+1}`}${p.optional?'?':''}:${this.format_sumneko_type(p.type, ()=>[`${aclass.name}()`, ''])}`);
+				const returns = ("return_values" in callop) ?
+					callop.return_values.map((p, i)=>`${this.format_sumneko_type(p.type, ()=>[`${aclass.name}.__call`, ''])}`):
+					undefined;
+
+				output.write(this.convert_description_for_method(aclass.name, callop, "operator%20()"));
+				output.write(`---@overload fun(${params})${returns?`:${returns}`:''}\n`);
 			}
 		}
 
@@ -588,18 +597,6 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			});
 
 			output.write("}\n\n");
-
-			const callop = operators.find((op): op is ApiMethod<V>&{name:"call"}=>op.name==="call");
-			if (callop) {
-				const params = callop.parameters.map((p, i)=>`${p.name??`param${i+1}`}${p.optional?'?':''}:${this.format_sumneko_type(p.type, ()=>[`${aclass.name}()`, ''])}`);
-				const returns = ("return_values" in callop) ?
-					callop.return_values.map((p, i)=>`${this.format_sumneko_type(p.type, ()=>[`${aclass.name}.__call`, ''])}`):
-					undefined;
-
-				output.write(this.convert_description_for_method(aclass.name, callop, "operator%20()"));
-				output.write(`---@alias ${aclass.name}.__call fun(${params})${returns?`:${returns}`:''}\n`);
-				output.write(`---@class ${aclass.name}:${aclass.name}.__index,${aclass.name}.__call\n\n`);
-			}
 		}
 	}
 
