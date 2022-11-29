@@ -23,7 +23,6 @@
 			"debug":"disable"
 		},
 		"Lua.diagnostics.globals": [
-			"global",
 			"__DebugAdapter", "__Profiler"
 		]
 	}
