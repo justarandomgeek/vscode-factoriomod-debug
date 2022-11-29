@@ -19,16 +19,12 @@ In addition to the types listed in the json, a few extra related types are defin
 
 ### Libraries
 
+Factorio [modifies some builtin libraries](https://lua-api.factorio.com/latest/Libraries.html), and this package includes corresponding modified definitions for those libraries.
 
-
+Type definitions are also included for some of the libraries included in `__core__/lualib`, such as `util` and `mod-gui`.
 
 ### Configuration
 
-
+The VS Code extension will automatically configure `"Lua.workspace.userThirdParty"` when installing this package, as well as updating `"Lua.workspace.library"` with a link to `/data` in the selected version.
 
 ### Plugin Features
-
-
-<!--
-  * `"Lua.workspace.library"` will be automatically updated with a `/data` link to the selected version,
--->
