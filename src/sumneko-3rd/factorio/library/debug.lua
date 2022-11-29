@@ -23,7 +23,7 @@ debug = {}
 ---@field isvararg        boolean
 ---@field func            function
 ---@field activelines     table
----@field currentpc       number
+---@field currentpc       integer
 
 ---
 ---Enters an interactive mode with the user, running each string that the user enters.
