@@ -598,7 +598,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 				output.write(this.convert_description_for_method(aclass.name, callop, "operator%20()"));
 				output.write(`---@alias ${aclass.name}.__call fun(${params})${returns?`:${returns}`:''}\n`);
-				output.write(`---@alias ${aclass.name} ${aclass.name}.__index|${aclass.name}.__call\n\n`);
+				output.write(`---@class ${aclass.name}:${aclass.name}.__index,${aclass.name}.__call\n\n`);
 			}
 		}
 	}
