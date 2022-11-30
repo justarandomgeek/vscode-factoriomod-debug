@@ -46,7 +46,37 @@ Each mod has its own private version of [the global named `global`](https://lua-
 
 #### Event Handlers
 
+When inline functions are used as event handlers, a `@param` tag will be automatically inserted for the event-specific payload type, to make all the event fields visible.
+
 #### `remote` interfaces
+
+Because `remote` interfaces are registered and called through separate APIs, the Language Server can't make the appropriate connections to provide signature help when calling. To address this, `remote.call` and `remote.add_interface` are transformed to appear as direct access through a virtual table:
+
+```lua
+remote.add_interface("foo", {
+  ---@param hello string
+  ---@param world string
+  ---@return number
+  bar = function(hello, world)
+    return 42
+  end,
+})
+
+remote.call("foo", "bar", "arg 1", "arg 1")
+```
+Would appear to the Language Server as
+```lua
+remote.__all_remote_interfaces.foo = ({
+  ---@param hello string
+  ---@param world string
+  ---@return number
+  bar = function(hello, world)
+    return 42
+  end,
+})
+
+remote.__all_remote_interfaces.foo.bar("arg 1", "arg 2")
+```
 
 #### LuaObject Type Tests
 
