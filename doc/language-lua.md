@@ -2,7 +2,7 @@
 
 FMTK provides a third party library package for the [sumneko.lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua) language server which provides various adaptations to Factorio's Lua environment. The VS Code extension will automatically install this when a Factorio version is selected, or it can be generated manually with `fmtk sumneko-3rd`.
 
-In addition to the runtime-api docs (generated from [`runtime-api.json`](https://lua-api.factorio.com/latest/json-docs.html)), this package includes several static library files, configuration settings and a sumneko plugin that enables enhanced handling of `require`, `global`, `on_event` handlers, and `remote` interfaces.
+In addition to the runtime-api docs (generated from [`runtime-api.json`](https://lua-api.factorio.com/latest/json-docs.html)), this package includes several static library files, configuration settings and a sumneko plugin that enables enhanced handling of `require`, `global`, event handlers, and `remote` interfaces.
 
 
 ### Runtime API Docs
@@ -28,3 +28,26 @@ Type definitions are also included for some of the libraries included in `__core
 The VS Code extension will automatically configure `"Lua.workspace.userThirdParty"` when installing this package, as well as updating `"Lua.workspace.library"` with a link to `/data` in the selected version.
 
 ### Plugin Features
+
+Because Factorio mods run in [several Lua VMs](https://lua-api.factorio.com/latest/Data-Lifecycle.html), some functions have behavior that the Language Server cannot understand with just type definitions, we provide special handling by transforming them before the Language Server sees them.
+
+#### `require()`
+
+Factorio allows requiring files from another mod with a `__modname__` prefix:
+```lua
+require("__modname__.filename")
+```
+
+The underscores are removed from these, allowing the Language Server to properly locate files if the modname matches a directory in the workspace (or libraries).
+
+#### `global`
+
+Each mod has its own private version of [the global named `global`](https://lua-api.factorio.com/latest/Global.html). To allow the Language Server to see this separation, `global` is renamed to `__modname__global` when used as the base variable in indexing or the target of assignment.
+
+#### Event Handlers
+
+#### `remote` interfaces
+
+#### LuaObject Type Tests
+
+To allow the Language Server to see that `LuaObject.object_name` is "like `type()`" for type tests, such as `if obj.object_name == "LuaPlayer" then end`, the plugin rewrites it to appear as an internal function `if __object_name(obj) == "LuaPlayer" then end`, and this function is marked as "like `type()`" in the configuration.
