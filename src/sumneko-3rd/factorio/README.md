@@ -189,7 +189,7 @@ remote.call("foo", "bar", "arg 1", "arg 1")
 ```
 Would look something similar to this to the language server
 ```lua
-remote.__all_remote_interfaces.foo = ({
+remote.__typed_interfaces.foo = ({
   ---Hello World!
   ---@param hello string
   ---@param world string
@@ -199,12 +199,12 @@ remote.__all_remote_interfaces.foo = ({
   end,
 })
 
-remote.__all_remote_interfaces.foo.bar("arg 1", "arg 2")
+remote.__typed_interfaces.foo.bar("arg 1", "arg 2")
 ```
 
 Then when you for example hover over the string `"bar"` in the `remote.call` call you should get intellisense showing the signature of the function bar as defined above.
 
-It also disables `undefined-field` diagnostics specifically for `__all_remote_interfaces` and does nothing if it finds `--` before `remote` on the same line.
+It also disables `undefined-field` diagnostics specifically for `__typed_interfaces` and does nothing if it finds `--` before `remote` on the same line.
 
 ## LuaObject type narrowing
 

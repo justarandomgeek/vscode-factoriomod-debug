@@ -66,7 +66,7 @@ remote.call("foo", "bar", "arg 1", "arg 1")
 ```
 Would appear to the Language Server as
 ```lua
-remote.__all_remote_interfaces.foo = ({
+remote.__typed_interfaces.foo = ({
   ---@param hello string
   ---@param world string
   ---@return number
@@ -75,7 +75,7 @@ remote.__all_remote_interfaces.foo = ({
   end,
 })
 
-remote.__all_remote_interfaces.foo.bar("arg 1", "arg 2")
+remote.__typed_interfaces.foo.bar("arg 1", "arg 2")
 ```
 
 #### LuaObject Type Tests

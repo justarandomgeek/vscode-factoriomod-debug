@@ -55,7 +55,7 @@ local function replace(_, text, diffs)
         chain_diff[4] = {i = s_param_2 --[[@as integer]]}
         util.add_diff(diffs, s_add - 1, s_add, text:sub(s_add - 1, s_add - 1).."--\n")
         util.add_diff(diffs, s_add, f_add,
-          "__all_remote_interfaces---@diagnostic disable-line:undefined-field\n")
+          "__typed_interfaces---@diagnostic disable-line:undefined-field\n")
         util.add_chain_diff(chain_diff, diffs)
       end
 
@@ -75,7 +75,7 @@ local function replace(_, text, diffs)
     if not preceding_text:find("--", 1, true) then
       util.add_diff(diffs, s_call - 1, s_call, text:sub(s_call - 1, s_call - 1).."--\n")
       util.add_diff(diffs, s_call, f_call,
-        "__all_remote_interfaces---@diagnostic disable-line:undefined-field\n")
+        "__typed_interfaces---@diagnostic disable-line:undefined-field\n")
 
       local chain_diff = {} ---@type ChainDiffElem[]
       local open_paren_diff = {i = p_open_paren, text = ""}
