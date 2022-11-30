@@ -231,6 +231,4 @@ if __object_name(foo) == "LuaPlayer" then
 end
 ```
 
-It also disables `undefined-global` diagnostics specifically for `__object_name`.
-
 It does nothing if `foo` is preceded by a `.` (dot) nor the keyword `function`, and does nothing if `--` is anywhere before the expression.

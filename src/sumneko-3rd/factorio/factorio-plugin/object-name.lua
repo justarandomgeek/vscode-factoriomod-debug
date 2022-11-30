@@ -17,7 +17,7 @@ local function replace(_, text, diffs)
     then
       goto continue
     end
-    util.add_diff(diffs, p_front, p_front, "--\n__object_name(---@diagnostic disable-line: undefined-global\n")
+    util.add_diff(diffs, p_front, p_front, "__object_name(")
     util.add_diff(diffs, p_dot, p_dot + 1, ")")
     util.add_diff(diffs, p_dot + 1, f_obj_name, "")
     ::continue::
