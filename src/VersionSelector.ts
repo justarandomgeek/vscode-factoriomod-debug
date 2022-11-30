@@ -310,9 +310,12 @@ export class FactorioVersionSelector {
 
 		await luaconfig.update("workspace.library", library);
 
-		//TODO: read/modify/write?
-		await luaconfig.update("workspace.userThirdParty", []);
-		await luaconfig.update("workspace.userThirdParty", [ Utils.joinPath(workspaceLibrary, "sumneko-3rd").fsPath ]);
+		const userThirdParty = await luaconfig.get<string[]>("workspace.userThirdParty", []);
+		const path = Utils.joinPath(workspaceLibrary, "sumneko-3rd").fsPath;
+		if (!userThirdParty.includes(path)) {
+			userThirdParty.push(path);
+		}
+		await luaconfig.update("workspace.userThirdParty", userThirdParty);
 
 		const sumneko = vscode.extensions.getExtension("sumneko.lua");
 		if (sumneko && !sumneko.isActive) {
