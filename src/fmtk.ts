@@ -670,7 +670,7 @@ program.command("sumneko-3rd [outdir]")
 	.description("Generate a library bundle for sumneko.lua LSP")
 	.option("-d, --docs <docsjson>", "Include runtime docs")
 	.action(async (outdir:string|undefined, options:{docs?:string})=>{
-		await Promise.all(sumneko3rdFiles.map(async (file)=>{
+		await Promise.all((await sumneko3rdFiles()).map(async (file)=>{
 			const filepath = path.join(outdir ?? process.cwd(), file.name);
 			await fsp.mkdir(path.dirname(filepath), { recursive: true });
 			return fsp.writeFile(filepath, Buffer.from(file.content));
