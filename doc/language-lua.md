@@ -29,7 +29,7 @@ The VS Code extension will automatically configure `"Lua.workspace.userThirdPart
 
 ### Plugin Features
 
-Because Factorio mods run in [several Lua VMs](https://lua-api.factorio.com/latest/Data-Lifecycle.html), some functions have behavior that the Language Server cannot understand with just type definitions, we provide special handling by transforming them before the Language Server sees them.
+Because Factorio mods run in [several Lua VMs](https://lua-api.factorio.com/latest/Data-Lifecycle.html), some functions have cross-VM behavior that cannot be described fully with type definitions. We handle these by providing a plugin which transforms them into a more easily understood form before the Language Server sees them.
 
 #### `require()`
 
@@ -50,7 +50,7 @@ When inline functions are used as event handlers, a `@param` tag will be automat
 
 #### `remote` interfaces
 
-Because `remote` interfaces are registered and called through separate APIs, the Language Server can't make the appropriate connections to provide signature help when calling. To address this, `remote.call` and `remote.add_interface` are transformed to appear as direct access through a virtual table:
+Because `remote` interfaces are registered and called through separate API functions, the Language Server can't make the appropriate connections to provide signature help when calling. To address this, `remote.call` and `remote.add_interface` are transformed to appear as direct access through a virtual table `__typed_interfaces`:
 
 ```lua
 remote.add_interface("foo", {
