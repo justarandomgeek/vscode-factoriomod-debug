@@ -57,11 +57,9 @@ export function activate(context: ExtensionContext) {
 
 	// Start the client. This will also launch the server
 	client.start();
-	console.log("lsp started");
 
 	context.subscriptions.push({
 		dispose() {
-			console.log("lsp disposed");
 			return client.stop();
 		}});
 }
