@@ -16,19 +16,14 @@ import archiver from "archiver";
 import readdirGlob from 'readdir-glob';
 
 import type { ExtensionContext, FileSystem, FileType } from 'vscode';
-import { TextDocument } from "vscode-languageserver-textdocument";
 import { URI, Utils } from 'vscode-uri';
 import { applyEdits, Edit } from "jsonc-parser";
 import * as jsonc from "jsonc-parser";
 
 import type { ModInfo } from "./ModPackageProvider";
 import { ModManager, BundledMods } from './ModManager';
-import { ApiDocGenerator } from './ApiDocs/ApiDocGenerator';
 import { ModSettings } from './ModSettings';
-import { FactorioModDebugSession } from './factorioModDebug';
 import { ActiveFactorioVersion, FactorioVersion } from "./FactorioVersion";
-import { runLanguageServer } from "./Language/Server";
-import { ChangeLogLanguageService } from "./Language/ChangeLog";
 
 import { displayName, version as bundleVersion } from "../package.json";
 
@@ -283,6 +278,8 @@ async function doPackageDatestamp(info:ModInfo): Promise<boolean> {
 	if (!content) {
 		console.log("No changelog.txt");
 	} else {
+		const { TextDocument } = await import("vscode-languageserver-textdocument");
+		const { ChangeLogLanguageService } = await import("./Language/ChangeLog");
 		const doc = TextDocument.create(uri.toString(), "factorio-changelog", 1, content);
 		const langserv = new ChangeLogLanguageService();
 		const syms = langserv.onDocumentSymbol(doc);
@@ -682,6 +679,7 @@ program.command("docs <docjson> <outdir>")
 	.description("Generate runtime api docs for sumneko.lua LSP")
 	.action(docscommand);
 async function docscommand(docjson:string, outdir:string) {
+	const { ApiDocGenerator } = await import('./ApiDocs/ApiDocGenerator');
 	const docs = new ApiDocGenerator((await fsp.readFile(docjson, "utf8")).toString(), await getConfigGetter("doc", {}));
 	await fsp.mkdir(outdir, { recursive: true });
 	await docs.generate_sumneko_docs(async (filename:string, buff:Buffer)=>{
@@ -694,7 +692,8 @@ async function docscommand(docjson:string, outdir:string) {
 program.command("lsp")
 	.description("Run LSP Server for Locale and Changelog features")
 	.allowUnknownOption(true).allowExcessArguments(true)
-	.action(()=>{
+	.action(async ()=>{
+		const { runLanguageServer } = await import("./Language/Server");
 		runLanguageServer();
 	});
 
@@ -716,9 +715,11 @@ program.command("debug <factorioPath>")
 			"../../../doc-html/runtime-api.json"
 		);
 		const docsjson = await fsp.readFile(docsPath.fsPath, "utf8");
+		const { ApiDocGenerator } = await import('./ApiDocs/ApiDocGenerator');
 		const activeVersion = new ActiveFactorioVersion(fsAccessor, fv, new ApiDocGenerator(docsjson, await getConfigGetter("doc", {})));
 
 		// start a single session that communicates via stdin/stdout
+		const { FactorioModDebugSession } = await import('./factorioModDebug');
 		const session = new FactorioModDebugSession(activeVersion, fsAccessor, {
 			async findWorkspaceFiles(include) {
 				const found:URI[] = [];
