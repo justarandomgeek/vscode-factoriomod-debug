@@ -761,7 +761,7 @@ if (require.main === module) {
 		})
 		.then(()=>{
 			// close IPC if it was open from parent...
-			if (process.send) {
+			if (process.send && !program.args.includes("lsp")) {
 				process.disconnect();
 			}
 		});
