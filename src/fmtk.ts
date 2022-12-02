@@ -15,7 +15,7 @@ import archiver from "archiver";
 //@ts-ignore
 import readdirGlob from 'readdir-glob';
 
-import type { FileSystem, FileType } from 'vscode';
+import type { ExtensionContext, FileSystem, FileType } from 'vscode';
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { URI, Utils } from 'vscode-uri';
 import { applyEdits, Edit } from "jsonc-parser";
@@ -34,10 +34,10 @@ import { displayName, version as bundleVersion } from "../package.json";
 
 import sumneko3rdFiles from "./Sumneko3rd";
 
-export {
-	FactorioModDebugSession,
-	ApiDocGenerator,
-};
+export async function activate(context:ExtensionContext) {
+	const extension = await import("./extension");
+	extension.activate(context);
+}
 
 const fsAccessor:  Pick<FileSystem, "readFile"|"writeFile"|"stat"> = {
 	async readFile(uri:URI) {

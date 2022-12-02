@@ -84,7 +84,7 @@
     "vscode-languageserver-textdocument": "^1.0.5",
     "vscode-uri": "^3.0.3"
   },
-  "main": "./dist/extension.js",
+  "main": "./dist/fmtk.js",
   "bin": {
     "fmtk": "./dist/fmtk.js"
   },

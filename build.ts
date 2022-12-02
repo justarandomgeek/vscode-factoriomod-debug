@@ -22,14 +22,12 @@ program
 		const result = await build({
 			tsconfig: "./tsconfig.json",
 			entryPoints: {
-				extension: "./src/extension.ts",
 				fmtk: "./src/fmtk.ts",
 				Flamegraph: "./src/Profile/Flamegraph.ts",
 			},
 			external: [
 				"vscode",
 				"vscode-webview",
-				"./fmtk",
 			],
 			loader: {
 				".html": "text",
