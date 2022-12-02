@@ -32,8 +32,6 @@ import { ChangeLogLanguageService } from "./Language/ChangeLog";
 
 import { displayName, version as bundleVersion } from "../package.json";
 
-import sumneko3rdFiles from "./Sumneko3rd";
-
 export async function activate(context:ExtensionContext) {
 	const extension = await import("./extension");
 	extension.activate(context);
@@ -670,7 +668,7 @@ program.command("sumneko-3rd [outdir]")
 	.description("Generate a library bundle for sumneko.lua LSP")
 	.option("-d, --docs <docsjson>", "Include runtime docs")
 	.action(async (outdir:string|undefined, options:{docs?:string})=>{
-		await Promise.all((await sumneko3rdFiles()).map(async (file)=>{
+		await Promise.all((await (await import("./Sumneko3rd")).default()).map(async (file)=>{
 			const filepath = path.join(outdir ?? process.cwd(), file.name);
 			await fsp.mkdir(path.dirname(filepath), { recursive: true });
 			return fsp.writeFile(filepath, Buffer.from(file.content));
