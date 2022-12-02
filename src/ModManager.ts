@@ -4,13 +4,11 @@ import type { ModInfo } from './ModPackageProvider';
 
 import { version as bundleVersion } from "../package.json";
 
-//@ts-ignore UInt8Array from esbuild
-import DebugAdapterZip from "factoriomod:../mod";
-
-export const BundledMods:{[name:string]:{version:string; zip:Uint8Array}} = {
+export const BundledMods:{[name:string]:{version:string; zip():Promise<Uint8Array>}} = {
 	["debugadapter"]: {
 		version: bundleVersion,
-		zip: DebugAdapterZip,
+		//@ts-expect-error UInt8Array from esbuild
+		zip: async()=>import("factoriomod:../mod"),
 	},
 };
 
@@ -92,7 +90,7 @@ export class ModManager {
 		} catch (error) {}
 
 		// install from provided zip
-		const written = fsp.writeFile(path.resolve(this.modsPath, `${name}_${version}.zip`), bundle.zip);
+		const written = fsp.writeFile(path.resolve(this.modsPath, `${name}_${version}.zip`), await bundle.zip());
 		let replaced:string|undefined;
 		if (!keepOld) {
 			const oldmods = (await fsp.readdir(this.modsPath, "utf8")).filter(
