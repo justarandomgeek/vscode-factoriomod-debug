@@ -27,10 +27,6 @@ export function activate(context: vscode.ExtensionContext) {
 	new ProfileRenderer(context);
 }
 
-export function deactivate() {
-	LanguageClient.deactivate();
-}
-
 class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvider {
 	constructor(
 		private readonly versionSelector: FactorioVersionSelector,

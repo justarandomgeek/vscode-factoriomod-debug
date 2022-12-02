@@ -8,8 +8,6 @@ import {
 	TransportKind,
 } from 'vscode-languageclient/node';
 
-let client: LanguageClient;
-
 export function activate(context: ExtensionContext) {
 
 	const serverModule = context.asAbsolutePath(
@@ -50,7 +48,7 @@ export function activate(context: ExtensionContext) {
 	};
 
 	// Create the language client and start the client.
-	client = new LanguageClient(
+	const client = new LanguageClient(
 		'factorioLanguageServer',
 		'Factorio Language Server',
 		serverOptions,
@@ -59,11 +57,11 @@ export function activate(context: ExtensionContext) {
 
 	// Start the client. This will also launch the server
 	client.start();
-}
+	console.log("lsp started");
 
-export function deactivate(): Thenable<void> | undefined {
-	if (!client) {
-		return undefined;
-	}
-	return client.stop();
+	context.subscriptions.push({
+		dispose() {
+			console.log("lsp disposed");
+			return client.stop();
+		}});
 }
