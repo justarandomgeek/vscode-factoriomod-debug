@@ -688,7 +688,7 @@
         "extensions": [
           ".cfg"
         ],
-        "configuration": "./factorio-locale.language-configuration.json"
+        "configuration": "./language/factorio-locale.language-configuration.json"
       },
       {
         "id": "factorio-changelog",
@@ -699,29 +699,29 @@
         "filenames": [
           "changelog.txt"
         ],
-        "configuration": "./factorio-changelog.language-configuration.json"
+        "configuration": "./language/factorio-changelog.language-configuration.json"
       }
     ],
     "grammars": [
       {
         "language": "factorio-locale",
         "scopeName": "source.factorio-locale",
-        "path": "./syntax/factorio-locale.tmLanguage.json"
+        "path": "./language/factorio-locale.tmLanguage.json"
       },
       {
         "language": "factorio-changelog",
         "scopeName": "source.factorio-changelog",
-        "path": "./syntax/factorio-changelog.tmLanguage.json"
+        "path": "./language/factorio-changelog.tmLanguage.json"
       }
     ],
     "snippets": [
       {
         "language": "factorio-changelog",
-        "path": "./snippets/factorio-changelog.json"
+        "path": "./language/factorio-changelog.json"
       },
       {
         "language": "factorio-locale",
-        "path": "./snippets/factorio-locale.json"
+        "path": "./language/factorio-locale.json"
       }
     ],
     "configurationDefaults": {
