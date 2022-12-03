@@ -4,6 +4,7 @@
 .travis.yml
 appveyor.yml
 mod
+sumneko-3rd
 src
 out
 **/*.js.map
