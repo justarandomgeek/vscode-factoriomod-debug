@@ -2,10 +2,10 @@ import * as vscode from 'vscode';
 import * as os from 'os';
 import * as path from 'path';
 import { URI, Utils } from "vscode-uri";
-import { ApiDocGenerator } from './ApiDocs/ApiDocGenerator';
+import { ApiDocGenerator } from '../ApiDocs/ApiDocGenerator';
 import { ActiveFactorioVersion, FactorioVersion, substitutePathVariables } from './FactorioVersion';
 import { forkScript } from './ModPackageProvider';
-import { version as bundleVersion } from "../package.json";
+import { version as bundleVersion } from "../../package.json";
 const fs = vscode.workspace.fs;
 
 const detectPaths:FactorioVersion[] = [

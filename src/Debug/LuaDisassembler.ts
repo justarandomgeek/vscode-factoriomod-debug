@@ -1,5 +1,5 @@
 import type { DebugProtocol } from '@vscode/debugprotocol';
-import { BufferStream } from "./BufferStream";
+import { BufferStream } from "../util/BufferStream";
 
 /* eslint-disable no-bitwise */
 export enum LuaOpcode {

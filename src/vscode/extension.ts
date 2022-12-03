@@ -3,11 +3,11 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fsp from 'fs/promises';
 import * as os from 'os';
-import { FactorioModDebugSession } from './factorioModDebug';
+import { FactorioModDebugSession } from '../Debug/factorioModDebug';
 import { activateModPackageProvider } from './ModPackageProvider';
 import { FactorioVersionSelector } from './VersionSelector';
-import { ProfileRenderer } from './Profile/ProfileRenderer';
-import * as LanguageClient from "./Language/Client";
+import { ProfileRenderer } from '../Profile/ProfileRenderer';
+import * as LanguageClient from "../Language/Client";
 
 export function activate(context: vscode.ExtensionContext) {
 	const versionSelector = new FactorioVersionSelector(context);

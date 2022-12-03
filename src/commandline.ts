@@ -20,10 +20,10 @@ import { URI, Utils } from 'vscode-uri';
 import { applyEdits, Edit } from "jsonc-parser";
 import * as jsonc from "jsonc-parser";
 
-import type { ModInfo } from "./ModPackageProvider";
+import type { ModInfo } from "./vscode/ModPackageProvider";
 import { ModManager, BundledMods } from './ModManager';
 import { ModSettings } from './ModSettings';
-import { ActiveFactorioVersion, FactorioVersion } from "./FactorioVersion";
+import { ActiveFactorioVersion, FactorioVersion } from "./vscode/FactorioVersion";
 
 import { displayName, version as bundleVersion } from "../package.json";
 
@@ -714,7 +714,7 @@ program.command("debug <factorioPath>")
 		const activeVersion = new ActiveFactorioVersion(fsAccessor, fv, new ApiDocGenerator(docsjson, await getConfigGetter("doc", {})));
 
 		// start a single session that communicates via stdin/stdout
-		const { FactorioModDebugSession } = await import('./factorioModDebug');
+		const { FactorioModDebugSession } = await import('./Debug/factorioModDebug');
 		const session = new FactorioModDebugSession(activeVersion, fsAccessor, {
 			async findWorkspaceFiles(include) {
 				const found:URI[] = [];

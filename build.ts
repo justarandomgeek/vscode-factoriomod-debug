@@ -6,7 +6,7 @@ import ImportGlobPlugin from 'esbuild-plugin-import-glob';
 import { program } from 'commander';
 import archiver from 'archiver';
 
-import type { ModInfo } from './src/ModPackageProvider';
+import type { ModInfo } from './src/vscode/ModPackageProvider';
 import { version } from './package.json';
 
 //@ts-ignore
