@@ -15,7 +15,6 @@
         "@typescript-eslint"
     ],
     "ignorePatterns": [
-        "git.d.ts",
         "node_modules"
     ],
     "rules": {
