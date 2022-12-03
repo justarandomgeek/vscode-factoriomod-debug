@@ -210,29 +210,16 @@ export class FactorioVersionSelector {
 		if (!workspaceLibrary) { return; }
 
 		try {
-			const file = (await fs.readDirectory(Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/library"))).find(([name, type])=>name.match(/runtime\-api.+\.lua/));
-			if (!file) {
-				// no generated files?
-				this.generateDocs();
-				return;
-			}
-
-			const filecontent = (await fs.readFile(Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/library", file[0]))).toString();
-
-			const matches = filecontent.match(/--\$Factorio ([^\n]*)\n--\$(?:Overlay|Generator) ([^\n]*)\n/m);
-			if (!matches) {
-				// no header at all? offer to regen...
-				this.generateDocs();
-				return;
-			}
-
-			if (matches[1] !== activeVersion.docs.application_version || matches[2] !== bundleVersion) {
-				// header mismatch, offer to regen...
+			const filecontent = (await fs.readFile(Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/config.json"))).toString();
+			const config = JSON.parse(filecontent);
+			if (config.factorioVersion !== activeVersion.docs.application_version ||
+				config.bundleVersion !== bundleVersion) {
+				// version tags mismatch, go ahead and regen...
 				this.generateDocs();
 				return;
 			}
 		} catch (error) {
-			// failed to check existing files at all...
+			// no config.json at all
 			this.generateDocs();
 			return;
 		}
