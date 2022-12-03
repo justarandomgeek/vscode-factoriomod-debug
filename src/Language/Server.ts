@@ -22,7 +22,7 @@ import { URI } from 'vscode-uri';
 import readdirGlob from 'readdir-glob';
 import { LuaLanguageService } from './Lua';
 
-export function runLanguageServer() {
+export async function runLanguageServer():Promise<void> {
 
 	const ChangeLog = new ChangeLogLanguageService();
 	const Locale = new LocaleLanguageService();
