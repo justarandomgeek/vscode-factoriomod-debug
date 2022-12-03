@@ -3,7 +3,12 @@ import { displayName, version as bundleVersion } from "../../package.json";
 
 import "./mods";
 import "./settings";
+import "./run";
+import "./datestamp";
+import "./version";
 import "./package";
+import "./upload";
+import "./publish";
 import "./docs";
 import "./lsp";
 import "./debug";
