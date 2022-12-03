@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import type { Readable } from 'stream';
 import * as os from "os";
 import * as fsp from 'fs/promises';
