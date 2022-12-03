@@ -1,23 +1,9 @@
 import {
-	CodeAction,
-	CodeActionContext,
-	CodeActionKind,
-	Diagnostic,
-	DiagnosticSeverity,
-	DocumentSymbol,
-	SymbolKind,
-	Range,
-	_Connection,
-	Color,
-	ColorInformation,
-	ColorPresentation,
-	LocationLink,
+	CodeAction, CodeActionContext, CodeActionKind, Diagnostic,
+	DiagnosticSeverity, DocumentSymbol, SymbolKind, Range,
+	Color, ColorInformation, ColorPresentation, LocationLink,
 } from 'vscode-languageserver/node';
-
-import type {
-	DocumentUri,
-	TextDocument,
-} from 'vscode-languageserver-textdocument';
+import type { DocumentUri, TextDocument } from 'vscode-languageserver-textdocument';
 
 interface DuplicateDefinitionDiagnostic extends Diagnostic {
 	data: {
