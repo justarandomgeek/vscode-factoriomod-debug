@@ -4,5 +4,5 @@ export async function activate(context:ExtensionContext) {
 	extension.activate(context);
 }
 if (require.main === module) {
-	import("./commandline");
+	import("./cli/main");
 }

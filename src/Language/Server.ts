@@ -253,4 +253,8 @@ export function runLanguageServer() {
 
 	// Listen on the connection
 	connection.listen();
+
+	return new Promise<void>(resolve=>{
+		connection.onExit(resolve);
+	});
 }
