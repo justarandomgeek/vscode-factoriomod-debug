@@ -10,6 +10,11 @@
   * Includes some additional static library files for `serpent`, `mod-gui`, `util`, etc
   * Additional tweaks to libraries (`math`, `package`, `debug`, etc...) to reflect factorio's changes to Lua builtin libraries
   * Generated docs now use `@enum` tags for `defines`
+  * Removed generated type aliases for bare event names. Use `EventData.eventname` instead (introduced 1.1.16).
+  * Callable classes now use `@overload` tags
+* Locale:
+  * Added syntax highlighting for `__FLUID__name__`, and move/click controls
+  * Added snippet for `__FLUID__name__`
 
 ## 1.1.23
 
