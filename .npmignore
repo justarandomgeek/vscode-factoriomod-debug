@@ -4,6 +4,7 @@
 .travis.yml
 appveyor.yml
 mod
+bin
 sumneko-3rd
 src
 out
