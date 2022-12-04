@@ -5,7 +5,7 @@
 ## 1.1.24
 
 * Sumneko 3rd party library package:
-  * Generated docs are no longer in workspace, instead a 3rd party library package is built in workspace-storage to reduce clutter. Note this will not automatically clean up the old files/settings you may have had, to avoid clobbering any customizations.
+  * Generated docs are no longer in workspace, instead a 3rd party library package is built in workspace-storage to reduce clutter and better support multi-root workspaces. Note this will not automatically clean up the old files/settings you may have had, to avoid clobbering any customizations.
   * Includes [FactorioSumnekoLuaPlugin](https://github.com/JanSharp/FactorioSumnekoLuaPlugin) automatically
   * Includes some additional static library files for `serpent`, `mod-gui`, `util`, etc
   * Additional tweaks to libraries (`math`, `package`, `debug`, etc...) to reflect factorio's changes to Lua builtin libraries
