@@ -21,11 +21,11 @@ export async function getPackageinfo() {
 
 }
 
-export async function runPackageScript(scriptname:string, info:ModInfo, env?:{}) {
+export async function runPackageScript(scriptname:string, info:ModInfo, env?:{}, args?:string[]) {
 	return new Promise<number>(async (resolve, reject)=>{
 		const script = info.package?.scripts?.[scriptname];
 		if (script) {
-			const proc = spawn(script, {
+			const proc = spawn(`${script} ${(args??[]).join(" ")}`, {
 				shell: true,
 				windowsHide: true,
 				stdio: "inherit",

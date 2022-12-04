@@ -94,7 +94,6 @@
     "onDebug",
     "onCommand:workbench.action.tasks.runTask",
     "onCommand:factorio.openchangelog",
-    "onCommand:factorio.compile",
     "onCommand:factorio.datestamp",
     "onCommand:factorio.package",
     "onCommand:factorio.version",
@@ -490,12 +489,21 @@
               "version",
               "upload",
               "publish",
-              "compile",
+              "run",
               "adjustMods"
             ]
           },
           "modname": {
             "type": "string"
+          },
+          "script": {
+            "type":"string"
+          },
+          "scriptArgs": {
+            "type":"array",
+            "items": {
+              "type":"string"
+            }
           },
           "adjustMods": {
             "type": "object",
@@ -529,11 +537,6 @@
         "category": "Factorio",
         "title": "Open Changelog",
         "icon": "$(versions)"
-      },
-      {
-        "command": "factorio.compile",
-        "category": "Factorio",
-        "title": "Compile"
       },
       {
         "command": "factorio.datestamp",
@@ -588,10 +591,6 @@
           "when": "false"
         },
         {
-          "command": "factorio.compile",
-          "when": "false"
-        },
-        {
           "command": "factorio.datestamp",
           "when": "false"
         },
@@ -617,11 +616,6 @@
           "command": "factorio.openchangelog",
           "when": "view == factoriomods && viewItem =~ /haschangelog/",
           "group": "1_info@1"
-        },
-        {
-          "command": "factorio.compile",
-          "when": "view == factoriomods && viewItem =~ /hascompile/",
-          "group": "2_basic@1"
         },
         {
           "command": "factorio.datestamp",

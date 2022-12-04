@@ -85,11 +85,11 @@
             "scripts":{
               "type":"object",
               "description": "Additional scripts to run while packaging/publishing mods",
+              "additionalProperties": {
+                "type":"string",
+                "description": "Additional scripts to run with `fmtk run name`"
+              },
               "properties": {
-                "compile": {
-                  "type":"string",
-                  "description": "Command to run before debugging or packaging."
-                },
                 "prepublish": {
                   "type":"string",
                   "description": "Command to run while preparing the pre-publish commit. Files added to git during this command will be included in that commit."

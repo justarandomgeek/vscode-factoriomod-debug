@@ -10,14 +10,12 @@ Uploading to the mod portal requires an API key with the `ModPortal: Upload Mods
 
 These tasks can also be accessed in VSCode's Tasks system. Custom scripts will run inside the mod directory and have the environment variables `FACTORIO_MODNAME` and `FACTORIO_MODVERSION` provided.
 
+### Run Script
+  * run any script from `info.json#/package/scripts[name]`
+
 ### Datestamp
   * if changelog.txt present and has a section for the current version, update its date to today
   * run `info.json#/package/scripts/datestamp` if set
-
-### Compile
-  Compile tasks will be automatically run when starting a debug session if defined.
-
-  * run `info.json#/package/scripts/compile` if set
 
 ### Package
   * run `info.json#/package/scripts/compile` if set
