@@ -4,6 +4,7 @@ import * as semver from 'semver';
 import { fork } from 'child_process';
 import { BufferSplitter } from '../util/BufferSplitter';
 import { Keychain } from './Keychain';
+import { platform } from 'os';
 interface ModPackageScripts {
 	[key:string]: string|undefined
 	compile?: string
@@ -52,6 +53,19 @@ interface AdjustModsDefinition extends vscode.TaskDefinition {
 	allowDisableBaseMod?:boolean
 }
 
+let extensionUri:vscode.Uri;
+function addBinToPath(path:string) {
+	if (extensionUri) {
+		switch (platform()) {
+			case 'win32':
+				return `${path};${vscode.Uri.joinPath(extensionUri, "bin").fsPath}`;
+			default:
+				return `${path};${vscode.Uri.joinPath(extensionUri, "bin").fsPath}`;
+		}
+	}
+	return path;
+}
+
 export async function activateModPackageProvider(context:vscode.ExtensionContext) {
 	if (vscode.workspace.workspaceFolders) {
 		const keychain = new Keychain(context.secrets);
@@ -63,6 +77,7 @@ export async function activateModPackageProvider(context:vscode.ExtensionContext
 		const view = vscode.window.createTreeView('factoriomods', { treeDataProvider: treeDataProvider });
 		context.subscriptions.push(view);
 		await MigrateAPIKeyStorage(keychain);
+		extensionUri = context.extensionUri;
 	}
 }
 
@@ -349,6 +364,7 @@ class ModPackage extends vscode.TreeItem {
 			return new vscode.ShellExecution(this.scripts.compile, {
 				cwd: path.dirname(this.resourceUri.fsPath),
 				env: {
+					Path: addBinToPath(process.env.Path??""),
 					FACTORIO_MODNAME: this.label,
 					FACTORIO_MODVERSION: this.description,
 					// if windows users use wsl bash, pass our env through to there too...
@@ -621,6 +637,8 @@ interface ModTaskTerminal {
 export async function forkScript(term:ModTaskTerminal, module:string, args:string[], cwd:string, env?:NodeJS.ProcessEnv, stdin?:string): Promise<number> {
 	const config = vscode.workspace.getConfiguration("factorio");
 	const scriptenv = Object.assign({}, process.env, env || {} );
+
+	scriptenv.Path = addBinToPath(scriptenv.Path??"");
 
 	return new Promise((resolve, reject)=>{
 		const inspect = config.get("package.inspectTasks");
