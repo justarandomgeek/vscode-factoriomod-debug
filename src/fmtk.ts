@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import type { ExtensionContext } from 'vscode';
 export async function activate(context:ExtensionContext) {
 	const extension = await import("./vscode/extension");
