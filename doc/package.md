@@ -8,7 +8,7 @@ Uploading to the mod portal requires an API key with the `ModPortal: Upload Mods
 
 ## Tasks
 
-These tasks can also be accessed in VSCode's Tasks system. Custom scripts will run inside the mod directory and have the environment variables `FACTORIO_MODNAME` and `FACTORIO_MODVERSION` provided.
+These tasks can also be accessed in VSCode's Tasks system. Custom scripts will run inside the mod directory and have the environment variables `FACTORIO_MODNAME` and `FACTORIO_MODVERSION` provided. Tasks can also be run from command line with `fmtk`.
 
 ### Run Script
   * run any script from `info.json#/package/scripts[name]`

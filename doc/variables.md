@@ -1,4 +1,4 @@
-## Custom Debug Views
+# Custom Debug Views
 
 The debug views of tables can be customized using metatables to override default rendering.
 

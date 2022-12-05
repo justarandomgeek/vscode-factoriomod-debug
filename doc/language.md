@@ -1,3 +1,5 @@
+# Changelog and Locale
+
 ## Syntax Highlighting
 
 Syntax highlighting is provided for Changelog and Locale files with Textmate grammar, and snippets are provided for many common patterns.

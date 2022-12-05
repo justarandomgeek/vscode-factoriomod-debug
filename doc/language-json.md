@@ -1,4 +1,4 @@
-## JSON Validation
+# JSON Validation
 
 JSON Validation and Intellisense is provided for all of Factorio's JSON files:
   * Mod `info.json`

@@ -1,3 +1,4 @@
+# Debug Adapter
 
 ## Using Factorio Mod Debug
 

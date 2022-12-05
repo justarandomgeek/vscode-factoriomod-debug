@@ -1,3 +1,5 @@
+# Debugger API
+
 ## Detecting Debugging
 
 Mods may detect that the debugger is attached by the presence of the global variable `__DebugAdapter`. Mods **MUST NOT** create this variable themselves, or write to any fields within it.
