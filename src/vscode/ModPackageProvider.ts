@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as semver from 'semver';
 import { fork } from 'child_process';
-import { BufferSplitter } from '../util/BufferSplitter';
+import { BufferSplitter } from '../xUtil/BufferSplitter';
 import { Keychain } from './Keychain';
 import { platform } from 'os';
 interface ModPackageScripts {

@@ -1,7 +1,7 @@
 
 import { spawn, ChildProcess } from 'child_process';
 import { EventEmitter } from "events";
-import { BufferSplitter } from '../util/BufferSplitter';
+import { BufferSplitter } from '../xUtil/BufferSplitter';
 import * as path from 'path';
 import treekill from 'tree-kill';
 

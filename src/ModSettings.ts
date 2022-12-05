@@ -1,5 +1,5 @@
-import { PropertyTree } from "./Util/PropertyTree";
-import { BufferStream } from "./util/BufferStream";
+import { PropertyTree } from "./xUtil/PropertyTree";
+import { BufferStream } from "./xUtil/BufferStream";
 
 export class MapVersion {
 	constructor(
