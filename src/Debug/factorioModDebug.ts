@@ -10,13 +10,13 @@ import * as os from 'os';
 import * as semver from 'semver';
 import type * as vscode from 'vscode';
 import { URI, Utils } from 'vscode-uri';
-import { bufferChunks, encodeBreakpoints, luaBlockQuote, objectToLua } from '../xUtil/EncodingUtil';
+import { bufferChunks, encodeBreakpoints, luaBlockQuote, objectToLua } from '../Util/EncodingUtil';
 import { FactorioProcess } from './FactorioProcess';
 import type { ModInfo } from '../vscode/ModPackageProvider';
 import { ModManager } from '../ModManager';
 import { ModSettings } from '../ModSettings';
 import { LuaFunction } from './LuaDisassembler';
-import { BufferStream } from '../xUtil/BufferStream';
+import { BufferStream } from '../Util/BufferStream';
 import type { ActiveFactorioVersion } from '../vscode/FactorioVersion';
 
 interface ModPaths{
