@@ -9,6 +9,7 @@ sumneko-3rd
 src
 out
 **/*.js.map
+**/*.css.map
 node_modules
 build.ts
 todo

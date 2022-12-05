@@ -3,14 +3,14 @@
 	"tasks": [
 		{
 			"type": "npm",
-			"script": "build",
+			"script": "esbuild",
 			"isBackground": false,
 			"group": {
 				"isDefault": true,
 				"kind": "build"
 			},
 			"problemMatcher": "$esbuild",
-			"label": "npm: build"
+			"label": "npm: esbuild"
 		},
 		{
 			"type": "npm",

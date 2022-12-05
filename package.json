@@ -35,14 +35,13 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "typecheck-watch": "tsc -p tsconfig.json --noEmit --watch",
     "esbuild": "ts-node ./build.ts",
-    "watch": "npm run esbuild -- --map --watch",
-    "build": "npm run esbuild -- --map",
-    "stats": "npm run build -- --minify --meta && esbuild-visualizer --metadata ./out/meta.json --filename ./out/stats.html",
+    "watch": "npm run esbuild -- --watch",
+    "stats": "npm run esbuild -- --minify --meta && esbuild-visualizer --metadata ./out/meta.json --filename ./out/stats.html",
     "vscode:prepublish": "npm run prepare",
     "prepare": "rimraf dist && npm run esbuild -- --minify",
     "package": "vsce package",
-    "publish": "vsce publish",
-    "publish-prerelease": "vsce publish --pre-release",
+    "publish-vscode": "vsce publish",
+    "publish-vscode-prerelease": "vsce publish --pre-release",
     "test": "npm run typecheck && npm run lint"
   },
   "devDependencies": {

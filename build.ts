@@ -13,12 +13,11 @@ import { version } from './package.json';
 import readdirGlob from 'readdir-glob';
 
 program
-	.option("--map")
 	.option("--watch")
 	.option("--meta")
 	.option("--minify")
 	.option("--analyze")
-	.action(async (options:{map?:boolean; watch?:boolean; meta?:boolean; minify?:boolean; analyze?:boolean})=>{
+	.action(async (options:{watch?:boolean; meta?:boolean; minify?:boolean; analyze?:boolean})=>{
 		const result = await build({
 			tsconfig: "./tsconfig.json",
 			entryPoints: {
@@ -41,7 +40,7 @@ program
 			outdir: "dist",
 			logLevel: "info",
 			watch: options.watch,
-			sourcemap: options.map,
+			sourcemap: true,
 			sourcesContent: false,
 			metafile: options.meta || options.analyze,
 			minify: options.minify,
