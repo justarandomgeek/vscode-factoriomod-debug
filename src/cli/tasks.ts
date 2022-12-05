@@ -1,13 +1,7 @@
 import type { Readable } from 'stream';
+import type archiver from "archiver";
+import type { Edit } from "jsonc-parser";
 import * as fsp from 'fs/promises';
-import * as semver from 'semver';
-import { spawn } from "child_process";
-import FormData from 'form-data';
-import fetch, { Headers } from 'node-fetch';
-import archiver from "archiver";
-import { URI, Utils } from 'vscode-uri';
-import { applyEdits, Edit } from "jsonc-parser";
-import * as jsonc from "jsonc-parser";
 
 import type { ModInfo } from "../vscode/ModPackageProvider";
 
@@ -18,10 +12,10 @@ export async function getPackageinfo() {
 		console.log(`Failed to read info.json: ${error}`);
 		process.exit(1);
 	}
-
 }
 
 export async function runPackageScript(scriptname:string, info:ModInfo, env?:{}, args?:string[]) {
+	const { spawn } = await import("child_process");
 	return new Promise<number>(async (resolve, reject)=>{
 		const script = info.package?.scripts?.[scriptname];
 		if (script) {
@@ -51,6 +45,7 @@ export async function runPackageScript(scriptname:string, info:ModInfo, env?:{},
 }
 
 export async function runPackageGitCommand(command:string, stdin?:string) {
+	const { spawn } = await import("child_process");
 	return new Promise<void>(async (resolve, reject)=>{
 		const proc = spawn(`git ${command}`, {
 			shell: true,
@@ -77,6 +72,9 @@ export async function runPackageGitCommand(command:string, stdin?:string) {
 }
 
 export async function doPackageDatestamp(info:ModInfo): Promise<boolean> {
+	const { URI, Utils } = await import('vscode-uri');
+	const jsoncparser = await import("jsonc-parser");
+	const { applyEdits } = jsoncparser;
 	const uri = Utils.joinPath(URI.file(process.cwd()), "changelog.txt");
 	let content:string|undefined;
 	try {
@@ -140,6 +138,7 @@ export async function doPackageZip(info:ModInfo): Promise<archiver.Archiver> {
 		}
 	}
 
+	const archiver = (await import("archiver")).default;
 	const archive = archiver('zip', { zlib: { level: 9 }});
 	archive.glob("**", {
 		cwd: process.cwd(),
@@ -168,6 +167,10 @@ export interface PortalError {
 }
 
 export async function doPackageUpload(packagestream:Readable|Buffer, name:string) {
+	const FormData = (await import("form-data")).default;
+	const nodefetch = await import("node-fetch");
+	const fetch = nodefetch.default;
+	const { Headers } = nodefetch;
 	const APIKey = process.env["FACTORIO_UPLOAD_API_KEY"];
 
 	if (!APIKey) { throw new Error("No API Key"); }
@@ -221,6 +224,9 @@ export async function doPackageUpload(packagestream:Readable|Buffer, name:string
 }
 
 export async function doPackageVersion(info:ModInfo, json:string) {
+	const semver = (await import('semver')).default;
+	const jsonc = await import("jsonc-parser");
+	const { applyEdits } = jsonc;
 	const newversion = semver.inc(info.version, 'patch', {"loose": true})!;
 	const edits = jsonc.modify(json, ["version"], newversion, {});
 	await fsp.writeFile("info.json", applyEdits(json, edits));
