@@ -2,6 +2,7 @@ import * as fsp from 'fs/promises';
 import path from 'path';
 import { program } from 'commander';
 import { getConfigGetter } from "./util";
+import { createWriteStream } from 'fs';
 
 program.command("sumneko-3rd [outdir]")
 	.description("Generate a library bundle for sumneko.lua LSP")
@@ -30,8 +31,8 @@ async function docscommand(docjson:string, outdir:string) {
 	const { ApiDocGenerator } = await import('../ApiDocs/ApiDocGenerator');
 	const docs = new ApiDocGenerator((await fsp.readFile(docjson, "utf8")).toString(), await getConfigGetter("doc", {}));
 	await fsp.mkdir(outdir, { recursive: true });
-	await docs.generate_sumneko_docs(async (filename:string, buff:Buffer)=>{
-		await fsp.writeFile(path.join(outdir, filename), buff);
+	docs.generate_sumneko_docs((filename:string)=>{
+		return createWriteStream(path.join(outdir, filename));
 	});
 	return docs.application_version;
 };
