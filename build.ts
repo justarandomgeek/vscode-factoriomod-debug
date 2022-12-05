@@ -15,9 +15,8 @@ import readdirGlob from 'readdir-glob';
 program
 	.option("--watch")
 	.option("--meta")
-	.option("--minify")
 	.option("--analyze")
-	.action(async (options:{watch?:boolean; meta?:boolean; minify?:boolean; analyze?:boolean})=>{
+	.action(async (options:{watch?:boolean; meta?:boolean; analyze?:boolean})=>{
 		const result = await build({
 			tsconfig: "./tsconfig.json",
 			entryPoints: {
@@ -43,7 +42,7 @@ program
 			sourcemap: true,
 			sourcesContent: false,
 			metafile: options.meta || options.analyze,
-			minify: options.minify,
+			minify: true,
 			plugins: [
 				ImportGlobPlugin(),
 				{
