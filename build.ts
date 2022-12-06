@@ -7,7 +7,6 @@ import { program } from 'commander';
 import archiver from 'archiver';
 
 import type { ModInfo } from './src/vscode/ModPackageProvider';
-import { version } from './package.json';
 
 //@ts-ignore
 import readdirGlob from 'readdir-glob';
@@ -59,12 +58,15 @@ program
 							};
 						});
 						build.onLoad({ filter: /.*/, namespace: 'factoriomod' }, async (args)=>{
+							const packagejsonPath = path.join(process.argv[1], "../package.json");
+							const version = JSON.parse(await fsp.readFile(packagejsonPath, "utf8")).version;
+
 							const archive = archiver('zip', { zlib: { level: 9 }});
 							const templatePath = path.join(args.path, "info.template.json");
 							const info = <ModInfo>JSON.parse(await fsp.readFile(templatePath, "utf8"));
 							info.version = version;
 							await fsp.writeFile(path.join(args.path, "info.json"), JSON.stringify(info));
-							const files:string[] = [templatePath];
+							const files:string[] = [packagejsonPath, templatePath];
 							const globber = readdirGlob(args.path, {pattern: '**', nodir: true, ignore: ["*.template.json"]});
 							globber.on('match', (match:{ relative:string; absolute:string })=>{
 								files.push(match.absolute);
