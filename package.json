@@ -22,7 +22,6 @@
     "Programming Languages",
     "Linters"
   ],
-  "private": true,
   "repository": {
     "type": "git",
     "url": "https://github.com/justarandomgeek/vscode-factoriomod-debug.git"
