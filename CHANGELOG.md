@@ -4,6 +4,8 @@
 
 ## 1.1.25
 
+* Fixed debugadapter mod package bundled incorrectly
+
 ## 1.1.24
 
 * Sumneko 3rd party library package:

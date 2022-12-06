@@ -8,7 +8,7 @@ export const BundledMods:{[name:string]:{version:string; zip():Promise<Uint8Arra
 	["debugadapter"]: {
 		version: bundleVersion,
 		//@ts-expect-error UInt8Array from esbuild
-		zip: async()=>import("factoriomod:../mod"),
+		zip: async()=>(await import("factoriomod:../mod")).default,
 	},
 };
 

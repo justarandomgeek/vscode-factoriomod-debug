@@ -64,7 +64,6 @@
 			"type": "node",
 			"request": "launch",
 			"program": "${workspaceFolder}/dist/fmtk.js",
-			"cwd": "${env:APPDATA}/Factorio/mods/jargtestmod",
 			"env": {
 				"FACTORIO_UPLOAD_API_KEY":""
 			},
