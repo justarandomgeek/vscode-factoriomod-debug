@@ -68,7 +68,6 @@ DAMerge(require("__debugadapter__/print.lua")) -- uses evaluate/variables
 DAMerge(require("__debugadapter__/entrypoints.lua")) -- must be after anyone using pcall/xpcall
 
 DAMerge(require("__debugadapter__/stacks.lua"))
-require("__debugadapter__/misc.lua")
 require("__debugadapter__/test.lua")
 
 local script = script

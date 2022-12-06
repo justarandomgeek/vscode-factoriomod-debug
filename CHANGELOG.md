@@ -4,6 +4,8 @@
 
 ## 1.1.26
 
+* Fixed debugadapter mod package bundled incorrectly (for real this time)
+* Fixed require of a removed file
 
 ## 1.1.25
 
