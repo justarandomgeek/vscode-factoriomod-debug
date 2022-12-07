@@ -218,7 +218,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			if (!args.noDebug) {
 				manager.set("coverage", false);
 				manager.set("profiler", false);
-				const result = await manager.installMod("debugadapter", ["bundle"]);
+				const result = await manager.installMod("debugadapter", {origin: "bundle"});
 				this.sendEvent(new OutputEvent(`package install debugadapter ${JSON.stringify(result)}\n`, "stdout"));
 			} else {
 				manager.set("debugadapter", false);

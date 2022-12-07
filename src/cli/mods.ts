@@ -1,4 +1,5 @@
 import { program } from 'commander';
+import inquirer from "inquirer";
 import { ModManager, BundledMods } from '../ModManager';
 
 const modscommand = program.command("mods")
@@ -26,7 +27,17 @@ modscommand.command("install <modname>")
 	.action(async (modname:string, options:{keepOld?:boolean})=>{
 		const manager = new ModManager(modscommand.opts().modsPath);
 		await manager.Loaded;
-		console.log(await manager.installMod(modname, ["bundle"], options.keepOld));
+		console.log(await manager.installMod(modname, {
+			origin: "any",
+			credentialPrompt: async ()=>inquirer.prompt<{username:string;password:string}>([{
+				message: "Username:",
+				name: "username",
+				type: "input",
+			}, {
+				message: "Password:",
+				name: "password",
+				type: "password",
+			}])}));
 	});
 modscommand.command("adjust <changes...>")
 	.description("Configure multiple mods at once: modname=true|false|x.y.z")
