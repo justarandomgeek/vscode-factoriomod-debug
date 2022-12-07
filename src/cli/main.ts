@@ -8,6 +8,7 @@ import "./datestamp";
 import "./version";
 import "./package";
 import "./upload";
+import "./details";
 import "./publish";
 import "./docs";
 import "./lsp";

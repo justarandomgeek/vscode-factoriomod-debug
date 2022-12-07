@@ -1,7 +1,6 @@
 import * as fsp from 'fs/promises';
 import * as path from 'path';
-import FormData from "form-data";
-import { default as fetch, Headers } from "node-fetch";
+import { default as fetch } from "node-fetch";
 
 import type { ModInfo } from './vscode/ModPackageProvider';
 import { version as bundleVersion } from "../package.json";
@@ -26,7 +25,7 @@ export type ModLicense =
 	`default_${"mit"|"gnugplv3"|"gnulgplv3"|"mozilla2"|"apache2"|"unlicense"}` |
 	`custom_${string}`;
 
-export interface ModPortalResult<Full extends boolean> {
+export interface ModPortalResult<Full extends boolean=false> {
 	downloads_count:number
 	name:string
 	owner:string
@@ -40,6 +39,13 @@ export interface ModPortalResult<Full extends boolean> {
 	github_path:Full extends true?string:never
 	homepage:Full extends true?string:never
 	tag:Full extends true?ModCategory[]|undefined:never
+	images:Full extends true?ModPortalImage[]:never
+}
+
+export interface ModPortalImage {
+	id:string
+	thumbnail:string
+	url:string
 }
 
 export interface ModPortalRelease<Full extends boolean> {
@@ -75,6 +81,15 @@ interface ModInstallResult {
 	replaced?:string
 	}
 
+async function getModInfo(name:string, full:true):Promise<ModPortalResult<true>>;
+async function getModInfo(name:string, full?:false):Promise<ModPortalResult<false>>;
+async function getModInfo(name:string, full?:boolean):Promise<ModPortalResult<boolean>> {
+	const result = await fetch(`https://mods.factorio.com/api/mods/${name}${full?"/full":""}`,);
+	if (!result.ok) {
+		throw new Error(result.statusText);
+	}
+	return await result.json();
+}
 export class ModManager {
 	private modList:ModList = { mods: [] };
 
@@ -98,15 +113,6 @@ export class ModManager {
 	public async write() {
 		const listPath = path.resolve(this.modsPath, "./mod-list.json");
 		return fsp.writeFile(listPath, JSON.stringify(this.modList, null, 2), 'utf8');
-	}
-
-
-	private async getModInfo<Full extends boolean=false>(name:string): Promise<ModPortalResult<Full>> {
-		const result = await fetch(`https://mods.factorio.com/api/mods/${name}`,);
-		if (!result.ok) {
-			throw new Error(result.statusText);
-		}
-		return <ModPortalResult<Full>>(await result.json());
 	}
 
 	private async getDownloadCredentials(prompt:()=>Promise<{username:string; password:string}>) {
@@ -163,7 +169,7 @@ export class ModManager {
 			}
 		}
 
-		const modinfo = await this.getModInfo(name);
+		const modinfo = await getModInfo(name);
 
 		//TODO: proper version sorting/filtering
 		const lastrelease = modinfo.releases[modinfo.releases.length-1];

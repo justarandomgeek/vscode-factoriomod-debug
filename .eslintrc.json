@@ -52,7 +52,8 @@
             "always"
         ],
         "no-bitwise": "error",
-        "no-redeclare": "error",
+        "no-redeclare": "off",
+        "@typescript-eslint/no-redeclare": "error",
         "no-unused-expressions": [
             "error",
             {

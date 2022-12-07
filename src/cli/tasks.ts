@@ -1,9 +1,12 @@
-import type { Readable } from 'stream';
 import type archiver from "archiver";
 import type { Edit } from "jsonc-parser";
+import type { Readable } from 'stream';
 import * as fsp from 'fs/promises';
+import FormData from "form-data";
+import { default as fetch, Headers } from "node-fetch";
 
 import type { ModInfo } from "../vscode/ModPackageProvider";
+import type { ModCategory, ModLicense } from "../ModManager";
 
 export async function getPackageinfo() {
 	try {
@@ -167,10 +170,6 @@ export interface PortalError {
 }
 
 export async function doPackageUpload(packagestream:Readable|Buffer, name:string) {
-	const FormData = (await import("form-data")).default;
-	const nodefetch = await import("node-fetch");
-	const fetch = nodefetch.default;
-	const { Headers } = nodefetch;
 	const APIKey = process.env["FACTORIO_UPLOAD_API_KEY"];
 
 	if (!APIKey) { throw new Error("No API Key"); }
@@ -220,6 +219,59 @@ export async function doPackageUpload(packagestream:Readable|Buffer, name:string
 		throw new Error(finish_json.error);
 	}
 	console.log(`Published ${name}`);
+	return;
+}
+
+export async function doPackageUploadDetails(
+	name:string,
+	details:{
+		// ignore for now...
+		deprecated?: boolean
+		source_url?: string
+		category?: ModCategory
+		license?: ModLicense
+
+		// read from info.json, or override with command line args
+		homepage?: string
+		title?: string
+		summary?: string
+
+		// command line flags or args to specify file
+		description?: string // readme.md or arg
+		faq?: string // faq.md or arg
+	}) {
+	const APIKey = process.env["FACTORIO_UPLOAD_API_KEY"];
+
+	if (!APIKey) { throw new Error("No API Key"); }
+
+	const headers = new Headers({"Authorization": `Bearer ${APIKey}`});
+	console.log(`Updating mod details ...`);
+	const details_form = new FormData();
+	details_form.append("mod", name);
+	details.homepage !== undefined && details_form.append("homepage", details.homepage);
+	details.title !== undefined && details_form.append("title", details.title);
+	details.summary !== undefined && details_form.append("summary", details.summary);
+	details.description !== undefined && details_form.append("description", details.description);
+	details.faq !== undefined && details_form.append("faq", details.faq);
+
+	const details_result = await fetch("https://mods.factorio.com/api/v2/mods/edit_details", {
+		method: "POST",
+		body: details_form,
+		headers: headers,
+	});
+	if (!details_result.ok) {
+		const error_json = await details_result.json();
+		console.log(`details_upload failed: ${details_result.status} ${details_result.statusText} ${JSON.stringify(error_json)}`);
+		throw new Error(JSON.stringify(error_json));
+	}
+	const details_json = <{url:string}|PortalError> await details_result.json();
+
+	if ('error' in details_json) {
+		console.log(`details_upload failed: ${details_json.error} ${details_json.message}'`);
+		throw new Error(details_json.error);
+	}
+
+	console.log(`Updated details for ${name}`);
 	return;
 }
 
