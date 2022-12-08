@@ -3,10 +3,11 @@ import type { Edit } from "jsonc-parser";
 import type { Readable } from 'stream';
 import * as fsp from 'fs/promises';
 import FormData from "form-data";
+import mimer from "mimer";
 import { default as fetch, Headers } from "node-fetch";
 
 import type { ModInfo } from "../vscode/ModPackageProvider";
-import type { ModCategory, ModLicense } from "../ModManager";
+import type { ModCategory, ModLicense, ModPortalImage } from "../ModManager";
 
 export async function getPackageinfo() {
 	try {
@@ -169,107 +170,104 @@ export interface PortalError {
 	message:string
 }
 
-export async function doPackageUpload(packagestream:Readable|Buffer, name:string) {
+async function post_form<T extends {}>(form:FormData, url:string) {
 	const APIKey = process.env["FACTORIO_UPLOAD_API_KEY"];
 
 	if (!APIKey) { throw new Error("No API Key"); }
 
-	const headers = new Headers({
-		"Authorization": `Bearer ${APIKey}`,
+	const result = await fetch(url, {
+		method: "POST",
+		body: form,
+		headers: new Headers({"Authorization": `Bearer ${APIKey}`}),
 	});
-	console.log(`Uploading to mod portal...`);
+	if (!result.ok) {
+		const error = await result.json() as PortalError;
+		throw new Error(error.message);
+	}
+	return await result.json() as T;
+}
+
+async function init_upload(name:string, url:string) {
 	const init_form = new FormData();
 	init_form.append("mod", name);
-	const init_result = await fetch("https://mods.factorio.com/api/v2/mods/releases/init_upload", {
-		method: "POST",
-		body: init_form,
-		headers: headers,
-	});
-	if (!init_result.ok) {
-		console.log(`init_upload failed: ${init_result.status} ${init_result.statusText}'`);
-		throw new Error(init_result.statusText);
-	}
-	const init_json = <{upload_url:string}|PortalError> await init_result.json();
 
-	if ('error' in init_json) {
-		console.log(`init_upload failed: ${init_json.error} ${init_json.message}'`);
-		throw new Error(init_json.error);
-	}
+	const result = await post_form(init_form, url) as {upload_url:string};
+	return result.upload_url;
+}
 
-	const finish_form = new FormData();
-	finish_form.append(
+export async function addModRelease(name:string, packagestream:Readable|Buffer) {
+	console.log(`Uploading to mod portal...`);
+
+	const upload_url = await init_upload(name, "https://mods.factorio.com/api/v2/mods/releases/init_upload");
+
+	const file_form = new FormData();
+	file_form.append(
 		"file",
 		packagestream,
 		{
 			filename: `${name}.zip`,
 			contentType: 'application/x-zip-compressed',
 		});
-	const finish_result = await fetch(init_json.upload_url, {
-		method: "POST",
-		body: finish_form,
-		headers: headers,
-	});
-	if (!finish_result.ok) {
-		console.log(`finish_upload failed: ${finish_result.status} ${finish_result.statusText}'`);
-		throw new Error(finish_result.statusText);
-	}
-	const finish_json = <{success:true}|PortalError> await finish_result.json();
-	if ('error' in finish_json) {
-		console.log(`finish_upload failed: ${finish_json.error} ${finish_json.message}'`);
-		throw new Error(finish_json.error);
-	}
+	await post_form(file_form, upload_url) as {success:true};
 	console.log(`Published ${name}`);
 	return;
 }
 
-export async function doPackageUploadDetails(
-	name:string,
-	details:{
-		// ignore for now...
-		deprecated?: boolean
-		source_url?: string
-		category?: ModCategory
-		license?: ModLicense
+export async function addModImage(name:string, image:Buffer, filename:string):Promise<ModPortalImage> {
+	console.log(`Uploading to mod portal...`);
+	const upload_url = await init_upload(name, "https://mods.factorio.com/api/v2/mods/images/add");
 
-		// read from info.json, or override with command line args
-		homepage?: string
-		title?: string
-		summary?: string
+	const image_form = new FormData();
+	image_form.append(
+		"image", image,
+		{
+			filename: filename,
+			contentType: mimer(filename),
+		}
+	);
+	return await post_form(image_form, upload_url) as ModPortalImage;
+}
 
-		// command line flags or args to specify file
-		description?: string // readme.md or arg
-		faq?: string // faq.md or arg
-	}) {
-	const APIKey = process.env["FACTORIO_UPLOAD_API_KEY"];
-
-	if (!APIKey) { throw new Error("No API Key"); }
-
-	const headers = new Headers({"Authorization": `Bearer ${APIKey}`});
+export async function editModImages(name:string, images:string[]):Promise<ModPortalImage[]> {
 	console.log(`Updating mod details ...`);
-	const details_form = new FormData();
-	details_form.append("mod", name);
-	details.homepage !== undefined && details_form.append("homepage", details.homepage);
-	details.title !== undefined && details_form.append("title", details.title);
-	details.summary !== undefined && details_form.append("summary", details.summary);
-	details.description !== undefined && details_form.append("description", details.description);
-	details.faq !== undefined && details_form.append("faq", details.faq);
+	const form = new FormData();
+	form.append("mod", name);
+	form.append("images", images.join(","));
 
-	const details_result = await fetch("https://mods.factorio.com/api/v2/mods/edit_details", {
-		method: "POST",
-		body: details_form,
-		headers: headers,
-	});
-	if (!details_result.ok) {
-		const error_json = await details_result.json();
-		console.log(`details_upload failed: ${details_result.status} ${details_result.statusText} ${JSON.stringify(error_json)}`);
-		throw new Error(JSON.stringify(error_json));
-	}
-	const details_json = <{url:string}|PortalError> await details_result.json();
+	const result = await post_form(
+		form,
+		"https://mods.factorio.com/api/v2/mods/images/edit"
+	) as {success:true; images:ModPortalImage[]};
 
-	if ('error' in details_json) {
-		console.log(`details_upload failed: ${details_json.error} ${details_json.message}'`);
-		throw new Error(details_json.error);
-	}
+	return result.images;
+}
+
+export interface ModPortalDetailsEdit {
+	deprecated?: boolean
+	source_url?: string
+	category?: ModCategory
+	license?: ModLicense
+
+	homepage?: string
+	title?: string
+	summary?: string
+
+	description?: string // readme.md or arg
+	faq?: string // faq.md or arg
+
+}
+
+export async function editModDetails(name:string, details:ModPortalDetailsEdit) {
+	console.log(`Updating mod details ...`);
+	const form = new FormData();
+	form.append("mod", name);
+	details.homepage !== undefined && form.append("homepage", details.homepage);
+	details.title !== undefined && form.append("title", details.title);
+	details.summary !== undefined && form.append("summary", details.summary);
+	details.description !== undefined && form.append("description", details.description);
+	details.faq !== undefined && form.append("faq", details.faq);
+
+	await post_form(form, "https://mods.factorio.com/api/v2/mods/edit_details") as {success:true};
 
 	console.log(`Updated details for ${name}`);
 	return;

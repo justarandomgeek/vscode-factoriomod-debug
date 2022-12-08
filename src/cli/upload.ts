@@ -1,7 +1,7 @@
 import path from 'path';
 import { createReadStream } from "fs";
 import { program } from 'commander';
-import { doPackageUpload } from "./tasks";
+import { addModRelease } from "./tasks";
 
 program.command("upload <zipname> [name]")
 	.description("Upload a zip package to the mod portal")
@@ -21,5 +21,5 @@ program.command("upload <zipname> [name]")
 		}
 
 		const packagezip = createReadStream(zipname);
-		await doPackageUpload(packagezip, name);
+		await addModRelease(name, packagezip);
 	});

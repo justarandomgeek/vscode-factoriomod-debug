@@ -7,7 +7,7 @@ import { program } from 'commander';
 import type { ModInfo } from "../vscode/ModPackageProvider";
 import { getConfig } from "./util";
 
-import { runPackageScript, doPackageDatestamp, doPackageUpload, doPackageVersion, doPackageZip, runPackageGitCommand  } from "./tasks";
+import { runPackageScript, doPackageDatestamp, addModRelease, doPackageVersion, doPackageZip, runPackageGitCommand  } from "./tasks";
 
 program.command("publish")
 	.description("Package and publish a mod to the mod portal")
@@ -130,7 +130,7 @@ program.command("publish")
 		}
 
 		if (!info.package?.no_portal_upload) {
-			await doPackageUpload(zipbuffer, info.name);
+			await addModRelease(info.name, zipbuffer);
 		}
 
 		if (info.package?.scripts?.postpublish) {
