@@ -5,6 +5,9 @@ import {
 } from 'vscode-languageserver/node';
 import type { DocumentUri, TextDocument } from 'vscode-languageserver-textdocument';
 
+import { unified } from "unified";
+import LocaleParse from './LocaleParse';
+
 interface DuplicateDefinitionDiagnostic extends Diagnostic {
 	data: {
 		firstsym: DocumentSymbol
@@ -221,13 +224,14 @@ export class LocaleLanguageService {
 	readonly documentSymbols:Map<DocumentUri, DocumentSymbol[]> = new Map();
 
 	public loadDocument(document: TextDocument) {
+		const tree = unified().use(LocaleParse).parse(document.getText());
 		const definitions:{ name:string; link:LocationLink }[] = [];
 		const symbols: DocumentSymbol[] = [];
 		let category: DocumentSymbol | undefined;
 
 		for (let i = 0; i < document.lineCount; i++) {
 			const range = {start: { line: i, character: 0 }, end: { line: i, character: Infinity} };
-			const text = document.getText(range).replace(/(\r\n)|\r|\n$/, "");
+			const text = document.getText(range).replace(/((\r\n)|\r|\n)$/, "");
 			range.end.character = text.length;
 
 			if (text.match(/^\[([^\]])+\]$/)) {
