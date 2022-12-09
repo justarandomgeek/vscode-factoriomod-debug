@@ -7,7 +7,8 @@
       "type":"string",
       "title": "Internal name of the mod",
       "pattern": "[a-zA-Z0-9_-]+",
-      "maxLength": 100
+      "maxLength": 100,
+      "minLength": 1
     },
     "version": {
       "type":"string",
@@ -31,12 +32,14 @@
     "homepage": {
       "type": "string",
       "title": "Homepage for the mod",
-      "description": "Please don't put \"None\" here, just leave it empty if none"
+      "description": "Please don't put \"None\" here, just leave it empty if none",
+      "pattern": "^($|http(s?):)"
     },
     "description": {
       "type": "string",
       "title": "A short description of the mod to show in-game",
-      "description": "Can be overwritten by locale entry in the `mod-description` category"
+      "description": "Can be overwritten by locale entry in the `mod-description` category",
+      "maxLength": 500
     },
     "factorio_version": {
       "type":"string",
