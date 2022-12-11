@@ -59,7 +59,7 @@ function addBinToPath(path:string) {
 			case 'win32':
 				return `${path};${vscode.Uri.joinPath(extensionUri, "bin").fsPath}`;
 			default:
-				return `${path};${vscode.Uri.joinPath(extensionUri, "bin").fsPath}`;
+				return `${path}:${vscode.Uri.joinPath(extensionUri, "bin").fsPath}`;
 		}
 	}
 	return path;
