@@ -304,11 +304,11 @@ export class Profile implements vscode.Disposable  {
 			}
 		);
 		const flameview = this.flamePanel.webview;
-		flameview.html =
-			//@ts-expect-error
-			(<string>(await import("./Flamegraph.html")))
-				.replace("$Flamegraph.css$", flameview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "/dist/Flamegraph.css")).toString())
-				.replace("$Flamegraph.js$", flameview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "/dist/Flamegraph.js")).toString());
+		//@ts-expect-error
+		const html = <string>(await import("./Flamegraph.html")).default;
+		flameview.html = html
+			.replace("$Flamegraph.css$", flameview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "/dist/Flamegraph.css")).toString())
+			.replace("$Flamegraph.js$", flameview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "/dist/Flamegraph.js")).toString());
 
 		flameview.onDidReceiveMessage(
 			(mesg:{command:"init"}|{command:"click";name:string;filename?:string;line?:number})=>{
