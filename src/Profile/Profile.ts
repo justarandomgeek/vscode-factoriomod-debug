@@ -209,7 +209,7 @@ export class Profile implements vscode.Disposable  {
 		private readonly debug:vscode.DebugSession,
 	) {
 		this._disposables.push(vscode.debug.onDidReceiveDebugSessionCustomEvent(this.onCustomEvent, this));
-		this._disposables.push(vscode.debug.onDidTerminateDebugSession(this.dispose, this));
+		this._disposables.push(vscode.debug.onDidTerminateDebugSession(this.onTerminate, this));
 
 		this.timeDecorationType = vscode.window.createTextEditorDecorationType({
 			before: {
@@ -264,6 +264,12 @@ export class Profile implements vscode.Disposable  {
 
 		if (withTree) {
 			this.createFlamePanel();
+		}
+	}
+
+	onTerminate(session:vscode.DebugSession) {
+		if (session === this.debug) {
+			this.dispose();
 		}
 	}
 
