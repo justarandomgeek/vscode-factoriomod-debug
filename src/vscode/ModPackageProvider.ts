@@ -35,6 +35,10 @@ export interface ModInfo {
 			glob?: string
 			ignore?: string[]
 		}[]
+		gallery?: string[]
+		prune_gallery?: boolean
+		readme?:string
+		faq?:string
 		no_git_push?: boolean
 		no_git_tag?: boolean
 		git_publish_branch?: string|null

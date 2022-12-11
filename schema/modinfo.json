@@ -29,7 +29,7 @@
         },
         "package": {
           "type":"object",
-          "description": "Configuration for automatically packaging and publishing this mod [VSCode Extension]",
+          "description": "Configuration for automatically packaging and publishing this mod [FMTK]",
           "properties": {
             "ignore":{
               "type":"array",
@@ -65,6 +65,26 @@
                   }
                 }
               }
+            },
+            "gallery":{
+              "type":"array",
+              "description": "Globs to sync to gallery",
+              "items": {
+                "type":"string",
+                "format": "glob"
+              }
+            },
+            "prune_gallery": {
+              "type":"boolean",
+              "description": "Remove unreferenced images from gallery"
+            },
+            "readme": {
+              "type":"string",
+              "description": "Markdown file to be uploaded to the portal as long description"
+            },
+            "faq": {
+              "type":"string",
+              "description": "Markdown file to be uploaded to the portal as faq"
             },
             "no_git_push": {
               "type":"boolean",
