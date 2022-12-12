@@ -14,7 +14,7 @@ If [Zip File Explorer](https://marketplace.visualstudio.com/items?itemName=sleve
 
 ## Steam
 
-If you use a Steam install, a file `steam_appid.txt` with content `427520` in the same dir as the factorio binary is required. If the Debug Adapter has write access to the dir, it will create this automatically.
+If you use a Steam install, a file `steam_appid.txt` with content `427520` in the same folder as the factorio binary (there will also be one of `steam_api64.dll`, `libsteam_api.dylib` or `libsteam_api.so` here) is required. If the Debug Adapter has write access to this folder, it will create this automatically. On macs, you may need to "Show Package Contents" to locate the correct folder.
 
 ## Runtime Lua Diagnostics
 
