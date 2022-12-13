@@ -14,7 +14,7 @@
 				},
 				{
 					"name": "meta.plural.factorio-locale",
-					"match": "(__)(plural_for_parameter)(_)([0-9]+)(_\\{)([^}]*)(\\}__)",
+					"match": "(__)(plural_for_parameter)(_)([0-9]+)(_\\{)(.*?)(\\}__)",
 					"captures": {
 						"1": {"name": "punctuation.definition.tag.begin.factorio-locale"},
 						"2": {"name": "support.function.plural.factorio-locale"},
