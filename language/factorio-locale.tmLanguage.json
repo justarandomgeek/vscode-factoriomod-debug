@@ -179,14 +179,6 @@
 						},
 						"5":{"name": "punctuation.definition.tag.end.factorio-locale"}
 					}
-				},
-				{
-					"match": "(__)(.+?)(__)",
-					"captures": {
-						"1":{"name":"punctuation.definition.tag.begin.factorio-locale"},
-						"2":{"name":"invalid.variable.factorio-locale"},
-						"3":{"name":"punctuation.definition.tag.end.factorio-locale"}
-					}
 				}
 			]
 		}
