@@ -1,26 +1,27 @@
-import type { Literal, Parent } from "unist";
+import type { Node, Literal, Parent } from "unist";
 
 // The whole document
 export interface Root extends Parent {
 	type:'root'
-	children:(Record|Section|Error)[]
+	children:(Record|Section|Comment|Error)[]
 }
 
 // A heading, [value]
 export interface Section extends Literal, Parent {
 	type:'section'
 	value:string
-	children:(Record|Error)[]
+	children:(Record|Comment|Error)[]
 }
 
 // An individual line, value=children
 export interface Record extends Literal, Parent {
 	type:'record'
 	value:string
-	children:(TextItem|Error)[]
+	children:(RichTextNode|Error)[]
 }
 
-type TextItem = Text|Parameter|Plural|Macro|RichText|RichTextOpen|RichTextClose|RichTextFormat;
+export type TextNode = Text|Escape|Parameter|Plural|Macro;
+export type RichTextNode = TextNode|RichText|RichTextOpen|RichTextClose|RichTextFormat;
 
 // Anything not valid
 export interface Error extends Literal {
@@ -28,6 +29,12 @@ export interface Error extends Literal {
 	value:string
 }
 
+
+// [;#] Comment
+export interface Comment extends Literal {
+	type:'comment'
+	value:string
+}
 
 // Plain text
 export interface Text extends Literal {
@@ -50,21 +57,39 @@ export interface Parameter extends Literal {
 export interface Plural extends Literal, Parent {
 	type:'plural'
 	value:number
-	children: PluralOption[]
+	children: (PluralOption|Error)[]
 }
 
-// value=children
-export interface PluralOption extends Literal, Parent {
-	type:'plural_option'
-	value:string
-	children:TextItem[]
+// 5
+// 5-15
+// ends in 5
+// ends in 05-15
+// rest
+// etc...
+export interface PluralMatch extends Literal {
+	type: "plural_match"
+	value: "rest"|number|[number, number]
+	ends_in?: boolean
 }
-// __name__value__
-// __name__value[0]__value[1]__
-export interface Macro extends Literal {
+
+// PluralMatch=TextNode
+
+export interface PluralOption extends Parent {
+	type:'plural_option'
+	children:(PluralMatch|TextNode|Error)[]
+}
+
+
+// __name__(children[i]__)*
+export interface Macro extends Parent {
 	type:"macro"
 	name:"CONTROL"|"CONTROL_MODIFIER"|"CONTROL_STYLE_BEGIN"|"CONTROL_STYLE_END"|"CONTROL_LEFT_CLICK"|"CONTROL_RIGHT_CLICK"|"CONTROL_KEY_SHIFT"|"CONTROL_KEY_CTRL"|"ALT_CONTROL_LEFT_CLICK"|"ALT_CONTROL_RIGHT_CLICK"|"ALT_CONTROL"|"CONTROL_MOVE"|"ENTITY"|"ITEM"|"TILE"|"FLUID"|"REMARK_COLOR_BEGIN"|"REMARK_COLOR_END"
-	value: string|[string, 1|2]
+	children:MacroArgument[]
+}
+
+export interface MacroArgument extends Literal {
+	type: "macro_argument"
+	value: string
 }
 
 // [name=value]
@@ -82,9 +107,10 @@ export interface RichTextOpen extends Literal {
 }
 // [/name]
 // [.name]
-export interface RichTextClose extends Literal {
+export interface RichTextClose extends Node {
 	type:"richtextclose"
 	name:"color"|"font"
+	close:"/"|"."
 }
 
 // [name=value]children[/name]
@@ -92,20 +118,7 @@ export interface RichTextClose extends Literal {
 export interface RichTextFormat extends Literal, Parent {
 	type:"richtextformat"
 	name:"color"|"font"
+	close:"/"|"."
 	value:string
-	children:TextItem[]
+	children:TextNode[]
 }
-
-
-/*
-records parse from left to right.
-find __
-check for named macro/plural tag, or number (no leading 0)
-
-
-
-
-*/
-
-
-
