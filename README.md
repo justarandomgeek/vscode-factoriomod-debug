@@ -258,3 +258,24 @@ remote.__all_remote_interfaces.foo.bar("arg 1", "arg 2")
 Then when you for example hover over the string `"bar"` in the `remote.call` call you should get intellisense showing the signature of the function bar as defined above.
 
 It also disables `undefined-field` diagnostics specifically for `__all_remote_interfaces` and does nothing if it finds `--` before `remote` on the same line.
+
+## In Game Commands
+
+Any of the following at the start of a line will be removed by the plugin allowing you to write full factorio commands in files without syntax errors.
+
+- `/command`
+- `/c`
+- `/silent-command`
+- `/sc`
+- `/measured-command`
+
+For example
+```lua
+/c game.print("Hello world!")
+/sc game.speed = 10
+```
+Would look something similar to this to the language server
+```lua
+game.print("Hello world!")
+game.speed = 10
+```

@@ -1,4 +1,7 @@
 
+### 2022-12-14
+- Add support for in game console commands in files by removing `/command` or any other variants at te start of a line
+
 ### 2022-11-25
 - Simplify `remote.add_interface` to no longer require removal of the closing `)`
 - Remove "Normalize Require" from the readme, it was already removed on `2022-08-15`
