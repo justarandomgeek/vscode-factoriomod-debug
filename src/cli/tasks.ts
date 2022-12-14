@@ -214,7 +214,6 @@ export async function addModRelease(name:string, packagestream:Readable|Buffer) 
 }
 
 export async function addModImage(name:string, image:Buffer, filename:string):Promise<ModPortalImage> {
-	console.log(`Uploading to mod portal...`);
 	const upload_url = await init_upload(name, "https://mods.factorio.com/api/v2/mods/images/add");
 
 	const image_form = new FormData();
@@ -229,7 +228,6 @@ export async function addModImage(name:string, image:Buffer, filename:string):Pr
 }
 
 export async function editModImages(name:string, images:string[]):Promise<ModPortalImage[]> {
-	console.log(`Updating mod details ...`);
 	const form = new FormData();
 	form.append("mod", name);
 	form.append("images", images.join(","));
@@ -258,7 +256,6 @@ export interface ModPortalDetailsEdit {
 }
 
 export async function editModDetails(name:string, details:ModPortalDetailsEdit) {
-	console.log(`Updating mod details ...`);
 	const form = new FormData();
 	form.append("mod", name);
 	details.homepage !== undefined && form.append("homepage", details.homepage);
@@ -268,8 +265,6 @@ export async function editModDetails(name:string, details:ModPortalDetailsEdit) 
 	details.faq !== undefined && form.append("faq", details.faq);
 
 	await post_form(form, "https://mods.factorio.com/api/v2/mods/edit_details") as {success:true};
-
-	console.log(`Updated details for ${name}`);
 	return;
 }
 
