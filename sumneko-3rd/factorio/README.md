@@ -232,3 +232,25 @@ end
 ```
 
 It does nothing if `foo` is preceded by a `.` (dot) nor the keyword `function`, and does nothing if `--` is anywhere before the expression.
+
+
+## In Game Commands
+
+Any of the following at the start of a line will be removed by the plugin allowing you to write full factorio commands in files without syntax errors.
+
+- `/command`
+- `/c`
+- `/silent-command`
+- `/sc`
+- `/measured-command`
+
+For example
+```lua
+/c game.print("Hello world!")
+/sc game.speed = 10
+```
+Would look something similar to this to the language server
+```lua
+game.print("Hello world!")
+game.speed = 10
+```

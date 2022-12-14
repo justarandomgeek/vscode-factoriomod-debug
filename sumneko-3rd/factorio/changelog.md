@@ -1,3 +1,5 @@
+### 2022-12-14
+- Add support for in game console commands in files by removing `/command` or any other variants at te start of a line
 
 ### 2022-11-30
 - renamed `__all_remote_interfaces` to `__typed_interfaces`

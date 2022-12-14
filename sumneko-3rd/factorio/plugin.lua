@@ -23,6 +23,7 @@ local global = require("factorio-plugin.global")
 local remote = require("factorio-plugin.remote")
 local on_event = require("factorio-plugin.on-event")
 local object_name = require("factorio-plugin.object-name")
+local command_line = require("factorio-plugin.command-line")
 
 ---@class Diff
 ---@field start integer @ The number of bytes at the beginning of the replacement
@@ -81,6 +82,7 @@ function OnSetText(uri, text)
   remote.replace(uri, text, diffs)
   on_event.replace(uri, text, diffs)
   object_name.replace(uri, text, diffs)
+  command_line.replace(uri, text, diffs)
 
   diffs.count = nil
   return diffs
