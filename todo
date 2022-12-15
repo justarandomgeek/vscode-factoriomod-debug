@@ -1,5 +1,4 @@
 phobos, phobos-tidy, phobos-format
-update mod description from readme on publish (or other configurable file?)
 generate config.ini stub when not found?
 profile "reset" button
 profile save for offline viewing
