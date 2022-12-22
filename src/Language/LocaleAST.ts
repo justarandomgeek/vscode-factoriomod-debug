@@ -1,23 +1,38 @@
-import type { Node, Literal, Parent } from "unist";
+import type * as unist from "unist";
+import type { Range } from "vscode-languageclient";
+
+export interface Node extends Omit<unist.Node, "position"> {
+	range: Range
+	selectionRange: Range
+}
+
+export interface Literal extends Omit<unist.Literal, "position">, Node {
+
+}
+
+export interface Parent extends Omit<unist.Parent, "position">, Node {
+	children: Node[]
+}
+
 
 // The whole document
 export interface Root extends Parent {
 	type:'root'
-	children:(Record|Section|Comment|Error)[]
+	children:(Record|Section|CommentGroup|Error)[]
 }
 
 // A heading, [value]
 export interface Section extends Literal, Parent {
 	type:'section'
 	value:string
-	children:(Record|Comment|Error)[]
+	children:(Record|CommentGroup|Error)[]
 }
 
 // An individual line, value=children
 export interface Record extends Literal, Parent {
 	type:'record'
 	value:string
-	children:(RichTextNode|Error)[]
+	children:(RichTextNode|CommentGroup|Error)[]
 }
 
 export type TextNode = Text|Escape|Parameter|Plural|Macro;
@@ -29,6 +44,10 @@ export interface Error extends Literal {
 	value:string
 }
 
+export interface CommentGroup extends Parent {
+	type:'comment_group'
+	children: Comment[]
+}
 
 // [;#] Comment
 export interface Comment extends Literal {
@@ -73,12 +92,10 @@ export interface PluralMatch extends Literal {
 }
 
 // PluralMatch=TextNode
-
 export interface PluralOption extends Parent {
 	type:'plural_option'
 	children:(PluralMatch|TextNode|Error)[]
 }
-
 
 // __name__(children[i]__)*
 export interface Macro extends Parent {

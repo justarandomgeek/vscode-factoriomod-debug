@@ -5,8 +5,9 @@ import {
 } from 'vscode-languageserver/node';
 import type { DocumentUri, TextDocument } from 'vscode-languageserver-textdocument';
 
-import { unified } from "unified";
-import LocaleParse from './LocaleParse';
+import { visitParents } from 'unist-util-visit-parents';
+import { ParseLocale } from './LocaleParse';
+import type { Record, Root, Section } from './LocaleAST';
 
 interface DuplicateDefinitionDiagnostic extends Diagnostic {
 	data: {
@@ -103,6 +104,66 @@ function colorToStrings(color: Color): string[] {
 	}
 
 	return names;
+}
+
+function documentDefinitions(doc:Root, uri:string) {
+	const definitions:{ name:string; link:LocationLink }[] = [];
+	visitParents(doc, "record", (record, parents)=>{
+		const section = parents[0].type==="section" ? parents[0].value : undefined;
+		definitions.push({
+			name: section ? `${section}.${record.value}` : record.value,
+			link: {
+				targetUri: uri,
+				targetRange: record.range,
+				targetSelectionRange: record.selectionRange,
+			},
+		});
+	});
+	return definitions;
+}
+
+function defined<T>(x:T|undefined):x is T { return x !== undefined; }
+
+function recordSymbol(record:Record):DocumentSymbol {
+	return {
+		name: record.value,
+		detail: "", //TODO: stringify children? attached comment group?
+		kind: SymbolKind.String,
+		range: record.range,
+		selectionRange: record.selectionRange,
+		children: [],
+	};
+}
+
+function sectionSymbols(section:Section):DocumentSymbol {
+	return {
+		name: section.value,
+		detail: "", //TODO: first comment group?
+		kind: SymbolKind.Namespace,
+		range: section.range,
+		selectionRange: section.selectionRange,
+		children: section.children.map(node=>{
+			switch (node.type) {
+				case "record":
+					return recordSymbol(node);
+				default:
+					return undefined;
+			}
+		}).filter(defined),
+	};
+}
+
+function documentSymbols(doc:Root):DocumentSymbol[] {
+	return doc.children.map(node=>{
+		switch (node.type) {
+			case "section":
+				return sectionSymbols(node);
+			case "record":
+				return recordSymbol(node);
+			default:
+				return undefined;
+		}
+	}).filter(defined);
 }
 
 export class LocaleLanguageService {
@@ -222,68 +283,13 @@ export class LocaleLanguageService {
 
 	readonly definitions:Map<DocumentUri, { name:string; link:LocationLink }[]> = new Map();
 	readonly documentSymbols:Map<DocumentUri, DocumentSymbol[]> = new Map();
+	readonly documentTrees:Map<DocumentUri, Root> = new Map();
 
 	public loadDocument(document: TextDocument) {
-		const tree = unified().use(LocaleParse).parse(document.getText());
-		const definitions:{ name:string; link:LocationLink }[] = [];
-		const symbols: DocumentSymbol[] = [];
-		let category: DocumentSymbol | undefined;
-
-		for (let i = 0; i < document.lineCount; i++) {
-			const range = {start: { line: i, character: 0 }, end: { line: i, character: Infinity} };
-			const text = document.getText(range).replace(/((\r\n)|\r|\n)$/, "");
-			range.end.character = text.length;
-
-			if (text.match(/^\[([^\]])+\]$/)) {
-				category = {
-					name: text.substring(1, text.length - 1),
-					detail: "",
-					kind: SymbolKind.Namespace,
-					range: range,
-					selectionRange: {start: { line: i, character: 1 }, end: { line: i, character: text.length-1} },
-					children: [],
-				};
-				symbols.push(category);
-			} else if (text.match(/^[#;]/)) {
-				// nothing to do for comments...
-			} else {
-				const matches = text.match(/^([^=]+)=(.+)$/);
-				if (matches) {
-					const s = {
-						name: matches[1],
-						detail: matches[2],
-						kind: SymbolKind.String,
-						range: range,
-						selectionRange: {start: { line: i, character: matches[1].length + 1 }, end: { line: i, character: text.length} },
-						children: [],
-					};
-					if (category) {
-						category.children!.push(s);
-						category.range.end = range.end;
-						definitions.push({
-							name: `${category.name}.${s.name}`,
-							link: {
-								targetUri: document.uri,
-								targetRange: range,
-								targetSelectionRange: s.selectionRange,
-							},
-						});
-					} else {
-						symbols.push(s);
-						definitions.push({
-							name: s.name,
-							link: {
-								targetUri: document.uri,
-								targetRange: range,
-								targetSelectionRange: s.selectionRange,
-							},
-						});
-					}
-				}
-			}
-		}
-		this.definitions.set(document.uri, definitions);
-		this.documentSymbols.set(document.uri, symbols);
+		const tree = ParseLocale(document);
+		this.documentTrees.set(document.uri, tree);
+		this.definitions.set(document.uri, documentDefinitions(tree, document.uri));
+		this.documentSymbols.set(document.uri, documentSymbols(tree));
 	}
 
 	public clearDocument(uri:DocumentUri) {
@@ -292,6 +298,9 @@ export class LocaleLanguageService {
 		}
 		if (this.documentSymbols.has(uri)) {
 			this.documentSymbols.delete(uri);
+		}
+		if (this.documentTrees.has(uri)) {
+			this.documentTrees.delete(uri);
 		}
 	}
 
@@ -304,6 +313,11 @@ export class LocaleLanguageService {
 		for (const key of this.documentSymbols.keys()) {
 			if (key.startsWith(uri)) {
 				this.documentSymbols.delete(key);
+			}
+		}
+		for (const key of this.documentTrees.keys()) {
+			if (key.startsWith(uri)) {
+				this.documentTrees.delete(key);
 			}
 		}
 	}
