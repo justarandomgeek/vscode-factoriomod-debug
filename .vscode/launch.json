@@ -2,8 +2,8 @@
 	"version": "0.2.0",
 	"compounds": [
 		{
-			"name": "Extension + LSP",
-			"configurations": ["Extension", "Attach To External LSP"],
+			"name": "Extension",
+			"configurations": ["Extension Host", "Attach To External LSP"],
 			"stopAll": true,
 			"preLaunchTask": "npm: watch",
 			"presentation": {
@@ -13,7 +13,7 @@
 	],
 	"configurations": [
 		{
-			"name": "Extension",
+			"name": "Extension Host",
 			"type": "extensionHost",
 			"request": "launch",
 			"args": [
@@ -29,7 +29,7 @@
 			"cascadeTerminateToConfigurations": ["Attach To External LSP"],
 			"presentation": {
 				"hidden": true,
-				"group": "0 - Main",
+				"group": "1 - Subprocesses",
 			},
 			"serverReadyAction":{
 				"action": "startDebugging",

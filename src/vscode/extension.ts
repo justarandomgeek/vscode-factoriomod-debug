@@ -8,6 +8,7 @@ import { activateModPackageProvider } from './ModPackageProvider';
 import { FactorioVersionSelector } from './VersionSelector';
 import { ProfileRenderer } from '../Profile/ProfileRenderer';
 import * as LanguageClient from "../Language/Client";
+import inspector from 'inspector';
 
 export function activate(context: vscode.ExtensionContext) {
 	const versionSelector = new FactorioVersionSelector(context);
@@ -139,11 +140,10 @@ class DebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
 							executeCommand: vscode.commands.executeCommand,
 						}
 					));
-			//@ts-expect-error
-			case "externalInspect":
-				executable.args.unshift("--no-lazy", "--inspect-brk=34198");
-				//fallthrough
 			case "external":
+				if (!!inspector.url) {
+					executable.args.unshift("--nolazy", "--inspect-brk=34198");
+				}
 				executable.args.push(...await activeVersion.debugLaunchArgs());
 				return executable;
 		}
