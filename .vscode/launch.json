@@ -31,6 +31,12 @@
 				"hidden": true,
 				"group": "0 - Main",
 			},
+			"serverReadyAction":{
+				"action": "startDebugging",
+				"name": "Attach To External Tasks",
+				"killOnServerStop": false,
+				"pattern": "Task forked",
+			}
 		},
 		{
 			"name": "Attach To External Debug Adapter",
@@ -82,6 +88,7 @@
 				"${workspaceFolder}/dist/**/*.js"
 			],
 			"presentation": {
+				"hidden": true,
 				"group": "1 - Subprocesses"
 			},
 		},

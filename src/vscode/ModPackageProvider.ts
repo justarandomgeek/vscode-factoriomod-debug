@@ -5,6 +5,8 @@ import { fork } from 'child_process';
 import { BufferSplitter } from '../Util/BufferSplitter';
 import { Keychain } from './Keychain';
 import { platform } from 'os';
+import inspector from 'inspector';
+
 interface ModPackageScripts {
 	[key:string]: string|undefined
 	datestamp?: string
@@ -626,13 +628,17 @@ export async function forkScript(term:ModTaskTerminal, module:string, args:strin
 	scriptenv.Path = addBinToPath(scriptenv.Path??"");
 
 	return new Promise((resolve, reject)=>{
-		const inspect = config.get("package.inspectTasks");
+		const inspect = !!inspector.url;
 		const scriptProc = fork(module, args, {
 			cwd: cwd,
-			execArgv: inspect ? ["--inspect=34200"] : undefined,
+			execArgv: inspect ? ["--inspect-brk=34200"] : undefined,
 			env: scriptenv,
 			stdio: "pipe",
 		});
+
+		if (inspect) {
+			console.log("Task forked");
+		}
 
 		scriptProc.on("message", (message:{cmd:"getConfig"; section:string})=>{
 			switch (message.cmd) {
