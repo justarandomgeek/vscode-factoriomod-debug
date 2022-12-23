@@ -3,7 +3,7 @@
 	"compounds": [
 		{
 			"name": "Extension",
-			"configurations": ["Extension Host", "Attach To External LSP"],
+			"configurations": ["Extension Host", "LSP"],
 			"stopAll": true,
 			"preLaunchTask": "npm: watch",
 			"presentation": {
@@ -26,15 +26,13 @@
 			"outFiles": [
 				"${workspaceFolder}/dist/**/*.js"
 			],
-			"cascadeTerminateToConfigurations": ["Attach To External LSP"],
 			"presentation": {
 				"hidden": true,
 				"group": "1 - Subprocesses",
 			},
 			"serverReadyAction":{
 				"action": "startDebugging",
-				"name": "Attach To External Tasks",
-				"killOnServerStop": false,
+				"name": "Tasks",
 				"pattern": "Task forked",
 			}
 		},
@@ -56,7 +54,7 @@
 			},
 		},
 		{
-			"name": "Attach To External LSP",
+			"name": "LSP",
 			"type": "node",
 			"request": "attach",
 			"continueOnAttach": true,
@@ -75,7 +73,7 @@
 			}
 		},
 		{
-			"name": "Attach To External Tasks",
+			"name": "Tasks",
 			"type": "node",
 			"request": "attach",
 			"continueOnAttach": true,
