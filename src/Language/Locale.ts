@@ -282,22 +282,17 @@ export class LocaleLanguageService {
 	}
 
 	readonly definitions:Map<DocumentUri, { name:string; link:LocationLink }[]> = new Map();
-	readonly documentSymbols:Map<DocumentUri, DocumentSymbol[]> = new Map();
 	readonly documentTrees:Map<DocumentUri, Root> = new Map();
 
 	public loadDocument(document: TextDocument) {
 		const tree = ParseLocale(document);
 		this.documentTrees.set(document.uri, tree);
 		this.definitions.set(document.uri, documentDefinitions(tree, document.uri));
-		this.documentSymbols.set(document.uri, documentSymbols(tree));
 	}
 
 	public clearDocument(uri:DocumentUri) {
 		if (this.definitions.has(uri)) {
 			this.definitions.delete(uri);
-		}
-		if (this.documentSymbols.has(uri)) {
-			this.documentSymbols.delete(uri);
 		}
 		if (this.documentTrees.has(uri)) {
 			this.documentTrees.delete(uri);
@@ -310,11 +305,6 @@ export class LocaleLanguageService {
 				this.definitions.delete(key);
 			}
 		}
-		for (const key of this.documentSymbols.keys()) {
-			if (key.startsWith(uri)) {
-				this.documentSymbols.delete(key);
-			}
-		}
 		for (const key of this.documentTrees.keys()) {
 			if (key.startsWith(uri)) {
 				this.documentTrees.delete(key);
@@ -323,10 +313,12 @@ export class LocaleLanguageService {
 	}
 
 	public onDocumentSymbol(document: TextDocument): DocumentSymbol[] {
-		if (!this.documentSymbols.has(document.uri)) {
+		if (!this.documentTrees.has(document.uri)) {
 			this.loadDocument(document);
 		}
-		return this.documentSymbols.get(document.uri) ?? [];
+		const tree = this.documentTrees.get(document.uri);
+		if (!tree) { return []; }
+		return documentSymbols(tree);
 	}
 
 	public findDefinitions(name:string) {
