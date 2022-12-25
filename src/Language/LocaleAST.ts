@@ -97,6 +97,11 @@ export interface PluralOption extends Parent {
 	children:(PluralMatch|TextNode|Error)[]
 }
 
+export interface MacroArgument extends Literal {
+	type: "macro_argument"
+	value: string
+}
+
 // __name__(children[i]__)*
 export interface Macro extends Parent {
 	type:"macro"
@@ -104,24 +109,20 @@ export interface Macro extends Parent {
 	children:MacroArgument[]
 }
 
-export interface MacroArgument extends Literal {
-	type: "macro_argument"
-	value: string
-}
-
-// [name=value]
-export interface RichText extends Literal {
+// [name=children]
+export interface RichText extends Parent {
 	type:"richtext"
 	name:"img"|"item"|"entity"|"technology"|"recipe"|"item-group"|"fluid"|"tile"|"virtual-signal"|"achievement"|"gps"|"special-item"|"armor"|"train"|"train-stop"|"tooltip"
-	value:string
+	children: (TextNode|Error)[]
 }
 
-// [name=value]
-export interface RichTextOpen extends Literal {
+// [name=children]
+export interface RichTextOpen extends Parent {
 	type:"richtextopen"
 	name:"color"|"font"
-	value:string
+	children: (TextNode|Error)[]
 }
+
 // [/name]
 // [.name]
 export interface RichTextClose extends Node {
@@ -132,10 +133,7 @@ export interface RichTextClose extends Node {
 
 // [name=value]children[/name]
 // [name=value]children[.name]
-export interface RichTextFormat extends Literal, Parent {
+export interface RichTextFormat extends Parent {
 	type:"richtextformat"
-	name:"color"|"font"
-	close:"/"|"."
-	value:string
-	children:TextNode[]
+	children:(RichTextOpen|TextNode|RichTextClose)[]
 }
