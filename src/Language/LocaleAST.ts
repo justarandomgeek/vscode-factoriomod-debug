@@ -135,5 +135,5 @@ export interface RichTextClose extends Node {
 // [name=value]children[.name]
 export interface RichTextFormat extends Parent {
 	type:"richtextformat"
-	children:(RichTextOpen|TextNode|RichTextClose)[]
+	children:(RichTextOpen|RichTextNode|RichTextClose)[]
 }
