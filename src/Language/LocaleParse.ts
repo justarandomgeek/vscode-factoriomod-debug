@@ -226,7 +226,9 @@ const macros:searchPattern<TextNode>[] = [
 	},
 ];
 
-function commentGroup(comments:Comment[]):CommentGroup {
+function commentGroup(state:ParseState):CommentGroup {
+	const comments = state.open_comments;
+	state.open_comments = [];
 	const first = comments[0];
 	const last = comments[comments.length-1];
 
@@ -241,86 +243,95 @@ function commentGroup(comments:Comment[]):CommentGroup {
 	};
 }
 
-export function ParseLocale(doc:TextDocument):Root {
-	const root:Root = {
-		type: "root",
-		children: [],
-		range: {
-			start: { line: 0, character: 0 },
-			end: { line: doc.lineCount, character: 0 },
-		},
-		selectionRange: {
-			start: { line: 0, character: 0 },
-			end: { line: 0, character: 0 },
-		},
-	};
-	let open_section:Section|undefined;
-	let open_comments:Comment[] = [];
-
-	for (let i = 0; i < doc.lineCount; i++) {
-		const range = {start: { line: i, character: 0 }, end: { line: i, character: Infinity} };
-		const line = doc.getText(range).replace(/((\r\n)|\r|\n)$/, "");
-		range.end.character = line.length;
-
-		// blank lines and comments
-		const comment = line.match(/^[\r\t ]*([#;].*)?$/d);
-		if (comment) {
-			if (comment[1]) {
-				open_comments.push(literalNode<Comment>("comment", comment[1], i, comment.indices![1][0]));
-			} else if (open_comments.length > 0) {
+interface ParseState {
+	root:Root
+	open_comments:Comment[]
+	open_section?:Section
+}
+const linePatterns:{
+	pattern: RegExp
+	parse(matches:RegExpExecArray, line:number, state:ParseState):void
+}[] = [
+	{
+		pattern: /^[\r\t ]*([#;].*)?$/d,
+		parse(matches, line, state) {
+			if (matches[1]) {
+				state.open_comments.push(literalNode("comment", matches[1], line, matches.indices![1][0]));
+			} else if (state.open_comments.length > 0) {
 				// blank line: push any open comments to the containing scope,
 				// instead of holding them for the next token
-				(open_section??root).children.push(commentGroup(open_comments));
-				open_comments = [];
+				(state.open_section??state.root).children.push(commentGroup(state));
 			}
-			continue;
-		}
-
-		const section = line.match(/^[\r\t ]*\[(.*?)\][\r\t ]*$/d);
-		if (section) {
-			open_section = literalNode<Section>("section", section[1], i, section.indices![1][0], {children: []});
-			if (open_comments.length > 0) {
-				open_section.children.push(commentGroup(open_comments));
-				open_comments = [];
+		},
+	},
+	{
+		pattern: /^[\r\t ]*\[(.*?)\][\r\t ]*$/d,
+		parse(matches, line, state) {
+			state.open_section = literalNode<Section>("section", matches[1], line, matches.indices![1][0], {children: []});
+			if (state.open_comments.length > 0) {
+				state.open_section.children.push(commentGroup(state));
 			}
 			// include the brackets
-			open_section.range.start.character-=1;
-			open_section.range.end.character+=1;
+			state.open_section.range.start.character-=1;
+			state.open_section.range.end.character+=1;
 
-			root.children.push(open_section);
-			continue;
-		}
-
-		const record = line.match(/^[\r\t ]*(.*?)=(.*)$/d);
-		if (record) {
-			const newrec:Record = literalNode<Record>(
-				"record", record[1], i, record.indices![1][0], {
+			state.root.children.push(state.open_section);
+		},
+	},
+	{
+		pattern: /^[\r\t ]*(.*?)=(.*)$/d,
+		parse(matches, line, state) {
+			const newrec:Record = literalNode(
+				"record", matches[1], line, matches.indices![1][0], {
 					children: [
-						...parsePatterns(textNode(record[2], i, record.indices![2][0]), "__", macros),
+						...parsePatterns(textNode(matches[2], line, matches.indices![2][0]), "__", macros),
 					],
 				});
-			if (open_comments.length > 0) {
-				newrec.children.unshift(commentGroup(open_comments));
-				open_comments=[];
+			if (state.open_comments.length > 0) {
+				newrec.children.unshift(commentGroup(state));
 			}
-			newrec.range.end.character = line.length;
-			(open_section??root).children.push(newrec);
-			continue;
-		}
+			newrec.range.end.character = matches[0].length;
+			(state.open_section??state.root).children.push(newrec);
+		},
+	},
+	{
+		pattern: /^.*$/d,
+		parse(matches, line, state) {
+			state.root.children.push({
+				type: "error",
+				value: matches[0],
+				range: span(line, 0, matches[0].length),
+				selectionRange: span(line, 0, 0),
+			});
+		},
+	},
+];
 
-		root.children.push({
-			type: "error",
-			value: line,
+export function ParseLocale(doc:TextDocument):Root {
+	const parseState:ParseState = {
+		root: {
+			type: "root",
+			children: [],
 			range: {
-				start: { line: i, character: 0 },
-				end: { line: i, character: line.length },
+				start: { line: 0, character: 0 },
+				end: { line: doc.lineCount, character: 0 },
 			},
-			selectionRange: {
-				start: { line: i, character: 0 },
-				end: { line: i, character: 0 },
-			},
-		});
+			selectionRange: span(0, 0, 0),
+		},
+		open_comments: [],
+	};
+
+	for (let line = 0; line < doc.lineCount; line++) {
+		const range = {start: { line: line, character: 0 }, end: { line: line, character: Infinity} };
+		const text = doc.getText(range).replace(/((\r\n)|\r|\n)$/, "");
+		for (const linePattern of linePatterns) {
+			const matches = linePattern.pattern.exec(text);
+			if (matches) {
+				linePattern.parse(matches, line, parseState);
+				break;
+			}
+		}
 	}
 
-	return root;
+	return parseState.root;
 }
