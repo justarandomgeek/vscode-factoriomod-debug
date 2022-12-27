@@ -24,7 +24,7 @@ I open the Factorio `mods` directory as the root of my workspace in VSCode, and 
 
 I use [VScode](https://code.visualstudio.com/) (imagine that!), but it needs a few extensions to really shine in this context:
 
- * [Factorio Mod Debugger](https://marketplace.visualstudio.com/items?itemName=justarandomgeek.factoriomod-debug) - You are here
+ * [Factorio Modding Tool Kit](https://marketplace.visualstudio.com/items?itemName=justarandomgeek.factoriomod-debug) - You are here
  * A Lua language server. I like to use [sumneko.lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua), and the Factorio Mod Debugger has some extended support for it.
  * Optional: [Zip File Explorer](https://marketplace.visualstudio.com/items?itemName=slevesque.vscode-zipexplorer). Enables viewing files inside zips, which allows breakpoints/stepping inside them as well.
  * Optional: [indent-rainbow](https://marketplace.visualstudio.com/items?itemName=oderwat.indent-rainbow)
