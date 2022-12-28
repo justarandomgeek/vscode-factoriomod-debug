@@ -5,6 +5,16 @@
 ## 1.1.27
 * Tasks:
   * Fix PATH variable separator used on non-windows when adding `fmtk` from extension for scripts
+  * added `fmtk details` to update mod details and gallery from info.json, readme.md, faq.md
+* Locale:
+  * Various TextMate grammar tweaks
+  * New AST-based parser for more accurate LSP features
+* Mod Manager:
+  * `fmtk mod install` can now download from portal
+* Profiler:
+  * Fixed some instances of profiler UI not being disposed correctly
+* Sumneko plugin:
+  * Ignore `/c`, `/command`, `/sc`, etc at start of a line
 
 ## 1.1.26
 
