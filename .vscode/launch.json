@@ -34,7 +34,8 @@
 				"action": "startDebugging",
 				"name": "Tasks",
 				"pattern": "Task forked",
-			}
+			},
+			"cascadeTerminateToConfigurations": ["LSP"]
 		},
 		{
 			"name": "Attach To External Debug Adapter",
