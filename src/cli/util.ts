@@ -1,8 +1,9 @@
-
+import * as os from 'os';
 import * as fsp from 'fs/promises';
 
 import type { FileSystem, FileType } from 'vscode';
 import type { URI } from 'vscode-uri';
+import path from 'path';
 
 const fsAccessor:  Pick<FileSystem, "readFile"|"writeFile"|"stat"> = {
 	async readFile(uri:URI) {
@@ -28,23 +29,47 @@ const fsAccessor:  Pick<FileSystem, "readFile"|"writeFile"|"stat"> = {
 
 export { fsAccessor };
 
-export async function getConfig<T extends {}>(section:string, defaults:T):Promise<T> {
-	return Object.assign(
-		defaults,
-		await new Promise((resolve)=>{
-			if (process.send) {
-				const gotconfig = (msg:{cmd:string;section:string;config:{}})=>{
-					if (msg.cmd === "config" && msg.section === section) {
-						resolve(msg.config);
-					}
-					process.off("message", gotconfig);
-				};
-				process.on("message", gotconfig);
-				process.send({cmd: "getConfig", section: section});
-			} else {
-				resolve(undefined);
+async function getConfigFromFile<T extends {}>(section:string):Promise<Partial<T>|undefined> {
+	const configfile = process.env["FMTK_CONFIG"] ?? path.join(os.homedir(), ".fmtk", "config.json");
+	try {
+		const config = JSON.parse(await fsp.readFile(configfile, "utf8"));
+		if (typeof config !== "object" || Array.isArray(config)) {
+			return undefined;
+		}
+		const values:{[s:string]:any} = {};
+		for (const key in config) {
+			if (key.startsWith(`${section}.`)) {
+				values[key.substring(section.length+1)] = config[key];
 			}
-		})
+		}
+		return values as Partial<T>;
+	} catch (error) {}
+	return undefined;
+}
+
+async function getConfigFromIPC<T extends {}>(section:string):Promise<Partial<T>|undefined> {
+	if (!process.send) { return undefined; }
+	const p = new Promise<Partial<T>>((resolve)=>{
+		const gotconfig = (msg:{cmd:string;section:string;config:Partial<T>})=>{
+			if (msg.cmd === "config" && msg.section === section) {
+				resolve(msg.config);
+			}
+			process.off("message", gotconfig);
+		};
+		process.on("message", gotconfig);
+	});
+	process.send({cmd: "getConfig", section: section});
+	return p;
+}
+
+export async function getConfig<T extends {}>(section:string, defaults:T|PromiseLike<T>):Promise<T> {
+	return Object.assign(
+		{},
+		...await Promise.all([
+			defaults,
+			getConfigFromFile<T>(section),
+			getConfigFromIPC<T>(section),
+		]),
 	);
 }
 
