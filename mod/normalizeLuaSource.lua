@@ -2,27 +2,17 @@ local __DebugAdapter = __DebugAdapter
 local string = string
 local ssub = string.sub
 local smatch = string.match
-local pcall = pcall
 
----@type {modname:string, basepath:string}
+---@type string
 local levelpath
 if script and script.mod_name == "level" then
   local level = script.level
   if level.is_tutorial then
-    levelpath = {
-      modname = "base",
-      basepath = "tutorials/"..level.level_name.."/",
-    }
+    levelpath = "@__base__/tutorials/"..level.level_name.."/"
   elseif level.campaign_name then
-    levelpath = {
-      modname = level.mod_name or "#user",
-      basepath = "campaigns/"..level.campaign_name.."/"..level.level_name.."/",
-    }
+    levelpath = "@__"..(level.mod_name or "#user").."__/campaigns/"..level.campaign_name.."/"..level.level_name.."/"
   else
-    levelpath = {
-      modname = level.mod_name or "#user",
-      basepath = "scenarios/"..level.level_name.."/",
-    }
+    levelpath =  "@__"..(level.mod_name or "#user").."__/scenarios/"..level.level_name.."/"
   end
 end
 
@@ -53,18 +43,19 @@ local function normalizeLuaSource(source)
     return source
   end
 
-  -- scenario scripts may provide hints to where they came from...
+  -- scenario scripts may have hints to where they came from...
   -- cross-mod require doesn't allow __level__ so these can only ever be
   -- seen within the `level` modstate, where the hint will be visible
   if levelpath then
-    filename = "@__"..levelpath.modname.."__/"..levelpath.basepath..filename
+    filename = levelpath..filename
     knownSources[source] = filename
     return filename
   end
 
-  -- unhinted scenario script
-  -- don't save this so that a level hint later can update it!
-  --knownSources[source] = source
+  -- unhinted scenario script.
+  -- this should never happen, but it won't get any better later,
+  -- so save it anyway to skip re-parsing it...
+  knownSources[source] = source
   return source
 end
 
