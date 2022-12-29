@@ -1,6 +1,6 @@
 # Factorio Modding Tool Kit
 
-A collection of tools for developing Factorio mods. This package is both an npm package providing the command line tool `fmtk`, and a VS Code Extension providing additional editor integration.
+A collection of tools for developing Factorio mods. This package is both [an npm package](https://www.npmjs.com/package/factoriomod-debug) providing the command line tool `fmtk`, and a [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=justarandomgeek.factoriomod-debug) providing additional editor integration.
 
  * [Debug Adapter](doc/debugadapter.md)
  * [Mod Profiling](doc/profile.md)
