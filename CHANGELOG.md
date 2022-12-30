@@ -11,6 +11,8 @@
   * New AST-based parser for more accurate LSP features
 * Mod Manager:
   * `fmtk mod install` can now download from portal
+* Debugger:
+  * Moved `modsPath` deduction from environment from extension to common DAP code
 * Profiler:
   * Fixed some instances of profiler UI not being disposed correctly
 * Sumneko plugin:

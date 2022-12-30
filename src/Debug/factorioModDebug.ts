@@ -6,6 +6,7 @@ import {
 } from '@vscode/debugadapter';
 import type { DebugProtocol } from '@vscode/debugprotocol';
 import * as path from 'path';
+import * as fsp from 'fs/promises';
 import * as os from 'os';
 import * as semver from 'semver';
 import type * as vscode from 'vscode';
@@ -36,7 +37,6 @@ type resolver<T> = (value: T | PromiseLike<T>)=>void;
 
 interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 	modsPath: string // path of `mods` directory
-	modsPathSource: string
 	manageMod?: boolean
 	useInstrumentMode?: boolean
 	checkPrototypes?: boolean
@@ -111,13 +111,13 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	 * We configure the default implementation of a debug adapter here.
 	 */
 	public constructor(
-		private readonly activeVersion: Pick<ActiveFactorioVersion, "configPathIsOverriden"|"configPath"|"dataPath"|"writeDataPath"|"factorioPath"|"nativeDebugger"|"docs">,
+		private readonly activeVersion: Pick<ActiveFactorioVersion, "configPathIsOverriden"|"defaultModsPath"|"configPath"|"dataPath"|"writeDataPath"|"factorioPath"|"nativeDebugger"|"docs">,
 		private readonly fs: Pick<vscode.FileSystem, "readFile"|"writeFile"|"stat">,
 		private readonly editorInterface: {
-			readonly findWorkspaceFiles?: typeof vscode.workspace.findFiles
+			readonly findWorkspaceFiles: typeof vscode.workspace.findFiles
 			readonly getExtension?: typeof vscode.extensions.getExtension
 			readonly executeCommand?: typeof vscode.commands.executeCommand
-		} = {}
+		}
 	) {
 		super();
 
@@ -182,22 +182,77 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.terminate().then(()=>this.sendResponse(response));
 	}
 
-	protected async launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments) {
+	private async checkFactorioArgs(launchArgs: LaunchRequestArguments) {
+		const args = launchArgs.factorioArgs;
+		if (args) {
+			if (args.includes("--config")) {
+				this.sendEvent(new OutputEvent("Factorio --config option is set by configPath and should not be included in factorioArgs\n", "stdout"));
+				return false;
+			}
+			if (args.includes("--mod-directory")) {
+				this.sendEvent(new OutputEvent("Factorio --mod-directory option is set by modsPath and should not be included in factorioArgs\n", "stdout"));
+				return false;
+			}
+		}
+		return true;
+	}
 
-		// make sure to 'Stop' the buffered logging if 'trace' is not set
-		logger.setup(args.trace ? Logger.LogLevel.Verbose : Logger.LogLevel.Stop, false);
+	private async resolveModsPath(args: LaunchRequestArguments) {
+		let modsPathSource = undefined;
 
-		this.launchArgs = args;
+		if (args.modsPath) {
+			modsPathSource = "launch";
+			let modspath = path.posix.normalize(args.modsPath);
+			if (modspath.match(/^~[\\\/]/)) {
+				modspath = path.posix.join(
+					os.homedir().replace(/\\/g, "/"),
+					modspath.replace(/^~[\\\/]/, "") );
+			}
+			if (modspath.match(/[\\\/]$/)) {
+				modspath = modspath.replace(/[\\\/]+$/, "");
+			}
+			try {
+				await fsp.access(modspath);
+				args.modsPath = modspath;
+			} catch (error) {
+				this.sendEvent(new OutputEvent("modsPath specified in launch configuration does not exist\n", "stdout"));
+				return false;
+			}
+		} else {
+			// modsPath not configured: detect from config.ini or mods-list.json in workspace
+			const workspaceModLists = await this.editorInterface.findWorkspaceFiles("**/mod-list.json");
 
-		args.hookSettings = args.hookSettings ?? false;
-		args.hookData = args.hookData ?? false;
-		args.hookControl = args.hookControl ?? true;
-		args.hookMode = args.hookMode ?? "debug";
-		args.trace = args.trace ?? false;
+			if (workspaceModLists.length === 1) {
+				// found one, just use it
+				args.modsPath = path.dirname(workspaceModLists[0].fsPath);
+				modsPathSource = "workspace";
+			} else if (workspaceModLists.length > 1) {
+				// found more than one
+				this.sendEvent(new OutputEvent("multiple mod-list.json in workspace, please specify one as modsPath\n", "stdout"));
+				return false;
+			} else {
+				// found none. detect from config.ini
+				modsPathSource = "config";
+				args.modsPath = await this.activeVersion.defaultModsPath();
+			}
+		}
+
+		if (os.platform() === "win32" && args.modsPath.startsWith("/")) { args.modsPath = args.modsPath.substr(1); }
 
 		args.modsPath = args.modsPath.replace(/\\/g, "/");
-		// check for folder or symlink and leave it alone, if zip update if mine is newer
-		this.sendEvent(new OutputEvent(`using modsPath ${args.modsPath} (${args.modsPathSource})\n`, "stdout"));
+		this.sendEvent(new OutputEvent(`using modsPath ${args.modsPath} (${modsPathSource})\n`, "stdout"));
+
+		if (modsPathSource !== "config") {
+			let mods = args.modsPath;
+			if (!mods.endsWith("/")) {
+				mods += "/";
+			}
+			args.factorioArgs!.push("--mod-directory", mods);
+		}
+		return true;
+	}
+
+	private async setupMods(args: LaunchRequestArguments) {
 		if (args.manageMod === false) {
 			this.sendEvent(new OutputEvent(`automatic management of mods disabled\n`, "stdout"));
 		} else {
@@ -226,13 +281,39 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			await manager.write();
 			this.sendEvent(new OutputEvent(`debugadapter ${args.noDebug?"disabled":"enabled"} in mod-list.json\n`, "stdout"));
 		}
+	}
 
-		if (this.editorInterface.findWorkspaceFiles) {
-			const infos = await this.editorInterface.findWorkspaceFiles('**/info.json');
-			await Promise.all(infos.map(this.updateInfoJson, this));
-		}
+	protected async launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments) {
 
+		// make sure to 'Stop' the buffered logging if 'trace' is not set
+		logger.setup(args.trace ? Logger.LogLevel.Verbose : Logger.LogLevel.Stop, false);
+
+		this.launchArgs = args;
+
+		args.hookSettings = args.hookSettings ?? false;
+		args.hookData = args.hookData ?? false;
+		args.hookControl = args.hookControl ?? true;
+		args.hookMode = args.hookMode ?? "debug";
+		args.trace = args.trace ?? false;
 		args.factorioArgs = args.factorioArgs||[];
+
+		if (!await this.checkFactorioArgs(args)) {
+			// terminate to actually stop the debug session
+			// sending an error response to vscode doesn't seem to to anything, so dont' bother?
+			this.sendEvent(new TerminatedEvent());
+			return;
+		}
+		if (!await this.resolveModsPath(args)) {
+			// terminate to actually stop the debug session
+			// sending an error response to vscode doesn't seem to to anything, so dont' bother?
+			this.sendEvent(new TerminatedEvent());
+			return;
+		}
+		await this.setupMods(args);
+
+		const infos = await this.editorInterface.findWorkspaceFiles('**/info.json');
+		await Promise.all(infos.map(this.updateInfoJson, this));
+
 		if (!args.noDebug) {
 			if (args.useInstrumentMode ?? true) {
 				args.factorioArgs.push("--instrument-mod", "debugadapter");
@@ -244,14 +325,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 		if (this.activeVersion.configPathIsOverriden()) {
 			args.factorioArgs.push("--config", await this.activeVersion.configPath());
-		}
-
-		if (args.modsPathSource !== "config") {
-			let mods = args.modsPath;
-			if (!mods.endsWith("/")) {
-				mods += "/";
-			}
-			args.factorioArgs.push("--mod-directory", mods);
 		}
 
 		if (args.adjustModSettings) {
