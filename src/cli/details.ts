@@ -9,7 +9,6 @@ import { visit } from "unist-util-visit";
 import { addModImage, editModDetails, editModImages, getPackageinfo, ModPortalDetailsEdit } from "./tasks";
 import { getModInfo, ModPortalImage } from '../ModManager';
 import path from 'path';
-//import type { ModCategory, ModLicense } from '../ModManager';
 
 //@ts-ignore
 import readdirGlob from 'readdir-glob';
@@ -108,7 +107,6 @@ program.command("details")
 				});
 				await Promise.all(files.sort().map(async (f)=>addGalleryImage(f, info.name, images, usedImageIDs)));
 			}
-
 		}
 
 		const readme = await processMarkdown(
