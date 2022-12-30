@@ -145,21 +145,24 @@ local activeline
 local callstack = {}
 -- timer tree for flamegraph
 
----@type flamenode
+---@type flameroot
 local calltree = {
   root = true,
   children = {}
 }
 
+---@class flameroot
+---@field root true
+---@field children table<string,flamenode> nodes for functions called by this function
+
 ---@class flamenode
----@field root boolean if this node is the root of the tree - will not include other fields except `children`
 ---@field funcname string names this fun is called by
 ---@field filename string the file this function is defined in
 ---@field line number the line this function is defined at
 ---@field timer Accumulator the time in this function
 ---@field children table<string,flamenode> nodes for functions called by this function
 
----@param tree flamenode
+---@param tree flamenode|flameroot
 local function dumptree(tree)
   if tree.root then
     print("PROOT:")
@@ -174,7 +177,7 @@ local function dumptree(tree)
 end
 
 
----@param treenode flamenode
+---@param treenode flamenode|flameroot
 ---@param source string
 ---@param linedefined integer
 ---@param name string|nil
