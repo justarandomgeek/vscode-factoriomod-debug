@@ -201,7 +201,7 @@
 			"name": "comment.line.factorio-locale"
 		},
 		{
-			"match": "^[ \t\r]*([^=.]+)(=)(.+)$",
+			"match": "^[ \t\r]*(.*?)(=)(.*)$",
 			"name": "meta.record.factorio-locale",
 			"captures": {
 				"1": {"name": "variable.factorio-locale"},
