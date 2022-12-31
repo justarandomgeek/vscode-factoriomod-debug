@@ -25,5 +25,5 @@ The debugger also injects runtime diagnostics into all hooked mods:
 
 ## Advanced Features
 
-  * [Debugger Mod API](doc/debugapi.md)
-  * [Custom Debug Views](doc/variables.md)
+  * [Debugger Mod API](debugapi.md)
+  * [Custom Debug Views](variables.md)
