@@ -628,16 +628,16 @@ export async function forkScript(term:ModTaskTerminal, module:string, args:strin
 	scriptenv.Path = addBinToPath(scriptenv.Path??"");
 
 	return new Promise((resolve, reject)=>{
-		const inspect = !!inspector.url;
+		const inspect = !!inspector.url();
 		const scriptProc = fork(module, args, {
 			cwd: cwd,
-			execArgv: inspect ? ["--inspect-brk=34200"] : undefined,
+			execArgv: inspect ? ["--nolazy", "--inspect-brk=34200"] : undefined,
 			env: scriptenv,
 			stdio: "pipe",
 		});
 
 		if (inspect) {
-			console.log("Task forked");
+			console.log(`Task forked`);
 		}
 
 		scriptProc.on("message", (message:{cmd:"getConfig"; section:string})=>{
