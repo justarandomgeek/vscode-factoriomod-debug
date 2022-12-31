@@ -109,7 +109,8 @@ function colorToStrings(color: Color): string[] {
 function documentDefinitions(doc:Root, uri:string) {
 	const definitions:{ name:string; link:LocationLink }[] = [];
 	visitParents(doc, "record", (record, parents)=>{
-		const section = parents[0].type==="section" ? parents[0].value : undefined;
+		const parent = parents.length > 0 ? parents[parents.length-1] : undefined;
+		const section = parent?.type==="section" ? parent.value : undefined;
 		definitions.push({
 			name: section ? `${section}.${record.value}` : record.value,
 			link: {
