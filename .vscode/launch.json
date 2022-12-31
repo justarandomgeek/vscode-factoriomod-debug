@@ -87,7 +87,6 @@
 				"${workspaceFolder}/dist/**/*.js"
 			],
 			"presentation": {
-				"hidden": true,
 				"group": "1 - Subprocesses"
 			},
 		},
