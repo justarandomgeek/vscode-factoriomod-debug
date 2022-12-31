@@ -1,10 +1,9 @@
 import type archiver from "archiver";
 import type { Edit } from "jsonc-parser";
-import type { Readable } from 'stream';
 import * as fsp from 'fs/promises';
-import FormData from "form-data";
+import { FormData, Blob } from "formdata-node";
 import mimer from "mimer";
-import { default as fetch, Headers } from "node-fetch";
+import { default as fetch, Headers, BodyInit } from "node-fetch";
 
 import type { ModInfo } from "../vscode/ModPackageProvider";
 import type { ModCategory, ModLicense, ModPortalImage } from "../ModManager";
@@ -177,7 +176,7 @@ async function post_form<T extends {}>(form:FormData, url:string) {
 
 	const result = await fetch(url, {
 		method: "POST",
-		body: form,
+		body: form as BodyInit,
 		headers: new Headers({"Authorization": `Bearer ${APIKey}`}),
 	});
 	if (!result.ok) {
@@ -195,19 +194,13 @@ async function init_upload(name:string, url:string) {
 	return result.upload_url;
 }
 
-export async function addModRelease(name:string, packagestream:Readable|Buffer) {
+export async function addModRelease(name:string, packagestream:Buffer) {
 	console.log(`Uploading to mod portal...`);
 
 	const upload_url = await init_upload(name, "https://mods.factorio.com/api/v2/mods/releases/init_upload");
 
 	const file_form = new FormData();
-	file_form.append(
-		"file",
-		packagestream,
-		{
-			filename: `${name}.zip`,
-			contentType: 'application/x-zip-compressed',
-		});
+	file_form.append("file", new Blob([packagestream], {type: 'application/x-zip-compressed'}), `${name}.zip`,);
 	await post_form(file_form, upload_url) as {success:true};
 	console.log(`Published ${name}`);
 	return;
@@ -217,13 +210,7 @@ export async function addModImage(name:string, image:Buffer, filename:string):Pr
 	const upload_url = await init_upload(name, "https://mods.factorio.com/api/v2/mods/images/add");
 
 	const image_form = new FormData();
-	image_form.append(
-		"image", image,
-		{
-			filename: filename,
-			contentType: mimer(filename),
-		}
-	);
+	image_form.append("image", new Blob([image], {type: mimer(filename)}), filename);
 	return await post_form(image_form, upload_url) as ModPortalImage;
 }
 
