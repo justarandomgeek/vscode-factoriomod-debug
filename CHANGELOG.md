@@ -13,6 +13,7 @@
   * `fmtk mod install` can now download from portal
 * Debugger:
   * Moved `modsPath` deduction from environment from extension to common DAP code
+  * Fixed conditional breakpoints not skipping correctly
 * Profiler:
   * Fixed some instances of profiler UI not being disposed correctly
 * Sumneko plugin:

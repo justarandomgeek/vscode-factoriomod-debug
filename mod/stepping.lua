@@ -155,18 +155,16 @@ do
 
             if b.condition then
               local success,conditionResult = __DebugAdapter.evaluateInternal(frameId,nil,"breakpoint",b.condition)
-              if success and conditionResult then
-                isHit = true
+              if success and (not conditionResult) then
+                isHit = false
               end
             end
 
-            if b.hitCondition then
-              if isHit then -- only counts if condition was true
-                b.hits = (b.hits or 0) + 1
-                local success,hitResult = __DebugAdapter.evaluateInternal(frameId,nil,"breakpoint",b.hitCondition)
-                if success and type(hitResult) == "number" and b.hits < hitResult then
-                  isHit = false
-                end
+            if isHit and b.hitCondition then -- only counts if condition was true
+              b.hits = (b.hits or 0) + 1
+              local success,hitResult = __DebugAdapter.evaluateInternal(frameId,nil,"breakpoint",b.hitCondition)
+              if success and type(hitResult) == "number" and b.hits < hitResult then
+                isHit = false
               end
             end
 
