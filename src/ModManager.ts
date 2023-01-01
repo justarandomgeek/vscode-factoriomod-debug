@@ -115,22 +115,21 @@ export class ModManager {
 		return fsp.writeFile(listPath, JSON.stringify(this.modList, null, 2), 'utf8');
 	}
 
-	private async getDownloadCredentials(prompt:()=>Promise<{username:string; password:string}>) {
+	private async getDownloadCredentials(prompt:(username?:string)=>Promise<{username:string; password:string}>) {
 		const playerdatapath = this.playerdataPath ?? path.resolve(this.modsPath, "../player-data.json");
 
-		const playerdata:{
-			["service-username"]: string
-			["service-token"]: string
-		} = playerdatapath && await fsp.readFile(playerdatapath, "utf8")
-			.then(text=>JSON.parse(text))
-			.catch(()=>undefined);
+		const playerdata = playerdatapath ? await fsp.readFile(playerdatapath, "utf8")
+			.then(text=>JSON.parse(text) as {
+				["service-username"]: string
+				["service-token"]: string
+			}).catch(()=>undefined) : undefined;
 		if (playerdata?.["service-token"]) {
 			return {
 				username: playerdata['service-username'],
 				token: playerdata['service-token'],
 			};
 		}
-		const got = await prompt();
+		const got = await prompt(playerdata?.['service-username']);
 
 		const login_result = await fetch("https://auth.factorio.com/api-login", {
 			method: "POST",
@@ -148,7 +147,7 @@ export class ModManager {
 		if (playerdata) {
 			playerdata['service-username'] = login_json.username;
 			playerdata['service-token'] = login_json.token;
-			await fsp.writeFile(playerdatapath!, JSON.stringify(playerdata, undefined, 2));
+			await fsp.writeFile(playerdatapath, JSON.stringify(playerdata, undefined, 2));
 		}
 
 		return login_json;
