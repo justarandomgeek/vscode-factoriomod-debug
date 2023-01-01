@@ -33,7 +33,7 @@
 			"serverReadyAction":{
 				"action": "startDebugging",
 				"name": "Tasks",
-				"pattern": "Task forked",
+				"pattern": "Debugger listening on (ws://[^ ]*)"
 			},
 			"cascadeTerminateToConfigurations": ["LSP"]
 		},

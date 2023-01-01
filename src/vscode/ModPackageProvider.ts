@@ -636,10 +636,6 @@ export async function forkScript(term:ModTaskTerminal, module:string, args:strin
 			stdio: "pipe",
 		});
 
-		if (inspect) {
-			console.log(`Task forked`);
-		}
-
 		scriptProc.on("message", (message:{cmd:"getConfig"; section:string})=>{
 			switch (message.cmd) {
 				case "getConfig":
@@ -656,6 +652,9 @@ export async function forkScript(term:ModTaskTerminal, module:string, args:strin
 		});
 		const stderr = new BufferSplitter(scriptProc.stderr!, Buffer.from("\n"));
 		stderr.on("segment", (chunk:Buffer)=>{
+			if (chunk.toString().match(/^Debugger listening/)) {
+				console.log(chunk.toString());
+			}
 			term.write(chunk.toString()+"\r\n");
 		});
 
