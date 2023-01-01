@@ -1,6 +1,6 @@
 import { program } from 'commander';
 import inquirer from "inquirer";
-import { ModManager, BundledMods } from '../ModManager';
+import { ModManager } from '../ModManager';
 
 const modscommand = program.command("mods")
 	.description("Mod management commands")
@@ -22,7 +22,7 @@ modscommand.command("disable <modname>")
 		await manager.write();
 	});
 modscommand.command("install <modname>")
-	.description(`Install a mod. Currently only supports bundled mods: ${Object.keys(BundledMods)}`)
+	.description(`Install a mod.`)
 	.option("--keepOld", "Don't remove old versions if present")
 	.action(async (modname:string, options:{keepOld?:boolean})=>{
 		const manager = new ModManager(modscommand.opts().modsPath);
