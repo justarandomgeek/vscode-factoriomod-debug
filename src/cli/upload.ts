@@ -1,5 +1,5 @@
 import path from 'path';
-import { createReadStream } from "fs";
+import * as fsp from 'fs/promises';
 import { program } from 'commander';
 import { addModRelease } from "./tasks";
 
@@ -20,6 +20,5 @@ program.command("upload <zipname> [name]")
 			return;
 		}
 
-		const packagezip = createReadStream(zipname);
-		await addModRelease(name, packagezip);
+		await addModRelease(name, await fsp.readFile(zipname));
 	});

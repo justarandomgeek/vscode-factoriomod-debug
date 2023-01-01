@@ -179,7 +179,7 @@ export class ModManager {
 				const cred = await this.getDownloadCredentials(options.credentialPrompt);
 				const download = await fetch(`https://mods.factorio.com/${lastrelease.download_url}?username=${cred.username}&token=${cred.token}`);
 				if (!download.ok) { throw new Error(download.statusText); }
-				return download.body;
+				return download.body!;
 			},
 		};
 	}
