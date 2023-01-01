@@ -42,6 +42,7 @@ async function getConfigFromFile<T extends {}>(section:string):Promise<Partial<T
 				values[key.substring(section.length+1)] = config[key];
 			}
 		}
+		console.log(`Got config section ${section} from ${configfile}`);
 		return values as Partial<T>;
 	} catch (error) {}
 	return undefined;
@@ -52,6 +53,7 @@ async function getConfigFromIPC<T extends {}>(section:string):Promise<Partial<T>
 	const p = new Promise<Partial<T>>((resolve)=>{
 		const gotconfig = (msg:{cmd:string;section:string;config:Partial<T>})=>{
 			if (msg.cmd === "config" && msg.section === section) {
+				console.log(`Got config section ${section} from VSCode`);
 				resolve(msg.config);
 			}
 			process.off("message", gotconfig);
