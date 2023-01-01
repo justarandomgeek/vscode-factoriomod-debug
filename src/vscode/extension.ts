@@ -81,7 +81,7 @@ class DebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
 						}
 					));
 			case "external":
-				if (!!inspector.url) {
+				if (!!inspector.url()) {
 					executable.args.unshift("--nolazy", "--inspect-brk=34198");
 				}
 				executable.args.push(...await activeVersion.debugLaunchArgs());
