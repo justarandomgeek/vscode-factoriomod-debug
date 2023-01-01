@@ -88,7 +88,7 @@ export async function getModInfo(name:string, full?:boolean):Promise<ModPortalRe
 	if (!result.ok) {
 		throw new Error(result.statusText);
 	}
-	return await result.json();
+	return await result.json() as Promise<ModPortalResult<boolean>>;
 }
 export class ModManager {
 	private modList:ModList = { mods: [] };
