@@ -24,6 +24,7 @@ program
 				Flamegraph: "./src/Profile/Flamegraph.ts",
 			},
 			external: [
+				"keytar",
 				"vscode",
 				"vscode-webview",
 			],

@@ -1,12 +1,12 @@
 import type archiver from "archiver";
 import type { Edit } from "jsonc-parser";
 import * as fsp from 'fs/promises';
-import { FormData, Blob } from "formdata-node";
 import mimer from "mimer";
-import { default as fetch, Headers, BodyInit } from "node-fetch";
+import { default as fetch, Headers, FormData, Blob } from "node-fetch";
 
 import type { ModInfo } from "../vscode/ModPackageProvider";
 import type { ModCategory, ModLicense, ModPortalImage } from "../ModManager";
+import inquirer from "inquirer";
 
 export async function getPackageinfo() {
 	try {
@@ -169,14 +169,48 @@ export interface PortalError {
 	message:string
 }
 
-async function post_form<T extends {}>(form:FormData, url:string) {
-	const APIKey = process.env["FACTORIO_UPLOAD_API_KEY"];
+let APIKey:string|undefined;
+async function getAPIKey() {
+	if (APIKey) { return APIKey; }
 
-	if (!APIKey) { throw new Error("No API Key"); }
+	const env = process.env["FACTORIO_UPLOAD_API_KEY"];
+	if (env) {
+		APIKey = env;
+		return env;
+	}
+
+	const keytar = await import("keytar").then(m=>m.default).catch(()=>undefined);
+	if (keytar) {
+		const key = await keytar.getPassword("fmtk", "factorio-uploadmods");
+		if (key) {
+			APIKey = key;
+			return key;
+		}
+	}
+
+	const { key } = await inquirer.prompt<{key:string}>([{
+		message: "Mod Portal API Key:",
+		name: "key",
+		type: "password",
+	}]);
+
+	if (key) {
+		if (keytar) {
+			keytar.setPassword("fmtk", "factorio-uploadmods", key);
+		}
+		APIKey = key;
+		return key;
+	}
+
+	throw new Error("No API Key");
+}
+
+async function post_form<T extends {}>(form:FormData, url:string) {
+	const APIKey = await getAPIKey();
 
 	const result = await fetch(url, {
 		method: "POST",
-		body: form as BodyInit,
+		body: form,
 		headers: new Headers({"Authorization": `Bearer ${APIKey}`}),
 	});
 	if (!result.ok) {
