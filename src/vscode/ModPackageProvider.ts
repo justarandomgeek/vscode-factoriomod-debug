@@ -184,6 +184,14 @@ class ModTaskProvider implements vscode.TaskProvider {
 				[]
 			));
 			tasks.push(new vscode.Task(
+				{label: `${modpackage.label}.details`, type: "factorio", modname: modpackage.label, command: "details"},
+				vscode.workspace.getWorkspaceFolder(modpackage.resourceUri) || vscode.TaskScope.Workspace,
+				`${modpackage.label}.details`,
+				"factorio",
+				modpackage.DetailsTask(),
+				[]
+			));
+			tasks.push(new vscode.Task(
 				{label: `${modpackage.label}.publish`, type: "factorio", modname: modpackage.label, command: "publish"},
 				vscode.workspace.getWorkspaceFolder(modpackage.resourceUri) || vscode.TaskScope.Workspace,
 				`${modpackage.label}.publish`,
@@ -234,6 +242,8 @@ class ModTaskProvider implements vscode.TaskProvider {
 						return mp.IncrementTask();
 					case "upload":
 						return mp.PostToPortalTask();
+					case "details":
+						return mp.DetailsTask();
 					case "publish":
 						return mp.PublishTask();
 					default:
@@ -453,6 +463,19 @@ class ModPackage extends vscode.TreeItem {
 							FACTORIO_UPLOAD_API_KEY: APIKey,
 						});
 				}
+				await this.Update();
+				term.close();
+			});
+		});
+	}
+
+	public DetailsTask() {
+		return new vscode.CustomExecution(async ()=>{
+			return new ModTaskPseudoterminal(async term=>{
+				await forkScript(term,
+					this.context.asAbsolutePath("./dist/fmtk.js"),
+					["details"],
+					vscode.Uri.joinPath(this.resourceUri, "..").fsPath);
 				await this.Update();
 				term.close();
 			});
