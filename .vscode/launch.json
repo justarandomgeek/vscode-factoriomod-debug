@@ -95,9 +95,6 @@
 			"type": "node",
 			"request": "launch",
 			"program": "${workspaceFolder}/dist/fmtk.js",
-			"env": {
-				"FACTORIO_UPLOAD_API_KEY":""
-			},
 			"args": [
 			],
 			"console": "integratedTerminal",
