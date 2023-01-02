@@ -102,6 +102,10 @@
               "type":"boolean",
               "description": "Don't automatically upload to the mod portal in Publish"
             },
+            "no_portal_details": {
+              "type":"boolean",
+              "description": "Don't automatically update mod details in Publish"
+            },
             "scripts":{
               "type":"object",
               "description": "Additional scripts to run while packaging/publishing mods",

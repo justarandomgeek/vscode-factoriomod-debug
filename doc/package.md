@@ -4,7 +4,11 @@ Mods can be automatically Packaged and Published from the "Factorio Mod Packages
 
 ## API Key
 
-Uploading to the mod portal requires an API key with the `ModPortal: Upload Mods` usage, which can be created on https://factorio.com/profile. You will be prompted for this key when it is first required.
+Interacting with the Mod Portal requires an API key, which you can create at https://factorio.com/profile. You will be prompted for this key when it is required by tasks, and then it will be stored in the OS keychain (Windows Credential Manager, macOS  Keychain, Linux Secret Service API/libsecret) if available. You can also provide the API key as an environment variable `FACTORIO_UPLOAD_API_KEY` to the cli tool `fmtk`, which will take precedence over the keychain.
+
+Uploading new releases (`upload`, `publish` commands) requires a key with the `ModPortal: Upload Mods` permission.
+
+Updating mod details (`details`, `publish` commands) requires a key with the `ModPortal: Edit Mods` permission.
 
 ## Tasks
 
@@ -31,6 +35,12 @@ These tasks can also be accessed in VSCode's Tasks system. Custom scripts will r
   * select a package in mod directory
   * upload to mod portal
 
+### Details
+  * upload readme.md (or file named in `info.json#/package/readme`) to mod portal long description
+  * upload faq.md (or file named in `info.json#/package/faq`) to mod portal long description
+  * update mod portal title, homepage, summary from `info.json#/title`, `info.json#/homepage`, `info.json#/description`
+  * sync gallery to `info.json#/package/gallery` if set, add any images used by readme/faq
+
 ### Publish
 
 All-in-one command.
@@ -43,6 +53,7 @@ All-in-one command.
   * git tag, unless `info.json#/package/no_git_tag` is set
   * run `info.json#/package/scripts/publish` if set
   * upload to mod portal, unless `info.json#/package/no_portal_upload` is set
+    * and run **Details** unless `info.json#/package/no_portal_details` is set
   * run `info.json#/package/scripts/postpublish` if set, with extra environment variable `FACTORIO_MODPACKAGE` with the filename of the built zip in a temporary folder.
   * run **Increment Version**
   * commit "moved to version x.y.z"
