@@ -1,4 +1,3 @@
-import type { WorkspaceConfiguration } from "vscode";
 import { overlay } from "./Overlay";
 import { version as bundleVersion } from "../../package.json";
 import type { WriteStream } from "fs";
@@ -8,6 +7,15 @@ type ApiBuiltinCustom =
 	{kind:"none"} |
 	{kind:"alias"; base:string} |
 	{kind:"class"; base:string[]; operators?:boolean};
+
+interface DocSettings {
+	docLinksVersion?:"latest"|"current"
+	signedUMinus?:boolean
+	builtinOperators?:boolean
+	builtinCustomStyle?:{[k:string]:ApiBuiltinCustom}
+	useInteger?:boolean
+	numberStyle?:"alias"|"class"|"aliasNative"
+}
 
 function escape_lua_keyword(str:string) {
 	const keywords = ["and", "break", "do", "else", "elseif", "end", "false", "for",
@@ -37,7 +45,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 	private readonly runtime_api_base:string;
 
-	constructor(docjson:string, private readonly docsettings:Pick<WorkspaceConfiguration, "get">) {
+	constructor(docjson:string, private readonly docsettings:DocSettings) {
 		this.docs = JSON.parse(docjson);
 
 		if (this.docs.application !== "factorio") {
@@ -52,7 +60,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			throw `Unknown stage: ${this.docs.stage}`;
 		}
 
-		switch (docsettings.get("docLinksVerion")) {
+		switch (docsettings.docLinksVersion) {
 			case "latest":
 			default:
 				this.runtime_api_base = "https://lua-api.factorio.com/latest/";
@@ -292,7 +300,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	}
 
 	private add_all_math_operators(output:Writable, result_type:string) {
-		output.write(`---@operator unm:${this.docsettings.get<boolean>("signedUMinus", true) && result_type.startsWith("uint")?result_type.substring(1):result_type}\n`);
+		output.write(`---@operator unm:${(this.docsettings.signedUMinus ?? true) && result_type.startsWith("uint")?result_type.substring(1):result_type}\n`);
 		output.write(`---@operator mod:${result_type}\n`);
 		output.write(`---@operator add:${result_type}\n`);
 		output.write(`---@operator div:${result_type}\n`);
@@ -302,7 +310,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 	private add_class_builtin(output:Writable, name:string, base:string[], with_operators:boolean = true) {
 		output.write(`---@class ${name}${base.length>0?":":""}${base.join(",")}\n`);
-		if (with_operators && this.docsettings.get<boolean>("builtinOperators", true)) {
+		if (with_operators && (this.docsettings.builtinOperators ?? true)) {
 			this.add_all_math_operators(output, name);
 		}
 		output.write(`\n`);
@@ -310,7 +318,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 	private generate_sumneko_builtin(output:Writable) {
 		this.docs.builtin_types.forEach(builtin=>{
-			const custom = this.docsettings.get<{[k:string]:ApiBuiltinCustom}>("builtinCustomStyle")?.[builtin.name];
+			const custom = this.docsettings.builtinCustomStyle?.[builtin.name];
 			if (custom) {
 				if (custom.kind === "none") { return; }
 				output.write(this.convert_sumneko_description(builtin.description, this.view_documentation(builtin.name)));
@@ -332,11 +340,11 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 				case "unsigned":
 				case "integer":
 					builtinType =
-						(this.docsettings.get<boolean>("useInteger", true) === false) ?
+						((this.docsettings.useInteger ?? true) === false) ?
 							"number" : "integer";
 					break;
 			}
-			switch (this.docsettings.get("numberStyle")) {
+			switch (this.docsettings.numberStyle) {
 				case "aliasNative":
 				default:
 					const isNative =

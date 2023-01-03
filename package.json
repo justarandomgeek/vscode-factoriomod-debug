@@ -441,7 +441,7 @@
             "description": "Use lua `integer` type for specialized integer types",
             "default": true
           },
-          "factorio.docs.docLinksVerion": {
+          "factorio.docs.docLinksVersion": {
             "description": "What version to use when generating docs links",
             "enumDescriptions": [
               "Always link to the `latest` docs available online",

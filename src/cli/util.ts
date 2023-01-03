@@ -73,12 +73,3 @@ export async function getConfig<T extends {}>(section:string, defaults:T|Promise
 		]),
 	);
 }
-
-export async function getConfigGetter<T extends {}>(section:string, defaults:T) {
-	const config = await getConfig(section, defaults);
-	return {
-		get: function<K extends keyof T>(key:K, defaultValue?:T[K]) {
-			return config[key] ?? defaultValue;
-		},
-	};
-}

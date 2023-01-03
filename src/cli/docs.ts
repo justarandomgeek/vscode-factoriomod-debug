@@ -1,7 +1,7 @@
 import * as fsp from 'fs/promises';
 import path from 'path';
 import { program } from 'commander';
-import { getConfigGetter } from "./util";
+import { getConfig } from "./util";
 import { createWriteStream } from 'fs';
 
 program.command("sumneko-3rd [outdir]")
@@ -29,7 +29,7 @@ program.command("docs <docjson> <outdir>")
 	});
 async function docscommand(docjson:string, outdir:string) {
 	const { ApiDocGenerator } = await import('../ApiDocs/ApiDocGenerator');
-	const docs = new ApiDocGenerator((await fsp.readFile(docjson, "utf8")).toString(), await getConfigGetter("docs", {}));
+	const docs = new ApiDocGenerator((await fsp.readFile(docjson, "utf8")).toString(), await getConfig("docs", {}));
 	await fsp.mkdir(outdir, { recursive: true });
 	docs.generate_sumneko_docs((filename:string)=>{
 		return createWriteStream(path.join(outdir, filename));

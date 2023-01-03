@@ -7,7 +7,7 @@ import readdirGlob from 'readdir-glob';
 
 import { URI, Utils } from 'vscode-uri';
 import { ActiveFactorioVersion, FactorioVersion } from "../vscode/FactorioVersion";
-import { fsAccessor, getConfigGetter } from "./util";
+import { fsAccessor, getConfig } from "./util";
 
 
 program.command("debug <factorioPath>")
@@ -29,7 +29,7 @@ program.command("debug <factorioPath>")
 		);
 		const docsjson = await fsp.readFile(docsPath.fsPath, "utf8");
 		const { ApiDocGenerator } = await import('../ApiDocs/ApiDocGenerator');
-		const activeVersion = new ActiveFactorioVersion(fsAccessor, fv, new ApiDocGenerator(docsjson, await getConfigGetter("doc", {})));
+		const activeVersion = new ActiveFactorioVersion(fsAccessor, fv, new ApiDocGenerator(docsjson, await getConfig("doc", {})));
 
 		// start a single session that communicates via stdin/stdout
 		const { FactorioModDebugSession } = await import('../Debug/factorioModDebug');
