@@ -17,7 +17,7 @@
   * Moved `modsPath` deduction from environment from extension to common DAP code
   * Fixed conditional breakpoints not skipping correctly
 * Profiler:
-  * Fixed some instances of profiler UI not being disposed correctly
+  * Fixed some instances of profiler UI not being created/disposed correctly
 * Sumneko plugin:
   * Ignore `/c`, `/command`, `/sc`, etc at start of a line
 
