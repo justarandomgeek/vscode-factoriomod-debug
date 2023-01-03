@@ -29,7 +29,7 @@ program.command("docs <docjson> <outdir>")
 	});
 async function docscommand(docjson:string, outdir:string) {
 	const { ApiDocGenerator } = await import('../ApiDocs/ApiDocGenerator');
-	const docs = new ApiDocGenerator((await fsp.readFile(docjson, "utf8")).toString(), await getConfigGetter("doc", {}));
+	const docs = new ApiDocGenerator((await fsp.readFile(docjson, "utf8")).toString(), await getConfigGetter("docs", {}));
 	await fsp.mkdir(outdir, { recursive: true });
 	docs.generate_sumneko_docs((filename:string)=>{
 		return createWriteStream(path.join(outdir, filename));
