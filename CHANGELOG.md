@@ -6,7 +6,6 @@
 * Tasks:
   * Fix PATH variable separator used on non-windows when adding `fmtk` from extension for scripts
   * added `fmtk details` to update mod details and gallery from info.json, readme.md, faq.md
-    * included in `fmtk publish` by default, unless `info.json#/package/no_portal_details` is set
   * CLI tasks store api key in OS keychain if available
 * Locale:
   * Various TextMate grammar tweaks

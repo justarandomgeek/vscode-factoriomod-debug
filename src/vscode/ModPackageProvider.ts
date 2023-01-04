@@ -45,7 +45,7 @@ export interface ModInfo {
 		no_git_tag?: boolean
 		git_publish_branch?: string|null
 		no_portal_upload?: boolean
-		no_portal_details?: boolean
+		sync_portal_details?: boolean
 		scripts?: ModPackageScripts
 	}
 };

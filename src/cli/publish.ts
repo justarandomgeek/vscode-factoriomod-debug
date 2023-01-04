@@ -131,7 +131,7 @@ program.command("publish")
 
 		if (!info.package?.no_portal_upload) {
 			await addModRelease(info.name, zipbuffer);
-			if (!info.package?.no_portal_details) {
+			if (info.package?.sync_portal_details) {
 				await doPackageDetails(info);
 			}
 		}

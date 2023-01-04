@@ -36,10 +36,13 @@ These tasks can also be accessed in VSCode's Tasks system. Custom scripts will r
   * upload to mod portal
 
 ### Details
-  * upload readme.md (or file named in `info.json#/package/readme`) to mod portal long description
-  * upload faq.md (or file named in `info.json#/package/faq`) to mod portal long description
-  * update mod portal title, homepage, summary from `info.json#/title`, `info.json#/homepage`, `info.json#/description`
-  * sync gallery to `info.json#/package/gallery` if set, add any images used by readme/faq
+  * update mod portal information:
+    * title, homepage, summary from `info.json#/title`, `info.json#/homepage`, `info.json#/description`
+    * upload readme.md (or file named in `info.json#/package/readme`) to mod portal long description
+    * upload faq.md (or file named in `info.json#/package/faq`) to mod portal long description
+  * sync gallery:
+    * images listed in `info.json#/package/gallery` if set
+    * any local images used by readme/faq will be added to the end of the gallery
 
 ### Publish
 
@@ -53,7 +56,7 @@ All-in-one command.
   * git tag, unless `info.json#/package/no_git_tag` is set
   * run `info.json#/package/scripts/publish` if set
   * upload to mod portal, unless `info.json#/package/no_portal_upload` is set
-    * and run **Details** unless `info.json#/package/no_portal_details` is set
+    * also run **Details** if `info.json#/package/sync_portal_details` is set
   * run `info.json#/package/scripts/postpublish` if set, with extra environment variable `FACTORIO_MODPACKAGE` with the filename of the built zip in a temporary folder.
   * run **Increment Version**
   * commit "moved to version x.y.z"
