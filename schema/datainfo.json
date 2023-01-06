@@ -33,6 +33,7 @@
       "type": "string",
       "title": "Homepage for the mod",
       "description": "Please don't put \"None\" here, just leave it empty if none",
+      "format": "uri",
       "pattern": "^($|http(s?):)"
     },
     "description": {

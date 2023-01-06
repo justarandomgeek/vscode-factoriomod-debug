@@ -86,6 +86,36 @@
               "type":"string",
               "description": "Markdown file to be uploaded to the portal as faq"
             },
+            "markdown": {
+              "type": "object",
+              "description": "Options for transforming markdown files uploaded to the portal",
+              "properties":{
+                "strip_first_header": {
+                  "type": "boolean",
+                  "description": "Strip the first header",
+                  "default": true
+                },
+                "images": {
+                  "default": "gallery",
+                  "enum": ["gallery", "url"]
+                },
+                "links": {
+                  "default": "url",
+                  "enum": ["url"]
+                },
+                "base_url": {
+                  "type":"string",
+                  "format": "uri",
+                  "description": "Base url for `url` rewrites. If not set, links will not be rewritten."
+                },
+                "url_match": {
+                  "type": "string",
+                  "format": "regex",
+                  "default": "^((http(s?)|data):|#)",
+                  "description": "Urls matching this regex will *not* be rewritten"
+                }
+              }
+            },
             "no_git_push": {
               "type":"boolean",
               "description": "Don't automatically `git push` in Publish"

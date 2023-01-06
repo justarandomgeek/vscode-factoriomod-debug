@@ -41,6 +41,13 @@ export interface ModInfo {
 		prune_gallery?: boolean
 		readme?:string
 		faq?:string
+		markdown?:{
+			strip_first_header?:boolean
+			images?:"gallery"|"url"
+			links?:"url"
+			base_url?:string
+			url_match?:string
+		}
 		no_git_push?: boolean
 		no_git_tag?: boolean
 		git_publish_branch?: string|null

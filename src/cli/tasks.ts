@@ -11,8 +11,7 @@ import { getModInfo, ModCategory, ModLicense, ModPortalImage } from "../ModManag
 import type archiver from "archiver";
 import type { Edit } from "jsonc-parser";
 import type { VFile } from "vfile";
-import type { Node } from "unist";
-import type { Image } from "mdast";
+import type { Root, Image, Link } from "mdast";
 import type { ModInfo } from "../vscode/ModPackageProvider";
 
 //@ts-ignore
@@ -331,12 +330,29 @@ async function processMarkdown(
 	modname:string,
 	images:ModPortalImage[],
 	usedImageIDs:Set<string>,
+	options:(ModInfo["package"]&{})["markdown"]
 ):Promise<string|undefined> {
 	const file = await fsp.readFile(filename, "utf8").catch(()=>undefined);
 	if (!file) { return; }
 
+	const url_match = new RegExp(options?.url_match ?? /^((http(s?)|data):|#)/);
+	let base_url = options?.base_url;
+	if (base_url && !base_url.endsWith("/")) {
+		base_url += "/";
+	}
+
 	const result = await remark().use(function () {
-		return async function(tree:Node, file:VFile) {
+		return async function(tree:Root, file:VFile) {
+
+			if (options?.strip_first_header ?? true) {
+				// remove first token if it's a Header-1
+				const first = tree.children[0];
+				if (first.type === "heading" && first.depth === 1) {
+					tree.children.splice(0, 1);
+				}
+			}
+
+			// sync local images to portal
 			const imageNodes = new Map<string, Image[]>();
 			visit(tree, "image", (node:Image)=>{
 				let nodes = imageNodes.get(node.url);
@@ -347,12 +363,29 @@ async function processMarkdown(
 				}
 			});
 			for (const [url, nodes] of imageNodes) {
-				if (url.match(/^(http(s?)|data):/)) { continue; }
+				if (url.match(url_match)) { continue; }
 
-				const image = await addGalleryImage(path.resolve(file.cwd, url), modname, images, usedImageIDs);
-				if (!image) { continue; }
+				switch (options?.images) {
+					case "gallery":
+					default:
+						const image = await addGalleryImage(path.resolve(file.cwd, url), modname, images, usedImageIDs);
+						if (!image) { continue; }
+						nodes.forEach(node=>{ node.url = image.url; });
+						break;
+					case "url":
+						if (!base_url) { continue; }
+						const new_url = base_url+url;
+						nodes.forEach(node=>{ node.url = new_url; });
+						break;
+				}
+			}
 
-				nodes.forEach(node=>{ node.url = image.url; });
+			// rewrite local links to base_url
+			if (base_url) {
+				visit(tree, "link", (node:Link)=>{
+					if (node.url.match(url_match)) { return; }
+					node.url = base_url+node.url;
+				});
 			}
 		};
 	}).process(file);
@@ -391,11 +424,11 @@ export async function doPackageDetails(info:ModInfo, options?:{
 
 	const readme = await processMarkdown(
 		options?.readme ?? info.package?.readme ?? "readme.md",
-		info.name, images, usedImageIDs);
+		info.name, images, usedImageIDs, info?.package?.markdown);
 	if (readme) { details.description = readme; }
 	const faq = await processMarkdown(
 		options?.faq ?? info.package?.faq ?? "faq.md",
-		info.name, images, usedImageIDs);
+		info.name, images, usedImageIDs, info?.package?.markdown);
 	if (faq) { details.faq = faq; }
 
 	// keep existing images by default unless `gallery` is specified
