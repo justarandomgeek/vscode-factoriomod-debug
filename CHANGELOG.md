@@ -15,6 +15,7 @@
 * Debugger:
   * Moved `modsPath` deduction from environment from extension to common DAP code
   * Fixed conditional breakpoints not skipping correctly
+  * Fixed display of fetchable functions on LuaObjects with json v3
 * Profiler:
   * Fixed some instances of profiler UI not being created/disposed correctly
 * Sumneko plugin:

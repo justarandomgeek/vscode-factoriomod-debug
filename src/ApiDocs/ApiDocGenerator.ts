@@ -213,6 +213,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 						break;
 
 					case 2:
+					case 3:
 						if (method.return_values.length === 0) { continue; }
 						if (method.raises) { continue; }
 						cc[method.name] = {
