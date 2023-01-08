@@ -8,7 +8,7 @@ type ApiBuiltinCustom =
 	{kind:"alias"; base:string} |
 	{kind:"class"; base:string[]; operators?:boolean};
 
-interface DocSettings {
+export interface DocSettings {
 	docLinksVersion?:"latest"|"current"
 	signedUMinus?:boolean
 	builtinOperators?:boolean
