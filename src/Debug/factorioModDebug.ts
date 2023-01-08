@@ -1251,27 +1251,25 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					continue;
 				}
 
-				if (module.name === "core" || module.name === "base") {
-					// find `core` and `base` in data
-					module.symbolFilePath = Utils.joinPath(URI.file(await this.activeVersion.dataPath()), module.name).toString();
-					module.symbolStatus = "Loaded Data Directory";
-					this.sendEvent(new OutputEvent(`loaded ${module.name} from data ${module.symbolFilePath}\n`, "stdout"));
-					continue;
-				}
-
 				try {
-					const wm = this.workspaceModInfo.find(m=>m.name===module.name && semver.eq(m.version, module.version!, {"loose": true}));
-					if (wm) {
-						// find it in workspace
-						module.symbolFilePath = wm.uri.toString();
-						module.symbolStatus = "Loaded Workspace Directory";
-						this.sendEvent(new OutputEvent(`loaded ${module.name} ${module.version} from workspace ${module.symbolFilePath}\n`, "stdout"));
+					const datadir = Utils.joinPath(URI.file(await this.activeVersion.dataPath()), module.name);
+					const modinfo:ModInfo = JSON.parse(Buffer.from(
+						await this.fs.readFile(Utils.joinPath(datadir, "info.json"))).toString("utf8"));
+					if (modinfo.name===module.name) {
+						module.symbolFilePath = datadir.toString();
+						module.symbolStatus = "Loaded Data Directory";
+						this.sendEvent(new OutputEvent(`loaded ${module.name} from data ${module.symbolFilePath}\n`, "stdout"));
 						continue;
 					}
-				} catch (ex) {
-					if ((<vscode.FileSystemError>ex).code !== "FileNotFound") {
-						this.sendEvent(new OutputEvent(`failed loading ${module.name} ${module.version} from workspace: ${ex}\n`, "stderr"));
-					}
+				} catch {}
+
+				const wm = this.workspaceModInfo.find(m=>m.name===module.name && semver.eq(m.version, module.version!, {"loose": true}));
+				if (wm) {
+					// find it in workspace
+					module.symbolFilePath = wm.uri.toString();
+					module.symbolStatus = "Loaded Workspace Directory";
+					this.sendEvent(new OutputEvent(`loaded ${module.name} ${module.version} from workspace ${module.symbolFilePath}\n`, "stdout"));
+					continue;
 				}
 
 				if (this.launchArgs!.modsPath) {
