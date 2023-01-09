@@ -577,6 +577,10 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			}
 		});
 
+		if (thismodule?.name === "#user" && clientPath.startsWith(thismodule.symbolFilePath+"/mods")) {
+			thismodule = undefined;
+		}
+
 		if (thismodule) {
 			return clientPath.replace(thismodule.symbolFilePath!, "@__"+thismodule.name+"__");
 		}
