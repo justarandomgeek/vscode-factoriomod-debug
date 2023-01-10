@@ -2,7 +2,7 @@ import {
 	Logger, logger,
 	LoggingDebugSession,
 	StoppedEvent, OutputEvent,
-	Thread, Source, Module, ModuleEvent, InitializedEvent, Scope, Variable, Event, TerminatedEvent, LoadedSourceEvent,
+	Thread, Source, Module, ModuleEvent, InitializedEvent, Scope, Variable, Event, TerminatedEvent, LoadedSourceEvent, BreakpointEvent,
 } from '@vscode/debugadapter';
 import type { DebugProtocol } from '@vscode/debugprotocol';
 import * as path from 'path';
@@ -78,7 +78,8 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	private _configurationDone?: resolver<void>;
 	private configDone: Promise<void>;
 
-	private readonly breakPoints = new Map<string, DebugProtocol.SourceBreakpoint[]>();
+	private nextBreakpointID = 1;
+	private readonly breakPoints = new Map<string, (DebugProtocol.SourceBreakpoint&{id:number; verified:boolean})[]>();
 	private readonly breakPointsChanged = new Set<string>();
 
 	// unhandled only by default
@@ -585,7 +586,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			return clientPath.replace(thismodule.symbolFilePath!, "@__"+thismodule.name+"__");
 		}
 
-		this.sendEvent(new OutputEvent(`unable to translate path ${clientPath}\n`, "stderr"));
 		return clientPath;
 	}
 
@@ -616,10 +616,10 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 
 	protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
-		let bpuri:URI;
 		let bppath:string;
 		if (args.source.path) {
-			const inpath = <string>args.source.path;
+			const inpath = args.source.path;
+			let bpuri:URI;
 			if (inpath.match(/^[a-zA-Z]:/)) { // matches c:\... or c:/... style windows paths, single drive letter
 				bpuri = URI.file(inpath.replace(/\\/g, "/"));
 			} else { // everything else is already a URI
@@ -630,20 +630,56 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			bppath = `&ref ${args.source.sourceReference}`;
 		}
 
-		const bps = (args.breakpoints || []).map((bp)=>{
-			bp.line = this.convertClientLineToDebugger(bp.line);
-			return bp;
-		});
-		this.breakPoints.set(bppath, bps || []);
-		this.breakPointsChanged.add(bppath);
+		const lines = this.lines_by_source.get(args.source.sourceReference ?? bppath );
+		const oldbps = this.breakPoints.get(bppath) ?? [];
 
-		const actualBreakpoints = (bps || []).map((bp)=>{ return {line: bp.line, verified: true }; });
+		const bps = (args.breakpoints ?? []).map((bp)=>{
+			bp.line = this.convertClientLineToDebugger(bp.line);
+			const oldbp = oldbps.find(old=>bp.line===old.line && bp.column===old.column);
+			if (oldbp) {
+
+				return oldbp;
+			}
+			let verified = false;
+			if (lines) {
+				for (const line of lines) {
+					if (line >= bp.line) {
+						bp.line = line;
+						verified = true;
+						break;
+					}
+				}
+			}
+			return Object.assign(bp, {id: this.nextBreakpointID++, verified: verified});
+		});
+
+		this.breakPoints.set(bppath, bps);
+		this.breakPointsChanged.add(bppath);
 
 		// send back the actual breakpoint positions
 		response.body = {
-			breakpoints: actualBreakpoints,
+			breakpoints: bps,
 		};
 		this.sendResponse(response);
+	}
+
+	private revalidateBreakpoints(source:string|number) {
+		const bppath = typeof source === "number" ? `&ref ${source}` : source;
+		const bps = this.breakPoints.get(bppath);
+		if (!bps) { return; }
+
+		this.breakPointsChanged.add(bppath);
+		const lines = this.lines_by_source.get(source)!;
+		for (const bp of bps) {
+			for (const line of lines) {
+				if (line >= bp.line) {
+					bp.line = line;
+					bp.verified = true;
+					this.sendEvent(new BreakpointEvent("changed", bp));
+					break;
+				}
+			}
+		}
 	}
 
 	protected threadsRequest(response: DebugProtocol.ThreadsResponse): void {
@@ -675,7 +711,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					if (frame.source.path) {
 						frame.source.path = this.convertDebuggerPathToClient(frame.source.path);
 					}
-					const sourceid = frame.source.path ?? frame.source.sourceReference;
+					const sourceid = frame.source.sourceReference ?? frame.source.name;
 					if (sourceid) {
 						const dump = this.dumps_by_source.get(sourceid)?.get(frame.linedefined);
 						if (dump) {
@@ -882,7 +918,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	// dumps sorted by base address
 	private dumps_by_address:LuaFunction[] = [];
 
-	private lines_by_source = new Map<number|string, Set<number>>();
+	private lines_by_source = new Map<number|string, number[]>();
 
 	private loadedSources:(Source&DebugProtocol.Source)[] = [];
 
@@ -893,7 +929,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		}
 
 		if (loaded.dump) {
-			const dumpid = source.path ?? source.sourceReference;
+			const dumpid = source.sourceReference ?? source.name;
 			const dump = new LuaFunction(new BufferStream(Buffer.from(loaded.dump, "base64")), true);
 			this.nextdump = dump.rebase(this.nextdump);
 
@@ -919,7 +955,8 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			});
 
 			this.dumps_by_source.set(dumpid, by_line);
-			this.lines_by_source.set(dumpid, lines);
+			this.lines_by_source.set(dumpid, Array.from(lines).sort());
+			this.revalidateBreakpoints(dumpid);
 		}
 		this.loadedSources.push(source);
 		this.sendEvent(new LoadedSourceEvent("new", source));
@@ -982,7 +1019,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			const lines = this.lines_by_source?.get(sourceid);
 			if (lines) {
 				response.body = {
-					breakpoints: Array.from(lines.values()).map(l=>{ return {line: l}; }),
+					breakpoints: lines.map(l=>{ return {line: l}; }),
 				};
 			}
 		}
