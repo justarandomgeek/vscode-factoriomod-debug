@@ -96,7 +96,9 @@
 			"request": "launch",
 			"program": "${workspaceFolder}/dist/fmtk.js",
 			"args": [
+				"publish"
 			],
+			"cwd": "${env:APPDATA}/factorio/mods/jargtestmod",
 			"console": "integratedTerminal",
 			"skipFiles": [
 				"<node_internals>/**",
