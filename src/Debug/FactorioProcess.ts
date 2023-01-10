@@ -36,7 +36,7 @@ export class FactorioProcess extends EventEmitter {
 			this.emit("stderr", chunkstr);
 		});
 		const stdout = new BufferSplitter(this.factorio.stdout!, stdoutsplit);
-		stdout.on("segment", async (chunk:Buffer)=>{
+		stdout.on("segment", (chunk:Buffer)=>{
 			let chunkstr:string = chunk.toString();
 			chunkstr = chunkstr.replace(/^[\r\n]*/, "").replace(/[\r\n]*$/, "");
 			if (!chunkstr) { return; }
