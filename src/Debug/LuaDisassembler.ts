@@ -419,7 +419,7 @@ export class LuaFunction {
 					address: "0x"+(this._baseAddr+offset+i).toString(16),
 					instruction: this.getInstructionLabel(i+offset),
 					line: this.instructions[i+offset].line,
-					instructionBytes: this.instructions[i+offset].raw.toString(16),
+					instructionBytes: this.instructions[i+offset].raw.toString(16).padStart(8, "0"),
 					symbol: i+offset===0 ? this.sources[this.instructions[i+offset].source_idx??0] +":"+this.firstline : undefined,
 				});
 			}
