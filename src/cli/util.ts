@@ -30,7 +30,7 @@ const fsAccessor:  Pick<FileSystem, "readFile"|"writeFile"|"stat"> = {
 export { fsAccessor };
 
 async function getConfigFromFile<T extends {}>(section:string):Promise<Partial<T>|undefined> {
-	const configfile = process.env["FMTK_CONFIG_FILE"] ?? path.join(os.homedir(), ".fmtk", "config.json");
+	const configfile = process.env["FMTK_CONFIG"] ?? path.join(os.homedir(), ".fmtk", "config.json");
 	try {
 		const config = JSON.parse(await fsp.readFile(configfile, "utf8"));
 		if (typeof config !== "object" || Array.isArray(config)) {
@@ -48,28 +48,12 @@ async function getConfigFromFile<T extends {}>(section:string):Promise<Partial<T
 	return undefined;
 }
 
-async function getConfigFromEnv<T extends {}>(section:string):Promise<Partial<T>|undefined> {
-	const configenv = process.env["FMTK_CONFIG"];
-	if (!configenv) { return undefined; }
-	try {
-		const config = JSON.parse(configenv);
-		if (typeof config !== "object" || Array.isArray(config)) {
-			return undefined;
-		}
-		const values = config[section];
-		console.log(`Got config section ${section} from ENV:FMTK_CONFIG`);
-		return values as Partial<T>;
-	} catch (error) {}
-	return undefined;
-}
-
 export async function getConfig<T extends {}>(section:string, defaults:T|PromiseLike<T>):Promise<T> {
 	return Object.assign(
 		{},
 		...await Promise.all([
 			defaults,
 			getConfigFromFile<T>(section),
-			getConfigFromEnv<T>(section),
 		]),
 	);
 }

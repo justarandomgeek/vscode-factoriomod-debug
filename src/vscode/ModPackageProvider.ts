@@ -4,7 +4,8 @@ import * as semver from 'semver';
 import { fork } from 'child_process';
 import { BufferSplitter } from '../Util/BufferSplitter';
 import { Keychain } from './Keychain';
-import { platform } from 'os';
+import { platform, tmpdir } from 'os';
+import * as dot from "dot-object";
 import inspector from 'inspector';
 
 interface ModPackageScripts {
@@ -652,14 +653,18 @@ interface ModTaskTerminal {
 	close():void
 }
 
+const fmtk_config_file = vscode.Uri.file(path.join(tmpdir(), `vscode-${process.pid}-fmtk-config.json`));
+
 export async function forkScript(term:ModTaskTerminal, module:string, args:string[], cwd:string, env?:NodeJS.ProcessEnv, stdin?:string): Promise<number> {
 	const config = vscode.workspace.getConfiguration("factorio");
 
+	await vscode.workspace.fs.writeFile(fmtk_config_file, Buffer.from(JSON.stringify(dot.dot({
+		docs: await config.get("docs"),
+		package: await config.get("package"),
+	}))));
+
 	const scriptenv = Object.assign({}, process.env, env, {
-		FMTK_CONFIG: JSON.stringify({
-			docs: await config.get("docs"),
-			package: await config.get("package"),
-		}),
+		FMTK_CONFIG: fmtk_config_file.fsPath,
 	});
 
 	scriptenv.Path = addBinToPath(scriptenv.Path??"");
@@ -690,6 +695,7 @@ export async function forkScript(term:ModTaskTerminal, module:string, args:strin
 		});
 
 		scriptProc.on("exit", (code, signal)=>{
+			vscode.workspace.fs.delete(fmtk_config_file);
 			resolve(code ?? -1);
 		});
 
