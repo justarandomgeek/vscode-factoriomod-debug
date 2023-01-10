@@ -261,9 +261,9 @@ do
         until not k or k == "noise_expression_metatable"
         if v then
           require("__debugadapter__/noise.lua")(v)
-          log("installed noise expression hook")
+          __DebugAdapter.print("installed noise expression hook", nil, nil, "console")
         else
-          log("failed to install noise expression hook")
+          __DebugAdapter.print("failed to install noise expression hook", nil, nil, "console")
         end
       end
       local parent = getinfo(3,"f")

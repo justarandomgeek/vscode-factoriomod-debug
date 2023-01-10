@@ -153,7 +153,7 @@ do
   end
 
   if data then
-    log("debugadapter registered for data" .. ininstrument)
+    __DebugAdapter.print("debugadapter registered for data" .. ininstrument, nil, nil, "console")
     __DebugAdapter.attach()
     print("DBG: on_data")
     debug.debug()
@@ -163,7 +163,7 @@ do
   else
     -- in addition to the global, set up a remote so we can configure from DA's on_tick
     -- and pass stepping state around remote calls
-    log("debugadapter registered for " .. script.mod_name .. ininstrument)
+    __DebugAdapter.print("debugadapter registered for " .. script.mod_name .. ininstrument, nil, nil, "console")
     remote.add_interface("__debugadapter_" .. script.mod_name ,{
       setBreakpoints = __DebugAdapter.setBreakpoints,
       longVariables = __DebugAdapter.variables,

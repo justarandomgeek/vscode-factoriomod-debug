@@ -187,11 +187,11 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		const args = launchArgs.factorioArgs;
 		if (args) {
 			if (args.includes("--config")) {
-				this.sendEvent(new OutputEvent("Factorio --config option is set by configPath and should not be included in factorioArgs\n", "stdout"));
+				this.sendEvent(new OutputEvent("Factorio --config option is set by configPath and should not be included in factorioArgs\n", "console"));
 				return false;
 			}
 			if (args.includes("--mod-directory")) {
-				this.sendEvent(new OutputEvent("Factorio --mod-directory option is set by modsPath and should not be included in factorioArgs\n", "stdout"));
+				this.sendEvent(new OutputEvent("Factorio --mod-directory option is set by modsPath and should not be included in factorioArgs\n", "console"));
 				return false;
 			}
 		}
@@ -216,7 +216,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				await fsp.access(modspath);
 				args.modsPath = modspath;
 			} catch (error) {
-				this.sendEvent(new OutputEvent("modsPath specified in launch configuration does not exist\n", "stdout"));
+				this.sendEvent(new OutputEvent("modsPath specified in launch configuration does not exist\n", "console"));
 				return false;
 			}
 		} else {
@@ -229,7 +229,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				modsPathSource = "workspace";
 			} else if (workspaceModLists.length > 1) {
 				// found more than one
-				this.sendEvent(new OutputEvent("multiple mod-list.json in workspace, please specify one as modsPath\n", "stdout"));
+				this.sendEvent(new OutputEvent("multiple mod-list.json in workspace, please specify one as modsPath\n", "console"));
 				return false;
 			} else {
 				// found none. detect from config.ini
@@ -241,7 +241,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		if (os.platform() === "win32" && args.modsPath.startsWith("/")) { args.modsPath = args.modsPath.substr(1); }
 
 		args.modsPath = args.modsPath.replace(/\\/g, "/");
-		this.sendEvent(new OutputEvent(`using modsPath ${args.modsPath} (${modsPathSource})\n`, "stdout"));
+		this.sendEvent(new OutputEvent(`using modsPath ${args.modsPath} (${modsPathSource})\n`, "console"));
 
 		if (modsPathSource !== "config") {
 			let mods = args.modsPath;
@@ -255,7 +255,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	private async setupMods(args: LaunchRequestArguments) {
 		if (args.manageMod === false) {
-			this.sendEvent(new OutputEvent(`automatic management of mods disabled\n`, "stdout"));
+			this.sendEvent(new OutputEvent(`automatic management of mods disabled\n`, "console"));
 		} else {
 			if (!args.adjustMods) { args.adjustMods = {}; }
 			if (!args.allowDisableBaseMod) { args.adjustMods["base"] = true; }
@@ -275,12 +275,12 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				manager.set("coverage", false);
 				manager.set("profiler", false);
 				const result = await manager.installMod("debugadapter", {origin: "bundle"});
-				this.sendEvent(new OutputEvent(`package install debugadapter ${JSON.stringify(result)}\n`, "stdout"));
+				this.sendEvent(new OutputEvent(`package install debugadapter ${JSON.stringify(result)}\n`, "console"));
 			} else {
 				manager.set("debugadapter", false);
 			}
 			await manager.write();
-			this.sendEvent(new OutputEvent(`debugadapter ${args.noDebug?"disabled":"enabled"} in mod-list.json\n`, "stdout"));
+			this.sendEvent(new OutputEvent(`debugadapter ${args.noDebug?"disabled":"enabled"} in mod-list.json\n`, "console"));
 		}
 	}
 
@@ -1256,13 +1256,13 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				if (modinfo.name===module.name && semver.eq(modinfo.version, module.version!, {"loose": true})) {
 					module.symbolFilePath = dir.toString();
 					module.symbolStatus = "Loaded Mod Directory";
-					this.sendEvent(new OutputEvent(`loaded ${module.name} ${module.version} from modspath ${module.symbolFilePath}\n`, "stdout"));
+					this.sendEvent(new OutputEvent(`loaded ${module.name} ${module.version} from modspath ${module.symbolFilePath}\n`, "console"));
 					return true;
 				}
 			}
 		} catch (ex) {
 			if ((<vscode.FileSystemError>ex).code !== "FileNotFound" && (<vscode.FileSystemError>ex).code !== "ENOENT") {
-				this.sendEvent(new OutputEvent(`failed loading ${module.name} ${module.version} from modspath: ${ex}\n`, "stderr"));
+				this.sendEvent(new OutputEvent(`failed loading ${module.name} ${module.version} from modspath: ${ex}\n`, "console"));
 			}
 			return false;
 		}
@@ -1282,7 +1282,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				if (module.name === "#user") {
 					module.symbolFilePath = URI.file(await this.activeVersion.writeDataPath()).toString();
 					module.symbolStatus = "Loaded Write Data Directory";
-					this.sendEvent(new OutputEvent(`loaded ${module.name} from config ${module.symbolFilePath}\n`, "stdout"));
+					this.sendEvent(new OutputEvent(`loaded ${module.name} from config ${module.symbolFilePath}\n`, "console"));
 					continue;
 				}
 
@@ -1299,7 +1299,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					if (modinfo.name===module.name) {
 						module.symbolFilePath = datadir.toString();
 						module.symbolStatus = "Loaded Data Directory";
-						this.sendEvent(new OutputEvent(`loaded ${module.name} from data ${module.symbolFilePath}\n`, "stdout"));
+						this.sendEvent(new OutputEvent(`loaded ${module.name} from data ${module.symbolFilePath}\n`, "console"));
 						continue;
 					}
 				} catch {}
@@ -1309,7 +1309,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					// find it in workspace
 					module.symbolFilePath = wm.uri.toString();
 					module.symbolStatus = "Loaded Workspace Directory";
-					this.sendEvent(new OutputEvent(`loaded ${module.name} ${module.version} from workspace ${module.symbolFilePath}\n`, "stdout"));
+					this.sendEvent(new OutputEvent(`loaded ${module.name} ${module.version} from workspace ${module.symbolFilePath}\n`, "console"));
 					continue;
 				}
 
@@ -1345,10 +1345,10 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 								const zipinside = Utils.joinPath(zipuri, module.name+"_"+module.version).with({scheme: "zip"});
 								module.symbolFilePath = zipinside.toString();
 								module.symbolStatus = "Loaded Zip";
-								this.sendEvent(new OutputEvent(`loaded ${module.name} ${module.version} from mod zip ${zipuri.toString()}\n`, "stdout"));
+								this.sendEvent(new OutputEvent(`loaded ${module.name} ${module.version} from mod zip ${zipuri.toString()}\n`, "console"));
 								continue;
 							} catch (ex) {
-								this.sendEvent(new OutputEvent(`failed loading ${module.name} ${module.version} from mod zip ${zipuri.toString()}: ${ex}\n`, "stderr"));
+								this.sendEvent(new OutputEvent(`failed loading ${module.name} ${module.version} from mod zip ${zipuri.toString()}: ${ex}\n`, "console"));
 							}
 						}
 					}
@@ -1358,7 +1358,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				this.sendEvent(new OutputEvent(`no source found for ${module.name} ${module.version}\n`, "console"));
 			} catch (ex) {
 				module.symbolStatus = "Error";
-				this.sendEvent(new OutputEvent(`failed locating source for ${module.name} ${module.version}: ${ex}\n`, "stderr"));
+				this.sendEvent(new OutputEvent(`failed locating source for ${module.name} ${module.version}: ${ex}\n`, "console"));
 			}
 		}
 		//TODO: another event to update it with levelpath for __level__ eventually?
@@ -1388,16 +1388,16 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		const modsPath = this.launchArgs!.modsPath;
 		if (modsPath) {
 			if (this.launchArgs!.manageMod === false) {
-				this.sendEvent(new OutputEvent(`automatic management of mods disabled by launch config\n`, "stdout"));
+				this.sendEvent(new OutputEvent(`automatic management of mods disabled by launch config\n`, "console"));
 			} else {
 				try {
 					const manager = new ModManager(modsPath);
 					await manager.Loaded;
 					manager.set("debugadapter", false);
 					await manager.write();
-					this.sendEvent(new OutputEvent(`debugadapter disabled in mod-list.json\n`, "stdout"));
+					this.sendEvent(new OutputEvent(`debugadapter disabled in mod-list.json\n`, "console"));
 				} catch (error) {
-					this.sendEvent(new OutputEvent(`failed to disable debugadapter in mod-list.json:\n${error}\n`, "stdout"));
+					this.sendEvent(new OutputEvent(`failed to disable debugadapter in mod-list.json:\n${error}\n`, "console"));
 				}
 			}
 		}

@@ -18,6 +18,7 @@
   * Fixed display of fetchable functions on LuaObjects with json v3
   * Breakpoints now start unverified until the file is loaded
   * Disassembly now formats instruction raw bytes with leading zeros
+  * Use `console` type Output Events for messages printed from debugger internals
 * Profiler:
   * Fixed some instances of profiler UI not being created/disposed correctly
 * Sumneko plugin:
