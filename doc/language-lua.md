@@ -80,3 +80,7 @@ remote.__typed_interfaces.foo.bar("arg 1", "arg 2")
 ### LuaObject Type Tests
 
 To allow the Language Server to see that `LuaObject.object_name` is "like `type()`" for type tests, such as `if obj.object_name == "LuaPlayer" then end`, the plugin rewrites it to appear as an internal function `if __object_name(obj) == "LuaPlayer" then end`, and this function is marked as "like `type()`" in the configuration.
+
+### Commands
+
+In-game lua commands `/c`, `/command`, `/silent-command`, `/sc`, and `/measured-command` will be ignored at teh start of any line.
