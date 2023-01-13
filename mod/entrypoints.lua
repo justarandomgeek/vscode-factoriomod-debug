@@ -1,6 +1,11 @@
 local rawxpcall = xpcall
 local debug = debug
+local table = table
 local print = print
+local pairs = pairs
+local error = error
+local type = type
+local select = select
 ---@type fun(ls:LocalisedString)
 local localised_print = localised_print
 local __DebugAdapter = __DebugAdapter

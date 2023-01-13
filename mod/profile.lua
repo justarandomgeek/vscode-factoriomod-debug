@@ -10,6 +10,7 @@ local print = print
 ---@type fun(ls:LocalisedString)
 local localised_print = localised_print
 local debug = debug
+local string = string
 local mod_name = script.mod_name
 local pairs = pairs
 

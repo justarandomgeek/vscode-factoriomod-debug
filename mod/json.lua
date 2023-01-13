@@ -6,7 +6,6 @@ local mhuge = math.huge
 local rawget = rawget
 local next = next
 local pairs = pairs
-local ipairs = ipairs
 local tostring = tostring
 local type = type
 

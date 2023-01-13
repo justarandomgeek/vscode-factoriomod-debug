@@ -50,7 +50,7 @@ local remote = remote and (type(remote)=="table" and rawget(remote,"__raw")) or 
 
 local debug = debug
 local string = string
-
+local setmetatable = setmetatable
 local print = print
 
 local variables = require("__debugadapter__/variables.lua")

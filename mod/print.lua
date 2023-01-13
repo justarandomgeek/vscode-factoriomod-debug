@@ -5,6 +5,10 @@ local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 require("__debugadapter__/evaluate.lua") -- uses pcall
 local json = require('__debugadapter__/json.lua')
 local print = print
+local type = type
+local next = next
+local setmetatable = setmetatable
+local getmetatable = getmetatable
 
 ---@class DebugAdapter.Print
 local DAprint = {}
