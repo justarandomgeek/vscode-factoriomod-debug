@@ -2,6 +2,9 @@
 
 [<img height='36' style='border:0px;height:36px;' src='https://az743702.vo.msecnd.net/cdn/kofi2.png?v=2' border='0' alt='Buy Me a Coffee at ko-fi.com'/>](https://ko-fi.com/X8X41IE4T)
 
+## 1.1.28
+
+
 ## 1.1.27
 * Tasks:
   * Fix PATH variable separator used on non-windows when adding `fmtk` from extension for scripts
