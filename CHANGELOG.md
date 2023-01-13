@@ -5,7 +5,7 @@
 ## 1.1.28
 * Debugger:
   * Fixed some cases where mods could clobber builtins that debugger relies on
-
+  * Fixed breakpoint validation incorrectly moving breakpoints from valid locations
 ## 1.1.27
 * Tasks:
   * Fix PATH variable separator used on non-windows when adding `fmtk` from extension for scripts

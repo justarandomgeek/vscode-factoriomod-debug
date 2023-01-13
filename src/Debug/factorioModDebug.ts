@@ -955,7 +955,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			});
 
 			this.dumps_by_source.set(dumpid, by_line);
-			this.lines_by_source.set(dumpid, Array.from(lines).sort());
+			this.lines_by_source.set(dumpid, Array.from(lines).sort((a, b)=>a-b));
 			this.revalidateBreakpoints(dumpid);
 		}
 		this.loadedSources.push(source);
