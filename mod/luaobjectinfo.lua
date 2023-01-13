@@ -1,7 +1,24 @@
 local invert = require("__debugadapter__/enumutil.lua").invert
 local __DebugAdapter = __DebugAdapter
 local script = script
+local defines = defines
 local pcall = pcall
+local print = print
+local load = load
+local select = select
+local pairs = pairs
+local next = next
+local type = type
+local string = string
+local getmetatable = getmetatable
+local setmetatable = setmetatable
+local debug = debug
+local dgetinfo = debug.getinfo
+local dgetlocal = debug.getlocal
+local dgetupvalue = debug.getupvalue
+local dgetmetatable = debug.getmetatable
+local tconcat = table.concat
+
 local validLuaObjectTypes = {table=true,userdata=true}
 
 ---@class LuaObjectInfo
@@ -22,7 +39,7 @@ do
     if chunk then
       objectChunks[#objectChunks+1] = chunk
     else
-      luaObjectInfo = load(table.concat(objectChunks),"=(objectinfo)","t")() --[[@as LuaObjectInfo]]
+      luaObjectInfo = load(tconcat(objectChunks),"=(objectinfo)","t")() --[[@as LuaObjectInfo]]
     end
   end
   print("DBG: object_info")
@@ -124,7 +141,7 @@ eventlike.__newindex.LuaCustomTable = setmetatable({},{__index = function() retu
 local function check_eventlike(level,hooktype)
   if not script then return end
 
-  local info = debug.getinfo(level,"nSf")
+  local info = dgetinfo(level,"nSf")
   if not info then return end
 
   if info.what ~= "C" then return end
@@ -133,7 +150,7 @@ local function check_eventlike(level,hooktype)
   local classes = eventlike[fname]
   if classes then -- __index or __newindex
 
-    local _,t = debug.getlocal(level,1)
+    local _,t = dgetlocal(level,1)
     if (not validLuaObjectTypes[type(t)]) or getmetatable(t) ~= "private" then return end
 
     ---@type string
@@ -143,7 +160,7 @@ local function check_eventlike(level,hooktype)
     local class = classes[tname]
     if not class then return end
 
-    local _,k = debug.getlocal(level,2)
+    local _,k = dgetlocal(level,2)
     local member = class[k]
     if member then
       if fname == "__index" then
@@ -153,7 +170,7 @@ local function check_eventlike(level,hooktype)
           -- pcall in case it's a bad lookup
           local success,func = pcall(function () return t[k] end)
           if success and type(func)=="function" then
-            local _,memberptr = debug.getupvalue(func,2)
+            local _,memberptr = dgetupvalue(func,2)
             eventlike_members[memberptr] = {class=tname,member=k}
             -- only need to do this once, so unhook it once we get one!
             class[k] = nil
@@ -167,14 +184,14 @@ local function check_eventlike(level,hooktype)
 
       else -- __newindex
         -- do the thing
-        return true,tname,k,(select(2,debug.getlocal(level,3)))
+        return true,tname,k,(select(2,dgetlocal(level,3)))
       end
     end
 
   else -- other cfunctions, not __index or __newindex
 
     local f = info.func
-    local _,memberptr = debug.getupvalue(f,2)
+    local _,memberptr = dgetupvalue(f,2)
     if memberptr then
       local member = eventlike_members[memberptr]
       if member then
@@ -194,7 +211,7 @@ local function try_object_name(obj)
   -- basic checks for LuaObject-like things: is table(<=1.1) or usedata(>=1.2), has masked meta
   if not validLuaObjectTypes[type(obj)] then return end
 
-  local mt = debug.getmetatable(obj)
+  local mt = dgetmetatable(obj)
   if not mt then return end
   if mt.__metatable ~= "private" then return end
 
