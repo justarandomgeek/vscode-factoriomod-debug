@@ -1,4 +1,9 @@
 local to_tree_node
+local pairs = pairs
+local next = next
+local tostring = tostring
+local debug = debug
+local table = table
 
 local function expval(ex)
   return { name = ex.type, value = __DebugAdapter.describe(ex.literal_value), children={} }

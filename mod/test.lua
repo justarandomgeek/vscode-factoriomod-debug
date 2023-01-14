@@ -7,6 +7,8 @@ __debugnext throws
 __pairs throws
 __next throws
 ]]
+local error = error
+local setmetatable = setmetatable
 
 local function badnext(t,k)
   if not k then return 1,"start" end

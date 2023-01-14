@@ -6,6 +6,8 @@ local script = script
 local debug = debug
 local print = print
 local pairs = pairs
+local select = select
+local table_size = table_size
 local __DebugAdapter = __DebugAdapter
 
 ---@class DebugAdapter.Stacks

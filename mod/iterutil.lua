@@ -1,4 +1,5 @@
 local next = next
+local type = type
 local unpack = table.unpack
 
 ---@generic K, V

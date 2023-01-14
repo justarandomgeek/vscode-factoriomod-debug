@@ -1,3 +1,5 @@
+local pairs = pairs
+
 --- swap the keys and values on a table
 ---@generic T
 ---@param t? table<string,T>
