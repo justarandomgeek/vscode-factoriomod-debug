@@ -1385,7 +1385,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	private async terminate() {
 		this.factorio?.kill?.();
-		const modsPath = this.launchArgs!.modsPath;
+		const modsPath = this.launchArgs?.modsPath;
 		if (modsPath) {
 			if (this.launchArgs!.manageMod === false) {
 				this.sendEvent(new OutputEvent(`automatic management of mods disabled by launch config\n`, "console"));
