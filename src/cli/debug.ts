@@ -29,7 +29,7 @@ program.command("debug <factorioPath>")
 		);
 		const docsjson = await fsp.readFile(docsPath.fsPath, "utf8");
 		const { ApiDocGenerator } = await import('../ApiDocs/ApiDocGenerator');
-		const activeVersion = new ActiveFactorioVersion(fsAccessor, fv, new ApiDocGenerator(docsjson, await getConfig("doc", {})));
+		const activeVersion = new ActiveFactorioVersion(fsAccessor, fv, new ApiDocGenerator(docsjson, await getConfig("doc", {}, true)));
 
 		// start a single session that communicates via stdin/stdout
 		const { FactorioModDebugSession } = await import('../Debug/factorioModDebug');

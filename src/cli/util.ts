@@ -29,7 +29,7 @@ const fsAccessor:  Pick<FileSystem, "readFile"|"writeFile"|"stat"> = {
 
 export { fsAccessor };
 
-async function getConfigFromFile<T extends {}>(section:string):Promise<Partial<T>|undefined> {
+async function getConfigFromFile<T extends {}>(section:string, silent?:boolean):Promise<Partial<T>|undefined> {
 	const configfile = process.env["FMTK_CONFIG"] ?? path.join(os.homedir(), ".fmtk", "config.json");
 	try {
 		const config = JSON.parse(await fsp.readFile(configfile, "utf8"));
@@ -42,18 +42,20 @@ async function getConfigFromFile<T extends {}>(section:string):Promise<Partial<T
 				values[key.substring(section.length+1)] = config[key];
 			}
 		}
-		console.log(`Got config section ${section} from ${configfile}`);
+		if (!silent) {
+			console.log(`Got config section ${section} from ${configfile}`);
+		}
 		return values as Partial<T>;
 	} catch (error) {}
 	return undefined;
 }
 
-export async function getConfig<T extends {}>(section:string, defaults:T|PromiseLike<T>):Promise<T> {
+export async function getConfig<T extends {}>(section:string, defaults:T|PromiseLike<T>, silent?:boolean):Promise<T> {
 	return Object.assign(
 		{},
 		...await Promise.all([
 			defaults,
-			getConfigFromFile<T>(section),
+			getConfigFromFile<T>(section, silent),
 		]),
 	);
 }
