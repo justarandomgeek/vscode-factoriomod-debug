@@ -11,6 +11,11 @@ export const BundledMods:{[name:string]:{version:string; zip():Promise<Uint8Arra
 		//@ts-expect-error UInt8Array from esbuild
 		zip: async()=>(await import("factoriomod:../mod")).default,
 	},
+	["debugadapter-tests"]: {
+		version: bundleVersion,
+		//@ts-expect-error UInt8Array from esbuild
+		zip: async()=>(await import("factoriomod:../test/mod")).default,
+	},
 };
 
 

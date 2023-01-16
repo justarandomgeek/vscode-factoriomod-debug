@@ -6,4 +6,6 @@ npm-debug.log
 *.vsix
 *.zip
 mod/info.json
-test/testversion.json
+test/mod/info.json
+test/factorio/**
+!test/factorio/keep

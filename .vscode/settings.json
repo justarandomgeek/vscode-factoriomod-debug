@@ -9,7 +9,8 @@
     "files.trimTrailingWhitespace": true,
     "editor.insertSpaces": false,
     "Lua.workspace.ignoreDir": [
-        ".vscode"
+        ".vscode",
+        "test/factorio"
     ],
     // run debug config "Standalone Sumneko Docs" to generate out/docs
     "Lua.workspace.library": [
