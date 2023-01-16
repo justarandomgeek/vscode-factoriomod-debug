@@ -2,9 +2,8 @@
 node_modules/
 out/
 dist/
-modpackage/
 npm-debug.log
-mock-debug.txt
 *.vsix
 *.zip
 mod/info.json
+test/testversion.json
