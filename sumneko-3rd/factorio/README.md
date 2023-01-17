@@ -244,13 +244,17 @@ Any of the following at the start of a line will be removed by the plugin allowi
 - `/sc`
 - `/measured-command`
 
+The lua context specifier `__modname__` following any of the above is also removed when present.
+
 For example
 ```lua
 /c game.print("Hello world!")
 /sc game.speed = 10
+/c __my_mod__ game.print(serpent.block(global.foo))
 ```
 Would look something similar to this to the language server
 ```lua
 game.print("Hello world!")
 game.speed = 10
+game.print(serpent.block(global.foo))
 ```
