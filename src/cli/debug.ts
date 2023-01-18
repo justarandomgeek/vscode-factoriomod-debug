@@ -15,12 +15,14 @@ program.command("debug <factorioPath>")
 	.option("-d, --docs <docsPath>", "path to runtime-api.json")
 	.option("-c, --config <configPath>", "path to config.ini")
 	.option("-w, --workspace <workspacePath...>", "path to workspace folders")
-	.action(async (factorioPath:string, options:{docs?:string; config?:string; workspace?:string[]})=>{
+	.option("-n, --nativeDebugger <nativeDebugger>")
+	.action(async (factorioPath:string, options:{docs?:string; config?:string; workspace?:string[]; nativeDebugger?:string})=>{
 		const fv: FactorioVersion = {
 			name: "standalone",
 			factorioPath: factorioPath,
 			configPath: options.config,
 			docsPath: options.docs,
+			nativeDebugger: options.nativeDebugger,
 		};
 		const docsPath = Utils.joinPath(URI.file(factorioPath),
 			fv.docsPath ? fv.docsPath :
