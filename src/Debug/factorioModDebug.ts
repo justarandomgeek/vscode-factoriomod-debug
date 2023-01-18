@@ -35,8 +35,8 @@ type EvaluateResponseBody = DebugProtocol.EvaluateResponse['body'] & {
 
 type resolver<T> = (value: T | PromiseLike<T>)=>void;
 
-interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
-	modsPath: string // path of `mods` directory
+export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
+	modsPath?: string // path of `mods` directory
 	manageMod?: boolean
 	useInstrumentMode?: boolean
 	checkPrototypes?: boolean
@@ -260,7 +260,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			if (!args.adjustMods) { args.adjustMods = {}; }
 			if (!args.allowDisableBaseMod) { args.adjustMods["base"] = true; }
 
-			const manager = new ModManager(args.modsPath);
+			const manager = new ModManager(args.modsPath!);
 			await manager.Loaded;
 			if (args.disableExtraMods) {
 				manager.disableAll();
@@ -329,7 +329,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		}
 
 		if (args.adjustModSettings) {
-			const modSettingsUri = Utils.joinPath(URI.file(args.modsPath), "mod-settings.dat");
+			const modSettingsUri = Utils.joinPath(URI.file(args.modsPath!), "mod-settings.dat");
 			const settings = new ModSettings(Buffer.from(await this.fs.readFile(modSettingsUri)));
 			for (const s of args.adjustModSettings) {
 				settings.set(s.scope, s.name, s.value);
