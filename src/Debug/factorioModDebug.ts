@@ -287,7 +287,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	protected async launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments) {
 
 		// make sure to 'Stop' the buffered logging if 'trace' is not set
-		logger.setup(args.trace ? Logger.LogLevel.Verbose : Logger.LogLevel.Stop, false);
+		logger.setup(args.trace ? Logger.LogLevel.Verbose : Logger.LogLevel.Stop, path.join(os.tmpdir(), "fmtk.log"), true);
 
 		this.launchArgs = args;
 
@@ -355,7 +355,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 		this.factorio.on("stderr", (mesg:string)=>this.sendEvent(new OutputEvent(mesg+"\n", "stderr")));
 		this.factorio.on("stdout", async (mesg:string)=>{
-			if (this.launchArgs!.trace && mesg.startsWith("DBG")) { this.sendEvent(new OutputEvent(`> ${mesg}\n`, "console")); }
 			if (mesg.startsWith("DBG: ")) {
 				const wasInPrompt = this.inPrompt;
 				this.inPrompt = true;
@@ -517,13 +516,11 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				const dump:{dump:string|undefined;source:string|undefined;ref:number} = JSON.parse(mesg.substring(9).trim());
 				this.finishSource(dump);
 			} else if (mesg.startsWith("EVTmodules: ")) {
-				if (this.launchArgs!.trace) { this.sendEvent(new OutputEvent(`> EVTmodules\n`, "console")); }
 				await this.updateModules(JSON.parse(mesg.substring(12).trim()));
 				resolveModules();
 				// and finally send the initialize event to get breakpoints and such...
 				this.sendEvent(new InitializedEvent());
 			} else if (mesg.startsWith("EVTsource: ")) {
-				if (this.launchArgs!.trace) { this.sendEvent(new OutputEvent(`> EVTsource\n`, "console")); }
 				await this.loadedSourceEvent(JSON.parse(mesg.substring(11).trim()));
 			} else if (mesg.startsWith("DBGscopes: ")) {
 				const scopes = JSON.parse(mesg.substring(11).trim());
@@ -1118,18 +1115,14 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	private writeStdin(s:string|Buffer, fromQueue?:boolean):void {
 		if (!this.inPrompt) {
-			if (this.launchArgs!.trace) { this.sendEvent(new OutputEvent(`!! Attempted to writeStdin "${s instanceof Buffer ? `Buffer[${s.length}]` : s}" while not in a prompt\n`, "console")); }
+			this.sendEvent(new OutputEvent(`!! Attempted to writeStdin "${s instanceof Buffer ? `Buffer[${s.length}]` : s}" while not in a prompt\n`, "console"));
 			return;
 		}
 
-		if (this.launchArgs!.trace) { this.sendEvent(new OutputEvent(`${fromQueue?"<q":"<"} ${s instanceof Buffer ? `Buffer[${s.length}] ${fromQueue?s.toString("utf-8"):""}` : s.replace(/^[\r\n]*/, "").replace(/[\r\n]*$/, "")}\n`, "console")); }
 		this.factorio?.writeStdin(Buffer.concat([s instanceof Buffer ? s : Buffer.from(s), Buffer.from("\n")]));
 	}
 
 	private async writeOrQueueStdin(s:string|Buffer, consumed?:Promise<void>, signal?:AbortSignal):Promise<boolean> {
-		if (this.launchArgs!.trace) {
-			this.sendEvent(new OutputEvent(`${this.inPrompt?"<":"q<"} ${s instanceof Buffer ? `Buffer[${s.length}]` : s.replace(/^[\r\n]*/, "").replace(/[\r\n]*$/, "")}\n`, "console"));
-		}
 		const b = Buffer.concat([s instanceof Buffer ? s : Buffer.from(s), Buffer.from("\n")]);
 		if (this.inPrompt) {
 			this.factorio?.writeStdin(b);
@@ -1161,9 +1154,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	private clearQueuedStdin():void {
 		if (this.stdinQueue.length > 0) {
 			this.stdinQueue.forEach(b=>{
-				if (this.launchArgs!.trace) {
-					this.sendEvent(new OutputEvent(`x< ${b.buffer.toString("utf-8")}\n`, "console"));
-				}
 				b.resolve(false);
 			});
 			this.stdinQueue = [];
@@ -1173,7 +1163,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	public continue(updateAllBreakpoints?:boolean) {
 		if (!this.inPrompt) {
-			if (this.launchArgs!.trace) { this.sendEvent(new OutputEvent(`!! Attempted to continue while not in a prompt\n`, "console")); }
+			this.sendEvent(new OutputEvent(`!! Attempted to continue while not in a prompt\n`, "console"));
 			return;
 		}
 
@@ -1187,7 +1177,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	public continueRequire(shouldRequire:boolean, modname:string) {
 		if (!this.inPrompt) {
-			if (this.launchArgs!.trace) { this.sendEvent(new OutputEvent(`!! Attempted to continueRequire while not in a prompt\n`, "console")); }
+			this.sendEvent(new OutputEvent(`!! Attempted to continueRequire while not in a prompt\n`, "console"));
 			return;
 		}
 		if (shouldRequire) {
@@ -1217,7 +1207,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	public continueProfile(shouldRequire:boolean) {
 		if (!this.inPrompt) {
-			if (this.launchArgs!.trace) { this.sendEvent(new OutputEvent(`!! Attempted to continueProfile while not in a prompt\n`, "console")); }
+			this.sendEvent(new OutputEvent(`!! Attempted to continueProfile while not in a prompt\n`, "console"));
 			return;
 		}
 		if (shouldRequire) {
