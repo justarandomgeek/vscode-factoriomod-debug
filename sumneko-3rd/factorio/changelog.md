@@ -1,3 +1,6 @@
+### 2022-01-17
+- Improve support for `/command` by also removing the lua context specifier (`/command __modname__`) when present
+
 ### 2022-12-14
 - Add support for in game console commands in files by removing `/command` or any other variants at te start of a line
 

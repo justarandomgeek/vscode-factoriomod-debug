@@ -17,6 +17,7 @@ local function replace(uri, text, diffs)
   for s_command, command, f_command in
     util.gmatch_at_start_of_line(text, "()/([a-z-]+%f[%s\0])()")--[[@as fun():integer, string, integer]]
   do
+    f_command = text:match("^ __[a-zA-Z0-9_-]+__()", f_command) or f_command
     if commands_lut[command] then
       util.add_diff(diffs, s_command, f_command, "")
     end
