@@ -8,15 +8,15 @@ import type { OutputEvent } from "@vscode/debugadapter";
 let dc: DebugClient;
 
 setup(async ()=>{
-	dc = new DebugClient('node', path.join(process.cwd(), './dist/fmtk.js'), 'factoriomod', {
-		cwd: path.join(process.cwd(), "./test/factorio/mods"),
+	dc = new DebugClient('node', path.join(__dirname, '../dist/fmtk.js'), 'factoriomod', {
+		cwd: path.join(__dirname, "./factorio/mods"),
 		env: Object.assign({},
 			process.env,
 			{
 				FMTK_TEST_INSPECT: inspector.url() ? "34198" : undefined,
 				FMTK_TEST_ARGV: JSON.stringify([
 					"debug",
-					path.join(process.cwd(), "./test/factorio/bin/x64/factorio.exe"),
+					path.join(__dirname, "./factorio/bin/x64/factorio.exe"),
 				]),
 			},
 		),
