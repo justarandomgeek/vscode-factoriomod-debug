@@ -1,6 +1,7 @@
 {
 	"reporter": [
 		"html",
+		"lcov",
 		"text"
 	],
 	"exclude-after-remap": true
