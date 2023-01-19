@@ -8,6 +8,8 @@ bin
 sumneko-3rd
 src
 out
+test
+coverage
 **/*.js.map
 **/*.css.map
 node_modules

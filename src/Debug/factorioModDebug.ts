@@ -175,12 +175,14 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 
 
-	protected terminateRequest(response: DebugProtocol.TerminateResponse, args: DebugProtocol.TerminateArguments): void {
-		this.terminate().then(()=>this.sendResponse(response));
+	protected async terminateRequest(response: DebugProtocol.TerminateResponse, args: DebugProtocol.TerminateArguments) {
+		this.sendResponse(response);
+		return this.terminate();
 	}
 
-	protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments): void {
-		this.terminate().then(()=>this.sendResponse(response));
+	protected async disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments) {
+		this.sendResponse(response);
+		return this.terminate();
 	}
 
 	private async checkFactorioArgs(launchArgs: LaunchRequestArguments) {
@@ -302,12 +304,16 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			// terminate to actually stop the debug session
 			// sending an error response to vscode doesn't seem to to anything, so dont' bother?
 			this.sendEvent(new TerminatedEvent());
+			this.sendErrorResponse(response, 1);
+			if (!this._isRunningInline()) { process.exit(1); }
 			return;
 		}
 		if (!await this.resolveModsPath(args)) {
 			// terminate to actually stop the debug session
 			// sending an error response to vscode doesn't seem to to anything, so dont' bother?
 			this.sendEvent(new TerminatedEvent());
+			this.sendErrorResponse(response, 1);
+			if (!this._isRunningInline()) { process.exit(1); }
 			return;
 		}
 		await this.setupMods(args);
@@ -1391,5 +1397,8 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				}
 			}
 		}
+		this.sendEvent(new TerminatedEvent());
+		// exit now if we're running standalone and collecting coverage data...
+		if (!this._isRunningInline() && process.env["NODE_V8_COVERAGE"]) { process.exit(); }
 	}
 }

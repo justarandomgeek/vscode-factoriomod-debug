@@ -35,7 +35,8 @@ suite('Debug Adapter', ()=>{
 	});
 
 	teardown(async ()=>{
-		await dc.stop();
+		// stop() kills it, which breaks coverage reporting...
+		//await dc.stop();
 	});
 
 	test('should launch', async ()=>{
