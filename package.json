@@ -100,19 +100,9 @@
   "activationEvents": [
     "onDebug",
     "onCommand:workbench.action.tasks.runTask",
-    "onCommand:factorio.openchangelog",
-    "onCommand:factorio.datestamp",
-    "onCommand:factorio.package",
-    "onCommand:factorio.version",
-    "onCommand:factorio.upload",
-    "onCommand:factorio.publish",
-    "onCommand:factorio.clearApiKey",
     "workspaceContains:**/changelog.txt",
     "workspaceContains:**/info.json",
-    "workspaceContains:**/control.lua",
-    "onLanguage:factorio-locale",
-    "onLanguage:factorio-changelog",
-    "onView:factoriomods"
+    "workspaceContains:**/control.lua"
   ],
   "contributes": {
     "colors": [
