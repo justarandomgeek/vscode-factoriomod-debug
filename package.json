@@ -41,7 +41,7 @@
     "package": "vsce package",
     "publish-vscode": "vsce publish",
     "publish-vscode-prerelease": "vsce publish --pre-release",
-    "test": "c8 --exclude-after-remap --r text -r html mocha"
+    "test": "c8 mocha"
   },
   "devDependencies": {
     "@types/archiver": "^5.3.1",

@@ -1,0 +1,7 @@
+{
+	"reporter": [
+		"html",
+		"text"
+	],
+	"exclude-after-remap": true
+}
