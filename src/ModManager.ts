@@ -73,6 +73,7 @@ interface ModList {
 
 type ModInstallOptions =  {
 	keepOld?:boolean
+	force?:boolean
 }&({
 	origin: "bundle"
 }|{
@@ -209,22 +210,24 @@ export class ModManager {
 			return false;
 		}
 
-		// check for dir `modname` with correct info.json inside
-		if (await checkDir(path.resolve(this.modsPath, name))) {
-			this.set(name, version);
-			return { using: version, from: "folder", previous: previous };
+		if (!options.force) {
+			// check for dir `modname` with correct info.json inside
+			if (await checkDir(path.resolve(this.modsPath, name))) {
+				this.set(name, version);
+				return { using: version, from: "folder", previous: previous };
+			}
+			// check for dir `modname_version` with correct info.json inside
+			if (await checkDir(path.resolve(this.modsPath, `${name}_${version}`))) {
+				this.set(name, version);
+				return { using: version, from: "versioned_folder", previous: previous };
+			}
+			// check for `modname_version.zip`
+			try {
+				await fsp.access(path.resolve(this.modsPath, `${name}_${version}.zip`));
+				this.set(name, version);
+				return { using: version, from: "existing", previous: previous };
+			} catch (error) {}
 		}
-		// check for dir `modname_version` with correct info.json inside
-		if (await checkDir(path.resolve(this.modsPath, `${name}_${version}`))) {
-			this.set(name, version);
-			return { using: version, from: "versioned_folder", previous: previous };
-		}
-		// check for `modname_version.zip`
-		try {
-			await fsp.access(path.resolve(this.modsPath, `${name}_${version}.zip`));
-			this.set(name, version);
-			return { using: version, from: "existing", previous: previous };
-		} catch (error) {}
 
 		// install from provided zip
 		const written = fsp.writeFile(path.resolve(this.modsPath, `${name}_${version}.zip`), await bundle.zip());

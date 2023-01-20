@@ -24,12 +24,14 @@ modscommand.command("disable <modname>")
 modscommand.command("install <modname>")
 	.description(`Install a mod.`)
 	.option("--keepOld", "Don't remove old versions if present")
+	.option("--force", "Install even if there is an existing mod of the correct version")
 	.option("--playerData <player-data.json>")
-	.action(async (modname:string, options:{keepOld?:boolean; playerData?:string})=>{
+	.action(async (modname:string, options:{keepOld?:boolean; playerData?:string; force?:boolean})=>{
 		const manager = new ModManager(modscommand.opts().modsPath, options.playerData);
 		await manager.Loaded;
 		console.log(await manager.installMod(modname, {
 			origin: "any",
+			force: options.force,
 			credentialPrompt: async (username?:string)=>inquirer.prompt<{username:string;password:string}>([{
 				message: "Username:",
 				name: "username",
