@@ -29,7 +29,7 @@ modscommand.command("install <modname>")
 	.action(async (modname:string, options:{keepOld?:boolean; playerData?:string; force?:boolean})=>{
 		const manager = new ModManager(modscommand.opts().modsPath, options.playerData);
 		await manager.Loaded;
-		console.log(await manager.installMod(modname, {
+		console.log(JSON.stringify(await manager.installMod(modname, {
 			origin: "any",
 			force: options.force,
 			credentialPrompt: async (username?:string)=>inquirer.prompt<{username:string;password:string}>([{
@@ -41,7 +41,7 @@ modscommand.command("install <modname>")
 				message: "Password:",
 				name: "password",
 				type: "password",
-			}])}));
+			}])})));
 	});
 modscommand.command("adjust <changes...>")
 	.description("Configure multiple mods at once: modname=true|false|x.y.z")
@@ -77,6 +77,7 @@ modscommand.command("adjust <changes...>")
 		try {
 			await manager.write();
 		} catch (error) {
-			console.log(`Failed to save mod list:\n${error}`);
+			console.error(`Failed to save mod list:\n${error}`);
+			process.exit(1);
 		}
 	});

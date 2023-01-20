@@ -80,7 +80,7 @@ type ModInstallOptions =  {
 	origin: "portal"|"any"
 	credentialPrompt():Promise<{username:string; password:string}>
 });
-interface ModInstallResult {
+export interface ModInstallResult {
 	using:string
 	from:"folder"|"versioned_folder"|"existing"|"installed"
 	previous?:boolean|string
@@ -256,10 +256,6 @@ export class ModManager {
 		} else {
 			this.modList.mods.push({ name: name, enabled: enabled, version: version });
 		}
-	}
-
-	public enableAll() {
-		this.modList.mods.forEach(m=>m.enabled=true);
 	}
 
 	public disableAll() {

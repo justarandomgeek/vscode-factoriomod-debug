@@ -41,6 +41,7 @@ program
 	.parseAsync(process.argv, {from: "node"})
 	.catch((err)=>{
 		console.error(err);
+		process.exit(1);
 	})
 	.then(()=>{
 		// close IPC if it was open from parent...
