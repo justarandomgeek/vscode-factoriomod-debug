@@ -5,14 +5,12 @@ import { EventEmitter } from "events";
 export type SplitMatcher = Buffer|{start:Buffer;end:Buffer};
 
 export class BufferSplitter extends EventEmitter {
-	//private instream:Readable;
 	private buf:Buffer;
 	private readonly matchers:SplitMatcher[];
 	constructor(instream:Readable, matchers:Buffer|(SplitMatcher)[]) {
 		super();
 		this.buf = Buffer.alloc(0);
 		this.matchers = matchers instanceof Buffer ? [matchers] : matchers;
-		//this.instream = instream;
 		instream.on("close", ()=>{
 			this.emit("close");
 		});
