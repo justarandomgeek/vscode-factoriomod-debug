@@ -53,7 +53,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		}
 
 		if (!(this.docs.api_version===1 || this.docs.api_version===2 || this.docs.api_version===3)) {
-			throw `Unsupported JSON Version ${(<ApiDocs> this.docs).api_version}`;
+			throw `Unsupported JSON Version ${this.docs.api_version}`;
 		}
 
 		if (this.docs.stage !== "runtime") {
