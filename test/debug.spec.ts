@@ -3,7 +3,7 @@ import * as path from "path";
 import { setup, teardown, test, suite } from "mocha";
 import { DebugClient } from "@vscode/debugadapter-testsupport";
 import type { LaunchRequestArguments } from "../src/Debug/factorioModDebug";
-import type { OutputEvent } from "@vscode/debugadapter";
+//import type { OutputEvent } from "@vscode/debugadapter";
 
 suite('Debug Adapter', ()=>{
 	let dc: DebugClient;
@@ -24,9 +24,9 @@ suite('Debug Adapter', ()=>{
 			// for some reason not being detached makes factorio's stdin break (when it reopens it?)
 			detached: true,
 		});
-		dc.on('output', (e:OutputEvent)=>{
-			console.log(`${e.body.category} ${e.body.output}`);
-		});
+		//dc.on('output', (e:OutputEvent)=>{
+		//	console.log(`${e.body.category} ${e.body.output}`);
+		//});
 		await dc.start();
 		// long timeouts because we're loading factorio...
 		dc.defaultTimeout = 30000;
