@@ -10,6 +10,12 @@ export interface ForkErrorResult extends ForkResult {
 	signal?: NodeJS.Signals
 }
 
+export async function forkTestFails(modulePath:string, args:readonly string[], options?:ForkOptions):Promise<ForkErrorResult> {
+	return new Promise((resolve, reject)=>{
+		forkTest(modulePath, args, options).then(reject, resolve);
+	});
+}
+
 export async function forkTest(modulePath:string, args:readonly string[], options?:ForkOptions):Promise<ForkResult> {
 	const proc = fork(modulePath, args, Object.assign({}, options, {stdio: "pipe"} as ForkOptions));
 	proc.stdin?.end();
