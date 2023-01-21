@@ -4,7 +4,7 @@ import { test, suite, suiteSetup, suiteTeardown } from "mocha";
 import { expect } from "chai";
 import { forkTest, forkTestFails } from "./util";
 
-suite.only('CLI Mod Settings', ()=>{
+suite('CLI Mod Settings', ()=>{
 	const fmtk = path.join(__dirname, '../dist/fmtk.js');
 	const mods = path.join(__dirname, "./factorio/mod-tests");
 
