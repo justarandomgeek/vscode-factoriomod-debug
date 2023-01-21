@@ -63,7 +63,7 @@ suite('CLI Mod Manager', ()=>{
 		await fsp.rm(path.join(mods, name), {recursive: true});
 	});
 
-	test('install debugadapter-tests from bundle', async ()=>{
+	test('update debugadapter-tests from bundle', async ()=>{
 		await fsp.writeFile(path.join(mods, "debugadapter-tests_0.0.0.zip"), "");
 		const result = await forkTest(fmtk, ["mods", "install", "debugadapter-tests"], {cwd: mods});
 		const jsonresult = JSON.parse(result.stdout.toString("utf8")) as ModInstallResult;
