@@ -3,6 +3,13 @@
 [<img height='36' style='border:0px;height:36px;' src='https://az743702.vo.msecnd.net/cdn/kofi2.png?v=2' border='0' alt='Buy Me a Coffee at ko-fi.com'/>](https://ko-fi.com/X8X41IE4T)
 
 ## 1.1.29
+* CLI:
+  * Added `fmtk settings unset` to remove a mod setting
+  * Various commands now set exitcode 1 when exiting with an error
+* Changelog:
+  * Fixed some CodeActions providing incorrect fix edits
+* Sumneko plugin:
+  * Include `__modname__` tag when ingoring commands at start of line
 
 ## 1.1.28
 * Debugger:
