@@ -32,4 +32,4 @@ I use [VScode](https://code.visualstudio.com/) (imagine that!), but it needs a f
 
 To provide Factorio Lua API autocompletion, the Factorio mod debugger extension generates EmmyLua docs from the Factorio JSON docs, which are then used by the [sumneko.lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua) language server for its autocompletion feature. Click the Factorio version selection in the status bar to get started!
 
-Don't forget to read [the readme](../readme.md) for information about using the Factorio Mod Debugger itself.
+Don't forget to read [the readme](../readme.md) for more information about using the tools provided by FMTK.
