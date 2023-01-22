@@ -8,6 +8,8 @@
   * Various commands now set exitcode 1 when exiting with an error
 * Changelog:
   * Fixed some CodeActions providing incorrect fix edits
+* Debugger:
+  * Abort launch when enabling `debugadapter` mod fails
 * Sumneko plugin:
   * Include `__modname__` tag when ingoring commands at start of line
 * VSCode:

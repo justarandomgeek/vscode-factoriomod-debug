@@ -316,7 +316,15 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			if (!this._isRunningInline()) { process.exit(1); }
 			return;
 		}
-		await this.setupMods(args);
+		try {
+			await this.setupMods(args);
+		} catch (error) {
+			this.sendEvent(new OutputEvent(`Error setting up mods: ${error}\n`, "console"));
+			this.sendEvent(new TerminatedEvent());
+			this.sendErrorResponse(response, 1);
+			if (!this._isRunningInline()) { process.exit(1); }
+			return;
+		}
 
 		const infos = await this.editorInterface.findWorkspaceFiles('**/info.json');
 		await Promise.all(infos.map(this.updateInfoJson, this));
