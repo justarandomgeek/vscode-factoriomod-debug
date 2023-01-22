@@ -160,5 +160,24 @@
 				"group": "2 - Standalone",
 			},
 		},
+		{
+			"name": "Debug Mocha Tests",
+			"type": "node",
+			"request": "attach",
+			"port": 9229,
+			"continueOnAttach": true,
+			"autoAttachChildProcesses": true,
+			"resolveSourceMapLocations": [
+				"!**/node_modules/**",
+				"!**/.vscode/extensions/hbenl.vscode-mocha-test-adapter-*/**"
+			],
+			"skipFiles": [
+				"<node_internals>/**"
+			],
+			"presentation": {
+				"hidden": true,
+				"group": "3 - Tests",
+			},
+		}
 	],
 }

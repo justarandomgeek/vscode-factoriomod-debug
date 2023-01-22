@@ -227,8 +227,6 @@ export async function runLanguageServer():Promise<void> {
 			switch (document.languageId) {
 				case "factorio-locale":
 					return Locale.onDocumentColor(document);
-				case "factorio-changelog":
-					return null;
 			}
 		}
 		return null;
@@ -240,8 +238,6 @@ export async function runLanguageServer():Promise<void> {
 			switch (document.languageId) {
 				case "factorio-locale":
 					return Locale.onColorPresentation(request.color, request.range);
-				case "factorio-changelog":
-					return null;
 			}
 		}
 		return null;

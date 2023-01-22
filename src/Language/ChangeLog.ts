@@ -53,6 +53,7 @@ export class ChangeLogLanguageService {
 				} else if (!line.match(/^Version: \d+.\d+(.\d+)?/)) {
 					diags.push({
 						message: "Expected at least two numbers in version string",
+						code: "version.format",
 						source: "factorio-changelog",
 						severity: DiagnosticSeverity.Error,
 						range: { start: { line: i, character: 9 }, end: { line: i, character: line.length }},
@@ -78,6 +79,7 @@ export class ChangeLogLanguageService {
 					if (seenDate) {
 						diags.push({
 							message: "Duplicate date line",
+							code: "date.duplicate",
 							source: "factorio-changelog",
 							severity: DiagnosticSeverity.Error,
 							range: { start: { line: i, character: 0 }, end: { line: i, character: line.length }},
@@ -85,6 +87,7 @@ export class ChangeLogLanguageService {
 					} else if (!seenStartLast) {
 						diags.push({
 							message: "Date line not immediately after version line",
+							code: "date.placement",
 							source: "factorio-changelog",
 							severity: DiagnosticSeverity.Warning,
 							range: { start: { line: i, character: 0 }, end: { line: i, character: line.length }},
@@ -109,6 +112,7 @@ export class ChangeLogLanguageService {
 					if (!line.match(/^  (((Major|Minor) )?Features|Graphics|Sounds|Optimi[sz]ations|(Combat )?Balancing|Circuit Network|Changes|Bugfixes|Modding|Scripting|Gui|Control|Translation|Debug|Ease of use|Info|Locale|Other):?$/)) {
 						diags.push({
 							message: "Non-standard category names will be placed after \"All\"",
+							code: "category.nonstandard",
 							source: "factorio-changelog",
 							severity: DiagnosticSeverity.Hint,
 							range: { start: { line: i, character: 2 }, end: { line: i, character: line.length-1 }},
@@ -128,22 +132,28 @@ export class ChangeLogLanguageService {
 					if (line.length === 6) {
 						diags.push({
 							message: "Blank entry line",
+							code: "other.blank",
 							source: "factorio-changelog",
 							severity: DiagnosticSeverity.Error,
 							range: { start: { line: i, character: 0 }, end: { line: i, character: line.length }},
 						});
 					}
 				} else if (line.length > 0) {
+					seenStartLast = false;
 					diags.push({
 						message: "Unrecognized line format",
+						code: "other.unknown",
 						source: "factorio-changelog",
 						severity: DiagnosticSeverity.Error,
 						range: { start: { line: i, character: 0 }, end: { line: i, character: line.length }},
 					});
+				} else {
+					seenStartLast = false;
 				}
 			} else {
 				diags.push({
 					message: "Line not in valid block",
+					code: "other.noblock",
 					source: "factorio-changelog",
 					severity: DiagnosticSeverity.Error,
 					range: { start: { line: i, character: 0 }, end: { line: i, character: line.length }},
@@ -247,7 +257,7 @@ export class ChangeLogLanguageService {
 									[document.uri]: [
 										{
 											range: diag.range,
-											newText: "--------------------------------------------------------------------------------------------------",
+											newText: "---------------------------------------------------------------------------------------------------",
 										},
 									],
 								},
@@ -266,7 +276,7 @@ export class ChangeLogLanguageService {
 									[document.uri]: [
 										{
 											range: { start: diag.range.start, end: diag.range.start },
-											newText: "--------------------------------------------------------------------------------------------------\n",
+											newText: "---------------------------------------------------------------------------------------------------\n",
 										},
 									],
 								},
