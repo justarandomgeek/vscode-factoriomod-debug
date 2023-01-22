@@ -131,16 +131,6 @@
       {
         "title": "Factorio",
         "properties": {
-          "factorio.portal.apikey": {
-            "type": "string",
-            "scope": "machine-overridable",
-            "deprecationMessage": "This setting is no longer used. API Keys are now stored in secrets storage."
-          },
-          "factorio.portal.saveKey": {
-            "type": "boolean",
-            "default": true,
-            "description": "Prompt to save newly entered API key to secrets storage"
-          },
           "factorio.package.preparingCommitMessage": {
             "type": "string",
             "description": "Commit message for preparing release. Use `$VERSION` or `$MODNAME` to insert the version number or name.",

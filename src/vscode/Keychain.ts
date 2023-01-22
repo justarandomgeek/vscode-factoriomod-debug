@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as keytar from "keytar";
 
 export class Keychain {
 	constructor(
@@ -7,23 +8,52 @@ export class Keychain {
 
 	}
 
-	public async GetAPIKey() {
-		let key = await this.secrets.get("factorio-uploadmods");
-		if (key) { return key; }
-		const config = vscode.workspace.getConfiguration();
-		key = await vscode.window.showInputBox({prompt: "Mod Portal API Key:", ignoreFocusOut: true, password: true });
-		if (key && config.get("factorio.portal.saveKey", true) &&
-			"Yes" === await vscode.window.showInformationMessage("Save this key for future use?", "Yes", "No")) {
-			await this.SetApiKey(key);
+	public async MigrateApiKey() {
+		const vskey = await this.secrets.get("factorio-uploadmods");
+		const ktkey = await keytar.getPassword("fmtk", "factorio-uploadmods");
+
+		if (vskey) {
+			if (!ktkey) {
+				await Promise.all([
+					keytar.setPassword("fmtk", "factorio-uploadmods", vskey),
+					this.secrets.delete("factorio-uploadmods"),
+				]);
+			} else if (vskey === ktkey) {
+				await this.secrets.delete("factorio-uploadmods");
+			} else {
+				// vskey and ktkey both set and differ
+				switch (await vscode.window.showInformationMessage(
+					"Factorio Mod Portal API Key is present in both VSCode and standalone FMTK key storage. Keys in VSCode key storage will no longer be used.",
+					"Remove VSCode key", "Replace FMTK key with VSCode key"
+				)) {
+					case "Remove VSCode key":
+						await this.secrets.delete("factorio-uploadmods");
+						break;
+					case "Replace FMTK key with VSCode key":
+						await Promise.all([
+							keytar.setPassword("fmtk", "factorio-uploadmods", vskey),
+							this.secrets.delete("factorio-uploadmods"),
+						]);
+						break;
+					default:
+						break;
+				}
+			}
 		}
-		return key;
 	}
 
-	public async SetApiKey(key:string) {
-		return this.secrets.store("factorio-uploadmods", key);
+	public async ReadyAPIKey() {
+		let key:string|null|undefined = await keytar.getPassword("fmtk", "factorio-uploadmods");
+		if (key) { return true; }
+		key = await vscode.window.showInputBox({prompt: "Mod Portal API Key:", ignoreFocusOut: true, password: true });
+		if (key) {
+			await keytar.setPassword("fmtk", "factorio-uploadmods", key);
+			return true;
+		}
+		return false;
 	}
 
 	public async ClearApiKey() {
-		return this.secrets.delete("factorio-uploadmods");
+		return keytar.deletePassword("fmtk", "factorio-uploadmods");
 	}
 }

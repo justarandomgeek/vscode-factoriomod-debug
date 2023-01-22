@@ -90,60 +90,8 @@ export async function activateModPackageProvider(context:vscode.ExtensionContext
 		context.subscriptions.push(treeDataProvider);
 		const view = vscode.window.createTreeView('factoriomods', { treeDataProvider: treeDataProvider });
 		context.subscriptions.push(view);
-		await MigrateAPIKeyStorage(keychain);
+		await keychain.MigrateApiKey();
 		extensionUri = context.extensionUri;
-	}
-}
-
-async function MigrateAPIKeyStorage(keychain:Keychain) {
-
-	const config = vscode.workspace.getConfiguration("factorio.portal");
-	const key = config.inspect<string>("apikey");
-	if (key) {
-		const global = key.globalValue;
-		const workspace = key.workspaceValue;
-		if (global && workspace) {
-			if (global !== workspace) {
-				switch (await vscode.window.showInformationMessage(
-					"Factorio Mod Portal API Key is present in both Workspace and Global configuration. Which would you like migrated to secure storage?",
-					"Global", "Workspace"
-				)) {
-					case 'Global':
-						await Promise.all([
-							keychain.SetApiKey(global),
-							config.update("apikey", undefined, true),
-							config.update("apikey", undefined, false),
-						]);
-						break;
-					case 'Workspace':
-						await Promise.all([
-							keychain.SetApiKey(workspace),
-							config.update("apikey", undefined, true),
-							config.update("apikey", undefined, false),
-						]);
-						break;
-					default:
-						break;
-				}
-			} else {
-				// they're the same, it doesn't matter which...
-				await Promise.all([
-					keychain.SetApiKey(workspace),
-					config.update("apikey", undefined, true),
-					config.update("apikey", undefined, false),
-				]);
-			}
-		} else if (global) {
-			await Promise.all([
-				keychain.SetApiKey(global),
-				config.update("apikey", undefined, true),
-			]);
-		} else if (workspace) {
-			await Promise.all([
-				keychain.SetApiKey(workspace),
-				config.update("apikey", undefined, false),
-			]);
-		}
 	}
 }
 
@@ -462,15 +410,12 @@ class ModPackage extends vscode.TreeItem {
 					return;
 				}
 				const packagepath = path.join(moddir.fsPath, packagename);
-				const APIKey = await this.keychain.GetAPIKey();
-				if (APIKey) {
+				const APIKeyReady = await this.keychain.ReadyAPIKey();
+				if (APIKeyReady) {
 					await forkScript(term,
 						this.context.asAbsolutePath("./dist/fmtk.js"),
 						["upload", packagepath, this.label ],
-						vscode.Uri.joinPath(this.resourceUri, "..").fsPath,
-						{
-							FACTORIO_UPLOAD_API_KEY: APIKey,
-						});
+						vscode.Uri.joinPath(this.resourceUri, "..").fsPath);
 				}
 				await this.Update();
 				term.close();
@@ -494,15 +439,12 @@ class ModPackage extends vscode.TreeItem {
 	public PublishTask(): vscode.CustomExecution {
 		return new vscode.CustomExecution(async ()=>{
 			return new ModTaskPseudoterminal(async term=>{
-				const APIKey = await this.keychain.GetAPIKey();
-				if (APIKey) {
+				const APIKeyReady = await this.keychain.ReadyAPIKey();
+				if (APIKeyReady) {
 					await forkScript(term,
 						this.context.asAbsolutePath("./dist/fmtk.js"),
 						["publish"],
-						vscode.Uri.joinPath(this.resourceUri, "..").fsPath,
-						{
-							FACTORIO_UPLOAD_API_KEY: APIKey,
-						});
+						vscode.Uri.joinPath(this.resourceUri, "..").fsPath);
 				}
 				await this.Update();
 				term.close();
