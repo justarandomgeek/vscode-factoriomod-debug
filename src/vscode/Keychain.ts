@@ -42,9 +42,14 @@ export class Keychain {
 		}
 	}
 
-	public async ReadyAPIKey() {
+	public async ReadyAPIKey(setnew?:boolean) {
 		let key:string|null|undefined = await keytar.getPassword("fmtk", "factorio-uploadmods");
-		if (key) { return true; }
+		if (key) {
+			if (setnew) {
+				setnew = (await vscode.window.showInformationMessage("Key already present. Replace it?", "Yes", "No")) === "Yes";
+			}
+			if (!setnew) { return true; }
+		}
 		key = await vscode.window.showInputBox({prompt: "Mod Portal API Key:", ignoreFocusOut: true, password: true });
 		if (key) {
 			await keytar.setPassword("fmtk", "factorio-uploadmods", key);

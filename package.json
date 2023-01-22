@@ -562,6 +562,11 @@
         "command": "factorio.clearApiKey",
         "category": "Factorio",
         "title": "Clear API Key"
+      },
+      {
+        "command": "factorio.setApiKey",
+        "category": "Factorio",
+        "title": "Set API Key"
       }
     ],
     "views": {

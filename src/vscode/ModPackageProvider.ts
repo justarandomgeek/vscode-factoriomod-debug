@@ -86,6 +86,9 @@ export async function activateModPackageProvider(context:vscode.ExtensionContext
 		context.subscriptions.push(vscode.commands.registerCommand("factorio.clearApiKey", async ()=>{
 			await keychain.ClearApiKey();
 		}));
+		context.subscriptions.push(vscode.commands.registerCommand("factorio.setApiKey", async ()=>{
+			await keychain.ReadyAPIKey(true);
+		}));
 		const treeDataProvider = new ModsTreeDataProvider(context, keychain);
 		context.subscriptions.push(treeDataProvider);
 		const view = vscode.window.createTreeView('factoriomods', { treeDataProvider: treeDataProvider });
