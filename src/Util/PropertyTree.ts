@@ -1,16 +1,25 @@
 import type { BufferStream } from "./BufferStream";
 
-export type PropertyTreePrimitive = null|boolean|number|string;
-export type PropertyTreeData = PropertyTreePrimitive|PropertyTreeData[]|PropertyTreeDict;
+export type PropertyTreeData =
+	{ type:PropertyTreeType.none } |
+	{ type:PropertyTreeType.bool; value:boolean } |
+	{ type:PropertyTreeType.number; value:number } |
+	{ type:PropertyTreeType.string; value:string } |
+	{ type:PropertyTreeType.list; value:PropertyTreeData[] } |
+	{ type:PropertyTreeType.dictionary; value:PropertyTreeDict } |
+	{ type:PropertyTreeType.signedinteger|PropertyTreeType.unsignedinteger; value:bigint };
+
 export type PropertyTreeDict = {[k:string]:PropertyTreeData};
 
-enum PropertyTreeType {
+export enum PropertyTreeType {
 	none = 0,
 	bool = 1,
 	number = 2,
 	string = 3,
 	list = 4,
 	dictionary = 5,
+	signedinteger = 6,
+	unsignedinteger = 7
 }
 
 function readPTreeString(b:BufferStream) {
@@ -35,13 +44,13 @@ export abstract class PropertyTree {
 		b.readUInt8(); // discard isAnyType
 		switch (type) {
 			case PropertyTreeType.none:
-				return null;
+				return { type: type };
 			case PropertyTreeType.bool:
-				return b.readUInt8()!==0;
+				return { type: type, value: b.readUInt8()!==0 };
 			case PropertyTreeType.number:
-				return b.readDoubleLE();
+				return { type: type, value: b.readDoubleLE() };
 			case PropertyTreeType.string:
-				return readPTreeString(b);
+				return { type: type, value: readPTreeString(b) };
 			case PropertyTreeType.list:
 			{
 				const count = b.readUInt32LE();
@@ -51,7 +60,7 @@ export abstract class PropertyTree {
 					const value = PropertyTree.load(b);
 					arr.push(value);
 				}
-				return arr;
+				return { type: type, value: arr };
 			}
 			case PropertyTreeType.dictionary:
 			{
@@ -65,8 +74,12 @@ export abstract class PropertyTree {
 					const value = PropertyTree.load(b);
 					rec[keystr] = value;
 				}
-				return rec;
+				return { type: type, value: rec };
 			}
+			case PropertyTreeType.signedinteger:
+				return { type: type, value: b.readBigInt64LE() };
+			case PropertyTreeType.unsignedinteger:
+				return { type: type, value: b.readBigUInt64LE() };
 			default:
 				throw new Error(`Invalid datatype in PropertyTree ${type}`);
 		}
@@ -99,74 +112,94 @@ export abstract class PropertyTree {
 		return Buffer.from([type, 0 /* isAnyType */ ]);
 	}
 
-	static save(value:PropertyTreeData):Buffer {
-		switch (typeof value) {
-			case "string":
+	static save(tree:PropertyTreeData):Buffer {
+		switch (tree.type) {
+			case PropertyTreeType.string:
 			{
 				return Buffer.concat([
 					PropertyTree.typeTag(PropertyTreeType.string),
-					PropertyTree.saveString(value),
+					PropertyTree.saveString(tree.value),
 				]);
 			}
-			case "boolean":
+			case PropertyTreeType.bool:
 				return Buffer.concat([
 					PropertyTree.typeTag(PropertyTreeType.bool),
-					Buffer.from([value?1:0]),
+					Buffer.from([tree.value?1:0]),
 				]);
 
 
-			case "number":
+			case PropertyTreeType.number:
 			{
 				const b = Buffer.alloc(8);
-				b.writeDoubleLE(value);
+				b.writeDoubleLE(tree.value);
 				return Buffer.concat([
 					PropertyTree.typeTag(PropertyTreeType.number),
 					b,
 				]);
 			}
-			default:
-				if (value === null) {
-					return PropertyTree.typeTag(PropertyTreeType.none);
-				}
-
-				if (Array.isArray(value)) {
-					const size = Buffer.alloc(4);
-					size.writeInt32LE(value.length);
-					return Buffer.concat([
-						PropertyTree.typeTag(PropertyTreeType.list),
-						size,
-						Buffer.concat(value.map((v)=>{
-							return Buffer.concat([
-								PropertyTree.saveString(""), // no key for list
+			case PropertyTreeType.signedinteger:
+			{
+				const b = Buffer.alloc(8);
+				b.writeBigInt64LE(tree.value);
+				return Buffer.concat([
+					PropertyTree.typeTag(PropertyTreeType.signedinteger),
+					b,
+				]);
+			}
+			case PropertyTreeType.unsignedinteger:
+			{
+				const b = Buffer.alloc(8);
+				b.writeBigUInt64LE(tree.value);
+				return Buffer.concat([
+					PropertyTree.typeTag(PropertyTreeType.unsignedinteger),
+					b,
+				]);
+			}
+			case PropertyTreeType.none:
+			{
+				return PropertyTree.typeTag(PropertyTreeType.none);
+			}
+			case PropertyTreeType.list:
+			{
+				const size = Buffer.alloc(4);
+				size.writeInt32LE(tree.value.length);
+				return Buffer.concat([
+					PropertyTree.typeTag(PropertyTreeType.list),
+					size,
+					Buffer.concat(tree.value.map((v)=>{
+						return Buffer.concat([
+							PropertyTree.saveString(""), // no key for list
+							PropertyTree.save(v),
+						]);
+					})),
+				]);
+			}
+			case PropertyTreeType.dictionary:
+			{
+				let buffs = <Buffer[]>[];
+				for (const k in tree.value) {
+					if (Object.prototype.hasOwnProperty.call(tree.value, k)) {
+						const v = tree.value[k];
+						buffs.push(
+							Buffer.concat([
+								PropertyTree.saveString(k),
 								PropertyTree.save(v),
-							]);
-						})),
-					]);
-				}
-
-				// anything left is PropertyTreeDict
-				{
-					let buffs = <Buffer[]>[];
-					for (const k in value) {
-						if (Object.prototype.hasOwnProperty.call(value, k)) {
-							const v = value[k];
-							buffs.push(
-								Buffer.concat([
-									PropertyTree.saveString(k),
-									PropertyTree.save(v),
-								]));
-						}
+							]));
 					}
-
-					const size = Buffer.alloc(4);
-					size.writeInt32LE(buffs.length);
-
-					return Buffer.concat([
-						PropertyTree.typeTag(PropertyTreeType.dictionary),
-						size,
-						Buffer.concat(buffs),
-					]);
 				}
+
+				const size = Buffer.alloc(4);
+				size.writeInt32LE(buffs.length);
+
+				return Buffer.concat([
+					PropertyTree.typeTag(PropertyTreeType.dictionary),
+					size,
+					Buffer.concat(buffs),
+				]);
+			}
+			default:
+				throw new Error(`Invalid datatype in PropertyTree ${(tree as PropertyTreeData).type}`);
+
 		}
 	}
 }

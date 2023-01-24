@@ -2,7 +2,8 @@ import * as fsp from 'fs/promises';
 import { program } from 'commander';
 
 import { URI, Utils } from 'vscode-uri';
-import { ModSettings } from '../ModSettings';
+import { ModSettings, ModSettingsValue } from '../ModSettings';
+import { BufferStream } from '../Util/BufferStream';
 
 const settingscommand = program.command("settings")
 	.description("Edit mod settings")
@@ -12,7 +13,7 @@ settingscommand.command("list")
 	.description("List all current saved values")
 	.action(async ()=>{
 		const modSettingsUri = Utils.joinPath(URI.file(settingscommand.opts().modsPath), "mod-settings.dat");
-		const settings = new ModSettings(Buffer.from(await fsp.readFile(modSettingsUri.fsPath)));
+		const settings = new ModSettings(new BufferStream(await fsp.readFile(modSettingsUri.fsPath)));
 		for (const setting of settings.list()) {
 			console.log(`${setting.scope} ${setting.setting} ${typeof setting.value==="string"?`"${setting.value}"`:setting.value}`);
 		}
@@ -31,9 +32,28 @@ settingscommand.command("get <scope> <name>")
 				process.exit(1);
 		}
 		const modSettingsUri = Utils.joinPath(URI.file(settingscommand.opts().modsPath), "mod-settings.dat");
-		const settings = new ModSettings(Buffer.from(await fsp.readFile(modSettingsUri.fsPath)));
-		const value = settings.get(scope, name);
-		console.log(`${typeof value==="string"?`"${value}"`:value}`);
+		const settings = new ModSettings(new BufferStream(await fsp.readFile(modSettingsUri.fsPath)));
+		const setting = settings.get(scope, name);
+		if (!setting) {
+			console.log(`undefined`);
+			return;
+		}
+		switch (setting.type) {
+			case 'bool':
+			case 'number':
+				console.log(`${setting.value}`);
+				break;
+			case 'int':
+				console.log(`${setting.value}n`);
+				break;
+			case 'string':
+				console.log(`"${setting.value}"`);
+				break;
+
+			default:
+				console.error(`Unkown Type ${(setting as ModSettingsValue).type}`);
+				process.exit(1);
+		}
 	});
 
 settingscommand.command("set <scope> <name> <value>")
@@ -49,15 +69,15 @@ settingscommand.command("set <scope> <name> <value>")
 				process.exit(1);
 		}
 		const modSettingsUri = Utils.joinPath(URI.file(settingscommand.opts().modsPath), "mod-settings.dat");
-		const settings = new ModSettings(Buffer.from(await fsp.readFile(modSettingsUri.fsPath)));
+		const settings = new ModSettings(new BufferStream(await fsp.readFile(modSettingsUri.fsPath)));
 		if (value === "true" || value ==="false") {
-			settings.set(scope, name, value==="true");
+			settings.set(scope, name, { type: 'bool', value: value==="true"});
 		} else {
 			const numValue = Number(value);
 			if (!isNaN(numValue) && value!=="") {
-				settings.set(scope, name, numValue);
+				settings.set(scope, name, { type: 'number', value: numValue});
 			} else {
-				settings.set(scope, name, value);
+				settings.set(scope, name, { type: 'string', value: value });
 			}
 		}
 		await fsp.writeFile(modSettingsUri.fsPath, settings.save());
@@ -76,7 +96,7 @@ settingscommand.command("unset <scope> <name>")
 				process.exit(1);
 		}
 		const modSettingsUri = Utils.joinPath(URI.file(settingscommand.opts().modsPath), "mod-settings.dat");
-		const settings = new ModSettings(Buffer.from(await fsp.readFile(modSettingsUri.fsPath)));
+		const settings = new ModSettings(new BufferStream(await fsp.readFile(modSettingsUri.fsPath)));
 		settings.set(scope, name);
 		await fsp.writeFile(modSettingsUri.fsPath, settings.save());
 	});

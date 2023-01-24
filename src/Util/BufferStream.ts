@@ -2,7 +2,7 @@ import { Readable } from "stream";
 
 export class BufferStream extends Readable {
 
-	constructor(b:Buffer) {
+	constructor(b:Uint8Array) {
 		super();
 		this.push(b);
 		this.push(null);
@@ -21,6 +21,11 @@ export class BufferStream extends Readable {
 	readUInt32LE() {
 		const b:Buffer = this.read(4);
 		return b.readUInt32LE();
+	}
+
+	readBigInt64LE() {
+		const b:Buffer = this.read(8);
+		return b.readBigInt64LE();
 	}
 
 	readBigUInt64LE() {

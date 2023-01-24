@@ -344,9 +344,25 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 		if (args.adjustModSettings) {
 			const modSettingsUri = Utils.joinPath(URI.file(args.modsPath!), "mod-settings.dat");
-			const settings = new ModSettings(Buffer.from(await this.fs.readFile(modSettingsUri)));
+			const settings = new ModSettings(new BufferStream(await this.fs.readFile(modSettingsUri)));
 			for (const s of args.adjustModSettings) {
-				settings.set(s.scope, s.name, s.value);
+				if (s.value === undefined) {
+					settings.set(s.scope, s.name);
+				} else {
+					switch (typeof s.value) {
+						case 'string':
+							settings.set(s.scope, s.name, { type: "string", value: s.value});
+							break;
+						case 'number':
+							settings.set(s.scope, s.name, { type: "number", value: s.value});
+							break;
+						case 'boolean':
+							settings.set(s.scope, s.name, { type: "bool", value: s.value});
+							break;
+					}
+
+				}
+
 			}
 			this.fs.writeFile(modSettingsUri, settings.save());
 		}
