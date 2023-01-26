@@ -298,16 +298,27 @@ export class FactorioVersionSelector {
 
 		await luaconfig.update("workspace.library", library);
 
-		const userThirdParty = await luaconfig.get<string[]>("workspace.userThirdParty", []);
+		const userThirdParty = luaconfig.get<string[]>("workspace.userThirdParty", []);
+		let userThirdPartyAdded = false;
 		const path = Utils.joinPath(workspaceLibrary, "sumneko-3rd").fsPath;
 		if (!userThirdParty.includes(path)) {
 			userThirdParty.push(path);
+			userThirdPartyAdded = true;
 		}
 		await luaconfig.update("workspace.userThirdParty", userThirdParty);
 
 		const sumneko = vscode.extensions.getExtension("sumneko.lua");
-		if (sumneko && !sumneko.isActive) {
-			await sumneko.activate();
+		if (sumneko) {
+			if (!sumneko.isActive) {
+				await sumneko.activate();
+			} else if (userThirdPartyAdded) {
+				if (await vscode.window.showInformationMessage(
+					"Lua Language Server is already running and may not notice the newly-installed library bundle. Reload VSCode to force it to re-check.",
+					"Reload Now", "Reload Later") === "Reload Now") {
+					// no point awaiting this, it'll kill everything anyway...
+					vscode.commands.executeCommand("workbench.action.reloadWindow");
+				}
+			}
 		}
 	}
 }
