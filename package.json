@@ -1072,7 +1072,7 @@
         "priority": "default",
         "selector": [
           {
-            "filenamePattern": "mod-settings.dat"
+            "filenamePattern": "*mod-settings*.dat"
           }
         ]
       }
