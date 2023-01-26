@@ -14,6 +14,7 @@
   * Include `__modname__` tag when ingoring commands at start of line
 * VSCode:
   * Migrate Mod Portal API key from VSCode key storage to `keytar` for consistent behavior across packages
+  * Custom Editor for `mod-settings.dat`
 
 ## 1.1.28
 * Debugger:
