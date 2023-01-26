@@ -3,7 +3,7 @@ import type { BufferStream } from "./Util/BufferStream";
 import assert from "assert";
 
 export class MapVersion {
-	constructor(
+	private constructor(
 		public readonly main:number,
 		public readonly major:number,
 		public readonly minor:number,
@@ -34,13 +34,28 @@ export class MapVersion {
 		return `${this.main}.${this.major}.${this.minor}-${this.patch}`;
 	}
 
+	isBeyond(main:number, major?:number, minor?:number, patch?:number) {
+		if (this.main < main) { return false; }
+
+		if (major === undefined) { return true; }
+		if (this.major < major) { return false; }
+
+		if (minor === undefined) { return true; }
+		if (this.minor < minor) { return false; }
+
+		if (patch === undefined) { return true; }
+		if (this.patch < patch) { return false; }
+
+		return true;
+	}
 }
 
 export type ModSettingsScopeName = "startup"|"runtime-global"|"runtime-per-user";
-export type ModSettingsValue =
+const ModSettingsScopeNames = ["startup", "runtime-global", "runtime-per-user"] as ModSettingsScopeName[];
+export type ModSettingsValue<inttype = bigint> =
 	{ type: "string"; value: string }|
 	{ type: "number"; value: number }|
-	{ type: "int"; value: bigint }|
+	{ type: "int"; value: inttype }|
 	{ type: "bool"; value: boolean };
 export type ModSettingsScope = {
 	[k:string]: ModSettingsValue
@@ -63,7 +78,7 @@ export class ModSettings {
 			["runtime-global"]: {},
 			["runtime-per-user"]: {},
 		};
-		for (const scopename of ["startup", "runtime-global", "runtime-per-user"] as ModSettingsScopeName[]) {
+		for (const scopename of ModSettingsScopeNames) {
 			const treescope = tree.value[scopename];
 			assert(treescope.type===PropertyTreeType.dictionary);
 			const loadingscope:ModSettingsScope = loading[scopename];
@@ -114,7 +129,7 @@ export class ModSettings {
 			type: PropertyTreeType.dictionary,
 			value: {},
 		};
-		for (const scopename of ["startup", "runtime-global", "runtime-per-user"] as ModSettingsScopeName[]) {
+		for (const scopename of ModSettingsScopeNames) {
 			const scope = this._settings[scopename];
 			const treescope:PropertyTreeData = {
 				type: PropertyTreeType.dictionary,

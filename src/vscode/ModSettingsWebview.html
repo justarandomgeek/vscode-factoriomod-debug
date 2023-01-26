@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<!--
+	Use a content security policy to only allow loading images from https or from our extension directory,
+	and only allow scripts that have a specific nonce.
+	-->
+	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src $cspSource$; style-src $cspSource$; font-src $cspSource$; script-src 'nonce-$nonce$';">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link href="$ModSettingsWebview.css$" rel="stylesheet" />
+	<title>Mod Settings</title>
+</head>
+<body>
+	<section>
+		<h1>Version</h1>
+		<div id="version"></div>
+	</section>
+
+	<vscode-panels aria-label="Settings">
+		<vscode-panel-tab id="tab-1">Startup</vscode-panel-tab>
+		<vscode-panel-tab id="tab-2">Runtime Global</vscode-panel-tab>
+		<vscode-panel-tab id="tab-3">Runtime Per User</vscode-panel-tab>
+		<vscode-panel-view id="view-1">
+			<table>
+				<tbody id="startup"></tbody>
+			</table>
+		</vscode-panel-view>
+		<vscode-panel-view id="view-2">
+			<table>
+				<tbody id="runtime-global"></tbody>
+			</table>
+		</vscode-panel-view>
+		<vscode-panel-view id="view-3">
+			<table>
+				<tbody id="runtime-per-user"></tbody>
+			</table>
+		</vscode-panel-view>
+	</vscode-panels>
+
+	<template id="setting-string">
+		<tr>
+			<td class="setting-name"></td>
+			<td>
+				<vscode-text-field class="setting-value"></vscode-text-field>
+			</td>
+			<td class="setting-controls">
+				<vscode-button class="setting-delete" appearance="icon" aria-label="Delete">
+					<span class="codicon codicon-trash"></span>
+				</vscode-button>
+			</td>
+		</tr>
+	</template>
+
+	<template id="setting-number">
+		<tr>
+			<td class="setting-name"></td>
+			<td>
+				<vscode-text-field class="setting-value" type="number"></vscode-text-field>
+			</td>
+			<td class="setting-controls">
+				<vscode-button class="setting-delete" appearance="icon" aria-label="Delete">
+					<span class="codicon codicon-trash"></span>
+				</vscode-button>
+			</td>
+		</tr>
+	</template>
+
+	<template id="setting-bool">
+		<tr>
+			<td class="setting-name"></td>
+			<td>
+				<vscode-checkbox class="setting-value"></vscode-checkbox>
+			</td>
+			<td class="setting-controls">
+				<vscode-button class="setting-delete" appearance="icon" aria-label="Delete">
+					<span class="codicon codicon-trash"></span>
+				</vscode-button>
+			</td>
+		</tr>
+	</template>
+
+	<template id="setting-add">
+		<tr>
+			<td>
+				<vscode-text-field class="setting-add-name"></vscode-text-field>
+			</td>
+			<td>
+				<vscode-dropdown class="setting-add-type">
+					<vscode-option>string</vscode-option>
+					<vscode-option>bool</vscode-option>
+					<vscode-option>number</vscode-option>
+					<vscode-option hidden>int</vscode-option>
+				</vscode-dropdown>
+			</td>
+			<td class="setting-controls">
+				<vscode-button class="setting-addbtn" appearance="icon" aria-label="Add">
+					<span class="codicon codicon-add"></span>
+				</vscode-button>
+			</td>
+		</tr>
+	</template>
+
+	<script type="module" nonce="$nonce$" src="$ModSettingsWebview.js$" defer/></script>
+</body>
+</html>

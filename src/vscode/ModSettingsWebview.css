@@ -1,0 +1,6 @@
+@import "@vscode/codicons/dist/codicon.css";
+
+/* without this, the add-type dropdown behaves oddly when the list isn't long enough to fill the window */
+html, body, vscode-panels {
+	height: -webkit-fill-available;
+}

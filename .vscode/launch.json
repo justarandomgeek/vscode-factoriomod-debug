@@ -35,7 +35,8 @@
 				"name": "Tasks",
 				"pattern": "Debugger listening on (ws://[^ ]*)"
 			},
-			"cascadeTerminateToConfigurations": ["LSP"]
+			"cascadeTerminateToConfigurations": ["LSP"],
+			"debugWebviews": true
 		},
 		{
 			"name": "Attach To External Debug Adapter",
