@@ -111,7 +111,9 @@ export async function runLanguageServer():Promise<void> {
 			};
 
 			// scan workspace
-			await Promise.all(params.workspaceFolders!.map((folder)=>scanWorkspaceFolder(folder.uri)));
+			if (params.workspaceFolders) {
+				await Promise.all(params.workspaceFolders.map((folder)=>scanWorkspaceFolder(folder.uri)));
+			}
 
 		}
 		return result;

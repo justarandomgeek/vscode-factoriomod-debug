@@ -226,6 +226,7 @@ export class LocaleLanguageService {
 								},
 								message: "First defined here",
 							}] : undefined,
+							code: "section.rootconflict",
 						});
 						sections.set(currentSection, new Set<String>());
 					} else {
@@ -237,6 +238,7 @@ export class LocaleLanguageService {
 						source: "factorio-locale",
 						severity: DiagnosticSeverity.Error,
 						range: { start: { line: i, character: 0 }, end: { line: i, character: line.length }},
+						code: "section.invalid",
 					});
 				}
 			} else if (line.trim().length > 0) {
@@ -256,6 +258,7 @@ export class LocaleLanguageService {
 							message: "Duplicate Key",
 							source: "factorio-locale",
 							severity: DiagnosticSeverity.Error,
+							code: "key.duplicate",
 							range: { start: { line: i, character: line.indexOf(key) }, end: { line: i, character: line.indexOf(key)+key.length }},
 							relatedInformation: this.hasDiagnosticRelatedInformationCapability ? [{
 								location: {
@@ -274,6 +277,7 @@ export class LocaleLanguageService {
 						message: "Invalid Key",
 						source: "factorio-locale",
 						severity: DiagnosticSeverity.Error,
+						code: "key.invalid",
 						range: { start: { line: i, character: 0 }, end: { line: i, character: line.length }},
 					});
 				}
