@@ -1,4 +1,3 @@
-import * as inspector from "inspector";
 import { program } from 'commander';
 import { displayName, version as bundleVersion } from "../../package.json";
 
@@ -15,10 +14,6 @@ import "./docs";
 import "./lsp";
 import "./debug";
 
-if (process.env["FMTK_TEST_INSPECT"]) {
-	inspector.open(+process.env["FMTK_TEST_INSPECT"], undefined, true);
-	delete process.env["FMTK_TEST_INSPECT"];
-}
 if (process.env["FMTK_TEST_ARGV"]) {
 	try {
 		const args = JSON.parse(process.env["FMTK_TEST_ARGV"]) as string[];

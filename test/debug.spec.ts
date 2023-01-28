@@ -14,7 +14,6 @@ suite('Debug Adapter', ()=>{
 			env: Object.assign({},
 				process.env,
 				{
-					FMTK_TEST_INSPECT: inspector.url() ? "34198" : undefined,
 					FMTK_TEST_ARGV: JSON.stringify([
 						"debug",
 						path.join(__dirname, "./factorio/bin/x64/factorio.exe"),
