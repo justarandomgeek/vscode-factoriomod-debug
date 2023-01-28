@@ -223,17 +223,6 @@ export const overlay:{
 					},
 				],
 			},
-			"CapsuleAction": {
-				parameters: [
-					{
-						name: "flare",
-						order: i++,
-						description: "",
-						optional: true,
-						type: "string",
-					},
-				],
-			},
 		},
 		class: {
 			"LuaLazyLoadedValue": {
