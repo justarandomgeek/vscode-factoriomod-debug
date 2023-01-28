@@ -10,6 +10,7 @@
   * Fixed some CodeActions providing incorrect fix edits
 * Debugger:
   * Abort launch when enabling `debugadapter` mod fails
+  * Correctly supports DAP clients using `path` path format instead of `uri`
 * Sumneko plugin:
   * Include `__modname__` tag when ingoring commands at start of line
 * VSCode:

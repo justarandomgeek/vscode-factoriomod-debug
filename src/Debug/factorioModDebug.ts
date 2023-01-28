@@ -594,9 +594,10 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 
 	protected convertClientPathToDebugger(clientPath: string): string {
+		// URI and super disagree about what shoudl be percent-encoded, make sure it's all consistent...
+		clientPath = URI.parse(super.convertClientPathToDebugger(clientPath)).toString();
 		if (clientPath.startsWith("output:")) { return clientPath; }
 
-		clientPath = clientPath.replace(/\\/g, "/");
 		let thismodule:DebugProtocol.Module|undefined;
 		this._modules.forEach(m=>{
 			if (m.symbolFilePath && clientPath.startsWith(m.symbolFilePath) &&
@@ -621,11 +622,13 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		if (matches) {
 			const thismodule = this._modules.get(matches[1]);
 			if (thismodule?.symbolFilePath) {
-				return Utils.joinPath(URI.parse(thismodule.symbolFilePath), matches[2]).toString();
+				return super.convertDebuggerPathToClient(
+					Utils.joinPath(URI.parse(thismodule.symbolFilePath), matches[2]).toString()
+				);
 			}
 		}
 
-		return debuggerPath;
+		return super.convertDebuggerPathToClient(debuggerPath);
 	}
 
 	protected customRequest(command: string, response: DebugProtocol.Response, args: any, request?: DebugProtocol.Request | undefined): void {
@@ -646,13 +649,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		let bppath:string;
 		if (args.source.path) {
 			const inpath = args.source.path;
-			let bpuri:URI;
-			if (inpath.match(/^[a-zA-Z]:/)) { // matches c:\... or c:/... style windows paths, single drive letter
-				bpuri = URI.file(inpath.replace(/\\/g, "/"));
-			} else { // everything else is already a URI
-				bpuri = URI.parse(inpath);
-			}
-			bppath = this.convertClientPathToDebugger(bpuri.toString());
+			bppath = this.convertClientPathToDebugger(inpath);
 		} else {
 			bppath = `&ref ${args.source.sourceReference}`;
 		}
