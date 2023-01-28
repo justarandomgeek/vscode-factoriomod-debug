@@ -4,7 +4,6 @@ import { DebugClient } from "@vscode/debugadapter-testsupport";
 import type { LaunchRequestArguments } from "../src/Debug/factorioModDebug";
 import chai, { expect } from "chai";
 import chaiAsPromised from "chai-as-promised";
-//import type { OutputEvent } from "@vscode/debugadapter";
 chai.use(chaiAsPromised);
 
 suite('Debug Adapter', ()=>{
@@ -125,6 +124,69 @@ suite('Debug Adapter', ()=>{
 		expect(stack3.success);
 		expect(stack3.body.stackFrames[0].source?.path).equals(scriptpath);
 		expect(stack3.body.stackFrames[0].line).equals(2);
+		await dc.terminateRequest();
+	});
+
+	test('should report scopes and variables', async ()=>{
+		await dc.launch({
+			type: "factoriomod",
+			request: "launch",
+			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
+			adjustMods: {
+				"debugadapter-tests": true,
+				"minimal-no-base-mod": true,
+			},
+			disableExtraMods: true,
+			allowDisableBaseMod: true,
+			//trace: true,
+		} as LaunchRequestArguments);
+		await dc.waitForEvent('initialized');
+		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
+		if (process.platform === 'win32') {
+			scriptpath = scriptpath[0].toLowerCase() + scriptpath.substr(1);
+		}
+		const bps = await dc.setBreakpointsRequest({
+			source: {
+				path: scriptpath,
+			},
+			breakpoints: [{ line: 3 }],
+		});
+		expect(bps.success);
+		await dc.configurationDoneRequest();
+		await dc.waitForEvent('stopped');
+		const threads = await dc.threadsRequest();
+		expect(threads.body.threads).length(1);
+		expect(threads.body.threads[0]).contains({id: 1, name: "thread 1"});
+
+
+		const stack = await dc.stackTraceRequest({threadId: 1, levels: 1});
+		expect(stack.success);
+		expect(stack.body.stackFrames[0].source?.path).equals(scriptpath);
+		expect(stack.body.stackFrames[0].line).equals(3);
+		const frameId = stack.body.stackFrames[0].id;
+
+		const scopes = await dc.scopesRequest({frameId: frameId });
+		expect(scopes.success);
+		expect(scopes.body.scopes).length(4);
+		expect(scopes.body.scopes.map(s=>s.name)).contains.members([
+			"Locals", "Upvalues", "Factorio global", "Lua Globals",
+		]);
+
+		const localsref = scopes.body.scopes.find(s=>s.name==="Locals")!.variablesReference;
+		const locals = await dc.variablesRequest({variablesReference: localsref});
+		expect(locals.success);
+		expect(locals.body.variables[0]).deep.contains({
+			name: '<temporaries>',
+			value: '<temporaries>',
+			presentationHint: { kind: 'virtual' },
+		});
+		expect(locals.body.variables[1]).contains({
+			name: 'foo',
+			value: 'true',
+			type: 'boolean',
+		});
+
+
 		await dc.terminateRequest();
 	});
 });

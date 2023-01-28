@@ -47,8 +47,12 @@ export function objectToLua(obj:string|number|boolean|{[k:string]:string|number|
 	}
 }
 
-function encodeVarInt(val:number) : Buffer {
-	if (val === 10) {
+export function encodeVarInt(val:number) : Buffer {
+	if (val > 0xFFFFFFF0) {
+		throw new Error(`Values > 0xFFFFFFF0 are reserved`);
+	} else if (val < 0) {
+		throw new Error(`Value must be positive`);
+	} else if (val === 10) {
 		// escape \n
 		val = 0xFFFFFFFF;
 	} else if (val === 26) {
