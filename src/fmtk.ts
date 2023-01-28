@@ -11,3 +11,5 @@ export async function activate(context:ExtensionContext) {
 if (require.main === module) {
 	import("./cli/main");
 }
+
+export * as EncodingUtil from "./Util/EncodingUtil";

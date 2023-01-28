@@ -1,6 +1,12 @@
 import { test, suite } from "mocha";
 import { expect } from "chai";
-import { encodeVarInt } from "../src/Util/EncodingUtil";
+
+// have to get this via the bundle or it ends up left out of coverage reports...
+//TODO: figure out why and import a more sensible way
+//@ts-expect-error
+import { EncodingUtil } from "../dist/fmtk";
+
+const encodeVarInt = (EncodingUtil as (typeof import("../src/fmtk"))["EncodingUtil"]).encodeVarInt;
 
 suite('EncodingUtil', ()=>{
 	test('encodeVarInt', ()=>{
