@@ -13,3 +13,4 @@ if (require.main === module) {
 }
 
 export * as EncodingUtil from "./Util/EncodingUtil";
+export * from "./Util/BufferSplitter";

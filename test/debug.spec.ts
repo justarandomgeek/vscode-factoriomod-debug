@@ -49,7 +49,6 @@ suite('Debug Adapter', ()=>{
 			},
 			disableExtraMods: true,
 			allowDisableBaseMod: true,
-			//trace: true,
 		} as LaunchRequestArguments);
 		await dc.configurationSequence();
 		await dc.waitForEvent('terminated');
@@ -92,7 +91,6 @@ suite('Debug Adapter', ()=>{
 			},
 			disableExtraMods: true,
 			allowDisableBaseMod: true,
-			//trace: true,
 		} as LaunchRequestArguments);
 		await dc.waitForEvent('initialized');
 		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
@@ -138,7 +136,6 @@ suite('Debug Adapter', ()=>{
 			},
 			disableExtraMods: true,
 			allowDisableBaseMod: true,
-			//trace: true,
 		} as LaunchRequestArguments);
 		await dc.waitForEvent('initialized');
 		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
@@ -186,6 +183,74 @@ suite('Debug Adapter', ()=>{
 			type: 'boolean',
 		});
 
+		const setresult = await dc.setVariableRequest({
+			variablesReference: localsref,
+			name: 'foo',
+			value: '42',
+		});
+		expect(setresult.success);
+		expect(setresult.body.type).equals('number');
+		expect(setresult.body.value).equals('42');
+
+		await dc.terminateRequest();
+	});
+
+	test('should eval', async ()=>{
+		await dc.launch({
+			type: "factoriomod",
+			request: "launch",
+			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
+			adjustMods: {
+				"debugadapter-tests": true,
+				"minimal-no-base-mod": true,
+			},
+			disableExtraMods: true,
+			allowDisableBaseMod: true,
+		} as LaunchRequestArguments);
+		await dc.waitForEvent('initialized');
+		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
+		if (process.platform === 'win32') {
+			scriptpath = scriptpath[0].toLowerCase() + scriptpath.substr(1);
+		}
+		await expect(dc.setBreakpointsRequest({
+			source: {
+				path: scriptpath,
+			},
+			breakpoints: [{ line: 3 }],
+		})).eventually.contain({ success: true });
+		await dc.configurationDoneRequest();
+		await dc.waitForEvent('stopped');
+
+		const stack = await dc.stackTraceRequest({threadId: 1, levels: 1});
+		const frameId = stack.body.stackFrames[0].id;
+
+		await Promise.all([
+			expect(dc.evaluateRequest({
+				context: 'repl',
+				expression: 'foo',
+				frameId: frameId,
+			})).eventually.has.property("body").that.contain({
+				type: 'boolean',
+				variablesReference: 0,
+			}).and.has.property("result").that.matches(/true\n⏱️ [\d\.]+ms/),
+
+			expect(dc.evaluateRequest({
+				context: 'repl',
+				expression: 'foo',
+			})).eventually.has.property("body").that.contain({
+				type: 'nil',
+				variablesReference: 0,
+			}).and.has.property("result").that.matches(/nil\n⏱️ [\d\.]+ms/),
+
+			expect(dc.evaluateRequest({
+				context: 'test',
+				expression: '"foo"',
+			})).eventually.has.property("body").that.contain({
+				type: 'string',
+				variablesReference: 0,
+				result: '"foo"',
+			}),
+		]);
 
 		await dc.terminateRequest();
 	});
