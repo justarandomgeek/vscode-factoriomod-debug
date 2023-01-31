@@ -173,10 +173,8 @@ export class FactorioVersionSelector {
 		const previous_active = this._active_version;
 		this._active_version = new ActiveFactorioVersion(vscode.workspace.fs, active_version, docs, vscode.workspace.workspaceFolders);
 
-		await Promise.allSettled([
-			this.generateDocs(previous_active),
-			this._active_version.checkSteamAppID(vscode.window),
-		]);
+		this._active_version.checkSteamAppID(vscode.window);
+		await this.generateDocs(previous_active);
 	}
 
 	private _active_version?: ActiveFactorioVersion;

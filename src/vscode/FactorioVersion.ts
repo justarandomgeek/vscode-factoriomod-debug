@@ -148,7 +148,7 @@ export class ActiveFactorioVersion {
 			if (!appidStat.find(psr=>psr.status==="fulfilled")) {
 				if ("Yes" === await prompt.showInformationMessage("This is a steam install, and will require `steam_appid.txt` in order to be used for debugging. Create it now?", "Yes", "No")) {
 					try {
-						this.fs.writeFile(appidUri, Buffer.from("427520"));
+						await this.fs.writeFile(appidUri, Buffer.from("427520"));
 					} catch (error) {
 						prompt.showErrorMessage(`failed to write "427520" to ${appidUri}: ${error}`);
 					}
