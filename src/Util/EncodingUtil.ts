@@ -124,19 +124,19 @@ function encodeBreakpoint(bp: DebugProtocol.SourceBreakpoint) : Buffer {
 	if (bp.condition) {
 		// eslint-disable-next-line no-bitwise
 		hasExtra |= 1;
-		extras.push(encodeString(bp.condition.replace("\n", " ")));
+		extras.push(encodeString(bp.condition.replace(/[\r\n]+/g, " ")));
 	}
 
 	if (bp.hitCondition) {
 		// eslint-disable-next-line no-bitwise
 		hasExtra |= 2;
-		extras.push(encodeString(bp.hitCondition.replace("\n", " ")));
+		extras.push(encodeString(bp.hitCondition.replace(/[\r\n]+/g, " ")));
 	}
 
 	if (bp.logMessage) {
 		// eslint-disable-next-line no-bitwise
 		hasExtra |= 4;
-		extras.push(encodeString(bp.logMessage.replace("\n", " ")));
+		extras.push(encodeString(bp.logMessage.replace(/[\r\n]+/g, " ")));
 	}
 
 	return Buffer.concat([linebuff, Buffer.from([hasExtra]), Buffer.concat(extras)]);
