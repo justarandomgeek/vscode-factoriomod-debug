@@ -25,11 +25,10 @@ I open the Factorio `mods` directory as the root of my workspace in VSCode, and 
 I use [VScode](https://code.visualstudio.com/) (imagine that!), but it needs a few extensions to really shine in this context:
 
  * [Factorio Modding Tool Kit](https://marketplace.visualstudio.com/items?itemName=justarandomgeek.factoriomod-debug) - You are here
- * A Lua language server. I like to use [sumneko.lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua), and the Factorio Mod Debugger has some extended support for it.
- * Optional: [Zip File Explorer](https://marketplace.visualstudio.com/items?itemName=slevesque.vscode-zipexplorer). Enables viewing files inside zips, which allows breakpoints/stepping inside them as well.
- * Optional: [indent-rainbow](https://marketplace.visualstudio.com/items?itemName=oderwat.indent-rainbow)
+ * [sumneko Lua Language Server](https://marketplace.visualstudio.com/items?itemName=sumneko.lua) Factorio Modding Tool Kit integrates with this to provide advanced lua features (autocomplete, type information, etc).
+ * Optional: [indent-rainbow](https://marketplace.visualstudio.com/items?itemName=oderwat.indent-rainbow) Because Lua doesn't use many brackets, it can be helpful to color indent levels instead.
  * Optional: [Git Graph](https://marketplace.visualstudio.com/items?itemName=mhutchie.git-graph). I happen to like the graph git log view this extension gives as a place to do manual git operations more complicated than the builtin SCM view provides for.
 
-To provide Factorio Lua API autocompletion, the Factorio mod debugger extension generates EmmyLua docs from the Factorio JSON docs, which are then used by the [sumneko.lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua) language server for its autocompletion feature. Click the Factorio version selection in the status bar to get started!
+Factorio Modding Tool Kit generates a library docs bundle from the Factorio JSON docs, which is then used by the [sumneko Lua Language Server](https://marketplace.visualstudio.com/items?itemName=sumneko.lua) to provide advanced langauge features, such as API autocompletion and type checking. Click the Factorio version selection in the status bar to get started!
 
-Don't forget to read [the readme](../readme.md) for more information about using the tools provided by FMTK.
+Don't forget to read [the readme](../readme.md) for more information about using the tools provided by Factorio Modding Tool Kit.
