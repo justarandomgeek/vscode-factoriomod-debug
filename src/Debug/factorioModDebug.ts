@@ -15,7 +15,7 @@ import { bufferChunks, encodeBreakpoints, luaBlockQuote, objectToLua } from '../
 import { FactorioProcess } from './FactorioProcess';
 import type { ModInfo } from '../vscode/ModPackageProvider';
 import { ModManager } from '../ModManager';
-import { ModSettings } from '../ModSettings';
+import { ModSettings } from '../ModSettings/ModSettings';
 import { LuaFunction } from './LuaDisassembler';
 import { BufferStream } from '../Util/BufferStream';
 import type { ActiveFactorioVersion } from '../vscode/FactorioVersion';

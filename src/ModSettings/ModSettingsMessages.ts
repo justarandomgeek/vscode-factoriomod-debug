@@ -1,4 +1,4 @@
-import type { ModSettingsScopeName, ModSettingsValue } from "../ModSettings";
+import type { ModSettingsScopeName, ModSettingsValue } from "../ModSettings/ModSettings";
 
 export interface ModSettingsMessages {
 	ready: {}

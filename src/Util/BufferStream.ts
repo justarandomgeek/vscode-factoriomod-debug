@@ -38,6 +38,22 @@ export class BufferStream extends Readable {
 		return b.readDoubleLE();
 	}
 
+	readPackedUInt_8_32() {
+		let size = this.readUInt8();
+		if (size === 0xff) {
+			size = this.readUInt32LE();
+		}
+		return size;
+	}
+
+	readPackedUInt_16_32() {
+		let size = this.readUInt16LE();
+		if (size === 0xffff) {
+			size = this.readUInt32LE();
+		}
+		return size;
+	}
+
 	readString(size:number) {
 		if (size===0) { return ""; }
 		const b:Buffer = this.read(size);

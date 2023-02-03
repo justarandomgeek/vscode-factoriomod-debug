@@ -126,7 +126,7 @@ const webviewConfig:BuildOptions = {
 	...commonConfig,
 	entryPoints: {
 		Flamegraph: "./src/Profile/Flamegraph.ts",
-		ModSettingsWebview: "./src/vscode/ModSettingsWebview.ts",
+		ModSettingsWebview: "./src/ModSettings/ModSettingsWebview.ts",
 	},
 	external: [
 		"vscode-webview",

@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { ModSettings, ModSettingsData } from "../ModSettings";
+import { ModSettings, ModSettingsData } from "./ModSettings";
 import { BufferStream } from "../Util/BufferStream";
 import { BigIntReplacer, ModSettingsMessages, ToBigIntValue } from "./ModSettingsMessages";
 

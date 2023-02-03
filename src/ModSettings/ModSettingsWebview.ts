@@ -1,7 +1,7 @@
 import "./ModSettingsWebview.css";
 
 import type {} from "vscode-webview";
-import type { ModSettingsData, ModSettingsScopeName, ModSettingsValue } from "../ModSettings";
+import type { ModSettingsData, ModSettingsScopeName, ModSettingsValue } from "../ModSettings/ModSettings";
 import { BigIntReviver, FromBigIntValue, ModSettingsMessages } from "./ModSettingsMessages";
 
 import { provideVSCodeDesignSystem, vsCodeButton, vsCodeCheckbox, vsCodeTextField, TextField, Checkbox, Button, vsCodeDropdown, vsCodeOption, Dropdown, Option, vsCodePanelTab, vsCodePanelView, vsCodePanels } from "@vscode/webview-ui-toolkit";

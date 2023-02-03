@@ -27,11 +27,7 @@ function readPTreeString(b:BufferStream) {
 	if (empty) {
 		return "";
 	} else {
-		let size = b.readUInt8();
-		if (size === 255) {
-			size = b.readUInt32LE();
-		}
-
+		let size = b.readPackedUInt_8_32();
 		return b.readString(size);
 	}
 }

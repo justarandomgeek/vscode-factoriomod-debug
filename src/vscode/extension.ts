@@ -6,7 +6,7 @@ import { FactorioVersionSelector } from './VersionSelector';
 import { ProfileRenderer } from '../Profile/ProfileRenderer';
 import * as LanguageClient from "../Language/Client";
 import inspector from 'inspector';
-import { ModSettingsEditorProvider } from './ModSettingsEditorProvider';
+import { ModSettingsEditorProvider } from '../ModSettings/ModSettingsEditorProvider';
 
 export function activate(context: vscode.ExtensionContext) {
 	const versionSelector = new FactorioVersionSelector(context);
