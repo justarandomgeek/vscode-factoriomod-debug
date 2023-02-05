@@ -1,0 +1,55 @@
+@import "@vscode/codicons/dist/codicon.css";
+
+/* indent the tree... */
+details {
+	padding-left: 1em;
+}
+
+/* move the widgets outside so that they all line up properly... */
+details > summary {
+	list-style-position: outside;
+}
+
+details.plain > summary {
+	list-style-type: disc;
+}
+
+details.empty > summary {
+	list-style-type: circle;
+}
+
+details.meta > summary {
+	list-style-type: square;
+}
+
+details.loading > summary::marker {
+	animation: codicon-spin 1.5s steps(30) infinite;
+}
+
+span.modname, span.existing, span.meta {
+	color: var(--vscode-debugTokenExpression-name);
+}
+
+span.nil {
+	color: var(--vscode-debugTokenExpression-value);
+}
+
+span.bool {
+	color: var(--vscode-debugTokenExpression-boolean);
+}
+
+span.number {
+	color: var(--vscode-debugTokenExpression-number);
+}
+
+span.string {
+	color: var(--vscode-debugTokenExpression-string);
+	quotes: '"' '"';
+}
+
+span.string::before {
+	content: open-quote;
+}
+span.string::after {
+	content: close-quote;
+}

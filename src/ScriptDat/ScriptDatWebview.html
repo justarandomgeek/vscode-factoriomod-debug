@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<!--
+	Use a content security policy to only allow loading images from https or from our extension directory,
+	and only allow scripts that have a specific nonce.
+	-->
+	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src $cspSource$; style-src $cspSource$; font-src $cspSource$; script-src 'nonce-$nonce$';">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link href="$ScriptDatWebview.css$" rel="stylesheet" />
+	<title>Mod Settings</title>
+</head>
+<body>
+	<section>
+		<h1>Version</h1>
+		<div id="version"></div>
+	</section>
+
+	<section>
+		<h1>Data</h1>
+		<div id="root">
+		</div>
+	</section>
+
+	<script type="module" nonce="$nonce$" src="$ScriptDatWebview.js$" defer/></script>
+</body>
+</html>

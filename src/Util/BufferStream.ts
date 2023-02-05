@@ -23,6 +23,11 @@ export class BufferStream extends Readable {
 		return b.readUInt32LE();
 	}
 
+	readInt32LE() {
+		const b:Buffer = this.read(4);
+		return b.readInt32LE();
+	}
+
 	readBigInt64LE() {
 		const b:Buffer = this.read(8);
 		return b.readBigInt64LE();

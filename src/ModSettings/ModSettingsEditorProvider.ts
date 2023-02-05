@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { ModSettings, ModSettingsData } from "./ModSettings";
 import { BufferStream } from "../Util/BufferStream";
 import { BigIntReplacer, ModSettingsMessages, ToBigIntValue } from "./ModSettingsMessages";
+import { getNonce } from "../Util/WebviewNonce";
 
 export class ModSettingsEditorProvider implements vscode.CustomEditorProvider<ModSettingsDocument> {
 
@@ -205,13 +206,4 @@ export class ModSettingsDocument implements vscode.CustomDocument {
 		this.disposables.forEach(d=>d.dispose());
 	}
 
-}
-
-function getNonce() {
-	let text = '';
-	const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-	for (let i = 0; i < 32; i++) {
-		text += possible.charAt(Math.floor(Math.random() * possible.length));
-	}
-	return text;
 }

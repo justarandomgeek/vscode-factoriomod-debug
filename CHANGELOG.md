@@ -17,6 +17,7 @@
   * Migrate Mod Portal API key from VSCode key storage to `keytar` for consistent behavior across packages
   * Custom Editor for `mod-settings.dat`
   * Re-check if active version is Steam before launching debug
+  * Read-only Custom Editor for `script.dat`
 
 ## 1.1.28
 * Debugger:

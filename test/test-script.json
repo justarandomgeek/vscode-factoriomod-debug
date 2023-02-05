@@ -1,0 +1,525 @@
+{
+  "version": "1.1.76-0",
+  "data": {
+    "level": {
+      "type": "Table",
+      "id": 0,
+      "values": []
+    },
+    "mod-debugadapter-tests": {
+      "type": "Table",
+      "id": 0,
+      "values": [
+        {
+          "key": {
+            "type": "String",
+            "value": "test"
+          },
+          "value": {
+            "type": "Table",
+            "id": 1,
+            "values": [
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 1
+                },
+                "value": {
+                  "type": "TableWithMeta",
+                  "id": 2,
+                  "values": [
+                    {
+                      "key": {
+                        "type": "String",
+                        "value": "id"
+                      },
+                      "value": {
+                        "type": "Number",
+                        "value": 1
+                      }
+                    }
+                  ],
+                  "meta": "test_a"
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 2
+                },
+                "value": {
+                  "type": "ExistingGCObject",
+                  "id": 2
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 3
+                },
+                "value": {
+                  "type": "Table",
+                  "id": 3,
+                  "values": []
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 4
+                },
+                "value": {
+                  "type": "Number",
+                  "value": 1
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 5
+                },
+                "value": {
+                  "type": "Number",
+                  "value": 2
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 6
+                },
+                "value": {
+                  "type": "Number",
+                  "value": 3
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 7
+                },
+                "value": {
+                  "type": "BoolTrue"
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 8
+                },
+                "value": {
+                  "type": "BoolFalse"
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 9
+                },
+                "value": {
+                  "type": "String",
+                  "value": "foo"
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 10
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 4,
+                  "value": {
+                    "type": "LuaPlayer",
+                    "target": 1
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 11
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 5,
+                  "value": {
+                    "type": "LuaEntity",
+                    "target": 2
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 12
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 6,
+                  "value": {
+                    "type": "LuaItemStack",
+                    "stacktype": "ControllerCursorStack",
+                    "target": 3
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 13
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 7,
+                  "value": {
+                    "type": "LuaForce",
+                    "id": 1
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 14
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 8,
+                  "value": {
+                    "type": "LuaSurface",
+                    "surface": 0
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 15
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 9,
+                  "value": {
+                    "type": "LuaEntityPrototype",
+                    "id": 24
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 16
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 10,
+                  "value": {
+                    "type": "LuaFontPrototype",
+                    "name": "compi"
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 18
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 11,
+                  "value": {
+                    "type": "LuaAmmoCategoryPrototype",
+                    "id": 1
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 22
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 12,
+                  "value": {
+                    "type": "LuaDamagePrototype",
+                    "id": 1
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 23
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 13,
+                  "value": {
+                    "type": "LuaEntityPrototype",
+                    "id": 24
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 24
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 14,
+                  "value": {
+                    "type": "LuaEquipmentCategoryPrototype",
+                    "id": 1
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 25
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 15,
+                  "value": {
+                    "type": "LuaEquipmentGridPrototype",
+                    "id": 1
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 26
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 16,
+                  "value": {
+                    "type": "LuaEquipmentPrototype",
+                    "id": 1
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 27
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 17,
+                  "value": {
+                    "type": "LuaFluidPrototype",
+                    "id": 1
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 28
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 18,
+                  "value": {
+                    "type": "LuaFontPrototype",
+                    "name": "compi"
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 29
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 19,
+                  "value": {
+                    "type": "LuaFuelCategoryPrototype",
+                    "id": 1
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 30
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 20,
+                  "value": {
+                    "type": "LuaGroup",
+                    "group": 1,
+                    "subgroup": 0
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 31
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 21,
+                  "value": {
+                    "type": "LuaItemPrototype",
+                    "id": 1
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 32
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 22,
+                  "value": {
+                    "type": "LuaGroup",
+                    "group": 0,
+                    "subgroup": 1
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 34
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 23,
+                  "value": {
+                    "type": "LuaModuleCategoryPrototype",
+                    "id": 1
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 35
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 24,
+                  "value": {
+                    "type": "LuaNamedNoiseExpression",
+                    "id": 1
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 36
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 25,
+                  "value": {
+                    "type": "LuaNoiseLayerPrototype",
+                    "id": 1
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 37
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 26,
+                  "value": {
+                    "type": "LuaParticlePrototype",
+                    "id": 1
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 38
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 27,
+                  "value": {
+                    "type": "LuaRecipeCategoryPrototype",
+                    "id": 1
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 40
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 28,
+                  "value": {
+                    "type": "LuaResourceCategoryPrototype",
+                    "id": 1
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 43
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 29,
+                  "value": {
+                    "type": "LuaTilePrototype",
+                    "id": 1
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 44
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 30,
+                  "value": {
+                    "type": "LuaTrivialSmokePrototype",
+                    "id": 1
+                  }
+                }
+              },
+              {
+                "key": {
+                  "type": "Number",
+                  "value": 45
+                },
+                "value": {
+                  "type": "LuaObject",
+                  "id": 31,
+                  "value": {
+                    "type": "LuaVirtualSignalPrototype",
+                    "id": 1
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

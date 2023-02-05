@@ -7,6 +7,7 @@ import { ProfileRenderer } from '../Profile/ProfileRenderer';
 import * as LanguageClient from "../Language/Client";
 import inspector from 'inspector';
 import { ModSettingsEditorProvider } from '../ModSettings/ModSettingsEditorProvider';
+import { ScriptDatEditorProvider } from '../ScriptDat/ScritpDatEditorProvider';
 
 export function activate(context: vscode.ExtensionContext) {
 	const versionSelector = new FactorioVersionSelector(context);
@@ -25,6 +26,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	new ProfileRenderer(context);
 	new ModSettingsEditorProvider(context);
+	new ScriptDatEditorProvider(context);
 }
 
 class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvider {

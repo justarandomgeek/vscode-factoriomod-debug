@@ -1077,6 +1077,16 @@
             "filenamePattern": "*mod-settings*.dat"
           }
         ]
+      },
+      {
+        "viewType": "fmtk.scriptdat",
+        "displayName": "Script.Dat",
+        "priority": "default",
+        "selector": [
+          {
+            "filenamePattern": "*script*.dat"
+          }
+        ]
       }
     ]
   }
