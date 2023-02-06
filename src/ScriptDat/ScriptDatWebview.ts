@@ -19,10 +19,11 @@ const elements = {
 	root: document.getElementById("root")!,
 };
 
-function luaPlainValue(type:string, value:string) {
+function luaPlainValue(type:string, value:string, ref?:string) {
 	const span = document.createElement("span");
 	span.classList.add(type);
 	span.append(value);
+	span.dataset.ref = ref;
 	return span;
 }
 
@@ -148,7 +149,7 @@ function luaValue(modname:string, value:PartialSavedLuaValue) : HTMLElement {
 		case "String":
 			return luaPlainValue("string", value.value);
 		case "ExistingGCObject":
-			return luaPlainValue("existing", `Ref [${value.id}]`);
+			return luaPlainValue("existing", `Ref [${value.id}]`, `${modname}_gc_${value.id}`);
 
 		case "Table":
 		case "TableWithMeta":
