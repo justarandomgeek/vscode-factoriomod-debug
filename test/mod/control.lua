@@ -15,14 +15,22 @@ end
 
 function Make_Test_Global()
 	local a = Test_A({id=1})
+	local b = {[{true}]=a}
 	global.test = {
-		a,a,{},
+		a,a,{},{[b]=b,[{1}]={2},[{}]={},},
 		1,2,3,true,false,"foo",
 		game.player,
 		game.player.character,
 		game.player.cursor_stack,
 		game.player.force,
 		game.player.surface,
+		game.player.gui,
+		game.permissions,
+		game.create_profiler(true),
+		game.player.surface.get_tile(0,0),
+		firstof(game.player.force.recipes),
+		firstof(game.player.force.technologies),
+		firstof(game.permissions.groups),
 		firstof(game.achievement_prototypes),
 		firstof(game.ammo_category_prototypes),
 		firstof(game.autoplace_control_prototypes),
