@@ -19,6 +19,7 @@ import { ModSettings } from '../ModSettings/ModSettings';
 import { LuaFunction } from './LuaDisassembler';
 import { BufferStream } from '../Util/BufferStream';
 import type { ActiveFactorioVersion } from '../vscode/FactorioVersion';
+import { parseProfile2Dump } from '../Profile2/Profile2Dump';
 
 interface ModPaths{
 	uri: URI
@@ -53,7 +54,7 @@ export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArgum
 	hookSettings?:boolean
 	hookData?:boolean
 	hookControl?:string[]|boolean
-	hookMode?:"debug"|"profile"
+	hookMode?:"debug"|"profile"|"profile2"
 
 	hookLog?:boolean
 	keepOldLog?:boolean
@@ -491,6 +492,8 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 						hookmods !== false && (hookmods === true || hookmods.includes(modname));
 					if (this.launchArgs!.hookMode === "profile") {
 						this.continueProfile(shouldhook);
+					} else if (this.launchArgs!.hookMode === "profile2") {
+						this.continueProfile(shouldhook, 2);
 					} else {
 						this.continueRequire(shouldhook, modname);
 					}
@@ -578,6 +581,10 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				this.translations.clear();
 			} else if (mesg.startsWith("PROFILE:")) {
 				this.sendEvent(new Event("x-Factorio-Profile", mesg));
+			} else if (mesg.startsWith("PROFILE2\x01")) {
+				const part = parseProfile2Dump(mesg);
+				console.log(part);
+				this.sendEvent(new Event("x-Factorio-Profile2", part));
 			} else {
 				//raise this as a stdout "Output" event
 				this.sendEvent(new OutputEvent(mesg+"\n", "stdout"));
@@ -1232,7 +1239,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.inPrompt = false;
 	}
 
-	public continueProfile(shouldRequire:boolean) {
+	public continueProfile(shouldRequire:boolean, version?:number) {
 		if (!this.inPrompt) {
 			this.sendEvent(new OutputEvent(`!! Attempted to continueProfile while not in a prompt\n`, "console"));
 			return;
@@ -1255,7 +1262,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				hookopts += `trackTree=${this.launchArgs!.profileTree},`;
 			}
 
-			this.writeStdin(`__Profiler={${hookopts}}`);
+			this.writeStdin(`__Profiler${version||""}={${hookopts}}`);
 		}
 
 		this.writeStdin("cont");
