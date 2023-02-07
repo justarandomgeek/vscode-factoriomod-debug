@@ -125,6 +125,10 @@ do
 end
 
 if mod_name ~= "debugadapter" then -- don't hook myself!
-  log("profiler2 registered for " .. mod_name)
-  debug.sethook(hook, (__Profiler2.trackLines ~= false) and "clr" or "cr")
+  if script.level.is_simulation then
+    log("profiler2 skipped for simulation")
+  else
+    log("profiler2 registered for " .. mod_name)
+    debug.sethook(hook, (__Profiler2.trackLines ~= false) and "clr" or "cr")
+  end
 end

@@ -20,6 +20,7 @@ import { LuaFunction } from './LuaDisassembler';
 import { BufferStream } from '../Util/BufferStream';
 import type { ActiveFactorioVersion } from '../vscode/FactorioVersion';
 import { parseProfile2Dump } from '../Profile2/Profile2Dump';
+import { Profile2 } from '../Profile2/Profile2';
 
 interface ModPaths{
 	uri: URI
@@ -384,6 +385,8 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			resolveModules = resolve;
 		});
 
+		let profiler2:Profile2;
+
 		this.factorio.on("stderr", (mesg:string)=>this.sendEvent(new OutputEvent(mesg+"\n", "stderr")));
 		this.factorio.on("stdout", async (mesg:string)=>{
 			if (mesg.startsWith("DBG: ")) {
@@ -583,7 +586,11 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				this.sendEvent(new Event("x-Factorio-Profile", mesg));
 			} else if (mesg.startsWith("PROFILE2\x01")) {
 				const part = parseProfile2Dump(mesg);
-				console.log(part);
+				if (!profiler2) {
+					profiler2 = new Profile2();
+					console.log(profiler2);
+				}
+				profiler2.add(part);
 				this.sendEvent(new Event("x-Factorio-Profile2", part));
 			} else {
 				//raise this as a stdout "Output" event
