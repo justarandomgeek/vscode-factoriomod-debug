@@ -1,14 +1,3 @@
-local function disable_autosave()
-  -- disable autosave so it won't try to save timers, this is a desync but i don't care.
-  script.on_nth_tick(2,function()
-    script.on_nth_tick(2,nil)
-    game.autosave_enabled = false
-  end)
-end
-
-script.on_init(disable_autosave)
-script.on_load(disable_autosave)
-
 --- Call a function on all profiler hooked mods and collect the results
 ---@param funcname string
 ---@return table<string, any>
@@ -30,11 +19,4 @@ end
 remote.add_interface("profiler",{
   dump = function() return callAll("dump") end,
   slow = function() return callAll("slow") end,
-  ---@param name string
-  save = function(name)
-    callAll("slow")
-    game.autosave_enabled = true
-    game.auto_save(name or "profiler")
-    disable_autosave()
-  end,
 })
