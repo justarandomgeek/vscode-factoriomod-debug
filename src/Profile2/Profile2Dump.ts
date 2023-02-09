@@ -6,6 +6,7 @@ export interface LineHookEvent {
 
 export interface CallHookEvent {
 	readonly event: "call"|"tail call"
+	readonly modname: string
 	readonly source: string
 	readonly linedefined: number
 	readonly name?: string
@@ -47,10 +48,11 @@ export function parseProfile2Dump(data:string):Profile2Dump {
 			case "tail call":
 				events.push({
 					event: parts[1],
-					source: parts[2],
-					linedefined: Number(parts[3]),
-					name: parts[4],
-					time: i===1 ? 0 : parseTime(parts[5]),
+					modname: parts[2],
+					source: parts[3],
+					linedefined: Number(parts[4]),
+					name: parts[5],
+					time: i===1 ? 0 : parseTime(parts[6]),
 				});
 				break;
 			case "line":

@@ -23,6 +23,7 @@ interface TimeNode {
 // represents a single call to a function
 interface CallNode {
 	type: NodeType.call
+	modname:string
 	source: string
 	linedefined:number
 	name?:string
@@ -31,19 +32,19 @@ interface CallNode {
 }
 
 interface RootCallNode extends CallNode {
-	mod:string
 	//TODO: event id or other entrypoint identification?
 }
 
 export class Profile2 {
+	private sources: string[] = [];
 	private calls: RootCallNode[] = [];
 
 	add(dump:Profile2Dump) {
 		const root:RootCallNode = {
 			type: NodeType.call,
+			modname: "",
 			source: "",
 			linedefined: -1,
-			mod: dump.modname,
 			children: [],
 		};
 		let rootseen = false;
@@ -78,8 +79,12 @@ export class Profile2 {
 						break;
 					}
 				case "call":
+					if (!this.sources.includes(event.source)) {
+						this.sources.push(event.source);
+					}
 					if (!rootseen) {
 						rootseen=true;
+						root.modname = event.modname;
 						root.source = event.source;
 						root.linedefined = event.linedefined;
 						root.name = event.name;
@@ -91,6 +96,7 @@ export class Profile2 {
 						line = NaN;
 						const newcall:CallNode = {
 							type: NodeType.call,
+							modname: event.modname,
 							source: event.source,
 							linedefined: event.linedefined,
 							name: event.name,

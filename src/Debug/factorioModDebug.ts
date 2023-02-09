@@ -584,14 +584,14 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				this.translations.clear();
 			} else if (mesg.startsWith("PROFILE:")) {
 				this.sendEvent(new Event("x-Factorio-Profile", mesg));
-			} else if (mesg.startsWith("PROFILE2\x01")) {
-				const part = parseProfile2Dump(mesg);
+			} else if (mesg.startsWith("\x01P\x02")) {
+				//const part = parseProfile2Dump(mesg);
 				if (!profiler2) {
 					profiler2 = new Profile2();
 					console.log(profiler2);
 				}
-				profiler2.add(part);
-				this.sendEvent(new Event("x-Factorio-Profile2", part));
+				//profiler2.add(part);
+				//this.sendEvent(new Event("x-Factorio-Profile2", part));
 			} else {
 				//raise this as a stdout "Output" event
 				this.sendEvent(new OutputEvent(mesg+"\n", "stdout"));
