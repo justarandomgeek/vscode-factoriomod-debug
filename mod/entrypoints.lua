@@ -21,10 +21,8 @@ local DAEntrypoints = {}
 local function print_exception(type,mesg)
   if mesg == nil then mesg = "<nil>" end
   localised_print({"",
-  "***DebugAdapterBlockPrint***\n"..
-  "DBG: exception ", type, "\n",
-  mesg,"\n"..
-  "***EndDebugAdapterBlockPrint***"
+  "\xEF\xB7\xAEDBG: exception ", type, "\n",
+  mesg,"\xEF\xB7\xAF"
   })
 end
 DAEntrypoints.print_exception = print_exception

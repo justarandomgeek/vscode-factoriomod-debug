@@ -19,8 +19,6 @@ import { ModSettings } from '../ModSettings/ModSettings';
 import { LuaFunction } from './LuaDisassembler';
 import { BufferStream } from '../Util/BufferStream';
 import type { ActiveFactorioVersion } from '../vscode/FactorioVersion';
-import { parseProfile2Dump } from '../Profile2/Profile2Dump';
-import { Profile2 } from '../Profile2/Profile2';
 
 interface ModPaths{
 	uri: URI
@@ -385,10 +383,10 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			resolveModules = resolve;
 		});
 
-		let profiler2:Profile2;
-
 		this.factorio.on("stderr", (mesg:string)=>this.sendEvent(new OutputEvent(mesg+"\n", "stderr")));
-		this.factorio.on("stdout", async (mesg:string)=>{
+
+
+		const otherStdout = async (mesg:string)=>{
 			if (mesg.startsWith("DBG: ")) {
 				const wasInPrompt = this.inPrompt;
 				this.inPrompt = true;
@@ -443,7 +441,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					}
 				} else if (event === "terminate") {
 					await this.terminate();
-				} else if (event.startsWith("step")) {
+				} else if (event === "step") {
 					// notify stoponstep
 					await this.runQueuedStdin();
 					if (this.breakPointsChanged.size !== 0) {
@@ -574,28 +572,63 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				const evalresult:EvaluateResponseBody = JSON.parse(mesg.substring(9).trim());
 				this._evals.get(evalresult.seq)?.(evalresult);
 				this._evals.delete(evalresult.seq);
-			} else if (mesg.startsWith("DBGtranslate: ")) {
-				const sub = mesg.substr(14);
-				const split = sub.indexOf("\n");
-				const id = Number.parseInt(sub.substr(0, split).trim());
-				const translation = sub.substr(split+1);
-				this.translations.set(id, translation);
 			} else if (mesg.startsWith("DBGuntranslate: ")) {
 				this.translations.clear();
 			} else if (mesg.startsWith("PROFILE:")) {
 				this.sendEvent(new Event("x-Factorio-Profile", mesg));
-			} else if (mesg.startsWith("\x01P\x02")) {
-				//const part = parseProfile2Dump(mesg);
-				if (!profiler2) {
-					profiler2 = new Profile2();
-					console.log(profiler2);
-				}
-				//profiler2.add(part);
-				//this.sendEvent(new Event("x-Factorio-Profile2", part));
 			} else {
 				//raise this as a stdout "Output" event
 				this.sendEvent(new OutputEvent(mesg+"\n", "stdout"));
 			}
+		};
+
+		const idOnly = async (mesg:string)=>{
+
+		};
+
+		const translation = async (mesg:string)=>{
+			// discard the tag
+			mesg = mesg.slice(1);
+
+			const split = mesg.indexOf("\x01");
+			const id = Number.parseInt(mesg.slice(0, split).trim());
+			const translation = mesg.slice(split+1);
+			this.translations.set(id, translation);
+		};
+
+		const profile = async (mesg:string)=>{
+
+		};
+
+		this.factorio.on("stdout", (mesg:string)=>{
+			switch (mesg.charCodeAt(0)) {
+				case 0xFDD0:
+					idOnly(mesg);
+					return;
+				case 0xFDD1:
+				case 0xFDD2:
+					return;
+
+				case 0xFDD4:
+					translation(mesg);
+					return;
+				case 0xFDD5:
+				case 0xFDD6:
+					return;
+
+
+				case 0xFDE0: // profile line
+				case 0xFDE1: // profile call
+				case 0xFDE2: // profile tailcall
+				case 0xFDE3: // profile return
+					profile(mesg);
+					return;
+
+				default:
+					otherStdout(mesg);
+					return;
+			}
+
 		});
 
 		this.sendResponse(response);

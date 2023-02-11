@@ -110,7 +110,6 @@ local hook
 local pending = {}
 do
   local getinfo = debug.getinfo
-  local format = string.format
   local debugprompt = debug.debug
 
   ---debug hook function
@@ -125,7 +124,7 @@ do
       local s = normalizeLuaSource(rawsource)
       if stepdepth and stepdepth<=0 then
         stepdepth = nil
-        print(format("DBG: step %s:%d", s, line or -1))
+        print("DBG: step")
         debugprompt()
         -- cleanup variablesReferences
         variables.clear()

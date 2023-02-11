@@ -208,10 +208,8 @@ do
   function variables.translate(mesg)
     local translationID = nextID()
     local success,result = pcall(localised_print, {"",
-    "***DebugAdapterBlockPrint***\n"..
-    "DBGtranslate: ", translationID, "\n",
-    mesg,"\n"..
-    "***EndDebugAdapterBlockPrint***"
+    "\xEF\xB7\xAE\xEF\xB7\x94", translationID, "\x01",
+    mesg,"\xEF\xB7\xAF"
     })
     if success then
       return translationID
@@ -224,7 +222,7 @@ do
   function variables.clear()
     variables.refs = setmetatable({},refsmeta)
     local context = script and script.mod_name or "#data"
-    localised_print{"","DBGuntranslate: ",context}
+    --localised_print{"","DBGuntranslate: ",context}
   end
 end
 

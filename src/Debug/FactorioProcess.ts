@@ -6,9 +6,11 @@ import * as path from 'path';
 import treekill from 'tree-kill';
 
 const stderrsplit = [Buffer.from("\n"), Buffer.from("lua_debug> ")];
-const stdoutsplit = [Buffer.from("\n"), {
-	start: Buffer.from("***DebugAdapterBlockPrint***"),
-	end: Buffer.from("***EndDebugAdapterBlockPrint***")}];
+const stdoutsplit = [Buffer.from("\n"),
+	{
+		start: Buffer.from([0xEF, 0xB7, 0xAE]), // U+FDEE
+		end: Buffer.from([0xEF, 0xB7, 0xAF]), // U+FDEF
+	}];
 
 export class FactorioProcess extends EventEmitter {
 	private readonly factorio: ChildProcess;
@@ -31,14 +33,12 @@ export class FactorioProcess extends EventEmitter {
 		const stderr = new BufferSplitter(this.factorio.stderr!, stderrsplit);
 		stderr.on("segment", (chunk:Buffer)=>{
 			let chunkstr : string = chunk.toString();
-			chunkstr = chunkstr.replace(/^[\r\n]*/, "").replace(/[\r\n]*$/, "");
 			if (!chunkstr) { return; }
 			this.emit("stderr", chunkstr);
 		});
 		const stdout = new BufferSplitter(this.factorio.stdout!, stdoutsplit);
 		stdout.on("segment", (chunk:Buffer)=>{
 			let chunkstr:string = chunk.toString();
-			chunkstr = chunkstr.replace(/^[\r\n]*/, "").replace(/[\r\n]*$/, "");
 			if (!chunkstr) { return; }
 			this.emit("stdout", chunkstr);
 		});

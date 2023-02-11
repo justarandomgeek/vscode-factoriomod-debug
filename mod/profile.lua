@@ -240,7 +240,7 @@ local detach
 local function dump()
   detach()
   local t = create_profiler()
-  print("***DebugAdapterBlockPrint***\nPROFILE:")
+  print("\xEF\xB7\xAEPROFILE:")
   -- reuse one table lots to be nice to GC
   ---@type LocalisedString
   local tag = {"","PMN:",mod_name,":",luatotal and luatotal.timer}
@@ -273,7 +273,7 @@ local function dump()
 
   t.stop()
   localised_print{"","POV:",t}
-  print("***EndDebugAdapterBlockPrint***")
+  print("\xEF\xB7\xAF")
   linedata = {}
   funcdata = {}
   activeline = nil

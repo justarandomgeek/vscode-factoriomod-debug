@@ -60,12 +60,12 @@ do
   end
 
   local callprefix = {
-    ["call"] = "\x01P\x02c\x01"..mod_name.."\x01",
-    ["tail call"] = "\x01P\x02t\x01"..mod_name.."\x01",
+    ["call"] = "\xEF\xB7\xA1"..mod_name.."\x01",
+    ["tail call"] = "\xEF\xB7\xA2"..mod_name.."\x01",
   }
 
-  local linemesg = {"","\x01P\x02l\x01",0,"\x01",hooktimer}
-  local returnmesg = {"","\x01P\x02r\x01",hooktimer}
+  local linemesg = {"","\xEF\xB7\xA0",0,"\x01",hooktimer}
+  local returnmesg = {"","\xEF\xB7\xA3",hooktimer}
   local callmesg = {"", "", "", "\x01", hooktimer}
 
   local funcid = setmetatable({}, {__mode="k"})
@@ -82,14 +82,12 @@ do
       localised_print(returnmesg)
     else -- "call" or "tail call"
       local info = getinfo(2,"fnS")
-      do
-        local f = funcid[info.func]
-        if not f then
-          f = callprefix[event]..normalizeLuaSource(info.source).."\x01"..info.linedefined.."\x01"
-          funcid[info.func] = f
-        end
-        callmesg[2] = f
+      local f = funcid[info.func]
+      if not f then
+        f = callprefix[event]..normalizeLuaSource(info.source).."\x01"..info.linedefined.."\x01"
+        funcid[info.func] = f
       end
+      callmesg[2] = f
       callmesg[3] = info.name
       localised_print(callmesg)
     end
