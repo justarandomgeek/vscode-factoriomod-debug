@@ -326,9 +326,15 @@ export class ScriptDat {
 				const owner = b.readUInt32LE();
 				return { index, owner };
 			}
+			case LuaObjectType.LuaCustomChartTag:
+			{
+				const force = b.readUInt8();
+				const surface = b.readPackedUInt_8_32();
+				const target = b.readUInt32LE();
+				return { force, surface, target };
+			}
 			case LuaObjectType.LuaForce:
 			case LuaObjectType.LuaDecorativePrototype:
-			case LuaObjectType.LuaCustomChartTag:
 			case LuaObjectType.LuaTilePrototype:
 			case LuaObjectType.LuaDamagePrototype:
 			case LuaObjectType.LuaEquipmentGridPrototype:
