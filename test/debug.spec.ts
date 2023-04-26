@@ -125,6 +125,75 @@ suite('Debug Adapter', ()=>{
 		await dc.terminateRequest();
 	});
 
+	test('should list breakpoint locations', async ()=>{
+		await dc.launch({
+			type: "factoriomod",
+			request: "launch",
+			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
+			adjustMods: {
+				"debugadapter-tests": true,
+				"minimal-no-base-mod": true,
+			},
+			disableExtraMods: true,
+			allowDisableBaseMod: true,
+		} as LaunchRequestArguments);
+		await dc.waitForEvent('initialized');
+		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
+		if (process.platform === 'win32') {
+			scriptpath = scriptpath[0].toLowerCase() + scriptpath.slice(1);
+		}
+		const bps = await dc.setBreakpointsRequest({
+			source: {
+				path: scriptpath,
+			},
+			breakpoints: [{ line: 2 }],
+		});
+		expect(bps.success);
+		await dc.configurationDoneRequest();
+		await dc.waitForEvent('stopped');
+		await expect (dc.customRequest('breakpointLocations', {
+			source: {
+				path: scriptpath,
+			},
+			line: 1,
+			endLine: 4,
+		})).eventually.has.property('body').that.has.property('breakpoints').with.lengthOf(4);
+
+		await dc.terminateRequest();
+	});
+
+	test('should list loaded modules and sources', async ()=>{
+		await dc.launch({
+			type: "factoriomod",
+			request: "launch",
+			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
+			adjustMods: {
+				"debugadapter-tests": true,
+				"minimal-no-base-mod": true,
+			},
+			disableExtraMods: true,
+			allowDisableBaseMod: true,
+		} as LaunchRequestArguments);
+		await dc.waitForEvent('initialized');
+		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
+		if (process.platform === 'win32') {
+			scriptpath = scriptpath[0].toLowerCase() + scriptpath.slice(1);
+		}
+		const bps = await dc.setBreakpointsRequest({
+			source: {
+				path: scriptpath,
+			},
+			breakpoints: [{ line: 2 }],
+		});
+		expect(bps.success);
+		await dc.configurationDoneRequest();
+		await dc.waitForEvent('stopped');
+		await expect(dc.modulesRequest({})).eventually.has.property('body').has.property('modules');
+		await expect(dc.customRequest('loadedSources', {})).eventually.has.property('body').has.property('sources');
+
+		await dc.terminateRequest();
+	});
+
 	test('should catch exceptions', async ()=>{
 		await dc.launch({
 			type: "factoriomod",
@@ -176,6 +245,35 @@ suite('Debug Adapter', ()=>{
 		await dc.continueRequest({threadId: 1});
 
 		await waitFor(/control\.lua:\d+: unhandled$/);
+
+		await dc.terminateRequest();
+	});
+
+	test('should pause', async ()=>{
+		await dc.launch({
+			type: "factoriomod",
+			request: "launch",
+			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
+			adjustMods: {
+				"debugadapter-tests": true,
+				"minimal-no-base-mod": true,
+			},
+			disableExtraMods: true,
+			allowDisableBaseMod: true,
+			runningBreak: 1,
+		} as LaunchRequestArguments);
+		await dc.waitForEvent('initialized');
+		await dc.setExceptionBreakpointsRequest({filters: ['pcall', 'xpcall', 'unhandled']});
+		await dc.configurationDoneRequest();
+
+		// wait a bit to let factorio actually get up and running before we try to pause...
+		await new Promise((resolve)=>setTimeout(resolve, 500));
+
+		await dc.pauseRequest({threadId: 1});
+		await expect(dc.waitForEvent('stopped')).eventually.has.property('body')
+			.that.contain({
+				reason: 'pause',
+			});
 
 		await dc.terminateRequest();
 	});

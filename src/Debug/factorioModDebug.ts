@@ -637,11 +637,13 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		return super.convertDebuggerPathToClient(debuggerPath);
 	}
 
-	protected customRequest(command: string, response: DebugProtocol.Response, args: any, request?: DebugProtocol.Request | undefined): void {
+	protected async customRequest(command: string, response: DebugProtocol.Response, args: any, request?: DebugProtocol.Request | undefined) {
 		switch (command) {
 			case "x-Factorio-ConvertPath":
 				response.body = this.convertDebuggerPathToClient(args.path);
 				break;
+			case 'modules':
+				return this.modulesRequest(response as DebugProtocol.ModulesResponse, args as DebugProtocol.ModulesArguments);
 			default:
 				response.success=false;
 				response.message="Unknown request";
@@ -1024,10 +1026,10 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 
 	protected async breakpointLocationsRequest(response: DebugProtocol.BreakpointLocationsResponse, args: DebugProtocol.BreakpointLocationsArguments, request: DebugProtocol.BreakpointLocationsRequest) {
-		let sourceid = args.source.sourceReference ?? args.source.name;
+		let sourceid = args.source.sourceReference ?? args.source.path;
 		if (sourceid) {
 			if (typeof sourceid === "string") {
-				sourceid = this.convertDebuggerPathToClient(sourceid);
+				sourceid = this.convertClientPathToDebugger(sourceid);
 			}
 			const lines = this.lines_by_source?.get(sourceid);
 			if (lines) {
