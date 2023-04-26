@@ -83,14 +83,14 @@ end
 
 local sharedevents = {}
 script.on_init(__DebugAdapter.stepIgnore(function()
-  print("DBG: on_init")
+  print("\xEF\xB7\x90\xEE\x80\x89")
   debug.debug()
   variables.clear()
   if sharedevents.on_init then return sharedevents.on_init() end
 end))
 
 script.on_load(__DebugAdapter.stepIgnore(function()
-  print("DBG: on_load")
+  print("\xEF\xB7\x90\xEE\x80\x8A")
   debug.debug()
   variables.clear()
   if sharedevents.on_load then return sharedevents.on_load() end
@@ -98,7 +98,7 @@ end))
 
 ---@param e table
 script.on_event(defines.events.on_tick,__DebugAdapter.stepIgnore(function(e)
-  print("DBG: on_tick")
+  print("\xEF\xB7\x90\xEE\x80\x86")
   debug.debug()
   variables.clear()
   if sharedevents.on_tick then return sharedevents.on_tick(e) end

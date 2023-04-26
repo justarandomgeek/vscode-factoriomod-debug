@@ -42,7 +42,7 @@ do
       luaObjectInfo = load(tconcat(objectChunks),"=(objectinfo)","t")() --[[@as LuaObjectInfo]]
     end
   end
-  print("DBG: object_info")
+  print("\xEF\xB7\x90\xEE\x80\x84")
   debug.debug()
   __DebugAdapter.loadObjectInfo = nil
 end

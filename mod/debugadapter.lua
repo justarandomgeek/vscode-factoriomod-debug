@@ -78,13 +78,14 @@ local match = string.match
 
 ---Called by VSCode to retreive source for a function
 ---@param id number
+---@param seq number request sequence number
 ---@param internal boolean Don't look in other LuaStates
 ---@return boolean
-function __DebugAdapter.source(id,internal)
+function __DebugAdapter.source(id, seq, internal)
 
   local ref = variables.longrefs[id]
   if ref and ref.type == "Source" then ---@cast ref DAvarslib.SourceRef
-    print("DBGdump: " .. json.encode{source=ref.source,ref=id})
+    print("\xEF\xB7\x96" .. json.encode{seq=seq, body=ref.source})
     return true
   end
   if internal then return false end
@@ -94,35 +95,20 @@ function __DebugAdapter.source(id,internal)
     for remotename,_ in pairs(remote.interfaces) do
       local modname = match(remotename, "^__debugadapter_(.+)$")
       if modname then
-        if call(remotename,"source",id,true) then
+        if call(remotename,"source",id,seq,true) then
           return true
         end
       end
     end
   end
 
-  print("DBGdump: " .. json.encode{ref=id})
+  print("\xEF\xB7\x96" .. json.encode{seq=seq, body=nil})
   return false
-end
-
----@prints Module[]
-function __DebugAdapter.modules()
-  ---@type DebugProtocol.Module[]
-  local modules = {}
-  modules[1] = { id = "core", name = "core", }
-  modules[2] = { id = "level", name = "level", }
-  for name,version in pairs(mods or script.active_mods) do
-    modules[#modules+1] = {
-      id = name, name = name,
-      version = version,
-    }
-  end
-  print("DBGmodules: " .. json.encode(modules))
 end
 
 ---@param frameId integer
 ---@prints DebugProtocol.Scope[]
-function __DebugAdapter.scopes(frameId)
+function __DebugAdapter.scopes(frameId, seq)
   if debug.getinfo(frameId,"f") then
     ---@type DebugProtocol.Scope[]
     local scopes = {}
@@ -137,9 +123,9 @@ function __DebugAdapter.scopes(frameId)
     -- Lua Globals
     scopes[#scopes+1] = { name = "Lua Globals", variablesReference = variables.tableRef(_ENV), expensive=false }
 
-    print("DBGscopes: " .. json.encode({frameId = frameId, scopes = scopes}))
+    print("\xEF\xB7\x96" .. json.encode({seq=seq, body=scopes}))
   else
-    print("DBGscopes: " .. json.encode({frameId = frameId, scopes = {
+    print("\xEF\xB7\x96" .. json.encode({seq=seq, body={
       { name = "[Variables Currently Unavailable]", variablesReference = 0, expensive=false }
     }}))
   end
@@ -155,7 +141,7 @@ do
   if data then
     __DebugAdapter.print("debugadapter registered for data" .. ininstrument, nil, nil, "console")
     __DebugAdapter.attach()
-    print("DBG: on_data")
+    print("\xEF\xB7\x90\xEE\x80\x87")
     debug.debug()
     -- data stage clears package.loaded between files, so we stash a copy in Lua registry too
     local reg = debug.getregistry()
@@ -173,7 +159,7 @@ do
     })
 
     __DebugAdapter.attach()
-    print("DBG: on_parse")
+    print("\xEF\xB7\x90\xEE\x80\x88")
     debug.debug()
   end
 end

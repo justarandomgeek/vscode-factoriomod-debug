@@ -435,7 +435,7 @@ function DAEval.evaluate(frameId,context,expression,seq,formod)
       if __DebugAdapter.canRemoteCall() and remote.interfaces["__debugadapter_"..modname] then
         return remote.call("__debugadapter_"..modname,"evaluate",frameId,context,expression,seq,modname)
       else
-        print("DBGeval: " .. json_encode({result = "`"..modname.."` not available for eval", type="error", variablesReference=0, seq=seq}))
+        print("\xEF\xB7\x96" .. json_encode({seq=seq, body={result = "`"..modname.."` not available for eval", type="error", variablesReference=0}}))
         return
       end
     end
@@ -475,7 +475,6 @@ function DAEval.evaluate(frameId,context,expression,seq,formod)
         end
         evalresult.result = json_encode(result)
       end
-      evalresult.seq = seq
     else
       if context == "repl" then
         ---@cast result DebugAdapter.CountedResult
@@ -485,19 +484,19 @@ function DAEval.evaluate(frameId,context,expression,seq,formod)
       local outmesg = result
       local tmesg = type(result)
       if tmesg == "table" and (result--[[@as LuaObject]].object_name == "LuaProfiler" or (not getmetatable(result) and #result>=1 and type(result[1])=="string")) then
-        outmesg = "{LocalisedString "..variables.translate(result).."}"
+        outmesg = "\xEF\xB7\x94"..variables.translate(result)
       elseif tmesg ~= "string" then
         outmesg = variables.describe(result)
       end
-      evalresult = {result = outmesg, type="error", variablesReference=0, seq=seq}
+      evalresult = {result = outmesg, type="error", variablesReference=0}
     end
     if timer then
       evalresult.timer = variables.translate(timer)
     end
   else
-    evalresult = {result = "Cannot Evaluate in Remote Frame", type="error", variablesReference=0, seq=seq}
+    evalresult = {result = "Cannot Evaluate in Remote Frame", type="error", variablesReference=0}
   end
-  print("DBGeval: " .. json_encode(evalresult))
+  print("\xEF\xB7\x96" .. json_encode({seq=seq, body=evalresult}))
 end
 
 return DAEval

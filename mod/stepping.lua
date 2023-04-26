@@ -124,12 +124,12 @@ do
       local s = normalizeLuaSource(rawsource)
       if stepdepth and stepdepth<=0 then
         stepdepth = nil
-        print("DBG: step")
+        print("\xEF\xB7\x90\xEE\x80\x8D")
         debugprompt()
         -- cleanup variablesReferences
         variables.clear()
       elseif runningBreak() then
-        print("DBG: running")
+        print("\xEF\xB7\x90\xEE\x80\x8B")
         debugprompt()
         variables.clear()
       else
@@ -176,16 +176,12 @@ do
                   __debugtype = "DebugAdapter.LogPointResult",
                 })
                 local varresult = variables.create(nil,{exprs}, nil)
-                local logpoint = {
-                  output = result,
-                  variablesReference = varresult.variablesReference,
-                  filePath = s,
-                  line = line,
-                }
-                print("DBGlogpoint: " .. json_encode(logpoint))
+                __DebugAdapter.outputEvent(
+                  {output=result, variablesReference=varresult.variablesReference},
+                  {source=s, currentline=line})
               else
                 stepdepth = nil
-                print("DBG: breakpoint")
+                print("\xEF\xB7\x90\xEE\x80\x8E")
                 debugprompt()
                 -- cleanup variablesReferences
                 variables.clear()
@@ -207,17 +203,17 @@ do
           if sourceref then
             dasource = sourceref
           end
-          print("EVTsource: "..json_encode{
+          print("\xEF\xB7\x95"..json_encode{ event="source", body={
             source = dasource,
             dump = enc(string.dump(info.func))
-          })
+          }})
         else]]
         if s:sub(1,1) == "@" then
           local dump
           if not isDumpIgnore[s] then
             dump = enc(string.dump(info.func))
           end
-          print("EVTsource: "..json_encode{ source = dasource, dump = dump })
+          print("\xEF\xB7\x95" .. json_encode{event="source", body={ source = dasource, dump = dump }})
         end
       end
 
@@ -295,7 +291,7 @@ do
       if not parent then -- top of stack
         if info.what == "main" or info.what == "Lua" then
           if info.what == "main" and not info.source:match("^@__debugadapter__") then
-            print("DBG: leaving")
+            print("\xEF\xB7\x90\xEE\x80\x8B")
             debugprompt()
           end
           variables.clear()

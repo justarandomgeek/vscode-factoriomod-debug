@@ -95,7 +95,7 @@ suite('Debug Adapter', ()=>{
 		await dc.waitForEvent('initialized');
 		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
 		if (process.platform === 'win32') {
-			scriptpath = scriptpath[0].toLowerCase() + scriptpath.substr(1);
+			scriptpath = scriptpath[0].toLowerCase() + scriptpath.slice(1);
 		}
 		const bps = await dc.setBreakpointsRequest({
 			source: {
@@ -140,7 +140,7 @@ suite('Debug Adapter', ()=>{
 		await dc.waitForEvent('initialized');
 		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
 		if (process.platform === 'win32') {
-			scriptpath = scriptpath[0].toLowerCase() + scriptpath.substr(1);
+			scriptpath = scriptpath[0].toLowerCase() + scriptpath.slice(1);
 		}
 		const bps = await dc.setBreakpointsRequest({
 			source: {
@@ -210,7 +210,7 @@ suite('Debug Adapter', ()=>{
 		await dc.waitForEvent('initialized');
 		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
 		if (process.platform === 'win32') {
-			scriptpath = scriptpath[0].toLowerCase() + scriptpath.substr(1);
+			scriptpath = scriptpath[0].toLowerCase() + scriptpath.slice(1);
 		}
 		await expect(dc.setBreakpointsRequest({
 			source: {

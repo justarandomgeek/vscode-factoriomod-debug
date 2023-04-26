@@ -11,10 +11,10 @@ for name,version in pairs(mods) do
     version = version,
   }
 end
-print("EVTmodules: " .. json.encode(modules))
+print("\xEF\xB7\x95" .. json.encode({event="modules", body=modules}))
 debug.getregistry().__DASentModules = true
 
-print("DBG: on_instrument_settings")
+print("\xEF\xB7\x90\xEE\x80\x80")
 debug.debug()
 if __DebugAdapter then
   __DebugAdapter.instrument = true

@@ -240,7 +240,7 @@ local detach
 local function dump()
   detach()
   local t = create_profiler()
-  print("\xEF\xB7\xAEPROFILE:")
+  print("\xEF\xB7\xAE\xEF\xB7\xAD")
   -- reuse one table lots to be nice to GC
   ---@type LocalisedString
   local tag = {"","PMN:",mod_name,":",luatotal and luatotal.timer}

@@ -16,41 +16,29 @@ local function newlog(mesg)
   local outmesg = mesg
   local tmesg = type(mesg)
   if tmesg == "table" and (mesg.object_name == "LuaProfiler" or (not getmetatable(mesg) and type(mesg[1])=="string")) then
-    outmesg = "{LocalisedString "..variables.translate(mesg).."}"
+    outmesg = "\xEF\xB7\x94"..variables.translate(mesg)
   elseif tmesg ~= "string" then
     outmesg = variables.describe(mesg)
   end
   local body = {
     category = "stdout",
     output = outmesg,
-    };
-  local istail = debug.getinfo(1,"t")
+  }
+  ---@type {source:string, currentline:number}|nil
+  local source
   ---@type string
   local loc
+  local istail = debug.getinfo(1,"t")
   if istail.istailcall then
-    body.line = 1
-    body.source = {
-      name = "=(...tailcall...)",
-    }
-    loc = "=(...tailcall...)"
+    source = {source = "=(...tailcall...)", currentline = 1}
+    loc = "=(tailcall):?: "
   else
     local info = debug.getinfo(2,"lS")
     body.line = info.currentline
-    local source = normalizeLuaSource(info.source)
-    local dasource = {
-      name = source,
-      path = source,
-    }
-    if source == "=(dostring)" then
-      local sourceref = variables.sourceRef(info.source)
-      if sourceref then
-        dasource = sourceref
-      end
-    end
-    body.source = dasource
+    source = {source = normalizeLuaSource(info.source), currentline = info.currentline}
     loc = info.source..":"..info.currentline..": "
   end
-  print("DBGprint: " .. json.encode(body))
+  __DebugAdapter.outputEvent(body, source)
   if keepoldlog then
     return oldlog({"",loc,mesg})
   end

@@ -141,26 +141,16 @@ if __DebugAdapter.checkGlobals ~= false then
         category = "console",
         output = "Assignment to undefined global: "..k.."="..variables.describe(v),
       }
+      ---@type {source:string, currentline:number}|nil
+      local source
       local istail = debug.getinfo(1,"t")
       if istail.istailcall then
-        body.line = 1
-        body.source = { name = "=(...tailcall...)" }
+        source = {source = "=(...tailcall...)", currentline = 1}
       else
         body.line = info.currentline
-        local source = normalizeLuaSource(info.source)
-        local dasource = {
-          name = source,
-          path = source,
-        }
-        if source == "=(dostring)" then
-          local sourceref = variables.sourceRef(info.source)
-          if sourceref then
-            dasource = sourceref
-          end
-        end
-        body.source = dasource
+        source = {source = normalizeLuaSource(info.source), currentline = info.currentline}
       end
-      print("DBGprint: " .. json_encode(body))
+      __DebugAdapter.outputEvent(body, source)
     end
     rawset(t,k,v)
   end)
@@ -191,7 +181,7 @@ do
       nextRefID = ref + 1
       return ref
     end
-    print("DBG: getref")
+    print("\xEF\xB7\x90\xEE\x80\x84")
     debug.debug(); -- call __DebugAdapter.transferRef(ref) and continue
     return nextRefID
   end
@@ -221,8 +211,6 @@ do
   --- Clear all references for short-lived things (scopes, stacks)
   function variables.clear()
     variables.refs = setmetatable({},refsmeta)
-    local context = script and script.mod_name or "#data"
-    --localised_print{"","DBGuntranslate: ",context}
   end
 end
 
@@ -914,7 +902,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
             local i,mesg = variables.translate(varRef.table)
             vars[#vars + 1] = {
               name = "<translated>",
-              value = i and ("{LocalisedString "..i.."}") or ("<"..mesg..">"),
+              value = i and ("\xEF\xB7\x94"..i) or ("<"..mesg..">"),
               type = "LocalisedString",
               variablesReference = 0,
               presentationHint = { kind = "virtual", attributes = { "readOnly" } },
@@ -1046,7 +1034,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
                 -- print a translation for this with unique id
                 local id,mesg = variables.translate(object)
                 if id then
-                  value = "{LocalisedString "..id.."}"
+                  value = "\xEF\xB7\x94"..id
                 else
                   value = "<"..mesg..">"
                 end
@@ -1160,7 +1148,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
   end
 
   if varRef or (not longonly) then
-    print("DBGvars: " .. json_encode({variablesReference = variablesReference, seq = seq, vars = vars, long = longonly and script.mod_name}))
+    print("\xEF\xB7\x96" .. json_encode({seq = seq, body = vars}))
     return true
   end
   return
@@ -1185,7 +1173,7 @@ function DAvars.setVariable(variablesReference, name, value, seq)
           if lname == matchname then
             localindex = matchidx
           else
-            print("DBGsetvar: " .. json_encode({seq = seq, body = {
+            print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {
               type="error",
               value="name mismatch at register "..matchidx.." expected `"..matchname.."` got `"..lname.."`"
             }}))
@@ -1208,14 +1196,14 @@ function DAvars.setVariable(variablesReference, name, value, seq)
           local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
           if goodvalue then
             debug.setlocal(varRef.frameId,localindex,newvalue)
-            print("DBGsetvar: " .. json_encode({seq = seq, body = variables.create(nil,newvalue)}))
+            print("\xEF\xB7\x96" .. json_encode({seq = seq, body = variables.create(nil,newvalue)}))
             return
           else
-            print("DBGsetvar: " .. json_encode({seq = seq, body = {type="error",value=newvalue}}))
+            print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value=newvalue}}))
             return
           end
         else
-          print("DBGsetvar: " .. json_encode({seq = seq, body = {type="error",value="named var not present"}}))
+          print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value="named var not present"}}))
           return
         end
       else
@@ -1228,17 +1216,17 @@ function DAvars.setVariable(variablesReference, name, value, seq)
             local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
             if goodvalue then
               debug.setlocal(varRef.frameId,i,newvalue)
-              print("DBGsetvar: " .. json_encode({seq = seq, body = variables.create(nil,newvalue)}))
+              print("\xEF\xB7\x96" .. json_encode({seq = seq, body = variables.create(nil,newvalue)}))
               return
             else
-              print("DBGsetvar: " .. json_encode({seq = seq, body = {type="error",value=newvalue}}))
+              print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value=newvalue}}))
               return
             end
           end
           i = i - 1
         end
       end
-      print("DBGsetvar: " .. json_encode({seq = seq, body = {type="error",value="invalid local name"}}))
+      print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value="invalid local name"}}))
       return
     elseif varRef.type == "Upvalues" then
       ---@cast varRef DAvarslib.ScopeRef
@@ -1251,16 +1239,16 @@ function DAvars.setVariable(variablesReference, name, value, seq)
           local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
           if goodvalue then
             debug.setupvalue(func,i,newvalue)
-            print("DBGsetvar: " .. json_encode({seq = seq, body = variables.create(nil,newvalue)}))
+            print("\xEF\xB7\x96" .. json_encode({seq = seq, body = variables.create(nil,newvalue)}))
             return
           else
-            print("DBGsetvar: " .. json_encode({seq = seq, body = {type="error",value=newvalue}}))
+            print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value=newvalue}}))
             return
           end
         end
         i = i + 1
       end
-      print("DBGsetvar: " .. json_encode({seq = seq, body = {type="error",value="invalid upval name"}}))
+      print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value="invalid upval name"}}))
       return
     elseif varRef.type == "Table" or varRef.type == "LuaObject" then
       -- special names "[]" and others aren't valid lua so it won't parse anyway
@@ -1276,13 +1264,13 @@ function DAvars.setVariable(variablesReference, name, value, seq)
         end
         local goodvalue,newvalue = __DebugAdapter.evaluateInternal(nil,alsoLookIn,"setvar",value)
         if not goodvalue then
-          print("DBGsetvar: " .. json_encode({seq = seq, body = {type="error",value=newvalue}}))
+          print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value=newvalue}}))
           return
         end
         -- this could fail if table has __newindex or LuaObject property is read only or wrong type, etc
         local goodassign,mesg = pnewindex(alsoLookIn,newname,newvalue)
         if not goodassign then
-          print("DBGsetvar: " .. json_encode({seq = seq, body = {type="error",value=mesg}}))
+          print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value=mesg}}))
           return
         end
 
@@ -1290,10 +1278,10 @@ function DAvars.setVariable(variablesReference, name, value, seq)
         -- so fetch the value back instead of assuming it set...
         -- also, refresh the value even if we didn't update it
         local _,resultvalue = pindex(alsoLookIn,newname)
-        print("DBGsetvar: " .. json_encode({seq = seq, body = variables.create(nil,resultvalue)}))
+        print("\xEF\xB7\x96" .. json_encode({seq = seq, body = variables.create(nil,resultvalue)}))
         return
       else
-        print("DBGsetvar: " .. json_encode({seq = seq, body = {type="error",value="invalid property name"}}))
+        print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value="invalid property name"}}))
         return
       end
     end

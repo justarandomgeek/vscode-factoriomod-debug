@@ -170,7 +170,7 @@ function DAStacks.stackTrace(startFrame, forRemote, seq)
     end
   end
   if not forRemote then
-    print("DBGstack: " .. json.encode{frames=stackFrames,seq=seq})
+    print("\xEF\xB7\x96" .. json.encode{body=stackFrames,seq=seq})
   end
   return stackFrames
 end

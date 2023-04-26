@@ -1,4 +1,4 @@
-print("DBG: on_instrument_control "..script.mod_name)
+print("\xEF\xB7\x90\xEE\x80\x82"..script.mod_name)
 debug.debug()
 if __DebugAdapter then
   __DebugAdapter.instrument = true

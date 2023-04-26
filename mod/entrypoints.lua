@@ -21,7 +21,7 @@ local DAEntrypoints = {}
 local function print_exception(type,mesg)
   if mesg == nil then mesg = "<nil>" end
   localised_print({"",
-  "\xEF\xB7\xAEDBG: exception ", type, "\n",
+  "\xEF\xB7\xAE\xEE\x80\x8F", type, "\x01",
   mesg,"\xEF\xB7\xAF"
   })
 end
@@ -34,7 +34,7 @@ function DAEntrypoints.breakpoint(mesg)
   if mesg then
     print_exception("manual",mesg)
   else
-    print("DBG: breakpoint")
+    print("\xEF\xB7\x90\xEE\x80\x8E")
   end
   debug.debug()
   return __DebugAdapter.attach()
@@ -44,7 +44,7 @@ end
 ---Terminate a debug session from mod code
 function DAEntrypoints.terminate()
   debug.sethook()
-  print("DBG: terminate")
+  print("\xEF\xB7\x90\xEE\x80\x8C")
   debug.debug()
 end
 

@@ -2,7 +2,7 @@ import {
 	Logger, logger,
 	LoggingDebugSession,
 	StoppedEvent, OutputEvent,
-	Thread, Source, Module, ModuleEvent, InitializedEvent, Scope, Variable, Event, TerminatedEvent, LoadedSourceEvent, BreakpointEvent,
+	Thread, Source, Module, ModuleEvent, InitializedEvent, Event, TerminatedEvent, LoadedSourceEvent, BreakpointEvent,
 } from '@vscode/debugadapter';
 import type { DebugProtocol } from '@vscode/debugprotocol';
 import * as path from 'path';
@@ -19,6 +19,7 @@ import { ModSettings } from '../ModSettings/ModSettings';
 import { LuaFunction } from './LuaDisassembler';
 import { BufferStream } from '../Util/BufferStream';
 import type { ActiveFactorioVersion } from '../vscode/FactorioVersion';
+import { PassThrough } from 'stream';
 
 interface ModPaths{
 	uri: URI
@@ -27,8 +28,6 @@ interface ModPaths{
 	info: ModInfo
 }
 type EvaluateResponseBody = DebugProtocol.EvaluateResponse['body'] & {
-	// sequence number of this eval
-	seq: number
 	// translation ID for time this eval ran
 	timer?: number
 };
@@ -87,13 +86,9 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	private readonly _modules = new Map<string, DebugProtocol.Module>();
 
-	private readonly _responses = new Map<number, DebugProtocol.Response>();
+	private readonly _responses = new Map<number, resolver<any>>();
 
 	private readonly _dumps = new Map<number, resolver<string>>();
-	private readonly _scopes = new Map<number, resolver<Scope[]>>();
-	private readonly _vars = new Map<number, resolver<Variable[]>>();
-	private readonly _setvars = new Map<number, resolver<Variable>>();
-	private readonly _evals = new Map<number, resolver<EvaluateResponseBody>>();
 	private readonly translations = new Map<number, string>();
 	private nextRef = 1;
 
@@ -385,250 +380,214 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 		this.factorio.on("stderr", (mesg:string)=>this.sendEvent(new OutputEvent(mesg+"\n", "stderr")));
 
-
-		const otherStdout = async (mesg:string)=>{
-			if (mesg.startsWith("DBG: ")) {
-				const wasInPrompt = this.inPrompt;
-				this.inPrompt = true;
-				let event = mesg.substring(5).trim();
-				if (event === "on_tick") {
-					//if on_tick, then update breakpoints if needed and continue
-					await this.runQueuedStdin();
-					this.continue();
-				} else if (event === "on_data") {
-					//data/settings main chunk - force all breakpoints each time this comes up because it can only set them locally
-					await this.configDone;
-					this.clearQueuedStdin();
-					this.allocateRefBlock();
-					this.continue(true);
-				} else if (event === "on_parse") {
-					//control.lua main chunk - force all breakpoints each time this comes up because it can only set them locally
-					this.clearQueuedStdin();
-					this.allocateRefBlock();
-					this.continue(true);
-				} else if (event === "on_init") {
-					//if on_init, set initial breakpoints and continue
-					await this.runQueuedStdin();
-					this.continue(true);
-				} else if (event === "on_load") {
-					//on_load set initial breakpoints and continue
-					await this.runQueuedStdin();
-					this.continue(true);
-				} else if (event === "getref") {
-					//pass in nextref
-					this.allocateRefBlock();
-					this.continue();
-					this.inPrompt = wasInPrompt;
-				} else if (event === "object_info") {
-					//pass in nextref
-					this.sendClassData();
-					// continue without trying to write breakpoints,
-					// we're not ready for them yet...
-					this.writeStdin("cont");
-					this.inPrompt = false;
-				} else if (event === "leaving" || event === "running") {
-					//run queued commands
-					await this.runQueuedStdin();
-					if (this.pauseRequested) {
-						this.pauseRequested = false;
-						if (this.breakPointsChanged.size !== 0) {
-							this.updateBreakpoints();
+		const daprevive = (key:string, value:any)=>{
+			switch (typeof value) {
+				case "string": {
+					switch (value.charCodeAt(0)) {
+						case 0xFDD0:
+							return path.basename(value.slice(1));
+						case 0xFDD1:
+							return this.convertDebuggerPathToClient(value.slice(1));
+						case 0xFDD2:
+							return this.convertDebuggerLineToClient(Number.parseInt(value.slice(1)));
+						case 0xFDD4: {
+							const id = Number.parseInt(value.slice(1));
+							return this.translations.get(id) ?? `{Missing Translation ID ${id}}`;
 						}
-						this.sendEvent(new StoppedEvent('pause', FactorioModDebugSession.THREAD_ID));
-					} else {
-						this.continue();
-						this.inPrompt = wasInPrompt;
 					}
-				} else if (event === "terminate") {
-					await this.terminate();
-				} else if (event === "step") {
-					// notify stoponstep
-					await this.runQueuedStdin();
-					if (this.breakPointsChanged.size !== 0) {
-						this.updateBreakpoints();
-					}
-					this.sendEvent(new StoppedEvent('step', FactorioModDebugSession.THREAD_ID));
-				} else if (event === "breakpoint") {
-					// notify stop on breakpoint
-					await this.runQueuedStdin();
-					if (this.breakPointsChanged.size !== 0) {
-						this.updateBreakpoints();
-					}
-					this.sendEvent(new StoppedEvent('breakpoint', FactorioModDebugSession.THREAD_ID));
-				} else if (event.startsWith("exception")) {
-					// notify stop on exception
-					await this.runQueuedStdin();
-					const sub = event.substr(10);
-					const split = sub.indexOf("\n");
-					const filter = sub.substr(0, split).trim();
-					const err = sub.substr(split+1);
-					if (filter === "manual" || this.exceptionFilters.has(filter)) {
-						this.sendEvent(new StoppedEvent('exception', FactorioModDebugSession.THREAD_ID, err));
-					} else {
-						this.continue();
-					}
-				} else if (event === "on_instrument_settings") {
-					await modulesReady;
-					this.clearQueuedStdin();
-					if (this.launchArgs!.hookMode === "profile") {
-						this.continueRequire(false, "#settings");
-					} else {
-						this.continueRequire(this.launchArgs!.hookSettings ?? false, "#settings");
-					}
-				} else if (event === "on_instrument_data") {
-					this.clearQueuedStdin();
-					if (this.launchArgs!.hookMode === "profile") {
-						this.continueRequire(false, "#data");
-					} else {
-						this.continueRequire(this.launchArgs!.hookData ?? false, "#data");
-					}
-				} else if (event.startsWith("on_instrument_control ")) {
-					this.clearQueuedStdin();
-					const modname = event.substring(22).trim();
-					const hookmods = this.launchArgs!.hookControl ?? true;
-					const shouldhook =
-						// DA has to be specifically requested for hooks
-						modname === "debugadapter" ? Array.isArray(hookmods) && hookmods.includes(modname) :
-						// everything else...
-						hookmods !== false && (hookmods === true || hookmods.includes(modname));
-					if (this.launchArgs!.hookMode === "profile") {
-						this.continueProfile(shouldhook);
-					} else if (this.launchArgs!.hookMode === "profile2") {
-						this.continueProfile(shouldhook, 2);
-					} else {
-						this.continueRequire(shouldhook, modname);
-					}
-				} else if (event === "on_da_control") {
-					const hookmods = this.launchArgs!.hookControl ?? true;
-					const dahooked = ((Array.isArray(hookmods) && hookmods.includes("debugadapter")) || hookmods === false);
-					if (this.launchArgs!.hookMode === "profile") {
-						this.continueProfile(!dahooked);
-					} else {
-						this.continueRequire(false, "debugadapter");
-					}
-				} else {
-					// unexpected event?
-					this.sendEvent(new OutputEvent("unexpected event: " + event + "\n", "stderr"));
-					this.continue();
 				}
-			} else if (mesg.startsWith("DBGlogpoint: ")) {
-				const body = JSON.parse(mesg.substring(13).trim());
-				const e:DebugProtocol.OutputEvent = new OutputEvent(body.output+"\n", "console");
-				if (body.variablesReference) {
-					e.body.variablesReference = body.variablesReference;
-				}
-				if (body.source) {
-					e.body.source = this.createSource(body.source);
-				}
-				if (body.line) {
-					e.body.line = this.convertDebuggerLineToClient(body.line);
-				}
-				this.sendEvent(e);
-			} else if (mesg.startsWith("DBGprint: ")) {
-				const body = JSON.parse(mesg.substring(10).trim());
-				const lsid = body.output.match(/\{LocalisedString ([0-9]+)\}/);
-				if (lsid) {
-					const id = Number.parseInt(lsid[1]);
-					body.output = this.translations.get(id) ?? `{Missing Translation ID ${id}}`;
-				}
-				const e:DebugProtocol.OutputEvent = new OutputEvent(body.output+"\n", body.category ?? "console");
-				if (body.variablesReference) {
-					e.body.variablesReference = body.variablesReference;
-				}
-				if (body.source.path) {
-					body.source.path = this.convertDebuggerPathToClient(body.source.path);
-				}
-				e.body.source = body.source;
-				if (body.line) {
-					e.body.line = this.convertDebuggerLineToClient(body.line);
-				}
-				this.sendEvent(e);
-			} else if (mesg.startsWith("DBGstack: ")) {
-				const stackresult:{frames:DebugProtocol.StackFrame[];seq:number} = JSON.parse(mesg.substring(10).trim());
-				this.finishStackTrace(stackresult.frames, stackresult.seq);
-			} else if (mesg.startsWith("DBGdump: ")) {
-				const dump:{dump:string|undefined;source:string|undefined;ref:number} = JSON.parse(mesg.substring(9).trim());
-				this.finishSource(dump);
-			} else if (mesg.startsWith("EVTmodules: ")) {
-				await this.updateModules(JSON.parse(mesg.substring(12).trim()));
-				resolveModules();
-				// and finally send the initialize event to get breakpoints and such...
-				this.sendEvent(new InitializedEvent());
-			} else if (mesg.startsWith("EVTsource: ")) {
-				await this.loadedSourceEvent(JSON.parse(mesg.substring(11).trim()));
-			} else if (mesg.startsWith("DBGscopes: ")) {
-				const scopes = JSON.parse(mesg.substring(11).trim());
-				this._scopes.get(scopes.frameId)?.(scopes.scopes);
-				this._scopes.delete(scopes.frameId);
-			} else if (mesg.startsWith("DBGvars: ")) {
-				const vars = JSON.parse(mesg.substring(9).trim());
-				this._vars.get(vars.seq)?.(vars.vars);
-				this._vars.delete(vars.seq);
-			} else if (mesg.startsWith("DBGsetvar: ")) {
-				const result = JSON.parse(mesg.substring(11).trim());
-				this._setvars.get(result.seq)?.(result.body);
-				this._setvars.delete(result.seq);
-			} else if (mesg.startsWith("DBGeval: ")) {
-				const evalresult:EvaluateResponseBody = JSON.parse(mesg.substring(9).trim());
-				this._evals.get(evalresult.seq)?.(evalresult);
-				this._evals.delete(evalresult.seq);
-			} else if (mesg.startsWith("DBGuntranslate: ")) {
-				this.translations.clear();
-			} else if (mesg.startsWith("PROFILE:")) {
-				this.sendEvent(new Event("x-Factorio-Profile", mesg));
-			} else {
-				//raise this as a stdout "Output" event
-				this.sendEvent(new OutputEvent(mesg+"\n", "stdout"));
 			}
+			return value;
 		};
-
-		const idOnly = async (mesg:string)=>{
-
-		};
-
-		const translation = async (mesg:string)=>{
-			// discard the tag
-			mesg = mesg.slice(1);
-
-			const split = mesg.indexOf("\x01");
-			const id = Number.parseInt(mesg.slice(0, split).trim());
-			const translation = mesg.slice(split+1);
-			this.translations.set(id, translation);
-		};
-
-		const profile = async (mesg:string)=>{
-
-		};
-
-		this.factorio.on("stdout", (mesg:string)=>{
+		const dapmsg = new PassThrough({ objectMode: true });
+		dapmsg.on('data', async (mesg:string)=>{
 			switch (mesg.charCodeAt(0)) {
 				case 0xFDD0:
-					idOnly(mesg);
+					const wasInPrompt = this.inPrompt;
+					this.inPrompt = true;
+					switch (mesg.charCodeAt(1)) {
+						case 0xE000: // on_instrument_settings
+							await modulesReady;
+							this.clearQueuedStdin();
+							if (this.launchArgs!.hookMode === "profile") {
+								this.continueRequire(false, "#settings");
+							} else {
+								this.continueRequire(this.launchArgs!.hookSettings ?? false, "#settings");
+							}
+							return;
+						case 0xE001: // on_instrument_data
+							this.clearQueuedStdin();
+							if (this.launchArgs!.hookMode === "profile") {
+								this.continueRequire(false, "#data");
+							} else {
+								this.continueRequire(this.launchArgs!.hookData ?? false, "#data");
+							}
+							return;
+						case 0xE002: { // on_instrument_control
+							const modname = mesg.slice(2).trim();
+							this.clearQueuedStdin();
+							const hookmods = this.launchArgs!.hookControl ?? true;
+							const shouldhook =
+								// DA has to be specifically requested for hooks
+								modname === "debugadapter" ? Array.isArray(hookmods) && hookmods.includes(modname) :
+								// everything else...
+								hookmods !== false && (hookmods === true || hookmods.includes(modname));
+							if (this.launchArgs!.hookMode === "profile") {
+								this.continueProfile(shouldhook);
+							} else if (this.launchArgs!.hookMode === "profile2") {
+								this.continueProfile(shouldhook, 2);
+							} else {
+								this.continueRequire(shouldhook, modname);
+							}
+							return;
+						}
+						case 0xE003: { // on_da_control
+							const hookmods = this.launchArgs!.hookControl ?? true;
+							const dahooked = ((Array.isArray(hookmods) && hookmods.includes("debugadapter")) || hookmods === false);
+							if (this.launchArgs!.hookMode === "profile") {
+								this.continueProfile(!dahooked);
+							} else if (this.launchArgs!.hookMode === "profile2") {
+								this.continueProfile(!dahooked, 2);
+							} else {
+								this.continueRequire(false, "debugadapter");
+							}
+							return;
+						}
+						case 0xE004: // object_info
+							this.sendClassData();
+							// continue without trying to write breakpoints,
+							// we're not ready for them yet...
+							this.writeStdin("cont");
+							this.inPrompt = false;
+							return;
+						case 0xE005: // getref
+							this.allocateRefBlock();
+							this.continue();
+							this.inPrompt = wasInPrompt;
+							return;
+						//@ts-expect-error fallthrough
+						case 0xE007: // on_data
+							await this.configDone;
+						case 0xE008: // on_parse
+							this.clearQueuedStdin();
+							this.allocateRefBlock();
+							this.continue(true);
+							return;
+						case 0xE006: // on_tick
+						case 0xE009: // on_init
+						case 0xE00A: // on_load
+							await this.runQueuedStdin();
+							this.continue(true);
+							return;
+						case 0xE00B: // leaving/running
+							await this.runQueuedStdin();
+							if (this.pauseRequested) {
+								this.pauseRequested = false;
+								if (this.breakPointsChanged.size !== 0) {
+									this.updateBreakpoints();
+								}
+								this.sendEvent(new StoppedEvent('pause', FactorioModDebugSession.THREAD_ID));
+							} else {
+								this.continue();
+								this.inPrompt = wasInPrompt;
+							}
+							return;
+						case 0xE00C: // terminate
+							await this.terminate();
+							return;
+						case 0xE00D: // step
+							await this.runQueuedStdin();
+							if (this.breakPointsChanged.size !== 0) {
+								this.updateBreakpoints();
+							}
+							this.sendEvent(new StoppedEvent('step', FactorioModDebugSession.THREAD_ID));
+							return;
+						case 0xE00E: // breakpoint
+							await this.runQueuedStdin();
+							if (this.breakPointsChanged.size !== 0) {
+								this.updateBreakpoints();
+							}
+							this.sendEvent(new StoppedEvent('breakpoint', FactorioModDebugSession.THREAD_ID));
+							return;
+						case 0xE00F: { // exception
+							await this.runQueuedStdin();
+							const split = mesg.indexOf("\x01");
+							const filter = mesg.slice(2, split);
+							const err = mesg.slice(split+1);
+							if (filter === "manual" || this.exceptionFilters.has(filter)) {
+								this.sendEvent(new StoppedEvent('exception', FactorioModDebugSession.THREAD_ID, err));
+							} else {
+								this.continue();
+							}
+							return;
+						}
+						default:
+							return;
+					}
+				case 0xFDD4: { // translation
+					const split = mesg.indexOf("\x01");
+					const id = Number.parseInt(mesg.slice(1, split).trim());
+					const translation = mesg.slice(split+1);
+					this.translations.set(id, translation);
 					return;
-				case 0xFDD1:
-				case 0xFDD2:
+				}
+				case 0xFDD5: { // json events
+					const json = JSON.parse(mesg.slice(1), daprevive) as {event:string; body:any};
+					switch (json.event) {
+						case "modules":
+							await this.updateModules(json.body);
+							resolveModules();
+							// and finally send the initialize event to get breakpoints and such...
+							this.sendEvent(new InitializedEvent());
+							return;
+						case "source":
+							this.loadedSourceEvent(json.body);
+							return;
+						default:
+							return;
+					}
+				}
+				case 0xFDD6: { // json response
+					const json = JSON.parse(mesg.slice(1), daprevive) as {seq:number; body:any};
+					this._responses.get(json.seq)!(json.body);
+					this._responses.delete(json.seq);
 					return;
+				}
+			}
+		});
 
-				case 0xFDD4:
-					translation(mesg);
-					return;
-				case 0xFDD5:
-				case 0xFDD6:
-					return;
-
-
+		const profile = new PassThrough({ objectMode: true });
+		profile.on('data', (mesg:string)=>{
+			switch (mesg.charCodeAt(0)) {
 				case 0xFDE0: // profile line
 				case 0xFDE1: // profile call
 				case 0xFDE2: // profile tailcall
 				case 0xFDE3: // profile return
-					profile(mesg);
-					return;
-
-				default:
-					otherStdout(mesg);
 					return;
 			}
+		});
 
+		this.factorio.on("stdout", (mesg:string)=>{
+			switch (mesg.charCodeAt(0)) {
+				case 0xFDD0:
+				case 0xFDD4:
+				case 0xFDD5:
+				case 0xFDD6:
+					dapmsg.write(mesg);
+					return;
+				case 0xFDE0: // profile line
+				case 0xFDE1: // profile call
+				case 0xFDE2: // profile tailcall
+				case 0xFDE3: // profile return
+					profile.write(mesg);
+					return;
+				case 0xFDED: // v1 profile
+					this.sendEvent(new Event("x-Factorio-Profile", mesg.slice(1)));
+					return;
+				default:
+					this.sendEvent(new OutputEvent(mesg+"\n", "stdout"));
+					return;
+			}
 		});
 
 		this.sendResponse(response);
@@ -768,15 +727,12 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 		const startFrame = typeof args.startFrame === 'number' ? args.startFrame : 0;
 
-		this._responses.set(response.request_seq, response);
+		const stack = await new Promise<DebugProtocol.StackFrame[]>((resolve)=>{
+			this._responses.set(response.request_seq, resolve);
+			this.writeStdin(`__DebugAdapter.stackTrace(${startFrame},false,${response.request_seq})\n`);
+		});
 
-		this.writeStdin(`__DebugAdapter.stackTrace(${startFrame},false,${response.request_seq})`);
-	}
-
-	private async finishStackTrace(stack:DebugProtocol.StackFrame[], seq:number) {
-		const response = <DebugProtocol.StackTraceResponse> this._responses.get(seq);
-		this._responses.delete(seq);
-		response.body = { stackFrames: ((stack||[]) as (DebugProtocol.StackFrame&{linedefined:number; currentpc:number})[]).map(
+		response.body = { stackFrames: (stack as (DebugProtocol.StackFrame&{linedefined:number; currentpc:number})[]).map(
 			(frame)=>{
 				if (frame && frame.source) {
 					if (frame.source.path) {
@@ -807,8 +763,8 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	protected async scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments) {
 		const scopes = new Promise<DebugProtocol.Scope[]>((resolve)=>{
-			this._scopes.set(args.frameId, resolve);
-			this.writeStdin(`__DebugAdapter.scopes(${args.frameId})\n`);
+			this._responses.set(response.request_seq, resolve);
+			this.writeStdin(`__DebugAdapter.scopes(${args.frameId}, ${response.request_seq})\n`);
 		});
 		response.body = { scopes: await scopes };
 		this.sendResponse(response);
@@ -820,12 +776,12 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		const ac = new AbortController();
 		const vars = await Promise.race([
 			new Promise<DebugProtocol.Variable[]>(async (resolve)=>{
-				this._vars.set(response.request_seq, resolve);
+				this._responses.set(response.request_seq, resolve);
 				if (!await this.writeOrQueueStdin(
 					`__DebugAdapter.variables(${args.variablesReference},${response.request_seq},${args.filter? `"${args.filter}"`:"nil"},${args.start || "nil"},${args.count || "nil"})\n`,
 					consumed,
 					ac.signal)) {
-					this._vars.delete(response.request_seq);
+					this._responses.delete(response.request_seq);
 					consume!();
 					resolve([
 						{
@@ -854,13 +810,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			}),
 		]);
 		consume!();
-		vars.forEach((a)=>{
-			const lsid = a.value.match(/\{LocalisedString ([0-9]+)\}/);
-			if (lsid) {
-				const id = Number.parseInt(lsid[1]);
-				a.value = this.translations.get(id) ?? `{Missing Translation ID ${id}}`;
-			}
-		});
 		response.body = { variables: vars };
 		if (vars.length === 1 && vars[0].type === "error") {
 			response.success = false;
@@ -871,7 +820,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	protected async setVariableRequest(response: DebugProtocol.SetVariableResponse, args: DebugProtocol.SetVariableArguments, request?: DebugProtocol.Request) {
 		const body = await new Promise<DebugProtocol.Variable>((resolve)=>{
-			this._setvars.set(response.request_seq, resolve);
+			this._responses.set(response.request_seq, resolve);
 			this.writeStdin(`__DebugAdapter.setVariable(${args.variablesReference},${luaBlockQuote(Buffer.from(args.name))},${luaBlockQuote(Buffer.from(args.value))},${response.request_seq})\n`);
 		});
 		if (body.type === "error") {
@@ -889,18 +838,17 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		const ac = new AbortController();
 		const body = await Promise.race([
 			new Promise<EvaluateResponseBody>(async (resolve)=>{
-				this._evals.set(response.request_seq, resolve);
+				this._responses.set(response.request_seq, resolve);
 				if (!await this.writeOrQueueStdin(
 					`__DebugAdapter.evaluate(${args.frameId??"nil"},"${args.context}",${luaBlockQuote(Buffer.from(args.expression.replace(/\n/g, " ")))},${response.request_seq})\n`,
 					consumed,
 					ac.signal)) {
-					this._evals.delete(response.request_seq);
+					this._responses.delete(response.request_seq);
 					consume!();
 					resolve({
 						result: `Expired evaluate seq=${response.request_seq}`,
 						type: "error",
 						variablesReference: 0,
-						seq: response.request_seq,
 					});
 				}
 			}),
@@ -909,11 +857,10 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				// in which case it's just expired anyway
 				setTimeout(()=>{
 					ac.abort();
-					resolve(<EvaluateResponseBody>{
+					resolve({
 						result: `No Lua State Available seq=${response.request_seq}`,
 						type: "error",
 						variablesReference: 0,
-						seq: response.request_seq,
 					});
 				}, this.launchArgs!.runningTimeout ?? 2000);
 			}),
@@ -924,11 +871,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			response.message = body.result;
 		}
 		response.body = body;
-		const lsid = body.result.match(/\{LocalisedString ([0-9]+)\}/);
-		if (lsid) {
-			const id = Number.parseInt(lsid[1]);
-			body.result = this.translations.get(id) ?? `{Missing Translation ID ${id}}`;
-		}
 		if (body.timer) {
 			const time = this.translations.get(body.timer)?.replace(/^.*: /, "") ??
 								`{Missing Translation ID ${body.timer}}`;
@@ -1105,14 +1047,15 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	protected async sourceRequest(response: DebugProtocol.SourceResponse, args: DebugProtocol.SourceArguments): Promise<void> {
 		const ref = args.source?.sourceReference;
 		if (ref) {
+
 			let consume:resolver<void>;
 			const consumed = new Promise<void>((resolve)=>consume=resolve);
 			const ac = new AbortController();
 			const body = await Promise.race([
-				new Promise<string>(async (resolve)=>{
-					this._dumps.set(ref, resolve);
+				new Promise<string|undefined>(async (resolve)=>{
+					this._responses.set(response.request_seq, resolve);
 					if (!await this.writeOrQueueStdin(
-						`__DebugAdapter.source(${ref})\n`,
+						`__DebugAdapter.source(${ref},${response.request_seq})\n`,
 						consumed,
 						ac.signal)) {
 						this._dumps.delete(ref);
@@ -1130,23 +1073,9 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				}),
 			]);
 			consume!();
-			response.body = { content: body };
+			response.body = { content: body ?? "Invalid Source ID"};
 		}
 		this.sendResponse(response);
-	}
-	private finishSource(dump:{dump:string|undefined;source:string|undefined;ref:number}) {
-		let source:string;
-		if (dump.dump) {
-			const func = new LuaFunction(new BufferStream(Buffer.from(dump.dump, "base64")), true);
-			source = func.getDisassembledSingleFunction();
-		} else if (dump.source) {
-			source = dump.source;
-		} else {
-			return this._dumps.get(dump.ref)?.("Invalid Source ID");
-		}
-		const resolver = this._dumps.get(dump.ref);
-		this._dumps.delete(dump.ref);
-		return resolver?.(source);
 	}
 
 	private createSource(filePath: string): Source {
