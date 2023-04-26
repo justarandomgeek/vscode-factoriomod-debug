@@ -1078,10 +1078,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.sendResponse(response);
 	}
 
-	private createSource(filePath: string): Source {
-		return new Source(path.basename(filePath), this.convertDebuggerPathToClient(filePath));
-	}
-
 	private async updateInfoJson(uri:URI) {
 		try {
 			let jsonpath = uri.path;
