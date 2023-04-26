@@ -142,14 +142,16 @@ function DAStacks.stackTrace(startFrame, forRemote, seq)
     -- try to improve the label on the entrypoint
     do
       local lastframe = stackFrames[#stackFrames]
-      local info = debug.getinfo(lastframe.id,"f")
-      local entrypoint = __DebugAdapter.getEntryLabel(info.func)
-      if entrypoint then
-        local framename = entrypoint
-        if forRemote then
-          framename = ("[%s] %s"):format(script.mod_name, framename)
+      if lastframe then
+        local info = debug.getinfo(lastframe.id,"f")
+        local entrypoint = __DebugAdapter.getEntryLabel(info.func)
+        if entrypoint then
+          local framename = entrypoint
+          if forRemote then
+            framename = ("[%s] %s"):format(script.mod_name, framename)
+          end
+          lastframe.name = framename
         end
-        lastframe.name = framename
       end
     end
 

@@ -21,7 +21,7 @@ local DAEntrypoints = {}
 local function print_exception(type,mesg)
   if mesg == nil then mesg = "<nil>" end
   localised_print({"",
-  "\xEF\xB7\xAE\xEE\x80\x8F", type, "\x01",
+  "\xEF\xB7\xAE\xEF\xB7\x90\xEE\x80\x8F", type, "\x01",
   mesg,"\xEF\xB7\xAF"
   })
 end

@@ -1,3 +1,11 @@
+remote.add_interface("debugadapter-tests",{
+	error = error,
+	perror = function (mesg)
+		return pcall(error,mesg)
+	end,
+})
+
+
 local test_meta_a = {
 
 }

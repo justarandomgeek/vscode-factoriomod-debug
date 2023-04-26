@@ -125,6 +125,61 @@ suite('Debug Adapter', ()=>{
 		await dc.terminateRequest();
 	});
 
+	test('should catch exceptions', async ()=>{
+		await dc.launch({
+			type: "factoriomod",
+			request: "launch",
+			factorioArgs: ["--load-scenario", "debugadapter-tests/throw"],
+			adjustMods: {
+				"debugadapter-tests": true,
+				"minimal-no-base-mod": true,
+			},
+			disableExtraMods: true,
+			allowDisableBaseMod: true,
+		} as LaunchRequestArguments);
+		await dc.waitForEvent('initialized');
+		await dc.setExceptionBreakpointsRequest({filters: ['pcall', 'xpcall', 'unhandled']});
+		await dc.configurationDoneRequest();
+
+		async function waitFor(match:RegExp) {
+			await expect(dc.waitForEvent('stopped')).eventually.has.property('body')
+				.that.contain({
+					reason: 'exception',
+				}).and.has.property('text').that.matches(match);
+
+			// don't actually care to inspect the stack now, just make sure it
+			// really delivers one without throwing...
+			await dc.stackTraceRequest({threadId: 1});
+		};
+
+		await waitFor(/^Unknown interface: test-missing$/);
+		await dc.continueRequest({threadId: 1});
+		await waitFor(/^Unknown interface: test-missing2$/);
+		await dc.continueRequest({threadId: 1});
+
+		await waitFor(/debugadapter-tests\.error: remote1/);
+		await dc.continueRequest({threadId: 1});
+		await waitFor(/debugadapter-tests\.error: remote2/);
+		await dc.continueRequest({threadId: 1});
+
+		await waitFor(/^premote1$/);
+		await dc.continueRequest({threadId: 1});
+		await waitFor(/^premote2$/);
+		await dc.continueRequest({threadId: 1});
+
+		await waitFor(/^pcall1$/);
+		await dc.continueRequest({threadId: 1});
+		await waitFor(/control\.lua:\d+: pcall2$/);
+		await dc.continueRequest({threadId: 1});
+
+		await waitFor(/control\.lua:\d+: xpcall$/);
+		await dc.continueRequest({threadId: 1});
+
+		await waitFor(/control\.lua:\d+: unhandled$/);
+
+		await dc.terminateRequest();
+	});
+
 	test('should report scopes and variables', async ()=>{
 		await dc.launch({
 			type: "factoriomod",
