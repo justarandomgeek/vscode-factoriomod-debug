@@ -17,6 +17,7 @@ export class ChangeLogLanguageService {
 	public async validateTextDocument(textDocument: TextDocument): Promise<Diagnostic[]> {
 		const changelog = textDocument.getText().split(/\r?\n/);
 		const diags: Diagnostic[] = [];
+		const seenVersions = new Map<string, Range>();
 		let seenStart = false;
 		let seenStartLast = false;
 		let seenDate = false;
@@ -58,6 +59,24 @@ export class ChangeLogLanguageService {
 						severity: DiagnosticSeverity.Error,
 						range: { start: { line: i, character: 9 }, end: { line: i, character: line.length }},
 					});
+				} else {
+					if (seenVersions.has(line)) {
+						diags.push({
+							message: "Duplicate Version",
+							code: "version.duplicate",
+							source: "factorio-changelog",
+							severity: DiagnosticSeverity.Error,
+							range: { start: { line: i, character: 9 }, end: { line: i, character: line.length }},
+							relatedInformation: [
+								{
+									message: "First defined here",
+									location: { range: seenVersions.get(line)!, uri: textDocument.uri },
+								},
+							],
+						});
+					} else {
+						seenVersions.set(line, { start: { line: i, character: 9 }, end: { line: i, character: line.length }});
+					}
 				}
 				seenStart = true;
 				seenStartLast = true;
@@ -118,7 +137,7 @@ export class ChangeLogLanguageService {
 							range: { start: { line: i, character: 2 }, end: { line: i, character: line.length-1 }},
 						});
 					}
-				} else if (line.match(/^    [- ] /)) {
+				} else if (line.match(/^    [- ]($| )/)) {
 					seenStartLast = false;
 					if (!seenCategory) {
 						diags.push({
@@ -129,7 +148,7 @@ export class ChangeLogLanguageService {
 							range: { start: { line: i, character: 0 }, end: { line: i, character: line.length }},
 						});
 					}
-					if (line.length === 6) {
+					if (line.length === 5 || line.length === 6) {
 						diags.push({
 							message: "Blank entry line",
 							code: "other.blank",

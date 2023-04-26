@@ -140,6 +140,13 @@ suite("LSP", ()=>{
 			await singleCodeActionShouldFix(doc, diags);
 		});
 
+		test("version-duplicate", async function() {
+			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
+			expect(diags.uri).equals(doc.uri);
+			expect(diags.diagnostics).length(1);
+			expect(diags.diagnostics[0].code).equals("version.duplicate");
+		});
+
 		test("version-format", async function() {
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
 			expect(diags.uri).equals(doc.uri);
@@ -193,6 +200,13 @@ suite("LSP", ()=>{
 			expect(diags.diagnostics[0].code).equals("category.insert");
 
 			await singleCodeActionShouldFix(doc, diags);
+		});
+
+		test("line-blank", async function() {
+			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
+			expect(diags.uri).equals(doc.uri);
+			expect(diags.diagnostics).length(1);
+			expect(diags.diagnostics[0].code).equals("other.blank");
 		});
 
 		test("line-format", async function() {
