@@ -169,7 +169,7 @@ do
   ---@private
   function DAvars.transferRef(ref)
     nextRefID = ref
-    nextEnd = ref+65535
+    nextEnd = ref+4095
   end
 
   ---Get the next available ref
@@ -181,7 +181,7 @@ do
       nextRefID = ref + 1
       return ref
     end
-    print("\xEF\xB7\x90\xEE\x80\x84")
+    print("\xEF\xB7\x90\xEE\x80\x85")
     debug.debug(); -- call __DebugAdapter.transferRef(ref) and continue
     return nextRefID
   end

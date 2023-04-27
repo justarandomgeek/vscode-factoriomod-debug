@@ -595,7 +595,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	private allocateRefBlock() {
 		const nextRef = this.nextRef;
-		this.nextRef += 65536;
+		this.nextRef += 4096;
 		this.writeStdin(`__DebugAdapter.transferRef(${nextRef})`);
 	}
 

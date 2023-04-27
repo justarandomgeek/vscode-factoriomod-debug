@@ -407,4 +407,57 @@ suite('Debug Adapter', ()=>{
 
 		await dc.terminateRequest();
 	});
+
+	test('should reload ref IDs', async ()=>{
+		await dc.launch({
+			type: "factoriomod",
+			request: "launch",
+			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
+			adjustMods: {
+				"debugadapter-tests": true,
+				"minimal-no-base-mod": true,
+			},
+			disableExtraMods: true,
+			allowDisableBaseMod: true,
+			runningTimeout: 30000,
+		} as LaunchRequestArguments);
+		await dc.waitForEvent('initialized');
+		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
+		if (process.platform === 'win32') {
+			scriptpath = scriptpath[0].toLowerCase() + scriptpath.slice(1);
+		}
+		await expect(dc.setBreakpointsRequest({
+			source: {
+				path: scriptpath,
+			},
+			breakpoints: [{ line: 3 }],
+		})).eventually.contain({ success: true });
+		await dc.configurationDoneRequest();
+		await dc.waitForEvent('stopped');
+
+		const stack = await dc.stackTraceRequest({threadId: 1, levels: 1});
+		const frameId = stack.body.stackFrames[0].id;
+
+		const result = await dc.evaluateRequest({
+			context: 'repl',
+			frameId: frameId,
+			expression: `
+			local t = {}
+			for i = 1,5959 do t[i]={} end
+			return t
+			`,
+		});
+
+		for (let i = 0; i < 60; i++) {
+			const children = await dc.variablesRequest({
+				variablesReference: result.body.variablesReference,
+				filter: "indexed",
+				start: i * 100,
+				count: 100,
+			});
+			console.log(children);
+		}
+
+		await dc.terminateRequest();
+	});
 });
