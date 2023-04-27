@@ -455,7 +455,6 @@ suite('Debug Adapter', ()=>{
 				start: i * 100,
 				count: 100,
 			});
-			console.log(children);
 		}
 
 		await dc.terminateRequest();
