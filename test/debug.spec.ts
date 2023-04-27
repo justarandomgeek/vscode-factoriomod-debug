@@ -449,12 +449,12 @@ suite('Debug Adapter', ()=>{
 		});
 
 		for (let i = 0; i < 60; i++) {
-			const children = await dc.variablesRequest({
+			await expect(dc.variablesRequest({
 				variablesReference: result.body.variablesReference,
 				filter: "indexed",
 				start: i * 100,
 				count: 100,
-			});
+			})).eventually.has.property("body").has.property("variables");
 		}
 
 		await dc.terminateRequest();
