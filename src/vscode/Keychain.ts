@@ -9,6 +9,7 @@ export class Keychain {
 	}
 
 	public async MigrateApiKey() {
+		if (process.env["FACTORIO_UPLOAD_API_KEY"]) { return; }
 		const vskey = await this.secrets.get("factorio-uploadmods");
 		const ktkey = await keytar.getPassword("fmtk", "factorio-uploadmods");
 
@@ -43,18 +44,21 @@ export class Keychain {
 	}
 
 	public async ReadyAPIKey(setnew?:boolean) {
-		let key:string|null|undefined = await keytar.getPassword("fmtk", "factorio-uploadmods");
-		if (key) {
-			if (setnew) {
-				setnew = (await vscode.window.showInformationMessage("Key already present. Replace it?", "Yes", "No")) === "Yes";
+		if (process.env["FACTORIO_UPLOAD_API_KEY"]) { return true; }
+		try {
+			let key:string|null|undefined = await keytar.getPassword("fmtk", "factorio-uploadmods");
+			if (key) {
+				if (setnew) {
+					setnew = (await vscode.window.showInformationMessage("Key already present. Replace it?", "Yes", "No")) === "Yes";
+				}
+				if (!setnew) { return true; }
 			}
-			if (!setnew) { return true; }
-		}
-		key = await vscode.window.showInputBox({prompt: "Mod Portal API Key:", ignoreFocusOut: true, password: true });
-		if (key) {
-			await keytar.setPassword("fmtk", "factorio-uploadmods", key);
-			return true;
-		}
+			key = await vscode.window.showInputBox({prompt: "Mod Portal API Key:", ignoreFocusOut: true, password: true });
+			if (key) {
+				await keytar.setPassword("fmtk", "factorio-uploadmods", key);
+				return true;
+			}
+		} catch (error) {}
 		return false;
 	}
 
