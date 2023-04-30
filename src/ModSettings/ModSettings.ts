@@ -9,7 +9,8 @@ export type ModSettingsValue<inttype = bigint> =
 	{ type: "string"; value: string }|
 	{ type: "number"; value: number }|
 	{ type: "int"; value: inttype }|
-	{ type: "bool"; value: boolean };
+	{ type: "bool"; value: boolean }|
+	{ type: "color"; value: { r: number; g: number; b: number; a: number }};
 export type ModSettingsScope = {
 	[k:string]: ModSettingsValue
 };
@@ -63,6 +64,27 @@ export class ModSettings {
 							type: "bool",
 							value: element.value,
 						};
+						break;
+					case PropertyTreeType.dictionary:
+						// real loading would know the setting prototype to know what to load
+						// i don't, so just see if it matches any known type!
+						const value = element.value;
+						if ('r' in value && value.r.type === PropertyTreeType.number &&
+							'g' in value && value.g.type === PropertyTreeType.number &&
+							'b' in value && value.b.type === PropertyTreeType.number &&
+							'a' in value && value.a.type === PropertyTreeType.number) {
+							loadingscope[key] = {
+								type: "color",
+								value: {
+									r: value.r.value,
+									g: value.g.value,
+									b: value.b.value,
+									a: value.a.value,
+								},
+							};
+						} else {
+							throw new Error(`Dictionary value in ModSettings Tree does not match any known structure at ${scopename} ${key}`);
+						}
 						break;
 
 					default:
@@ -132,6 +154,22 @@ export class ModSettings {
 								value: {
 									type: PropertyTreeType.number,
 									value: element.value,
+								},
+							},
+						};
+						break;
+					case "color":
+						treescope.value[key] = {
+							type: PropertyTreeType.dictionary,
+							value: {
+								value: {
+									type: PropertyTreeType.dictionary,
+									value: {
+										r: {type: PropertyTreeType.number, value: element.value.r},
+										g: {type: PropertyTreeType.number, value: element.value.g},
+										b: {type: PropertyTreeType.number, value: element.value.b},
+										a: {type: PropertyTreeType.number, value: element.value.a},
+									},
 								},
 							},
 						};

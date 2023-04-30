@@ -80,6 +80,23 @@
 		</tr>
 	</template>
 
+	<template id="setting-color">
+		<tr>
+			<td class="setting-name"></td>
+			<td>
+				<label>Color:</label>
+				<input type="color" class="setting-value setting-color-value"/>
+				<label>Alpha:</label>
+				<vscode-text-field class="setting-value setting-a-value" type="number"></vscode-text-field>
+			</td>
+			<td class="setting-controls">
+				<vscode-button class="setting-delete" appearance="icon" aria-label="Delete">
+					<span class="codicon codicon-trash"></span>
+				</vscode-button>
+			</td>
+		</tr>
+	</template>
+
 	<template id="setting-add">
 		<tr>
 			<td>
@@ -91,6 +108,7 @@
 					<vscode-option>bool</vscode-option>
 					<vscode-option>number</vscode-option>
 					<vscode-option hidden>int</vscode-option>
+					<vscode-option>color</vscode-option>
 				</vscode-dropdown>
 			</td>
 			<td class="setting-controls">

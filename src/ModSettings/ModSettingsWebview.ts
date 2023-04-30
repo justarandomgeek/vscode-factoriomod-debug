@@ -30,6 +30,7 @@ const templates = {
 	setting_bool: document.getElementById("setting-bool")! as HTMLTemplateElement,
 	setting_number: document.getElementById("setting-number")! as HTMLTemplateElement,
 	setting_string: document.getElementById("setting-string")! as HTMLTemplateElement,
+	setting_color: document.getElementById("setting-color")! as HTMLTemplateElement,
 	setting_add: document.getElementById("setting-add")! as HTMLTemplateElement,
 };
 
@@ -59,16 +60,35 @@ window.addEventListener('change', (e)=>{
 					case "string":
 						value.value = (target as TextField).value;
 						break;
+					case "color":
+						if (target.classList.contains("setting-a-value")) {
+							value.value.a = Number((target as TextField).value);
+							value.value.a = Math.max(0, Math.min(1, value.value.a));
+							(target as TextField).value = value.value.a.toString();
+						}
+						break;
 				}
 				postMessage("edit",  {scope: scope, name: key, value: FromBigIntValue(value)});
 				break;
 			}
 			case "vscode-checkbox":
 			{
-				const value = settings[scope][key];
+				const value = settings[scope][key]  as ModSettingsValue & {type:"bool"};
 				value.value = (target as Checkbox).checked;
-				postMessage("edit", {scope: scope, name: key, value: value as ModSettingsValue<never>});
+				postMessage("edit", {scope: scope, name: key, value: value});
 				break;
+			}
+			case "input":
+			{
+				if (target.classList.contains("setting-color-value")) {
+					const value = settings[scope][key] as ModSettingsValue & {type:"color"};
+					const match = (target as HTMLInputElement).value.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i)!;
+					value.value.r = parseInt(match[1], 16)/255;
+					value.value.g = parseInt(match[2], 16)/255;
+					value.value.b = parseInt(match[3], 16)/255;
+					postMessage("edit", {scope: scope, name: key, value: value});
+					break;
+				}
 			}
 		}
 	}
@@ -99,6 +119,9 @@ window.addEventListener('click', e=>{
 					break;
 				case "bool":
 					value = { type: "bool", value: false};
+					break;
+				case "color":
+					value = { type: "color", value: {r: 0, g: 0, b: 0, a: 1}};
 					break;
 			}
 			settings[scope][namefield.value] = value;
@@ -153,6 +176,20 @@ function settingNode(key:string, value:ModSettingsValue):DocumentFragment {
 			row.id = key;
 			header.append(key);
 			field.value = value.value;
+			break;
+		}
+		case "color":
+		{
+			node = templates.setting_color.content.cloneNode(true) as DocumentFragment;
+			const row = node.querySelector("tr")!;
+			const header = node.querySelector(".setting-name") as HTMLTableCellElement;
+			const cfield = node.querySelector(".setting-color-value") as HTMLInputElement;
+			const afield = node.querySelector(".setting-a-value") as TextField;
+
+			row.id = key;
+			header.append(key);
+			cfield.value = `#${Math.round(value.value.r*255).toString(16).padStart(2, '0')}${Math.round(value.value.g*255).toString(16).padStart(2, '0')}${Math.round(value.value.b*255).toString(16).padStart(2, '0')}`;
+			afield.value = value.value.a.toString();
 			break;
 		}
 	}
