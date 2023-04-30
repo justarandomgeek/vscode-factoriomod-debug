@@ -154,7 +154,6 @@ export async function doPackageZip(info:ModInfo): Promise<archiver.Archiver> {
 	const archive = archiver('zip', { zlib: { level: 9 }});
 	archive.glob("**", {
 		cwd: process.cwd(),
-		root: process.cwd(),
 		nodir: true,
 		ignore: [`**/${info.name}_*.zip`].concat(info.package?.ignore||[]),
 	}, { prefix: `${info.name}_${info.version}` });
@@ -163,7 +162,6 @@ export async function doPackageZip(info:ModInfo): Promise<archiver.Archiver> {
 		for (const extra of info.package.extra) {
 			archive.glob(extra.glob ?? "**", {
 				cwd: extra.root,
-				root: extra.root,
 				nodir: true,
 				ignore: extra.ignore,
 			}, { prefix: `${info.name}_${info.version}` });
