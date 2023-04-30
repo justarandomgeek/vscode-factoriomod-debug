@@ -110,7 +110,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		private readonly activeVersion: Pick<ActiveFactorioVersion, "configPathIsOverriden"|"defaultModsPath"|"configPath"|"dataPath"|"writeDataPath"|"factorioPath"|"nativeDebugger"|"docs">,
 		private readonly fs: Pick<vscode.FileSystem, "readFile"|"writeFile"|"stat">,
 		private readonly editorInterface: {
-			readonly findWorkspaceFiles: typeof vscode.workspace.findFiles
+			readonly findWorkspaceFiles: (pattern:string)=>Thenable<vscode.Uri[]>
 			readonly getExtension?: typeof vscode.extensions.getExtension
 			readonly executeCommand?: typeof vscode.commands.executeCommand
 		}
