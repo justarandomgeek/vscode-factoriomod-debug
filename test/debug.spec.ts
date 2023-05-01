@@ -125,7 +125,7 @@ suite('Debug Adapter', ()=>{
 		await dc.terminateRequest();
 	});
 
-	test('should list breakpoint locations', async ()=>{
+	test('should list and validate breakpoint locations', async ()=>{
 		await dc.launch({
 			type: "factoriomod",
 			request: "launch",
@@ -158,6 +158,24 @@ suite('Debug Adapter', ()=>{
 			line: 1,
 			endLine: 4,
 		})).eventually.has.property('body').that.has.property('breakpoints').with.lengthOf(4);
+
+
+		// skip 0 just for easy alignment...
+		const validatedloc = [0,
+			1, 2, 3, 4,
+			9, 9, 9, 9, 9,
+			10,
+			15, 15, 15, 15, 15,
+		];
+		for (let i = 1; i <= 15; i++) {
+			const bps2 = await dc.setBreakpointsRequest({
+				source: {
+					path: scriptpath,
+				},
+				breakpoints: [ { line: i } ],
+			});
+			expect(bps2.body.breakpoints[0].line).equals(validatedloc[i]);
+		}
 
 		await dc.terminateRequest();
 	});
@@ -404,6 +422,52 @@ suite('Debug Adapter', ()=>{
 				result: '"foo"',
 			}),
 		]);
+
+		await dc.terminateRequest();
+	});
+
+	test('should eval LS translation', async ()=>{
+		await dc.launch({
+			type: "factoriomod",
+			request: "launch",
+			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
+			adjustMods: {
+				"debugadapter-tests": true,
+				"minimal-no-base-mod": true,
+			},
+			disableExtraMods: true,
+			allowDisableBaseMod: true,
+		} as LaunchRequestArguments);
+		await dc.waitForEvent('initialized');
+		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
+		if (process.platform === 'win32') {
+			scriptpath = scriptpath[0].toLowerCase() + scriptpath.slice(1);
+		}
+		await expect(dc.setBreakpointsRequest({
+			source: {
+				path: scriptpath,
+			},
+			breakpoints: [{ line: 3 }],
+		})).eventually.contain({ success: true });
+		await dc.configurationDoneRequest();
+		await dc.waitForEvent('stopped');
+
+		const result = await dc.evaluateRequest({
+			context: 'test',
+			expression: '{"","foo","bar"}',
+		});
+		expect(result.body.type).equals("table");
+
+		const children = await dc.variablesRequest({
+			variablesReference: result.body.variablesReference,
+			filter: "named",
+		});
+
+		expect(children.body.variables[0]).contains({
+			name: "<translated>",
+			type: "LocalisedString",
+			value: "foobar",
+		});
 
 		await dc.terminateRequest();
 	});

@@ -1034,7 +1034,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			const lines = this.lines_by_source?.get(sourceid);
 			if (lines) {
 				response.body = {
-					breakpoints: lines.map(l=>{ return {line: l}; }),
+					breakpoints: lines.map(l=>{ return {line: l}; }).filter(l=>l.line>=args.line && l.line <= (args.endLine ?? args.line)),
 				};
 			}
 		}
