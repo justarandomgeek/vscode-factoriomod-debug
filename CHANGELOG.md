@@ -13,8 +13,10 @@
   * Correctly supports DAP clients using `path` path format instead of `uri`
 * Sumneko plugin:
   * Include `__modname__` tag when ingoring commands at start of line
+  * Strip file extension from slashed `require` paths to better match Factorio's resolution
 * VSCode:
   * Migrate Mod Portal API key from VSCode key storage to `keytar` for consistent behavior across packages
+    * Ignore key storage if key is set in environment
   * Custom Editor for `mod-settings.dat`
   * Re-check if active version is Steam before launching debug
   * Read-only Custom Editor for `script.dat`
