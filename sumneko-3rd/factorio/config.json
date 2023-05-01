@@ -11,6 +11,9 @@
 	],
 	"settings": {
 		"Lua.runtime.version": "Lua 5.2",
+		"Lua.runtime.path": [
+			"?.lua"
+		],
 		"Lua.runtime.special": {
 			"__object_name": "type"
 		},
