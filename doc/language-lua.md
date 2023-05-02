@@ -39,6 +39,8 @@ require("__modname__.filename")
 
 The underscores are removed from these, allowing the Language Server to properly locate files if the modname matches a directory in the workspace (or libraries).
 
+Additionally, in require paths with slashes, Factorio replaces any file extension with `.lua`. To match this, the extensions of any slashed paths are stripped, allowing the Language Server to correctly locate files with its default search pattern of `?.lua`. The second default of `?/init.lua` is removed from configuration, because factorio does not look for this.
+
 ### `global`
 
 Each mod has its own private version of [the global named `global`](https://lua-api.factorio.com/latest/Global.html). To allow the Language Server to see this separation, `global` is renamed to `__modname__global` when used as the base variable in indexing or the target of assignment.
