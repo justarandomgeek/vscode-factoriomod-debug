@@ -125,6 +125,72 @@ suite('Debug Adapter', ()=>{
 		await dc.terminateRequest();
 	});
 
+	test('should stop at breakpoint in settings', async ()=>{
+		await dc.launch({
+			type: "factoriomod",
+			request: "launch",
+			hookSettings: true,
+			adjustMods: {
+				"debugadapter-tests": true,
+				"minimal-no-base-mod": true,
+			},
+			disableExtraMods: true,
+			allowDisableBaseMod: true,
+		} as LaunchRequestArguments);
+		await dc.waitForEvent('initialized');
+		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/settings.lua");
+		if (process.platform === 'win32') {
+			scriptpath = scriptpath[0].toLowerCase() + scriptpath.slice(1);
+		}
+		const bps = await dc.setBreakpointsRequest({
+			source: {
+				path: scriptpath,
+			},
+			breakpoints: [{ line: 1 }],
+		});
+		expect(bps.success);
+		await dc.configurationDoneRequest();
+		await dc.waitForEvent('stopped');
+		const stack1 = await dc.stackTraceRequest({threadId: 1});
+		expect(stack1.success);
+		expect(stack1.body.stackFrames[0].source?.path).equals(scriptpath);
+		expect(stack1.body.stackFrames[0].line).equals(1);
+		await dc.terminateRequest();
+	});
+
+	test('should stop at breakpoint in data', async ()=>{
+		await dc.launch({
+			type: "factoriomod",
+			request: "launch",
+			hookData: true,
+			adjustMods: {
+				"debugadapter-tests": true,
+				"minimal-no-base-mod": true,
+			},
+			disableExtraMods: true,
+			allowDisableBaseMod: true,
+		} as LaunchRequestArguments);
+		await dc.waitForEvent('initialized');
+		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/data.lua");
+		if (process.platform === 'win32') {
+			scriptpath = scriptpath[0].toLowerCase() + scriptpath.slice(1);
+		}
+		const bps = await dc.setBreakpointsRequest({
+			source: {
+				path: scriptpath,
+			},
+			breakpoints: [{ line: 1 }],
+		});
+		expect(bps.success);
+		await dc.configurationDoneRequest();
+		await dc.waitForEvent('stopped');
+		const stack1 = await dc.stackTraceRequest({threadId: 1});
+		expect(stack1.success);
+		expect(stack1.body.stackFrames[0].source?.path).equals(scriptpath);
+		expect(stack1.body.stackFrames[0].line).equals(1);
+		await dc.terminateRequest();
+	});
+
 	test('should list and validate breakpoint locations', async ()=>{
 		await dc.launch({
 			type: "factoriomod",
