@@ -19,8 +19,10 @@ local function replace(_, text, diffs)
     ---the LS is not expecting. Factorio would also clobber any extension
     ---to .lua anyway. This just strips it to go with the default `?.lua`
     ---search pattern in "Lua.runtime.path"
-    if name:match("[\\/]") then
-      name = name:gsub("%.%a+$", "")
+    ---The test pattern checks for a dotted name after the final slash
+    ---The replacement pattern then strips the last dotted segment
+    if name:match("[\\/][^\\/]-%.[^.\\/]+$") then
+      name = name:gsub("%.[^.\\/]+$", "")
     end
 
     if name ~= original_name then
