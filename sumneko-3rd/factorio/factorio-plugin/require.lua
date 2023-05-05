@@ -7,7 +7,7 @@ local util = require("factorio-plugin.util")
 ---@param diffs Diff[] @ The diffs to add more diffs to
 local function replace(_, text, diffs)
   for start, name, finish in
-    text:gmatch("require%s*%(?%s*['\"]()(.-)()['\"]%s*%)?")--[[@as fun(): integer, string, integer]]
+    text:gmatch("require%s*%(?%s*['\"]()(.-)()['\"]%s*%)?")--[=[@as fun(): integer, string, integer]=]
   do
 
     local original_name = name
