@@ -19,7 +19,8 @@
     * Ignore key storage if key is set in environment
   * Custom Editor for `mod-settings.dat`
   * Re-check if active version is Steam before launching debug
-  * Read-only Custom Editor for `script.dat`
+  * Experimental Read-only Editor for `script.dat` (saved `global` data)
+    * Plain lua values should all load correctly, but not all LuaObject types have been tested.
 
 ## 1.1.28
 * Debugger:
