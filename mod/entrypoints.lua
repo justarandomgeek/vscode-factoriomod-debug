@@ -48,6 +48,51 @@ function DAEntrypoints.terminate()
   debug.debug()
 end
 
+---Generate handlers for pcall/xpcall wrappers
+---@param filter string Where the exception was intercepted
+---@param user_handler? function When used as xpcall, the exception will pass to this handler after continuing
+---@return function
+local function caught(filter, user_handler)
+  ---xpcall handler for intercepting pcall/xpcall
+  ---@param mesg string|LocalisedString
+  ---@return string|LocalisedString mesg
+  return __DebugAdapter.stepIgnore(function(mesg)
+    debug.sethook()
+    print_exception(filter,mesg)
+    debug.debug()
+    __DebugAdapter.attach()
+    if user_handler then
+      return user_handler(mesg)
+    else
+      return mesg
+    end
+  end)
+end
+__DebugAdapter.stepIgnore(caught)
+
+---`pcall` replacement to redirect the exception to display in the editor
+---@param func function
+---@vararg any
+---@return boolean success
+---@return any result
+---@return ...
+function pcall(func,...)
+  return rawxpcall(func, caught("pcall"), ...)
+end
+__DebugAdapter.stepIgnore(pcall)
+
+---`xpcall` replacement to redirect the exception to display in the editor
+---@param func function
+---@param user_handler function
+---@vararg any
+---@return boolean success
+---@return any result
+---@return ...
+function xpcall(func, user_handler, ...)
+  return rawxpcall(func, caught("xpcall",user_handler), ...)
+end
+__DebugAdapter.stepIgnore(xpcall)
+
 -- don't need the rest in data stage...
 if not script then return DAEntrypoints end
 
@@ -114,52 +159,6 @@ local function labelhandler(func,entryname)
   return func
 end
 __DebugAdapter.stepIgnore(labelhandler)
-
-
----Generate handlers for pcall/xpcall wrappers
----@param filter string Where the exception was intercepted
----@param user_handler? function When used as xpcall, the exception will pass to this handler after continuing
----@return function
-local function caught(filter, user_handler)
-  ---xpcall handler for intercepting pcall/xpcall
-  ---@param mesg string|LocalisedString
-  ---@return string|LocalisedString mesg
-  return __DebugAdapter.stepIgnore(function(mesg)
-    debug.sethook()
-    print_exception(filter,mesg)
-    debug.debug()
-    __DebugAdapter.attach()
-    if user_handler then
-      return user_handler(mesg)
-    else
-      return mesg
-    end
-  end)
-end
-__DebugAdapter.stepIgnore(caught)
-
----`pcall` replacement to redirect the exception to display in the editor
----@param func function
----@vararg any
----@return boolean success
----@return any result
----@return ...
-function pcall(func,...)
-  return rawxpcall(func, caught("pcall"), ...)
-end
-__DebugAdapter.stepIgnore(pcall)
-
----`xpcall` replacement to redirect the exception to display in the editor
----@param func function
----@param user_handler function
----@vararg any
----@return boolean success
----@return any result
----@return ...
-function xpcall(func, user_handler, ...)
-  return rawxpcall(func, caught("xpcall",user_handler), ...)
-end
-__DebugAdapter.stepIgnore(xpcall)
 
 local oldscript = script
 local newscript = {

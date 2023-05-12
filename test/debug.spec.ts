@@ -9,6 +9,26 @@ chai.use(chaiAsPromised);
 suite('Debug Adapter', ()=>{
 	let dc: DebugClient;
 
+	function launch(args:Partial<LaunchRequestArguments>, testid?:string) {
+		return dc.launch(Object.assign({
+			type: "factoriomod",
+			request: "launch",
+			adjustMods: {
+				"debugadapter-tests": true,
+				"minimal-no-base-mod": true,
+			},
+			adjustModSettings: [
+				{
+					scope: "startup",
+					name: "dap-test-id",
+					value: testid,
+				},
+			],
+			disableExtraMods: true,
+			allowDisableBaseMod: true,
+		} as LaunchRequestArguments, args));
+	}
+
 	setup(async ()=>{
 		dc = new DebugClient('node', path.join(__dirname, '../dist/fmtk.js'), 'factoriomod', {
 			cwd: path.join(__dirname, "./factorio/mods"),
@@ -37,61 +57,27 @@ suite('Debug Adapter', ()=>{
 	});
 
 	test('should launch', async ()=>{
-		await dc.launch({
-			type: "factoriomod",
-			request: "launch",
+		await launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/terminate"],
-			//TODO: have a test before this one ensure these are installed?
-			// free chance for bundle+portal installs, but portal needs download token
-			adjustMods: {
-				"debugadapter-tests": true,
-				"minimal-no-base-mod": true,
-			},
-			disableExtraMods: true,
-			allowDisableBaseMod: true,
-		} as LaunchRequestArguments);
+		});
 		await dc.configurationSequence();
 		await dc.waitForEvent('terminated');
 	});
 
 	test("should reject launch args", async ()=>{
-		expect(dc.launch({
-			type: "factoriomod",
-			request: "launch",
+		expect(launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/terminate", "--config"],
-			adjustMods: {
-				"debugadapter-tests": true,
-				"minimal-no-base-mod": true,
-			},
-			disableExtraMods: true,
-			allowDisableBaseMod: true,
-		} as LaunchRequestArguments)).eventually.throws();
+		})).eventually.throws();
 
-		expect(dc.launch({
-			type: "factoriomod",
-			request: "launch",
+		expect(launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/terminate", "--mod-directory"],
-			adjustMods: {
-				"debugadapter-tests": true,
-				"minimal-no-base-mod": true,
-			},
-			disableExtraMods: true,
-			allowDisableBaseMod: true,
-		} as LaunchRequestArguments)).eventually.throws();
+		})).eventually.throws();
 	});
 
 	test('should stop at breakpoint and step', async ()=>{
-		await dc.launch({
-			type: "factoriomod",
-			request: "launch",
+		await launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
-			adjustMods: {
-				"debugadapter-tests": true,
-				"minimal-no-base-mod": true,
-			},
-			disableExtraMods: true,
-			allowDisableBaseMod: true,
-		} as LaunchRequestArguments);
+		});
 		await dc.waitForEvent('initialized');
 		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
 		if (process.platform === 'win32') {
@@ -126,17 +112,9 @@ suite('Debug Adapter', ()=>{
 	});
 
 	test('should stop at breakpoint in settings', async ()=>{
-		await dc.launch({
-			type: "factoriomod",
-			request: "launch",
+		await launch({
 			hookSettings: true,
-			adjustMods: {
-				"debugadapter-tests": true,
-				"minimal-no-base-mod": true,
-			},
-			disableExtraMods: true,
-			allowDisableBaseMod: true,
-		} as LaunchRequestArguments);
+		});
 		await dc.waitForEvent('initialized');
 		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/settings.lua");
 		if (process.platform === 'win32') {
@@ -159,17 +137,9 @@ suite('Debug Adapter', ()=>{
 	});
 
 	test('should stop at breakpoint in data', async ()=>{
-		await dc.launch({
-			type: "factoriomod",
-			request: "launch",
+		await launch({
 			hookData: true,
-			adjustMods: {
-				"debugadapter-tests": true,
-				"minimal-no-base-mod": true,
-			},
-			disableExtraMods: true,
-			allowDisableBaseMod: true,
-		} as LaunchRequestArguments);
+		});
 		await dc.waitForEvent('initialized');
 		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/data.lua");
 		if (process.platform === 'win32') {
@@ -192,17 +162,9 @@ suite('Debug Adapter', ()=>{
 	});
 
 	test('should list and validate breakpoint locations', async ()=>{
-		await dc.launch({
-			type: "factoriomod",
-			request: "launch",
+		await launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
-			adjustMods: {
-				"debugadapter-tests": true,
-				"minimal-no-base-mod": true,
-			},
-			disableExtraMods: true,
-			allowDisableBaseMod: true,
-		} as LaunchRequestArguments);
+		});
 		await dc.waitForEvent('initialized');
 		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
 		if (process.platform === 'win32') {
@@ -247,17 +209,9 @@ suite('Debug Adapter', ()=>{
 	});
 
 	test('should list loaded modules and sources', async ()=>{
-		await dc.launch({
-			type: "factoriomod",
-			request: "launch",
+		await launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
-			adjustMods: {
-				"debugadapter-tests": true,
-				"minimal-no-base-mod": true,
-			},
-			disableExtraMods: true,
-			allowDisableBaseMod: true,
-		} as LaunchRequestArguments);
+		});
 		await dc.waitForEvent('initialized');
 		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
 		if (process.platform === 'win32') {
@@ -279,17 +233,9 @@ suite('Debug Adapter', ()=>{
 	});
 
 	test('should catch exceptions', async ()=>{
-		await dc.launch({
-			type: "factoriomod",
-			request: "launch",
+		await launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/throw"],
-			adjustMods: {
-				"debugadapter-tests": true,
-				"minimal-no-base-mod": true,
-			},
-			disableExtraMods: true,
-			allowDisableBaseMod: true,
-		} as LaunchRequestArguments);
+		});
 		await dc.waitForEvent('initialized');
 		await dc.setExceptionBreakpointsRequest({filters: ['pcall', 'xpcall', 'unhandled']});
 		await dc.configurationDoneRequest();
@@ -333,17 +279,41 @@ suite('Debug Adapter', ()=>{
 		await dc.terminateRequest();
 	});
 
+	test('should catch exception in data', async ()=>{
+		await launch({
+			hookData: true,
+		}, "throw");
+		await dc.waitForEvent('initialized');
+		await dc.setExceptionBreakpointsRequest({filters: ['pcall', 'xpcall', 'unhandled']});
+		await dc.configurationDoneRequest();
+
+		async function waitFor(match:RegExp) {
+			await expect(dc.waitForEvent('stopped')).eventually.has.property('body')
+				.that.contain({
+					reason: 'exception',
+				}).and.has.property('text').that.matches(match);
+
+			// don't actually care to inspect the stack now, just make sure it
+			// really delivers one without throwing...
+			await dc.stackTraceRequest({threadId: 1});
+		};
+
+		await waitFor(/^pcall1$/);
+		await dc.continueRequest({threadId: 1});
+		await waitFor(/data\.lua:\d+: pcall2$/);
+		await dc.continueRequest({threadId: 1});
+
+		await waitFor(/data\.lua:\d+: xpcall$/);
+		await dc.continueRequest({threadId: 1});
+
+		await waitFor(/data\.lua:\d+: unhandled$/);
+
+		await dc.terminateRequest();
+	});
+
 	test('should pause', async ()=>{
-		await dc.launch({
-			type: "factoriomod",
-			request: "launch",
+		await launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
-			adjustMods: {
-				"debugadapter-tests": true,
-				"minimal-no-base-mod": true,
-			},
-			disableExtraMods: true,
-			allowDisableBaseMod: true,
 			runningBreak: 1,
 		} as LaunchRequestArguments);
 		await dc.waitForEvent('initialized');
@@ -363,17 +333,9 @@ suite('Debug Adapter', ()=>{
 	});
 
 	test('should report scopes and variables', async ()=>{
-		await dc.launch({
-			type: "factoriomod",
-			request: "launch",
+		await launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
-			adjustMods: {
-				"debugadapter-tests": true,
-				"minimal-no-base-mod": true,
-			},
-			disableExtraMods: true,
-			allowDisableBaseMod: true,
-		} as LaunchRequestArguments);
+		});
 		await dc.waitForEvent('initialized');
 		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
 		if (process.platform === 'win32') {
@@ -432,18 +394,64 @@ suite('Debug Adapter', ()=>{
 		await dc.terminateRequest();
 	});
 
+	test('should report scopes and variables in data', async ()=>{
+		await launch({
+			hookData: true,
+		}, "scopes");
+		await dc.waitForEvent('initialized');
+		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/data.lua");
+		if (process.platform === 'win32') {
+			scriptpath = scriptpath[0].toLowerCase() + scriptpath.slice(1);
+		}
+		await dc.configurationDoneRequest();
+		await dc.waitForEvent('stopped');
+		const threads = await dc.threadsRequest();
+		expect(threads.body.threads).length(1);
+		expect(threads.body.threads[0]).contains({id: 1, name: "thread 1"});
+
+
+		const stack = await dc.stackTraceRequest({threadId: 1, levels: 1});
+		expect(stack.success);
+		expect(stack.body.stackFrames[0].source?.path).equals(scriptpath);
+		const frameId = stack.body.stackFrames[0].id;
+
+		const scopes = await dc.scopesRequest({frameId: frameId });
+		expect(scopes.success);
+		expect(scopes.body.scopes).length(3);
+		expect(scopes.body.scopes.map(s=>s.name)).contains.members([
+			"Locals", "Upvalues", "Lua Globals",
+		]);
+
+		const localsref = scopes.body.scopes.find(s=>s.name==="Locals")!.variablesReference;
+		const locals = await dc.variablesRequest({variablesReference: localsref});
+		expect(locals.success);
+		expect(locals.body.variables[0]).contains({
+			name: 'foo',
+			value: 'true',
+			type: 'boolean',
+		});
+		expect(locals.body.variables[1]).contains({
+			name: 'bar',
+			value: 'false',
+			type: 'boolean',
+		});
+
+		const setresult = await dc.setVariableRequest({
+			variablesReference: localsref,
+			name: 'foo',
+			value: '42',
+		});
+		expect(setresult.success);
+		expect(setresult.body.type).equals('number');
+		expect(setresult.body.value).equals('42');
+
+		await dc.terminateRequest();
+	});
+
 	test('should eval', async ()=>{
-		await dc.launch({
-			type: "factoriomod",
-			request: "launch",
+		await launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
-			adjustMods: {
-				"debugadapter-tests": true,
-				"minimal-no-base-mod": true,
-			},
-			disableExtraMods: true,
-			allowDisableBaseMod: true,
-		} as LaunchRequestArguments);
+		});
 		await dc.waitForEvent('initialized');
 		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
 		if (process.platform === 'win32') {
@@ -493,17 +501,9 @@ suite('Debug Adapter', ()=>{
 	});
 
 	test('should eval LS translation', async ()=>{
-		await dc.launch({
-			type: "factoriomod",
-			request: "launch",
+		await launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
-			adjustMods: {
-				"debugadapter-tests": true,
-				"minimal-no-base-mod": true,
-			},
-			disableExtraMods: true,
-			allowDisableBaseMod: true,
-		} as LaunchRequestArguments);
+		});
 		await dc.waitForEvent('initialized');
 		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
 		if (process.platform === 'win32') {
@@ -539,18 +539,10 @@ suite('Debug Adapter', ()=>{
 	});
 
 	test('should reload ref IDs', async ()=>{
-		await dc.launch({
-			type: "factoriomod",
-			request: "launch",
+		await launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
-			adjustMods: {
-				"debugadapter-tests": true,
-				"minimal-no-base-mod": true,
-			},
-			disableExtraMods: true,
-			allowDisableBaseMod: true,
 			runningTimeout: 30000,
-		} as LaunchRequestArguments);
+		});
 		await dc.waitForEvent('initialized');
 		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
 		if (process.platform === 'win32') {
