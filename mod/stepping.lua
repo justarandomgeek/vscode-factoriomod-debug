@@ -198,7 +198,7 @@ do
       if info.what == "main" then
         local s = normalizeLuaSource(info.source)
         local dasource = { name = s, path = s }
-        --[[if s == "=(dostring)" then
+        --[=[if s == "=(dostring)" then
           local sourceref = variables.sourceRef(info.source)
           if sourceref then
             dasource = sourceref
@@ -207,7 +207,7 @@ do
             source = dasource,
             dump = enc(string.dump(info.func))
           }})
-        else]]
+        else]=]
         if s:sub(1,1) == "@" then
           local dump
           if not isDumpIgnore[s] then

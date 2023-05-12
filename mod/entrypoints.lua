@@ -208,7 +208,6 @@ end
 ---@overload fun(x:nil)
 function newscript.on_nth_tick(tick,f)
   if not tick then
-    --[[@cast tick nil]]
     if f then
       -- pass this through for the error...
       return oldscript.on_nth_tick(tick,f)
@@ -218,9 +217,9 @@ function newscript.on_nth_tick(tick,f)
     end
   else
     local ttype = type(tick)
-    if ttype == "number" --[[@cast tick uint]] then
+    if ttype == "number" then
       return oldscript.on_nth_tick(tick,labelhandler(f,("on_nth_tick %d handler"):format(tick)))
-    elseif ttype == "table" --[[@cast tick uint[] ]] then
+    elseif ttype == "table" then
       return oldscript.on_nth_tick(tick,labelhandler(f,("on_nth_tick {%s} handler"):format(table.concat(tick,","))))
     else
       error("Bad argument `tick` expected number or table got "..ttype,2)
