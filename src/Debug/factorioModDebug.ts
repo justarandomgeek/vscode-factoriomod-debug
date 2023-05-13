@@ -402,7 +402,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		const dapmsg = new PassThrough({ objectMode: true });
 		dapmsg.on('data', async (mesg:string)=>{
 			switch (mesg.charCodeAt(0)) {
-				case 0xFDD0:
+				case 0xFDD0: {
 					const wasInPrompt = this.inPrompt;
 					this.inPrompt = true;
 					switch (mesg.charCodeAt(1)) {
@@ -524,6 +524,19 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 						default:
 							return;
 					}
+				}
+				case 0xFDD1: {
+					this.inPrompt = true;
+					const json = JSON.parse(mesg.slice(1), daprevive) as {event:string; body:any};
+					switch (json.event) {
+						case "source":
+							await this.loadedSourceEvent(json.body);
+							this.continue();
+							return;
+						default:
+							return;
+					}
+				}
 				case 0xFDD4: { // translation
 					const split = mesg.indexOf("\x01");
 					const id = Number.parseInt(mesg.slice(1, split).trim());
@@ -539,9 +552,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 							resolveModules();
 							// and finally send the initialize event to get breakpoints and such...
 							this.sendEvent(new InitializedEvent());
-							return;
-						case "source":
-							this.loadedSourceEvent(json.body);
 							return;
 						default:
 							return;
@@ -570,6 +580,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.factorio.on("stdout", (mesg:string)=>{
 			switch (mesg.charCodeAt(0)) {
 				case 0xFDD0:
+				case 0xFDD1:
 				case 0xFDD4:
 				case 0xFDD5:
 				case 0xFDD6:
@@ -674,12 +685,21 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			}
 			let verified = false;
 			if (lines) {
+				let lastline = 0;
 				for (const line of lines) {
 					if (line >= bp.line) {
 						bp.line = line;
 						verified = true;
 						break;
 					}
+					if (line > lastline) {
+						lastline = line;
+					}
+				}
+				if (!verified && lastline > 0) {
+					// if it's after the last line, it'll fall through to here...
+					bp.line = lastline;
+					verified = true;
 				}
 			}
 			return Object.assign(bp, {id: this.nextBreakpointID++, verified: verified});
@@ -703,6 +723,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.breakPointsChanged.add(bppath);
 		const lines = this.lines_by_source.get(source)!;
 		for (const bp of bps) {
+			let lastline = 0;
 			for (const line of lines) {
 				if (line >= bp.line) {
 					bp.line = line;
@@ -710,6 +731,15 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					this.sendEvent(new BreakpointEvent("changed", bp));
 					break;
 				}
+				if (line > lastline) {
+					lastline = line;
+				}
+			}
+			if (!bp.verified && lastline > 0) {
+				// if it's after the last line, it'll fall through to here...
+				bp.line = lastline;
+				bp.verified = true;
+				this.sendEvent(new BreakpointEvent("changed", bp));
 			}
 		}
 	}

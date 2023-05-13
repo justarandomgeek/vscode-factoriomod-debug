@@ -203,17 +203,19 @@ do
           if sourceref then
             dasource = sourceref
           end
-          print("\xEF\xB7\x95"..json_encode{ event="source", body={
+          print("\xEF\xB7\x91"..json_encode{ event="source", body={
             source = dasource,
             dump = enc(string.dump(info.func))
-          }})
+          }}.."\n")
+          debugprompt()
         else]=]
         if s:sub(1,1) == "@" then
           local dump
           if not isDumpIgnore[s] then
             dump = enc(string.dump(info.func))
           end
-          print("\xEF\xB7\x95" .. json_encode{event="source", body={ source = dasource, dump = dump }})
+          print("\xEF\xB7\x91"..json_encode{event="source", body={ source = dasource, dump = dump }}.."\n")
+          debugprompt()
         end
       end
 

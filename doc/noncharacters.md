@@ -6,6 +6,7 @@ stdout prefix:
 
 events w/ prompt
 EF B7 90  FDD0  simple message
+EF B7 91  FDD1  json event w/prompt
 
 events w/o prompt
 EF B7 94  FDD4  translation result

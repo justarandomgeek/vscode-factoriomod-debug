@@ -111,6 +111,32 @@ suite('Debug Adapter', ()=>{
 		await dc.terminateRequest();
 	});
 
+	test('should adjust EOF breakpoint final active line', async ()=>{
+		await launch({
+			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
+		});
+		await dc.waitForEvent('initialized');
+		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
+		if (process.platform === 'win32') {
+			scriptpath = scriptpath[0].toLowerCase() + scriptpath.slice(1);
+		}
+		const bps = await dc.setBreakpointsRequest({
+			source: {
+				path: scriptpath,
+			},
+			breakpoints: [{ line: 17 }],
+		});
+		expect(bps.success);
+		await dc.configurationDoneRequest();
+		await dc.waitForEvent('stopped');
+		const stack1 = await dc.stackTraceRequest({threadId: 1});
+		expect(stack1.success);
+		expect(stack1.body.stackFrames[0].source?.path).equals(scriptpath);
+		expect(stack1.body.stackFrames[0].line).lessThanOrEqual(17);
+		await dc.terminateRequest();
+	});
+
+
 	test('should stop at breakpoint in settings', async ()=>{
 		await launch({
 			hookSettings: true,
@@ -194,8 +220,10 @@ suite('Debug Adapter', ()=>{
 			9, 9, 9, 9, 9,
 			10,
 			15, 15, 15, 15, 15,
+			// lines after end
+			15, 15, 15,
 		];
-		for (let i = 1; i <= 15; i++) {
+		for (let i = 1; i < validatedloc.length; i++) {
 			const bps2 = await dc.setBreakpointsRequest({
 				source: {
 					path: scriptpath,

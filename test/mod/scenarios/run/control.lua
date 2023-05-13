@@ -13,3 +13,5 @@ local function bptest()
 
 
 end
+
+-- extra lines for a breakpoint after final OP_RETURN
