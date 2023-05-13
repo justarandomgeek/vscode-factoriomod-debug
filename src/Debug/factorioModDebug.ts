@@ -553,6 +553,9 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 							// and finally send the initialize event to get breakpoints and such...
 							this.sendEvent(new InitializedEvent());
 							return;
+						case "output":
+							this.sendEvent(json as OutputEvent);
+							return;
 						default:
 							return;
 					}
