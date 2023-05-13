@@ -6,7 +6,6 @@ import { BufferSplitter } from '../Util/BufferSplitter';
 import { Keychain } from './Keychain';
 import { platform, tmpdir } from 'os';
 import * as dot from "dot-object";
-import inspector from 'inspector';
 
 interface ModPackageScripts {
 	[key:string]: string|undefined
@@ -615,7 +614,7 @@ export async function forkScript(term:ModTaskTerminal, module:string, args:strin
 	scriptenv.Path = addBinToPath(scriptenv.Path??"");
 
 	return new Promise((resolve, reject)=>{
-		const inspect = !!inspector.url();
+		const inspect = config.get<boolean>("inspect", false);
 		const scriptProc = fork(module, args, {
 			cwd: cwd,
 			execArgv: inspect ? ["--nolazy", "--inspect-brk=34200"] : undefined,

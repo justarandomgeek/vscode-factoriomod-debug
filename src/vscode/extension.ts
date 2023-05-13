@@ -5,7 +5,6 @@ import { activateModPackageProvider } from './ModPackageProvider';
 import { FactorioVersionSelector } from './VersionSelector';
 import { ProfileRenderer } from '../Profile/ProfileRenderer';
 import * as LanguageClient from "../Language/Client";
-import inspector from 'inspector';
 import { ModSettingsEditorProvider } from '../ModSettings/ModSettingsEditorProvider';
 import { ScriptDatEditorProvider } from '../ScriptDat/ScritpDatEditorProvider';
 
@@ -72,7 +71,8 @@ class DebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
 		const activeVersion = await this.versionSelector.getActiveVersion();
 		if (!activeVersion) { return; }
 
-		const runMode = vscode.workspace.getConfiguration("factorio.debug").get<string>("runMode", "inline");
+		const config = vscode.workspace.getConfiguration("factorio");
+		const runMode = config.get<string>("debug.runMode", "inline");
 		switch (runMode) {
 			case "inline":
 			default:
@@ -87,7 +87,8 @@ class DebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
 						}
 					));
 			case "external":
-				if (!!inspector.url()) {
+				const inspect = config.get<boolean>("inspect", false);
+				if (inspect) {
 					executable.args.unshift("--nolazy", "--inspect-brk=34198");
 				}
 				executable.args.push(...await activeVersion.debugLaunchArgs());
