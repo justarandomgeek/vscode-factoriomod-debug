@@ -5,6 +5,8 @@
 ## 1.1.30
 * Debugger:
   * Fixed catching pcall/xpcall caught errors in settings & data stage
+  * Adjust breakpoints at end of file back to last active line
+  * Fixed some output events from lua not being emitted correctly
 * VSCode:
   * Don't try to auto-detect attached debugger to debug forked processes (false positive on some systems)
 
