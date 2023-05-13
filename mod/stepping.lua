@@ -206,7 +206,7 @@ do
           print("\xEF\xB7\x91"..json_encode{ event="source", body={
             source = dasource,
             dump = enc(string.dump(info.func))
-          }}.."\n")
+          }})
           debugprompt()
         else]=]
         if s:sub(1,1) == "@" then
@@ -214,7 +214,7 @@ do
           if not isDumpIgnore[s] then
             dump = enc(string.dump(info.func))
           end
-          print("\xEF\xB7\x91"..json_encode{event="source", body={ source = dasource, dump = dump }}.."\n")
+          print("\xEF\xB7\x91"..json_encode{event="source", body={ source = dasource, dump = dump }})
           debugprompt()
         end
       end
