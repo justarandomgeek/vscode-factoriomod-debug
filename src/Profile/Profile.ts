@@ -257,7 +257,7 @@ export class Profile implements vscode.Disposable  {
 		this.statusBar = vscode.window.createStatusBarItem();
 
 		this._disposables.push(vscode.window.onDidChangeActiveTextEditor(editor=>{
-			if (editor && (editor.document.uri.scheme==="file"||editor.document.uri.scheme==="zip")) {
+			if (editor && (editor.document.uri.scheme==="file")) {
 				this.render(editor);
 			}
 		}));
@@ -289,7 +289,7 @@ export class Profile implements vscode.Disposable  {
 			await this.parse(event.body);
 
 			const editor = vscode.window.activeTextEditor;
-			if (editor && (editor.document.uri.scheme==="file"||editor.document.uri.scheme==="zip")) {
+			if (editor && (editor.document.uri.scheme==="file")) {
 				this.render(editor);
 			}
 		}
@@ -428,7 +428,7 @@ export class Profile implements vscode.Disposable  {
 	}
 
 	public render(editor:vscode.TextEditor) {
-		const report = this.profileData.Report(editor.document.uri.toString());
+		const report = this.profileData.Report(editor.document.uri.fsPath);
 		const reportmax = report.fileData.max();
 
 		const maxtime = reportmax.line.timer;
