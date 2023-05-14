@@ -10,3 +10,5 @@ disassembler/sourcemap
 convert eval _ENV to capturing upvals directly. needs some help from the vm to create new upvals and close them when needed at end of block.
 
 openvsx? https://github.com/eclipse/openvsx/wiki/Publishing-Extensions
+
+> have any method returns with like MapPosition instead be MapPosition.0
