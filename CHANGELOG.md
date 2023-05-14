@@ -4,7 +4,9 @@
 
 ## 1.1.31
 * VSCode:
+  * Fixed profiler path mapping
   * Fixed running Debugger in external process
+
 ## 1.1.30
 * Debugger:
   * Fixed catching pcall/xpcall caught errors in settings & data stage
@@ -12,7 +14,6 @@
   * Fixed some output events from lua not being emitted correctly
 * VSCode:
   * Don't try to auto-detect attached debugger to debug forked processes (false positive on some systems)
-
 
 ## 1.1.29
 * CLI:
