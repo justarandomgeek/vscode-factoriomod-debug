@@ -32,11 +32,11 @@ do
     -- it's in the registery for on_load, but with whatever ref id was free
     -- find it by its metatable, since that has a name on it at least...
     -- DON'T DO THIS! THIS IS A HORRIBLE HACK!
-    local gmt = reg["LuaGameScript"] --[[@as table?]]
+    local gmt = reg["LuaGameScript"] --[=[@as table?]=]
     if gmt then -- but it's not there when instruments first run
       for _,t in pairs(reg) do
         if validLuaObjectTypes[type(t)] and dgetmetatable(t)==gmt then
-          create_profiler = (t--[[@as LuaGameScript]]).create_profiler
+          create_profiler = (t--[=[@as LuaGameScript]=]).create_profiler
           return create_profiler(stopped)
         end
       end
