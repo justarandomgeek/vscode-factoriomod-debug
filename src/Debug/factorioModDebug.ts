@@ -648,7 +648,9 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			}
 		}
 
-		return super.convertDebuggerPathToClient(debuggerPath);
+		// it won't be uri-shaped, so just return it as-is here...
+		// (this happens if zipped mods are present and zip-handling has not loaded them)
+		return debuggerPath;
 	}
 
 	protected async customRequest(command: string, response: DebugProtocol.Response, args: any, request?: DebugProtocol.Request | undefined) {

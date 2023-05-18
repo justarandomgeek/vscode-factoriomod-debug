@@ -6,5 +6,5 @@
   "homepage": "",
   "contact": "",
   "description": "",
-  "dependencies": []
+  "dependencies": ["?minimal-no-base-mod"]
 }
