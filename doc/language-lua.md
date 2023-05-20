@@ -85,4 +85,4 @@ To allow the Language Server to see that `LuaObject.object_name` is "like `type(
 
 ### Commands
 
-In-game lua commands `/c`, `/command`, `/silent-command`, `/sc`, and `/measured-command` will be ignored at teh start of any line.
+In-game lua commands `/c`, `/command`, `/silent-command`, `/sc`, and `/measured-command` will be ignored at the start of any line, including the optional `__modname__` designator if present.
