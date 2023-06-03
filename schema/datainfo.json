@@ -8,7 +8,7 @@
       "title": "Internal name of the mod",
       "pattern": "[a-zA-Z0-9_-]+",
       "maxLength": 100,
-      "minLength": 1
+      "minLength": 4
     },
     "version": {
       "type":"string",
