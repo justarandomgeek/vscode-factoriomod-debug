@@ -4,7 +4,7 @@
 
 ## 1.1.33
 * JSON Schema:
-  * Mod name must be >3 characters
+  * Mod name must be >3 and <50 characters
 
 ## 1.1.32
 * Debugger:
