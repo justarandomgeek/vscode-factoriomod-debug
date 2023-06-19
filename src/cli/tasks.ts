@@ -104,7 +104,7 @@ export async function doPackageDatestamp(info:ModInfo): Promise<boolean> {
 		const current = syms?.find(sym=>sym.name.startsWith(info.version))!;
 		if (current) {
 			const date = current.children?.find(sym=>sym.name === "Date");
-			const newDate = new Date().toISOString().substr(0, 10);
+			const newDate = new Date().toISOString().substring(0, 10);
 			let edit:Edit;
 			if (date) {
 				edit = {
