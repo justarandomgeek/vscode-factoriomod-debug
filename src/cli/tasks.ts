@@ -104,23 +104,24 @@ export async function doPackageDatestamp(info:ModInfo): Promise<boolean> {
 		const current = syms?.find(sym=>sym.name.startsWith(info.version))!;
 		if (current) {
 			const date = current.children?.find(sym=>sym.name === "Date");
+			const newDate = new Date().toISOString().substr(0, 10);
 			let edit:Edit;
 			if (date) {
 				edit = {
-					content: new Date().toISOString().substr(0, 10),
+					content: newDate,
 					offset: doc.offsetAt(date.selectionRange.start),
 					length: date.selectionRange.end.character - date.selectionRange.start.character,
 				};
 			} else {
 				edit = {
-					content: `\nDate: ${new Date().toISOString().substr(0, 10)}`,
+					content: `\nDate: ${newDate}`,
 					offset: doc.offsetAt(current.selectionRange.end),
 					length: 0,
 				};
 			}
 			content = applyEdits(content, [edit]);
 			fsp.writeFile("changelog.txt", content);
-			console.log(`Changelog section ${info.version} stamped ${new Date().toISOString().substr(0, 10)}`);
+			console.log(`Changelog section ${info.version} stamped ${newDate}`);
 		} else {
 			console.log(`No Changelog section for ${info.version}`);
 		}
