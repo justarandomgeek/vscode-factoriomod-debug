@@ -13,8 +13,14 @@ end
 local function replace(uri, text, diffs)
   ---Single Workspace/Folder OK, Multi Workspace OK, mods as root OK, mods_path as root uses __mods_path__
   ---Match on mods folder
-  local this_mod = uri:match("mods[\\/]([^\\/]+)[\\/]")
+  local this_mod, path_inside_mod = uri:match("mods[\\/]([^\\/]+)[\\/](.*)")
   if not this_mod then
+    -- Being a bit more strict with a slash being before data as nobody should ever be renaming that folder
+    this_mod, path_inside_mod = uri:match("[\\/]data[\\/]([^\\/]+)[\\/](.*)")
+  end
+
+  if not this_mod then
+    path_inside_mod = uri
     if __plugin_dev then
       this_mod = "PluginDevModName"
     else
@@ -27,9 +33,19 @@ local function replace(uri, text, diffs)
   end
 
   if this_mod then
-    local scenario = uri:match("scenarios[\\/]([^\\/]+)[\\/]")--[[@as string|nil]]
-    if scenario then
-      this_mod = this_mod.."__"..scenario
+    local inner_name = path_inside_mod:match("scenarios[\\/]([^\\/]+)[\\/]")
+    local inner_type = "scenario"
+    if not inner_name then
+      inner_name = path_inside_mod:match("campaigns[\\/]([^\\/]+)[\\/]")
+      inner_type = "campaign"
+    end
+    if not inner_name then
+      inner_name = path_inside_mod:match("tutorials[\\/]([^\\/]+)[\\/]")
+      inner_type = "tutorial"
+    end
+
+    if inner_name then
+      this_mod = this_mod.."__"..inner_type.."__"..inner_name
     end
     this_mod = this_mod:gsub("[^a-zA-Z0-9_]","_")
     local global_name = "__"..this_mod.."__global"
