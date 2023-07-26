@@ -63,7 +63,7 @@ function serpent.dump(value, options) end
 function serpent.load(str, options) end
 
 ---@class serpent.load_options
----@field safe boolean default: true
+---@field safe? boolean default: true
 
 ---These options can be provided as a second parameter to Serpent functions.
 ---
@@ -72,30 +72,30 @@ function serpent.load(str, options) end
 --- - `serpent.line(value)` sets `sortkeys = true` and `comment = true`;\
 --- - `serpent.block(value)` sets `sortkeys = true` and `comment = true` and `indent = ' '`.
 ---@class serpent.options
----@field safe boolean enable safety checks when using `serpent.load`. default: true
----@field indent string triggers long multi-line output.
----@field comment boolean|integer provide stringified value in a comment (up to `maxelevel` of depth).
----@field refcomment boolean|integer describe the previous location of self-reference tables
----@field tablecomment boolean|integer provide comment on first appearance of table values
----@field sortkeys boolean|serpent.sort_function
----@field sparse boolean force sparese encoding (no nil filling based on #t).
----@field compact boolean remove spaces.
----@field fatal boolean raise fatal error on non-serilializable values.
----@field fixradix boolean change radic character set depenending on locale to decimal dot.
----@field nocode boolean disable bytecode serialization for easy comparison.
----@field nohuge boolean disable checking numbers against undefined and huge values.
----@field maxlevel number specify max level up to which to expand nested tables.
----@field maxnum number specify max number of elemmets in a table.
----@field maxlength number specify max length for all table elements.
----@field metatostring boolean use __tostring metatamethod when serializing tables; set to false to disable and serialize the table as is.
----@field numformat string specify format for numeric values as shortest possible round-trippable double.\
+---@field safe? boolean enable safety checks when using `serpent.load`. default: true
+---@field indent? string triggers long multi-line output.
+---@field comment? boolean|integer provide stringified value in a comment (up to `maxelevel` of depth).
+---@field refcomment? boolean|integer describe the previous location of self-reference tables
+---@field tablecomment? boolean|integer provide comment on first appearance of table values
+---@field sortkeys? boolean|serpent.sort_function
+---@field sparse? boolean force sparese encoding (no nil filling based on #t).
+---@field compact? boolean remove spaces.
+---@field fatal? boolean raise fatal error on non-serilializable values.
+---@field fixradix? boolean change radic character set depenending on locale to decimal dot.
+---@field nocode? boolean disable bytecode serialization for easy comparison.
+---@field nohuge? boolean disable checking numbers against undefined and huge values.
+---@field maxlevel? number specify max level up to which to expand nested tables.
+---@field maxnum? number specify max number of elemmets in a table.
+---@field maxlength? number specify max length for all table elements.
+---@field metatostring? boolean use __tostring metatamethod when serializing tables; set to false to disable and serialize the table as is.
+---@field numformat? string specify format for numeric values as shortest possible round-trippable double.\
 ---Use "%.16g" for better readability and "%.17g" to preserve floating point precision. default: "%.17g"
----@field valignore {[string]: true} allows to specify a list of values to ignore (as keys).
----@field keyallow {[string]: true} allows to specify the list of keys to be serialized. Any keys not in this list are not included in final output (as keys).
----@field keyignore {[string]: true} allows to specity the list of keys to ignore in serialization.
----@field valtypeignore {[string]: true} allows to specify a list of value types to ignore (as keys).
----@field custom serpent.formater
----@field name string triggers full serialization with self-ref section.
+---@field valignore? {[string]: true} allows to specify a list of values to ignore (as keys).
+---@field keyallow? {[string]: true} allows to specify the list of keys to be serialized. Any keys not in this list are not included in final output (as keys).
+---@field keyignore? {[string]: true} allows to specity the list of keys to ignore in serialization.
+---@field valtypeignore? {[string]: true} allows to specify a list of value types to ignore (as keys).
+---@field custom? serpent.formater
+---@field name? string triggers full serialization with self-ref section.
 
 ---A custom sort function can be provided to sort the contents of tables. The function takes 2 parameters, the first being the table (a list) with the keys,
 ---the second the original table. It should modify the first table in-place, and return nothing.\
