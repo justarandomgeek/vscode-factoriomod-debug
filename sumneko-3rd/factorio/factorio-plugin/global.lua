@@ -34,14 +34,16 @@ local function replace(uri, text, diffs)
 
   if this_mod then
     local inner_name = path_inside_mod:match("scenarios[\\/]([^\\/]+)[\\/]")
-    local inner_type = "scenario"
+    local inner_type = "s"
     if not inner_name then
-      inner_name = path_inside_mod:match("campaigns[\\/]([^\\/]+)[\\/]")
-      inner_type = "campaign"
+      local level
+      inner_name,level = path_inside_mod:match("campaigns[\\/]([^\\/]+)[\\/]([^\\/]+)[\\/]")
+      inner_name = inner_name and inner_name .. "__" .. level
+      inner_type = "c"
     end
     if not inner_name then
       inner_name = path_inside_mod:match("tutorials[\\/]([^\\/]+)[\\/]")
-      inner_type = "tutorial"
+      inner_type = "t"
     end
 
     if inner_name then
