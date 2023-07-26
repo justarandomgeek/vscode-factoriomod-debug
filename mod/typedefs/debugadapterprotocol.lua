@@ -1,23 +1,23 @@
 
 ---@class DebugProtocol.Breakpoint
----@field public id integer | nil
+---@field public id? integer
 ---@field public verified boolean
----@field public source DebugProtocol.Source | nil
----@field public line integer | nil
----@field public name string | nil
----@field public path string | nil
+---@field public source? DebugProtocol.Source
+---@field public line? integer
+---@field public name? string
+---@field public path? string
 
 ---@class DebugProtocol.SourceBreakpoint
----@field public line integer | nil
----@field public condition string | nil
----@field public hitCondition string | nil
----@field public logMessage string | nil
----@field hits integer|nil
+---@field public line? integer
+---@field public condition? string
+---@field public hitCondition? string
+---@field public logMessage? string
+---@field hits? integer
 
 ---@class DebugProtocol.Source
----@field public name string | nil
----@field public path string | nil
----@field public sourceReference integer | nil
+---@field public name? string
+---@field public path? string
+---@field public sourceReference? integer
 
 ---@class DebugProtocol.StackFrame
 ---@field public id integer
@@ -30,27 +30,37 @@
 
 ---@class DebugProtocol.Scope
 ---@field public name string
----@field public presentationHint "arguments" | "locals" | "registers"
----@field public variablesReference integer
----@field public namedVariables integer | nil
----@field public indexedVariables integer | nil
----@field public expensive boolean
+---@field public presentationHint? "arguments" | "locals" | "registers"
+---@field public variablesReference? integer
+---@field public namedVariables? integer
+---@field public indexedVariables? integer
+---@field public expensive? boolean
 
 ---@class DebugProtocol.Variable
 ---@field public name string
 ---@field public value string
----@field public type string | nil
----@field public presentationHint DebugProtocol.VariablePresentationHint | nil
+---@field public type? string
+---@field public presentationHint? DebugProtocol.VariablePresentationHint
 ---@field public variablesReference integer
----@field public namedVariables integer | nil
----@field public indexedVariables integer | nil
+---@field public namedVariables? integer
+---@field public indexedVariables? integer
 
 ---@class DebugProtocol.VariablePresentationHint
----@field public kind string | nil
----@field public attributes string[] | nil
----@field public visibility string | nil
+---@field public kind? string
+---@field public attributes? string[]
+---@field public visibility? string
+---@field public lazy? boolean
 
 ---@class DebugProtocol.Module
 ---@field public id integer|string
 ---@field public name string
 ---@field public version? string
+
+---@class DebugProtocol.EvaluateResponseBody
+---@field public result string
+---@field public type? string
+---@field public presentationHint? DebugProtocol.VariablePresentationHint
+---@field public variablesReference integer
+---@field public namedVariables? integer
+---@field public indexedVariables? integer
+---@field public memoryReference? string

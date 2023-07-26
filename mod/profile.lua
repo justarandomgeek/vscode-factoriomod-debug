@@ -90,9 +90,8 @@ local function getlinetimer(file,line)
 
   local ld = f[line]
   if not ld then
-    ld = {count=0}
+    ld = {count=0, timer = getaccumulator()}
     f[line] = ld
-    ld.timer = getaccumulator()
   end
   ld.count = ld.count + 1
   return ld.timer
@@ -113,9 +112,8 @@ local function getfunctimer(file,line)
 
   local fd = f[line]
   if not fd then
-    fd = {count=0}
+    fd = {count=0, timer = getaccumulator()}
     f[line] = fd
-    fd.timer = getaccumulator()
   end
   fd.count = fd.count + 1
   return fd.timer

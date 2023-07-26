@@ -442,8 +442,7 @@ function DAEval.evaluate(frameId,context,expression,seq,formod)
   end
   local info = not frameId or debug.getinfo(frameId,"f")
 
-  -- Variable is close enough to EvaluateResult
-  ---@type DebugProtocol.Variable
+  ---@type DebugProtocol.EvaluateResponseBody
   local evalresult
   if info then
     local timer,success,result
@@ -463,9 +462,13 @@ function DAEval.evaluate(frameId,context,expression,seq,formod)
           setmetatable(result,evalresultmeta)
         end
       end
-      ---@cast result any
-      evalresult = variables.create(nil,result,nil)
-      evalresult.result = evalresult.value
+      do
+        local vresult variables.create(nil,result,nil)
+        -- Variable is close enough to EvaluateResponseBody with one field moved...
+        evalresult = vresult --[[@as DebugProtocol.EvaluateResponseBody]]
+        evalresult.result = vresult.value
+      end
+
       if context == "visualize" then
         local mtresult = getmetatable(result)
         if mtresult and mtresult.__debugvisualize then
