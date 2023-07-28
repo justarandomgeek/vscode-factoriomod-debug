@@ -394,6 +394,8 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 							const id = Number.parseInt(value.slice(1));
 							return this.translations.get(id) ?? `{Missing Translation ID ${id}}`;
 						}
+						case 0xFDD5:
+							return Buffer.from(value.slice(1), "latin1");
 					}
 				}
 			}
@@ -972,7 +974,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	private loadedSources:(Source&DebugProtocol.Source)[] = [];
 
-	protected async loadedSourceEvent(loaded:{ source:Source&DebugProtocol.Source; dump?:string }) {
+	protected async loadedSourceEvent(loaded:{ source:Source&DebugProtocol.Source; dump?:Buffer }) {
 		const source = loaded.source;
 		if (source.path) {
 			source.path = this.convertDebuggerPathToClient(source.path);
@@ -980,7 +982,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 		if (loaded.dump) {
 			const dumpid = source.sourceReference ?? source.name;
-			const dump = new LuaFunction(new BufferStream(Buffer.from(loaded.dump, "latin1")), true);
+			const dump = new LuaFunction(new BufferStream(loaded.dump), true);
 			this.nextdump = dump.rebase(this.nextdump);
 
 			const lines = new Set<number>();

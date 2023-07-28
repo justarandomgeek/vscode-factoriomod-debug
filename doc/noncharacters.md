@@ -30,6 +30,7 @@ EF B7 91  FDD1  DA Path
 EF B7 92  FDD2  DA Line
 EF B7 93  FDD3  (reserved for DA Column?)
 EF B7 94  FDD4  translation result
+EF B7 95  FDD5  Raw Bytes (Lua Dump)
 
 PUA U+E000-U+F8FF also available for use?
 

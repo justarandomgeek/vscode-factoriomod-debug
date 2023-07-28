@@ -211,7 +211,7 @@ do
         if s:sub(1,1) == "@" then
           local dump
           if not isDumpIgnore[s] then
-            dump = string.dump(info.func)
+            dump = "\xEF\xB7\x95" .. string.dump(info.func)
           end
           print("\xEF\xB7\x91"..json_encode{event="source", body={ source = dasource, dump = dump }})
           debugprompt()
