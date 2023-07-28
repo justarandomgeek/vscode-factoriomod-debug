@@ -20,6 +20,8 @@ import { LuaFunction } from './LuaDisassembler';
 import { BufferStream } from '../Util/BufferStream';
 import type { ActiveFactorioVersion } from '../vscode/FactorioVersion';
 import { PassThrough } from 'stream';
+//@ts-expect-error
+import replace from 'buffer-replace';
 
 interface ModPaths{
 	uri: URI
@@ -90,6 +92,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	private readonly _dumps = new Map<number, resolver<string>>();
 	private readonly translations = new Map<number, string>();
+	private readonly buffers = new Map<number, Buffer>();
 	private nextRef = 1;
 
 	private factorio?: FactorioProcess;
@@ -378,7 +381,12 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			resolveModules = resolve;
 		});
 
-		this.factorio.on("stderr", (mesg:string)=>this.sendEvent(new OutputEvent(mesg+"\n", "stderr")));
+		this.factorio.on("stderr", (mesg:Buffer)=>{
+			const mstring = mesg.toString();
+			if (mstring) {
+				this.sendEvent(new OutputEvent(mstring+"\n", "stderr"));
+			}
+		});
 
 		const daprevive = (key:string, value:any)=>{
 			switch (typeof value) {
@@ -394,15 +402,28 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 							const id = Number.parseInt(value.slice(1));
 							return this.translations.get(id) ?? `{Missing Translation ID ${id}}`;
 						}
-						case 0xFDD5:
-							return Buffer.from(value.slice(1), "latin1");
+						case 0xFDD5: {
+							const id = Number.parseInt(value.slice(1));
+							return this.buffers.get(id) ?? `{Missing Buffer ID ${id}}`;
+						}
 					}
 				}
 			}
 			return value;
 		};
 		const dapmsg = new PassThrough({ objectMode: true });
-		dapmsg.on('data', async (mesg:string)=>{
+		dapmsg.on('data', async (buff:Buffer)=>{
+			if (buff[2] === 0x97) {
+				//0xFDD7 raw buffer
+				const split = buff.indexOf(1, 3);
+
+				const id = Number.parseInt(buff.slice(3, split).toString().trim());
+				const buffer = replace(buff.slice(split+1), "\r\n", "\n");
+				this.buffers.set(id, buffer);
+				return;
+			}
+
+			const mesg = buff.toString();
 			switch (mesg.charCodeAt(0)) {
 				case 0xFDD0: {
 					const wasInPrompt = this.inPrompt;
@@ -582,28 +603,33 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			}
 		});
 
-		this.factorio.on("stdout", (mesg:string)=>{
-			switch (mesg.charCodeAt(0)) {
-				case 0xFDD0:
-				case 0xFDD1:
-				case 0xFDD4:
-				case 0xFDD5:
-				case 0xFDD6:
-					dapmsg.write(mesg);
-					return;
-				case 0xFDE0: // profile line
-				case 0xFDE1: // profile call
-				case 0xFDE2: // profile tailcall
-				case 0xFDE3: // profile return
-					profile.write(mesg);
-					return;
-				case 0xFDED: // v1 profile
-					this.sendEvent(new Event("x-Factorio-Profile", mesg.slice(1)));
-					return;
-				default:
-					this.sendEvent(new OutputEvent(mesg+"\n", "stdout"));
-					return;
+		this.factorio.on("stdout", (mesg:Buffer)=>{
+			if (mesg[0] === 0xEF && mesg[1] === 0xB7) {
+				switch (mesg[2]) {
+					case 0x90: //0xFDD0:
+					case 0x91: //0xFDD1:
+					case 0x94: //0xFDD4:
+					case 0x95: //0xFDD5:
+					case 0x96: //0xFDD6:
+					case 0x97: //0xFDD7:
+						dapmsg.write(mesg);
+						return;
+					case 0xA0: //0xFDE0: // profile line
+					case 0xA1: //0xFDE1: // profile call
+					case 0xA2: //0xFDE2: // profile tailcall
+					case 0xA3: //0xFDE3: // profile return
+						profile.write(mesg);
+						return;
+					case 0xAD: //0xFDED: // v1 profile
+						this.sendEvent(new Event("x-Factorio-Profile", mesg.toString().slice(1)));
+						return;
+				}
 			}
+			const mstring = mesg.toString();
+			if (mstring) {
+				this.sendEvent(new OutputEvent(mesg.toString()+"\n", "stdout"));
+			}
+			return;
 		});
 
 		this.sendResponse(response);

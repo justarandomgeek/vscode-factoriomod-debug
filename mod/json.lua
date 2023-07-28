@@ -39,12 +39,7 @@ stepIgnore(escape_char)
 ---@param val string
 ---@return string json
 local function encode_string(val)
-  -- if it has the raw-bytes prefix, dump it that way...
-  if val:match("^\xEF\xB7\x95") then
-    return '"\\uFDD5' .. val:sub(4):gsub('[%z\x01-\x1f\x80-\xff\\"]', escape_char) .. '"'
-  else
-    return '"' .. val:gsub('[%z\x01-\x1f\\"]', escape_char) .. '"'
-  end
+  return '"' .. val:gsub('[%z\x01-\x1f\\"]', escape_char) .. '"'
 end
 
 ---Output a number formatted as a JSON number

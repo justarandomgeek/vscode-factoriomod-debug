@@ -32,15 +32,13 @@ export class FactorioProcess extends EventEmitter {
 
 		const stderr = new BufferSplitter(this.factorio.stderr!, stderrsplit);
 		stderr.on("segment", (chunk:Buffer)=>{
-			let chunkstr : string = chunk.toString();
-			if (!chunkstr) { return; }
-			this.emit("stderr", chunkstr);
+			if (chunk.length === 1 && chunk[0] === 0x0d ) { return; }
+			this.emit("stderr", chunk);
 		});
 		const stdout = new BufferSplitter(this.factorio.stdout!, stdoutsplit);
 		stdout.on("segment", (chunk:Buffer)=>{
-			let chunkstr:string = chunk.toString();
-			if (!chunkstr) { return; }
-			this.emit("stdout", chunkstr);
+			if (chunk.length === 1 && chunk[0] === 0x0d ) { return; }
+			this.emit("stdout", chunk);
 		});
 	}
 

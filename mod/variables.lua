@@ -208,6 +208,15 @@ do
     end
   end
 
+  ---Pass a string to vscode as a raw buffer
+  ---@param buff string
+  ---@return integer @Buffer ID
+  function variables.buffer(buff)
+    local bufferID = nextID()
+    print("\xEF\xB7\xAE\xEF\xB7\x97"..bufferID.."\x01"..buff.."\xEF\xB7\xAF")
+    return bufferID
+  end
+
   --- Clear all references for short-lived things (scopes, stacks)
   function variables.clear()
     variables.refs = setmetatable({},refsmeta)
