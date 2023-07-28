@@ -39,7 +39,7 @@ stepIgnore(escape_char)
 ---@param val string
 ---@return string json
 local function encode_string(val)
-  return '"' .. val:gsub('[%z\1-\31\\"]', escape_char) .. '"'
+  return '"' .. val:gsub('[%z\x01-\x1f\x80-\xff\\"]', escape_char) .. '"'
 end
 
 ---Output a number formatted as a JSON number

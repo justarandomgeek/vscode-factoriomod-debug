@@ -980,7 +980,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 		if (loaded.dump) {
 			const dumpid = source.sourceReference ?? source.name;
-			const dump = new LuaFunction(new BufferStream(Buffer.from(loaded.dump, "base64")), true);
+			const dump = new LuaFunction(new BufferStream(Buffer.from(loaded.dump, "latin1")), true);
 			this.nextdump = dump.rebase(this.nextdump);
 
 			const lines = new Set<number>();

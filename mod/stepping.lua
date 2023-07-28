@@ -2,7 +2,6 @@ local require = require
 local pairs = pairs
 local type = type
 
-local enc = require("__debugadapter__/base64.lua")
 local nextuple = require("__debugadapter__/iterutil.lua").nextuple
 
 --this has to be defined before requiring other files so they can mark functions as ignored
@@ -212,7 +211,7 @@ do
         if s:sub(1,1) == "@" then
           local dump
           if not isDumpIgnore[s] then
-            dump = enc(string.dump(info.func))
+            dump = string.dump(info.func)
           end
           print("\xEF\xB7\x91"..json_encode{event="source", body={ source = dasource, dump = dump }})
           debugprompt()
