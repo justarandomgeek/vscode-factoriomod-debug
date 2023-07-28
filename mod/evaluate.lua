@@ -463,7 +463,7 @@ function DAEval.evaluate(frameId,context,expression,seq,formod)
         end
       end
       do
-        local vresult variables.create(nil,result,nil)
+        local vresult = variables.create(nil,result,nil)
         -- Variable is close enough to EvaluateResponseBody with one field moved...
         evalresult = vresult --[[@as DebugProtocol.EvaluateResponseBody]]
         evalresult.result = vresult.value
