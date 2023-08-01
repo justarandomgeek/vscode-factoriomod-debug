@@ -418,7 +418,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				const split = buff.indexOf(1, 3);
 
 				const id = Number.parseInt(buff.slice(3, split).toString().trim());
-				const buffer = replace(buff.slice(split+1), "\r\n", "\n");
+				const buffer = buff.slice(split+1);
 				this.buffers.set(id, buffer);
 				return;
 			}
@@ -1008,7 +1008,14 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 		if (loaded.dump) {
 			const dumpid = source.sourceReference ?? source.name;
-			const dump = new LuaFunction(new BufferStream(loaded.dump), true);
+			let dump:LuaFunction;
+			try {
+				dump = new LuaFunction(new BufferStream(loaded.dump), true);
+			} catch {
+				// windows console mangles the `\r`s...
+				dump = new LuaFunction(new BufferStream(replace(loaded.dump, "\r\n", "\n")), true);
+			}
+
 			this.nextdump = dump.rebase(this.nextdump);
 
 			const lines = new Set<number>();
