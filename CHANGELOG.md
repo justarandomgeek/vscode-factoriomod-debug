@@ -5,6 +5,13 @@
 ## 1.1.33
 * JSON Schema:
   * Mod name must be >3 and <50 characters
+* Tasks:
+  * Calculate changelog date only once
+* Sumneko plugin:
+  * Detect campaigns and tutorials for distinguishing `global`s
+  * Added missing optional tag on various serpent options
+* Debugger:
+  * Changed how lua function dumps are passed for substantial speedup in data stage (~3x for `base`)
 
 ## 1.1.32
 * Debugger:
