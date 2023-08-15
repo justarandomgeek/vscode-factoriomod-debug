@@ -52,7 +52,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			throw `Unknown application: ${this.docs.application}`;
 		}
 
-		if (!(this.docs.api_version===1 || this.docs.api_version===2 || this.docs.api_version===3)) {
+		if (!(this.docs.api_version===3 || this.docs.api_version===4)) {
 			throw `Unsupported JSON Version ${this.docs.api_version}`;
 		}
 
@@ -207,13 +207,8 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 				if (["help", 'generate_event_name'].includes(method.name)) { continue; }
 				if (method.parameters.length > 0) { continue; }
 				switch (this.docs.api_version) {
-					case 1:
-						//const m1 = method as ApiMethodV1;
-						// no fetchable props with v1 json, can't check for raises
-						break;
-
-					case 2:
 					case 3:
+					case 4:
 						if (method.return_values.length === 0) { continue; }
 						if (method.raises) { continue; }
 						cc[method.name] = {
@@ -481,17 +476,11 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	};
 
 	private add_return_annotation(output:Writable, classname:string, method:ApiMethod<V>) {
-		if (this.api_version === 1) {
-			output.write(`---@return ${this.convert_param_or_return(method.return_type, false, method.return_description, ()=>[
+		method.return_values.forEach((rv)=>{
+			output.write(`---@return ${this.convert_param_or_return(rv.type, rv.optional, rv.description, ()=>[
 				`${classname}.${method.name}_return`, this.view_documentation(`${classname}.${method.name}`),
 			])}`);
-		} else {
-			method.return_values.forEach((rv)=>{
-				output.write(`---@return ${this.convert_param_or_return(rv.type, rv.optional, rv.description, ()=>[
-					`${classname}.${method.name}_return`, this.view_documentation(`${classname}.${method.name}`),
-				])}`);
-			});
-		}
+		});
 	};
 
 	private convert_description_for_method(classname:string, method:ApiMethod<V>, html_name?:string) {
@@ -533,9 +522,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		return method.takes_table?this.add_method_taking_table(output, classname, method):this.add_regular_method(output, classname, method);
 	}
 
-	private add_sumneko_class(output:Writable, aclass:ApiClass<V>):void;
-	private add_sumneko_class(output:Writable, aclass:ApiStructConceptV1<V>):void;
-	private add_sumneko_class(output:Writable, aclass:ApiClass<V>|ApiStructConceptV1<V>):void {
+	private add_sumneko_class(output:Writable, aclass:ApiClass<V>):void {
 
 		const needs_label = !!(aclass.description || aclass.notes);
 		output.write(this.convert_sumneko_description(this.format_entire_description(
@@ -613,122 +600,59 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	private generate_sumneko_concepts(output:Writable) {
 		this.docs.concepts.forEach(concept=>{
 			const view_documentation_link = this.view_documentation(concept.name);
-			if ("category" in concept) { // V1-2
-				const _this = <ApiDocGenerator<1|2>> this;
-				switch (concept.category) {
-					case "union":
-						const sorted_options = concept.options.sort(sort_by_order);
-						const get_table_name_and_view_doc_link = (option:ApiUnionConceptV1<1|2>["options"][0]):[string, string]=>{
-							return [`${concept.name}.${option.order}`, view_documentation_link];
-						};
-						output.write(this.convert_sumneko_description(_this.format_entire_description(
-							concept, view_documentation_link,
-							`${concept.description?`${concept.description}\n\n`:''}May be specified in one of the following ways:${
-								sorted_options.map(option=>`\n- ${
-									this.format_sumneko_type(option.type, ()=>get_table_name_and_view_doc_link(option), true)
-								}${option.description?`: ${option.description}`:''}`)
-							}`
-						)));
-						output.write(`---@alias ${concept.name} `);
-						output.write(sorted_options.map(option=>this.format_sumneko_type(option.type, ()=>get_table_name_and_view_doc_link(option))).join("|"));
-						output.write("\n\n");
-						break;
-					case "concept":
-						output.write(this.convert_sumneko_description(_this.format_entire_description(concept, this.view_documentation(concept.name))));
-						output.write(`---@alias ${concept.name} any\n\n`);
-						break;
-					case "struct":
-						_this.add_sumneko_class(output, concept);
-						break;
-					case "flag":
-						output.write(this.convert_sumneko_description(_this.format_entire_description(concept, view_documentation_link)));
-						output.write(`---@class ${concept.name}\n`);
-						concept.options.forEach(option=>{
-							this.write_sumneko_field(
-								output, option.name, "true",
-								()=>["", ""],
-								[option.description, view_documentation_link]);
-						});
-						output.write("\n");
-						break;
-					case "table":
-						this.add_table_type(output, concept, concept.name, view_documentation_link);
-						break;
-					case "table_or_array":
-						this.add_table_type(output, concept, concept.name, view_documentation_link);
-						break;
-					case "enum":
-						output.write(this.convert_sumneko_description(_this.format_entire_description(
-							concept, view_documentation_link, [
-								concept.description, "Possible values are:",
-								...concept.options.sort(sort_by_order).map(option=>`\n- "${option.name}"${option.description?` - ${option.description}`:''}`),
-							].filter(s=>!!s).join("")
-						)));
-						output.write(`---@alias ${concept.name} ${concept.options.sort(sort_by_order).map(option=>`"${option.name}"`).join("|")}\n\n`);
-						break;
-					case "filter":
-						this.add_table_type(output, concept, concept.name, view_documentation_link, "Applies to filter");
-						break;
-					default:
-						throw `Unknown concept category: ${concept}`;
-				}
-			} else { //V3
-				if (typeof concept.type === "string") {
-					output.write(this.convert_sumneko_description(this.format_entire_description(concept, view_documentation_link)));
-					output.write(`---@alias ${concept.name} ${concept.type}\n\n`);
-				} else {
-					switch (concept.type.complex_type) {
-						case "dictionary":
-						{
-							// check for dict<union,true> and treat as flags instead...
-							const k = concept.type.key;
-							const v = concept.type.value;
-							if (typeof v === "object" && v.complex_type === "literal" && v.value === true &&
-									typeof k === "object" && k.complex_type === "union") {
-								output.write(this.convert_sumneko_description(this.format_entire_description(concept, view_documentation_link)));
-								output.write(`---@class ${concept.name}\n`);
-								k.options.forEach((option, i)=>{
-									if (typeof option === "object" && "description" in option && option.description) {
-										output.write(this.convert_sumneko_description(`${option.description}\n\n${view_documentation_link}`));
-									}
-									output.write(`---@field [${this.format_sumneko_type(option, ()=>[`${concept.name}.${i}`, view_documentation_link])}] true|nil\n`);
-								});
-								output.write("\n");
-								break;
-							}
-							output.write(this.convert_sumneko_description(this.format_entire_description(concept, this.view_documentation(concept.name))));
-							output.write(`---@alias ${concept.name} ${this.format_sumneko_type(concept.type, ()=>[`${concept.name}`, view_documentation_link]) }\n\n`);
+			if (typeof concept.type === "string") {
+				output.write(this.convert_sumneko_description(this.format_entire_description(concept, view_documentation_link)));
+				output.write(`---@alias ${concept.name} ${concept.type}\n\n`);
+			} else {
+				switch (concept.type.complex_type) {
+					case "dictionary":
+					{
+						// check for dict<union,true> and treat as flags instead...
+						const k = concept.type.key;
+						const v = concept.type.value;
+						if (typeof v === "object" && v.complex_type === "literal" && v.value === true &&
+								typeof k === "object" && k.complex_type === "union") {
+							output.write(this.convert_sumneko_description(this.format_entire_description(concept, view_documentation_link)));
+							output.write(`---@class ${concept.name}\n`);
+							k.options.forEach((option, i)=>{
+								if (typeof option === "object" && "description" in option && option.description) {
+									output.write(this.convert_sumneko_description(`${option.description}\n\n${view_documentation_link}`));
+								}
+								output.write(`---@field [${this.format_sumneko_type(option, ()=>[`${concept.name}.${i}`, view_documentation_link])}] true|nil\n`);
+							});
+							output.write("\n");
 							break;
 						}
-						case "union":
-						case "array":
-							output.write(this.convert_sumneko_description(this.format_entire_description(concept, this.view_documentation(concept.name))));
-							output.write(`---@alias ${concept.name} ${this.format_sumneko_type(concept.type, ()=>[`${concept.name}`, view_documentation_link]) }\n\n`);
-							break;
-						case "table":
-						case "tuple":
-							this.add_table_type(output, concept.type, concept.name, view_documentation_link);
-							break;
-						case "struct":
-							output.write(this.convert_sumneko_description(this.format_entire_description(concept, this.view_documentation(concept.name))));
-							output.write(`---@class ${concept.name}\n`);
-							concept.type.attributes.forEach(a=>(<ApiDocGenerator<3>> this).add_attribute(output, concept.name, a));
-							break;
-
-						default:
-							throw `Unknown type in concept: ${concept.type.complex_type}`;
+						output.write(this.convert_sumneko_description(this.format_entire_description(concept, this.view_documentation(concept.name))));
+						output.write(`---@alias ${concept.name} ${this.format_sumneko_type(concept.type, ()=>[`${concept.name}`, view_documentation_link]) }\n\n`);
+						break;
 					}
-				}
+					case "union":
+					case "array":
+						output.write(this.convert_sumneko_description(this.format_entire_description(concept, this.view_documentation(concept.name))));
+						output.write(`---@alias ${concept.name} ${this.format_sumneko_type(concept.type, ()=>[`${concept.name}`, view_documentation_link]) }\n\n`);
+						break;
+					case "table":
+					case "tuple":
+						this.add_table_type(output, concept.type, concept.name, view_documentation_link);
+						break;
+					case "struct": //V3
+					case "LuaStruct": //V4
+						output.write(this.convert_sumneko_description(this.format_entire_description(concept, this.view_documentation(concept.name))));
+						output.write(`---@class ${concept.name}\n`);
+						(concept.type.attributes as ApiAttribute<V>[]).forEach(a=>this.add_attribute(output, concept.name, a));
+						break;
 
+					default:
+						throw `Unknown type in concept: ${concept.type.complex_type}`;
+				}
 			}
 		});
 	}
 	private generate_sumneko_global_functions(output:Writable) {
-		if (this.api_version >= 3) {
-			this.docs.global_functions.forEach((func)=>{
-				(this as ApiDocGenerator<3>).add_method(output, "", func);
-			});
-		}
+		this.docs.global_functions.forEach((func)=>{
+			this.add_method(output, "", func);
+		});
 	}
 
 	private readonly complex_table_type_name_lut = new Set<string>();
@@ -773,25 +697,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			});
 		}
 
-
-
-		if ('category' in type_data && (type_data as ApiConceptV1<V>).category === "table_or_array") {
-			//V1-2
-			custom_parameters.forEach(custom_parameter=>{
-				this.write_sumneko_field(
-					output, custom_parameter.name, custom_parameter.type,
-					()=>[`${table_class_name}.${custom_parameter.name}`, view_documentation_link],
-					[custom_parameter.description, view_documentation_link], custom_parameter.optional);
-			});
-			let i = 1;
-			custom_parameters.forEach(custom_parameter=>{
-				this.write_sumneko_field(
-					output, `[${i++}]`, custom_parameter.type,
-					()=>[`${table_class_name}.${custom_parameter.name}`, view_documentation_link],
-					[custom_parameter.description, view_documentation_link], custom_parameter.optional, custom_parameter.name);
-			});
-		} else if ('complex_type' in type_data) {
-			//V3
+		if ('complex_type' in type_data) {
 			const type_data_ = type_data as Extends<ApiType, ApiWithParameters>;
 			switch (type_data_.complex_type) {
 				case "table":
@@ -931,8 +837,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 				return this.format_sumneko_type(api_type.value, get_table_name_and_view_doc_link)+"[]";
 			case "dictionary":
 				return `{[${this.format_sumneko_type(api_type.key, modify_getter("_key"))}]: ${this.format_sumneko_type(api_type.value, modify_getter("_value"))}}`;
-			case "variant": // V1-2
-			case "union": // V3
+			case "union":
 				return api_type.options.map((o, i)=>this.format_sumneko_type(o, modify_getter("."+i))).join("|");
 			case "LuaLazyLoadedValue":
 				return `${wrap("LuaLazyLoadedValue")}<${this.format_sumneko_type(api_type.value, get_table_name_and_view_doc_link)}>`;
@@ -967,13 +872,16 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 				//TODO: do something with the description?
 				// at least for inside described enums?
 				return this.format_sumneko_type(api_type.value, get_table_name_and_view_doc_link);
-			case "struct": //struct only appears in concepts which handle them more directly
+
+			case "LuaStruct": // V4
+			case "struct": // V3
+				// struct only appears in concepts which handle them more directly
 			default:
 				return "error";
 		}
 	}
 
-	private format_entire_description(obj:ApiWithNotes<V>&{readonly description:string; readonly subclasses?:string[]; readonly raises?: ApiEventRaised[]}, view_documentation_link:string, description?:string) {
+	private format_entire_description(obj:ApiWithNotes&{readonly description:string; readonly subclasses?:string[]; readonly raises?: ApiEventRaised[]}, view_documentation_link:string, description?:string) {
 		return [
 			description??obj.description,
 			obj.notes?.map(note=>`**Note:** ${note}`)?.join("\n\n"),
@@ -989,7 +897,6 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 					`${obj.subclasses.slice(0, -1).join(", ")} or ${obj.subclasses[obj.subclasses.length-1]}`
 				}_`
 			),
-			obj.see_also && `### See also\n${obj.see_also.map(sa=>`- ${this.resolve_internal_reference(sa)}`).join("\n")}`,
 		].filter(s=>!!s).join("\n\n");
 	}
 }

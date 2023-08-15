@@ -1,14 +1,4 @@
-type ApiConcept<V extends ApiVersions> =
-	V extends 1|2 ? ApiConceptV1<V> :
-	ApiConceptV3<V>;
-
-type Extends<T, X> = T extends X ? T : never;
-
-type ApiVersions = 1|2|3;
-interface ApiDocs<V extends ApiVersions = ApiVersions> {
-	readonly application:"factorio"
-	readonly application_version:string
-	readonly api_version:V
+interface ApiDocs<V extends ApiVersions = ApiVersions> extends BaseDocs<V> {
 	readonly stage:"runtime"
 
 	readonly classes: ApiClass<V>[]
@@ -17,7 +7,7 @@ interface ApiDocs<V extends ApiVersions = ApiVersions> {
 	readonly builtin_types: ApiBuiltin[]
 	readonly concepts: ApiConcept<V>[]
 	readonly global_objects: ApiGlobalObject[]
-	readonly global_functions: V extends 1|2 ? never : ApiMethod<V>[]
+	readonly global_functions: ApiMethod<V>[]
 }
 
 interface ApiBasicMember {
@@ -26,11 +16,10 @@ interface ApiBasicMember {
 	readonly description: string
 }
 
-type ApiWithNotes<V extends ApiVersions> = ApiBasicMember & {
+interface ApiWithNotes extends ApiBasicMember {
 	readonly notes?: string[]
 	readonly examples?: string[]
-	readonly see_also?: V extends 1 ? string[] : never
-};
+}
 
 interface ApiWithParameters<V extends ApiVersions = ApiVersions> {
 	readonly parameters: ApiParameter<V>[]
@@ -38,22 +27,19 @@ interface ApiWithParameters<V extends ApiVersions = ApiVersions> {
 	readonly variant_parameter_description?: string
 }
 
-interface ApiUnionType<V extends ApiVersions> {
+interface ApiConcept<V extends ApiVersions> extends ApiWithNotes {
+	readonly type: ApiType<V>
+}
+
+type ApiStructType<V extends ApiVersions = ApiVersions> = V extends 1|2 ? never : {
 	readonly complex_type:
-		V extends 1|2 ? "variant" :
-		"union"
-	readonly options: ApiType<V>[]
-}
+		V extends 3 ? "struct" :
+		"LuaStruct"
+	readonly attributes: ApiAttribute<V>[]
+};
 
-interface ApiArrayType<V extends ApiVersions> {
-	readonly complex_type:"array"
-	readonly value: ApiType<V>
-}
-
-interface ApiDictionaryType<V extends ApiVersions> {
-	readonly complex_type:"dictionary"
-	readonly key: ApiType<V>
-	readonly value: ApiType<V>
+interface ApiTupleType<V extends ApiVersions = ApiVersions> extends ApiWithParameters<V> {
+	readonly complex_type:"tuple"
 }
 
 interface ApiCustomTableType<V extends ApiVersions> {
@@ -72,72 +58,66 @@ interface ApiLazyLoadedType<V extends ApiVersions> {
 	readonly value: ApiType<V>
 }
 
-type ApiTableType<V extends ApiVersions> = ApiWithParameters<V> & {
+interface ApiTableType<V extends ApiVersions> extends ApiWithParameters<V> {
 	readonly complex_type:"table"
-};
+}
 
-type ApiType<V extends ApiVersions = ApiVersions> = string | ApiTypeType<V> | ApiUnionType<V> | ApiArrayType<V> | ApiDictionaryType<V> | ApiCustomTableType<V> | ApiFunctionType<V> | ApiLiteralType<V> | ApiLazyLoadedType<V> | ApiStructType<V> | ApiTableType<V> | ApiTupleType<V>;
+type ApiType<V extends ApiVersions = ApiVersions> = string | BaseTypeType<ApiType<V>> | BaseUnionType<ApiType<V>> | BaseArrayType<ApiType<V>> | BaseDictionaryType<ApiType<V>> | ApiCustomTableType<V> | ApiFunctionType<V> | BaseLiteralType | ApiLazyLoadedType<V> | ApiStructType<V> | ApiTableType<V> | ApiTupleType<V>;
 
-type ApiParameter<V extends ApiVersions> = ApiBasicMember & {
+interface ApiParameter<V extends ApiVersions> extends ApiBasicMember {
 	readonly type: ApiType<V>
 	readonly optional: boolean
-};
+}
 
-type ApiParameterGroup<V extends ApiVersions> = ApiBasicMember & {
+interface ApiParameterGroup<V extends ApiVersions> extends ApiBasicMember {
 	readonly parameters: ApiParameter<V>[]
-};
+}
 
-type ApiEvent<V extends ApiVersions> = ApiWithNotes<V> & {
+interface ApiEvent<V extends ApiVersions> extends ApiWithNotes {
 	readonly data: ApiParameter<V>[]
-};
+}
 
-type ApiDefine = ApiBasicMember & {
+interface ApiDefine extends ApiBasicMember {
 	readonly values?: ApiBasicMember[]
 	readonly subkeys?: ApiDefine[]
-};
+}
 
-type ApiBuiltin = ApiBasicMember;
+interface ApiBuiltin extends ApiBasicMember {}
 
-type ApiGlobalObject = ApiBasicMember & {
+interface ApiGlobalObject extends ApiBasicMember {
 	readonly type: string
-};
+}
 
-type ApiMethod<V extends ApiVersions> = ApiWithNotes<V> & ApiWithParameters<V> &{
+interface ApiMethod<V extends ApiVersions> extends ApiWithNotes, ApiWithParameters<V> {
 	readonly subclasses?: string[]
 	readonly variadic_type?: ApiType<V>
 	readonly variadic_description?: string
 	readonly takes_table: boolean
 	readonly table_is_optional?: boolean
-	readonly return_type?: V extends 1 ? ApiType<V> : never
-	readonly return_description?: V extends 1 ? string : never
-	readonly return_values: V extends 1 ? never : Omit<ApiParameter<V>, "name">[]
-	readonly raises?: V extends 1 ? never : ApiEventRaised[]
-};
+	readonly return_values: Omit<ApiParameter<V>, "name">[]
+	readonly raises?: ApiEventRaised[]
+}
 
-type ApiAttribute<V extends ApiVersions> = ApiWithNotes<V> & {
+interface ApiAttribute<V extends ApiVersions> extends ApiWithNotes {
 	readonly subclasses?: string[]
 	readonly type: ApiType<V>
 	readonly read: boolean
 	readonly write: boolean
-	readonly raises?:
-		V extends 1 ? never :
-		ApiEventRaised[]
-	readonly optional?:
-		V extends 1|2 ? never :
-		boolean
-};
+	readonly raises?: ApiEventRaised[]
+	readonly optional?: boolean
+}
 
 type ApiOperator<V extends ApiVersions> = (ApiMethod<V>&{readonly name:"call"})|(ApiAttribute<V>&{readonly name:"index"|"length"});
 
-type ApiEventRaised = ApiBasicMember & {
+interface ApiEventRaised extends ApiBasicMember {
 	readonly timeframe: "instantly"|"current_tick"|"future_tick"
 	readonly optional: boolean
-};
+}
 
-type ApiClass<V extends ApiVersions> = ApiWithNotes<V> & {
+interface ApiClass<V extends ApiVersions> extends ApiWithNotes {
 	readonly methods: ApiMethod<V>[]
 	readonly attributes: ApiAttribute<V>[]
 	readonly operators: ApiOperator<V>[]
 	readonly base_classes?: string[]
-	readonly abstract: V extends 1|2 ? never : boolean
-};
+	readonly abstract: boolean
+}
