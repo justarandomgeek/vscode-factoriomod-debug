@@ -31,12 +31,12 @@ interface ApiConcept<V extends ApiVersions> extends ApiWithNotes {
 	readonly type: ApiType<V>
 }
 
-type ApiStructType<V extends ApiVersions = ApiVersions> = V extends 1|2 ? never : {
+interface ApiStructType<V extends ApiVersions = ApiVersions> {
 	readonly complex_type:
-		V extends 3 ? "struct" :
-		"LuaStruct"
+		"struct" | //V3
+		"LuaStruct" //V4
 	readonly attributes: ApiAttribute<V>[]
-};
+}
 
 interface ApiTupleType<V extends ApiVersions = ApiVersions> extends ApiWithParameters<V> {
 	readonly complex_type:"tuple"
@@ -62,7 +62,12 @@ interface ApiTableType<V extends ApiVersions> extends ApiWithParameters<V> {
 	readonly complex_type:"table"
 }
 
-type ApiType<V extends ApiVersions = ApiVersions> = string | BaseTypeType<ApiType<V>> | BaseUnionType<ApiType<V>> | BaseArrayType<ApiType<V>> | BaseDictionaryType<ApiType<V>> | ApiCustomTableType<V> | ApiFunctionType<V> | BaseLiteralType | ApiLazyLoadedType<V> | ApiStructType<V> | ApiTableType<V> | ApiTupleType<V>;
+type ApiType<V extends ApiVersions = ApiVersions> =
+	string |
+	BaseTypeType<ApiType<V>> | BaseUnionType<ApiType<V>> | BaseArrayType<ApiType<V>> |
+	BaseDictionaryType<ApiType<V>> | BaseLiteralType |
+	ApiCustomTableType<V> | ApiFunctionType<V> | ApiLazyLoadedType<V> |
+	ApiStructType<V> | ApiTableType<V> | ApiTupleType<V>;
 
 interface ApiParameter<V extends ApiVersions> extends ApiBasicMember {
 	readonly type: ApiType<V>
@@ -107,7 +112,9 @@ interface ApiAttribute<V extends ApiVersions> extends ApiWithNotes {
 	readonly optional?: boolean
 }
 
-type ApiOperator<V extends ApiVersions> = (ApiMethod<V>&{readonly name:"call"})|(ApiAttribute<V>&{readonly name:"index"|"length"});
+type ApiOperator<V extends ApiVersions> =
+	(ApiMethod<V>&{readonly name:"call"})|
+	(ApiAttribute<V>&{readonly name:"index"|"length"});
 
 interface ApiEventRaised extends ApiBasicMember {
 	readonly timeframe: "instantly"|"current_tick"|"future_tick"

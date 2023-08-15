@@ -640,7 +640,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 					case "LuaStruct": //V4
 						output.write(this.convert_sumneko_description(this.format_entire_description(concept, this.view_documentation(concept.name))));
 						output.write(`---@class ${concept.name}\n`);
-						(concept.type.attributes as ApiAttribute<V>[]).forEach(a=>this.add_attribute(output, concept.name, a));
+						concept.type.attributes.forEach(a=>this.add_attribute(output, concept.name, a));
 						break;
 
 					default:
