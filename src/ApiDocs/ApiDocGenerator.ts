@@ -727,6 +727,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 	private resolve_internal_reference(reference:string, display_name?:string):string {
 		let relative_link:string;
+		reference = reference.replace(/^runtime:/, "");
 		if (this.builtins.has(reference)) {
 			relative_link = "Builtin-Types.html#"+reference;
 		} else if (this.classes.has(reference)) {
@@ -768,9 +769,9 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	private resolve_all_links(str:string):string {
 		return str.replace(/\[(.+?)\]\((.+?)\)/g, (match, display_name, link)=>{
 			if (link.match(/^http(s?):\/\//)) {
-				return `[${display_name??link}](${link})`;
+				return `[${display_name}](${link})`;
 			} else if (link.match(/\.html($|#)/)) {
-				return `[${display_name??link}](${this.runtime_api_base}${link})`;
+				return `[${display_name}](${this.runtime_api_base}${link})`;
 			} else {
 				return this.resolve_internal_reference(link, display_name);
 			}
