@@ -50,8 +50,10 @@ interface ProtoStructType {
 }
 
 type ProtoType =
-	string | BaseArrayType<ProtoType> | BaseDictionaryType<ProtoType> | ProtoTupleType |
-	BaseUnionType<ProtoType> | BaseLiteralType | BaseTypeType<ProtoType> | ProtoStructType ;
+	string |
+	BaseArrayType<ProtoType> | BaseDictionaryType<ProtoType> | BaseUnionType<ProtoType> |
+	BaseLiteralType | BaseTypeType<ProtoType> |
+	ProtoTupleType | ProtoStructType ;
 
 interface ProtoImage {
 	readonly filename: string
