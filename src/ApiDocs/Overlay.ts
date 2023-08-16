@@ -1,10 +1,8 @@
 let i = 100000;
 
-type OverlayApiVersion = 3;
-
 export const overlay:{
 	adjust: {
-		table: { [classname:string]: ApiWithParameters<OverlayApiVersion> }
+		table: { [classname:string]: ApiWithParameters }
 		class: { [classname:string]: {
 			generic_params?: string[]
 			generic_methods?: {
@@ -12,8 +10,8 @@ export const overlay:{
 				return_values:(string|undefined)[]
 			}[]
 			indexed?: {
-				key: ApiType<OverlayApiVersion>
-				value?: ApiType<OverlayApiVersion>
+				key: ApiType
+				value?: ApiType
 			}
 		} }
 		define: { [name:string]: {
