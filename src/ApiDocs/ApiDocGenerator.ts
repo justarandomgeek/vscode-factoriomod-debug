@@ -35,9 +35,9 @@ function sort_by_order(a:{order:number}, b:{order:number}) {
 export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	private readonly docs:ApiDocs<V>;
 
-	private readonly classes:Map<string, ApiClass<V>>;
-	private readonly events:Map<string, ApiEvent<V>>;
-	private readonly concepts:Map<string, ApiConcept<V>>;
+	private readonly classes:Map<string, ApiClass>;
+	private readonly events:Map<string, ApiEvent>;
+	private readonly concepts:Map<string, ApiConcept>;
 	private readonly builtins:Map<string, ApiBuiltin>;
 	private readonly globals:Map<string, ApiGlobalObject>;
 
@@ -118,11 +118,11 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		return this.docs.application_version;
 	}
 
-	private with_base_classes<T>(c:ApiClass<V>, getter:(c:ApiClass<V>)=>T) {
+	private with_base_classes<T>(c:ApiClass, getter:(c:ApiClass)=>T) {
 		const own = getter(c);
 		const bases = c.base_classes
 			?.map(b=>this.classes.get(b))
-			.filter((b):b is ApiClass<V>=>!!b)
+			.filter((b):b is ApiClass=>!!b)
 			.map(getter) ?? [];
 
 		return [own, ...bases].flat();
@@ -206,19 +206,12 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 				if (["help", 'generate_event_name'].includes(method.name)) { continue; }
 				if (method.parameters.length > 0) { continue; }
-				switch (this.docs.api_version) {
-					case 3:
-					case 4:
-						if (method.return_values.length === 0) { continue; }
-						if (method.raises) { continue; }
-						cc[method.name] = {
-							readOnly: true,
-							fetchable: true,
-						};
-						break;
-					default:
-						break;
-				}
+				if (method.return_values.length === 0) { continue; }
+				if (method.raises) { continue; }
+				cc[method.name] = {
+					readOnly: true,
+					fetchable: true,
+				};
 			}
 
 		});
@@ -435,7 +428,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		output.write(`---@field ${name}${optional ? "?" : ""} ${this.format_sumneko_type(type, get_table_name_and_view_doc_link)} ${inline_desc??""}\n`);
 	}
 
-	private add_attribute(output:Writable, classname:string, attribute:ApiAttribute<V>, oper_lua_name?:string, type?:ApiType) {
+	private add_attribute(output:Writable, classname:string, attribute:ApiAttribute, oper_lua_name?:string, type?:ApiType) {
 		const aname = attribute.name;
 		const view_doc_link = this.view_documentation(`${classname}.${aname}`);
 
@@ -449,7 +442,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	};
 
 
-	private add_operator(output:Writable, classname:string, ApiOperator:ApiOperator<V>&{name:"length"}) {
+	private add_operator(output:Writable, classname:string, ApiOperator:ApiOperator&{name:"length"}) {
 		const opnames = {
 			["length"]: "len",
 		};
@@ -475,7 +468,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		}
 	};
 
-	private add_return_annotation(output:Writable, classname:string, method:ApiMethod<V>) {
+	private add_return_annotation(output:Writable, classname:string, method:ApiMethod) {
 		method.return_values.forEach((rv)=>{
 			output.write(`---@return ${this.convert_param_or_return(rv.type, rv.optional, rv.description, ()=>[
 				`${classname}.${method.name}_return`, this.view_documentation(`${classname}.${method.name}`),
@@ -483,12 +476,12 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		});
 	};
 
-	private convert_description_for_method(classname:string, method:ApiMethod<V>, html_name?:string) {
+	private convert_description_for_method(classname:string, method:ApiMethod, html_name?:string) {
 		return this.convert_sumneko_description(
 			this.format_entire_description(method, this.view_documentation(`${classname}.${html_name??method.name}`)));
 	}
 
-	private add_regular_method(output:Writable, classname:string, method:ApiMethod<V>) {
+	private add_regular_method(output:Writable, classname:string, method:ApiMethod) {
 		output.write(this.convert_description_for_method(classname, method));
 		const sorted_params = method.parameters.sort(sort_by_order);
 		sorted_params.forEach(parameter=>{
@@ -508,7 +501,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		output.write(`${method.name}=function(${sorted_params.map(p=>escape_lua_keyword(p.name)).concat(method.variadic_type?["..."]:[]).join(",")})end${classname!==""?",":""}\n`);
 	};
 
-	private add_method_taking_table(output:Writable, classname:string, method:ApiMethod<V>) {
+	private add_method_taking_table(output:Writable, classname:string, method:ApiMethod) {
 		const param_class_name = `${classname}.${method.name}_param`;
 		this.add_table_type(output, method, param_class_name, this.view_documentation(`${classname}.${method.name}`));
 		output.write("\n");
@@ -518,11 +511,11 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		output.write(`${method.name}=function(param)end${classname!==""?",":""}\n`);
 	};
 
-	private add_method(output:Writable, classname:string, method:ApiMethod<V>) {
+	private add_method(output:Writable, classname:string, method:ApiMethod) {
 		return method.takes_table?this.add_method_taking_table(output, classname, method):this.add_regular_method(output, classname, method);
 	}
 
-	private add_sumneko_class(output:Writable, aclass:ApiClass<V>):void {
+	private add_sumneko_class(output:Writable, aclass:ApiClass):void {
 
 		const needs_label = !!(aclass.description || aclass.notes);
 		output.write(this.convert_sumneko_description(this.format_entire_description(
@@ -557,7 +550,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 				throw "Unkown operator";
 			}
 
-			const callop = operators.find((op): op is ApiMethod<V>&{name:"call"}=>op.name==="call");
+			const callop = operators.find((op): op is ApiMethod&{name:"call"}=>op.name==="call");
 			if (callop) {
 				const params = callop.parameters.map((p, i)=>`${p.name??`param${i+1}`}${p.optional?'?':''}:${this.format_sumneko_type(p.type, ()=>[`${aclass.name}()`, ''])}`);
 				const returns = ("return_values" in callop) ?
@@ -573,12 +566,12 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 		if (!('category' in aclass)) {
 			const operators = aclass.operators;
-			const lenop = operators.find((op): op is ApiAttribute<V>&{name:"length"}=>op.name==="length");
+			const lenop = operators.find((op): op is ApiAttribute&{name:"length"}=>op.name==="length");
 			if (lenop) {
 				this.add_operator(output, aclass.name, lenop);
 			};
 
-			const indexop = operators?.find?.((op):op is ApiAttribute<V>&{name:"index"}=>op.name==="index");
+			const indexop = operators?.find?.((op):op is ApiAttribute&{name:"index"}=>op.name==="index");
 			if (indexop && !overlay.adjust.class[aclass.name]?.generic_params) {
 				const indexed = overlay.adjust.class[aclass.name]?.indexed;
 
