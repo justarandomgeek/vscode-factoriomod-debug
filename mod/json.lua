@@ -1,6 +1,7 @@
 local string = string
 local sformat = string.format
 local sbyte = string.byte
+local schar = string.char
 local tconcat = table.concat
 local mhuge = math.huge
 local rawget = rawget
@@ -26,20 +27,18 @@ local escape_char_map = {
   [ "\f" ] = "\\f", [ "\n" ] = "\\n", [ "\r" ] = "\\r",
   [ "\t" ] = "\\t", }
 
----JSON Escape a single character
----@param c string A single character to escape
----@return string escaped The JSON escaped character
-  local function escape_char(c)
-  return escape_char_map[c] or sformat("\\u%04x", sbyte(c))
+for i = 0, 0x1f, 1 do
+  local c = schar(i)
+  if not escape_char_map[c] then
+    escape_char_map[c] = sformat("\\u%04x", sbyte(c))
+  end
 end
-stepIgnore(escape_char)
-
 
 ---Output a string formatted as a JSON string
 ---@param val string
 ---@return string json
 local function encode_string(val)
-  return '"' .. val:gsub('[%z\x01-\x1f\\"]', escape_char) .. '"'
+  return '"' .. val:gsub('[%z\x01-\x1f\\"]', escape_char_map) .. '"'
 end
 
 ---Output a number formatted as a JSON number

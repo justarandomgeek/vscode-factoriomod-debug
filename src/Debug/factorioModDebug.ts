@@ -418,7 +418,12 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				const split = buff.indexOf(1, 3);
 
 				const id = Number.parseInt(buff.slice(3, split).toString().trim());
-				const buffer = buff.slice(split+1);
+				let buffer = buff.slice(split+1);
+				for (let i = 1; i <= 0x1f; i++) {
+					buffer = replace(buffer, Buffer.from(String.fromCharCode(0xf800+i), "utf8"), Buffer.from([i]));
+				}
+
+				buffer = replace(buffer, Buffer.from(String.fromCharCode(0xf800+0xef), "utf8"), Buffer.from([0xef]));
 				this.buffers.set(id, buffer);
 				return;
 			}
@@ -1009,12 +1014,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		if (loaded.dump) {
 			const dumpid = source.sourceReference ?? source.name;
 			let dump:LuaFunction;
-			try {
-				dump = new LuaFunction(new BufferStream(loaded.dump), true);
-			} catch {
-				// windows console mangles the `\r`s...
-				dump = new LuaFunction(new BufferStream(replace(loaded.dump, "\r\n", "\n")), true);
-			}
+			dump = new LuaFunction(new BufferStream(loaded.dump), true);
 
 			this.nextdump = dump.rebase(this.nextdump);
 

@@ -32,6 +32,8 @@ local ipairs = ipairs
 local print = print
 local pcall = pcall -- capture pcall early before entrypoints wraps it
 local type = type
+local string = string
+local schar = string.char
 
 local remote = remote and (type(remote)=="table" and rawget(remote,"__raw")) or remote
 
@@ -208,18 +210,31 @@ do
     end
   end
 
+  --- Clear all references for short-lived things (scopes, stacks)
+  function variables.clear()
+    variables.refs = setmetatable({},refsmeta)
+  end
+end
+
+do
+  local escape_char_map = {
+    ["\xEF"] = "\xEF\xA3\xAF"
+  }
+
+  for i = 0, 0x1f, 1 do
+    local c = schar(i)
+    if not escape_char_map[c] then
+      escape_char_map[c] = "\xEF\xA0"..schar(i+0x80)
+    end
+  end
+
   ---Pass a string to vscode as a raw buffer
   ---@param buff string
   ---@return integer @Buffer ID
   function variables.buffer(buff)
     local bufferID = nextID()
-    print("\xEF\xB7\xAE\xEF\xB7\x97"..bufferID.."\x01"..buff.."\xEF\xB7\xAF")
+    print("\xEF\xB7\xAE\xEF\xB7\x97"..bufferID.."\x01"..buff:gsub('[\n\xEF"]', escape_char_map).."\xEF\xB7\xAF")
     return bufferID
-  end
-
-  --- Clear all references for short-lived things (scopes, stacks)
-  function variables.clear()
-    variables.refs = setmetatable({},refsmeta)
   end
 end
 

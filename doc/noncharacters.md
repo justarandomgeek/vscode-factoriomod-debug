@@ -54,3 +54,7 @@ EE 80 8D  E00D  step
 EE 80 8E  E00E  breakpoint
 EE 80 8F  E00F  exception
 	type\x01error
+
+after FDD7 in buffer:
+U+F800-F8FF as escaped bytes
+currently on \n for windows console and 0xEF to catch accidentally containing an end or an escape
