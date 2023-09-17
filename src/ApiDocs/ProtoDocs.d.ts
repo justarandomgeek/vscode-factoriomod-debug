@@ -3,8 +3,8 @@ type ProtoVersions = 4;
 interface ProtoDocs<V extends ProtoVersions = ProtoVersions> extends BaseDocs<V> {
 	readonly stage:"prototype"
 
-	readonly prototypes:ProtoPrototype
-	readonly types:ProtoConcept
+	readonly prototypes:ProtoPrototype[]
+	readonly types:ProtoConcept[]
 }
 
 interface ProtoBasicMember extends ApiBasicMember {
@@ -41,7 +41,7 @@ interface ProtoProperty extends ProtoBasicMember {
 }
 
 interface ProtoTupleType {
-	readonly complex_type: "array"
+	readonly complex_type: "tuple"
 	readonly values: ProtoType[]
 }
 

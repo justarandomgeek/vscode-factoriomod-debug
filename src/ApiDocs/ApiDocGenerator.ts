@@ -2,20 +2,7 @@ import { overlay } from "./Overlay";
 import { version as bundleVersion } from "../../package.json";
 import type { WriteStream } from "fs";
 import type { Writable } from "stream";
-
-type ApiBuiltinCustom =
-	{kind:"none"} |
-	{kind:"alias"; base:string} |
-	{kind:"class"; base:string[]; operators?:boolean};
-
-export interface DocSettings {
-	docLinksVersion?:"latest"|"current"
-	signedUMinus?:boolean
-	builtinOperators?:boolean
-	builtinCustomStyle?:{[k:string]:ApiBuiltinCustom}
-	useInteger?:boolean
-	numberStyle?:"alias"|"class"|"aliasNative"
-}
+import type { DocSettings } from "./DocSettings";
 
 function escape_lua_keyword(str:string) {
 	const keywords = ["and", "break", "do", "else", "elseif", "end", "false", "for",
@@ -57,7 +44,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		}
 
 		if (this.docs.stage !== "runtime") {
-			throw `Unknown stage: ${this.docs.stage}`;
+			throw `Wrong stage: ${this.docs.stage}`;
 		}
 
 		switch (docsettings.docLinksVersion) {
