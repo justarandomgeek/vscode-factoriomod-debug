@@ -3,57 +3,63 @@ import path from 'path';
 import { program } from 'commander';
 import { getConfig } from "./util";
 import { createWriteStream } from 'fs';
+import { remark } from "remark";
+import { visit } from "unist-util-visit";
+import type { VFile } from "vfile";
+import type { Root, Link } from "mdast";
+import { ApiDocGenerator } from '../ApiDocs/ApiDocGenerator';
+import { ProtoDocGenerator } from '../ApiDocs/ProtoDocsGenerator';
 
 program.command("sumneko-3rd [outdir]")
 	.description("Generate a library bundle for sumneko.lua LSP")
-	.option("-d, --docs <docsjson>", "Include runtime docs")
-	.option("-p, --protos <protosjson>", "Include prototype docs")
-	.action(async (outdir:string|undefined, options:{docs?:string; protos?:string})=>{
+	.requiredOption("-d, --docs <docsjson>", "Runtime docs")
+	.requiredOption("-p, --protos <protosjson>", "Prototype docs")
+	.action(async (outdir:string|undefined, options:{docs:string; protos:string})=>{
 		const sumneko3rd = await import("../Sumneko3rd");
 		await Promise.all((await sumneko3rd.getLuaFiles()).map(async (file)=>{
 			const filepath = path.join(outdir ?? process.cwd(), file.name);
 			await fsp.mkdir(path.dirname(filepath), { recursive: true });
 			return fsp.writeFile(filepath, Buffer.from(file.content));
 		}));
-		let factorionVersion:string|undefined;
-		if (options.docs) {
-			factorionVersion = await docscommand(options.docs, path.join(outdir ?? process.cwd(), "factorio", "library"));
-		}
-		if (options.protos) {
-			factorionVersion = await protoscommand(options.protos, path.join(outdir ?? process.cwd(), "factorio", "library"));
-		}
-		const config = await sumneko3rd.getConfig(factorionVersion);
+		const docsettings = await getConfig("docs", {});
+		const libdir = path.join(outdir ?? process.cwd(), "factorio", "library");
+
+		const docs = new ApiDocGenerator((await fsp.readFile(options.docs, "utf8")).toString(), docsettings);
+		const pdocs = new ProtoDocGenerator((await fsp.readFile(options.protos, "utf8")).toString(), docsettings);
+
+		const descr = remark()
+			.use(function () {
+				return async function(tree:Root, file:VFile) {
+					visit(tree, "link", (node:Link)=>{
+						const matches = node.url.match(/^(runtime|prototype):(.+?)(?:::(.+))?$/);
+						if (matches) {
+							switch (matches[1]) {
+								case 'runtime':
+									node.url = "https://lua-api.factorio.com/latest"+docs.resolve_link(matches[2], matches[3]);
+									break;
+								case 'prototype':
+									node.url = "https://lua-api.factorio.com/latest"+pdocs.resolve_link(matches[2], matches[3]);
+									break;
+							}
+
+						}
+					});
+				};
+			});
+
+		const format_description = async (description?:string)=>{
+			if (!description) { return; }
+			const result = String(await descr.process(description)).trim();
+			return result;
+		};
+
+		const createLibFileWriteStream =
+			(filename:string)=>createWriteStream(path.join(libdir, filename));
+
+
+		await fsp.mkdir(libdir, { recursive: true });
+		docs.generate_sumneko_docs(createLibFileWriteStream);
+		pdocs.generate_sumneko_docs(createLibFileWriteStream, format_description);
+		const config = await sumneko3rd.getConfig(docs.application_version);
 		await fsp.writeFile(path.join(outdir ?? process.cwd(), config.name), Buffer.from(config.content));
 	});
-
-program.command("docs <docjson> <outdir>")
-	.description("Generate runtime api docs for sumneko.lua LSP")
-	.action(async (docjson:string, outdir:string)=>{
-		await docscommand(docjson, outdir);
-	});
-
-program.command("protos <protosjson> <outdir>")
-	.description("Generate proto api docs for sumneko.lua LSP")
-	.action(async (protosjson:string, outdir:string)=>{
-		await protoscommand(protosjson, outdir);
-	});
-
-async function docscommand(docjson:string, outdir:string) {
-	const { ApiDocGenerator } = await import('../ApiDocs/ApiDocGenerator');
-	const docs = new ApiDocGenerator((await fsp.readFile(docjson, "utf8")).toString(), await getConfig("docs", {}));
-	await fsp.mkdir(outdir, { recursive: true });
-	docs.generate_sumneko_docs((filename:string)=>{
-		return createWriteStream(path.join(outdir, filename));
-	});
-	return docs.application_version;
-};
-
-async function protoscommand(protojson:string, outdir:string) {
-	const { ProtoDocGenerator } = await import('../ApiDocs/ProtoDocsGenerator');
-	const docs = new ProtoDocGenerator((await fsp.readFile(protojson, "utf8")).toString(), await getConfig("docs", {}));
-	await fsp.mkdir(outdir, { recursive: true });
-	docs.generate_sumneko_docs((filename:string)=>{
-		return createWriteStream(path.join(outdir, filename));
-	});
-	return docs.application_version;
-};

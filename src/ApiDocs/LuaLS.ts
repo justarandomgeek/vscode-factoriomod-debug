@@ -1,6 +1,24 @@
 import type { Writable } from "stream";
 import { version as bundleVersion } from "../../package.json";
 
+export function escape_lua_keyword(str:string) {
+	const keywords = ["and", "break", "do", "else", "elseif", "end", "false", "for",
+		"function", "goto", "if", "in", "local", "nil", "not", "or", "repeat", "return",
+		"then", "true", "until", "while"];
+	return keywords.includes(str)?`${str}_`:str;
+}
+
+export function to_lua_ident(str:string) {
+	return escape_lua_keyword(str.replace(/[^a-zA-Z0-9]/g, "_").replace(/^([0-9])/, "_$1"));
+}
+
+
+
+async function format_lua_description(output:Writable, description?:string) {
+	if (!description) { return; }
+	output.write(`---${description.replace(/\n/g, "\n---")}\n`);
+}
+
 export class LuaLSFile {
 	constructor(
 		public name:string,
@@ -19,7 +37,7 @@ export class LuaLSFile {
 		this.members.push(member);
 	}
 
-	write(output:Writable) {
+	async write(output:Writable) {
 		if (typeof this.meta === "string") {
 			output.write(`---@meta ${this.meta}\n`);
 		}
@@ -33,7 +51,7 @@ export class LuaLSFile {
 
 		if (this.members) {
 			for (const member of this.members) {
-				member.write(output);
+				await member.write(output, "global");
 			}
 		}
 
@@ -99,7 +117,7 @@ export class LuaLSTuple {
 	) {}
 
 	format():string {
-		return `{${this.members.map((m, i)=>`[${i+1}]:(${m.format()})`).join(", ")}}`;
+		return `{${this.members.map((m, i)=>`[${i+1}]:${m.format()}`).join(", ")}}`;
 	}
 }
 
@@ -121,7 +139,8 @@ export class LuaLSAlias {
 	) {}
 
 
-	write(output:Writable) {
+	async write(output:Writable) {
+		await format_lua_description(output, this.description);
 		output.write(`---@alias ${this.name} ${this.type.format()}\n\n`);
 	}
 }
@@ -139,10 +158,8 @@ export class LuaLSClass {
 
 	call_op?:LuaLSOverload;
 
-	write(output:Writable) {
-		if (this.description) {
-			output.write(`---${this.description.replace(/\n/g, "\n---")}\n`);
-		}
+	async write(output:Writable) {
+		await format_lua_description(output, this.description);
 		output.write(`---@class ${this.name}`);
 		if (this.parent) {
 			if (typeof this.parent === "string") {
@@ -155,16 +172,18 @@ export class LuaLSClass {
 
 		if (this.fields) {
 			for (const field of this.fields) {
-				output.write(`---@field ${field.name} ${field.type.format()}`);
-				if (field.description) {
-					output.write(` @${field.description.replace(/\n/g, "\n---")}`);
-				}
-				output.write(`\n`);
+				await field.write(output);
 			}
 		}
 
-		if (this.global_name) {
+		if (this.global_name && !this.functions) {
 			output.write(`${this.global_name}={}\n`);
+		} else if (this.functions) {
+			output.write(`${this.global_name ?? "local " + to_lua_ident(this.name)}={\n`);
+			for (const func of this.functions) {
+				await func.write(output, "table");
+			}
+			output.write(`}\n`);
 		}
 
 		output.write(`\n`);
@@ -173,13 +192,25 @@ export class LuaLSClass {
 
 export class LuaLSField {
 	constructor(
-		public name:string,
+		public name:string|LuaLSType,
 		public type:LuaLSType,
 	) {}
-	name_is_type?:boolean;
 	description?:string;
+	optional?:boolean;
 
-	write(output:Writable) {
+	async write(output:Writable) {
+		await format_lua_description(output, this.description);
+
+		output.write(`---@field `);
+		if (typeof this.name === "string") {
+			output.write(this.name);
+		} else {
+			output.write(`[${this.name.format()}]`);
+		}
+		if (this.optional) {
+			output.write(`?`);
+		}
+		output.write(` ${this.type.format()}\n`);
 
 	}
 }
@@ -197,6 +228,7 @@ export class LuaLSFunction {
 	constructor(
 		public name:string,
 	) {}
+	description?:string;
 	params?:LuaLSParam[];
 	returns?:LuaLSReturn[];
 
@@ -204,7 +236,38 @@ export class LuaLSFunction {
 
 	nodiscard?:boolean;
 
-	write(output:Writable) {
+	async write(output:Writable, style:"table"|"global") {
+		await format_lua_description(output, this.description);
+		if (this.params) {
+			for (const param of this.params) {
+				param.write(output);
+			}
+		}
+		if (this.returns) {
+			for (const ret of this.returns) {
+				ret.write(output);
+			}
+		}
+		switch (style) {
+			case "table":
+				output.write(`${this.name} = function(`);
+				break;
+			case "global":
+				output.write(`function ${this.name} (`);
+				break;
+		}
+		if (this.params) {
+			output.write(this.params.map(p=>p.name).join(", "));
+		}
+		switch (style) {
+			case "table":
+				output.write(`) end,\n`);
+				break;
+			case "global":
+				output.write(`) end\n`);
+				break;
+		}
+
 
 	}
 }
@@ -218,7 +281,7 @@ export class LuaLSParam {
 	optional?:boolean;
 
 	write(output:Writable) {
-		output.write(`---@param ${this.name}${this.optional?"?":""} ${this.type} ${this.description??""}\n`);
+		output.write(`---@param ${this.name}${this.optional?"?":""} ${this.type.format()} ${this.description??""}\n`);
 	}
 }
 

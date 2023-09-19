@@ -122,31 +122,8 @@
 			"args": [
 				"sumneko-3rd",
 				"-d","d:/factorio/factoriogit/scripts/lua_doc/doc-files/runtime-api.json",
+				"-p","d:/factorio/factoriogit/scripts/lua_doc/doc-files/prototype-api.json",
 				"${workspaceFolder}/out/sumneko-3rd",
-			],
-			"console": "integratedTerminal",
-			"skipFiles": [
-				"<node_internals>/**",
-				"<node_modules>/**"
-			],
-			"outFiles": [
-				"${workspaceFolder}/dist/**/*.js"
-			],
-			"preLaunchTask": "npm: watch",
-			"presentation": {
-				"group": "2 - Standalone",
-			},
-		},
-		{
-			"name": "Standalone Sumneko Docs",
-			"type": "node",
-			"request": "launch",
-			"program": "${workspaceFolder}/dist/fmtk.js",
-			"cwd": "${workspaceFolder}",
-			"args": [
-				"docs",
-				"d:/factorio/factoriogit/scripts/lua_doc/doc-files/runtime-api.json",
-				"${workspaceFolder}/out/docs",
 			],
 			"console": "integratedTerminal",
 			"skipFiles": [

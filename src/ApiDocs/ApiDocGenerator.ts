@@ -3,17 +3,9 @@ import { version as bundleVersion } from "../../package.json";
 import type { WriteStream } from "fs";
 import type { Writable } from "stream";
 import type { DocSettings } from "./DocSettings";
+import { escape_lua_keyword, to_lua_ident } from "./LuaLS";
 
-function escape_lua_keyword(str:string) {
-	const keywords = ["and", "break", "do", "else", "elseif", "end", "false", "for",
-		"function", "goto", "if", "in", "local", "nil", "not", "or", "repeat", "return",
-		"then", "true", "until", "while"];
-	return keywords.includes(str)?`${str}_`:str;
-}
 
-function to_lua_ident(str:string) {
-	return escape_lua_keyword(str.replace(/[^a-zA-Z0-9]/g, "_").replace(/^([0-9])/, "_$1"));
-}
 
 function sort_by_order(a:{order:number}, b:{order:number}) {
 	return a.order - b.order;
@@ -103,6 +95,35 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 	public get application_version() : string {
 		return this.docs.application_version;
+	}
+
+	public resolve_link(member:string, part?:string):string {
+		part = part ? `#${part}` : "";
+		if (['classes', 'events', 'concepts', 'defines'].includes(member)) {
+			return `/${member}.html${part}`;
+		}
+		if (member === 'builtin_types') {
+			return `/builtin-types.html${part}`;
+		}
+		if (member === 'libraries') {
+			return `/auxiliary/${member}.html${part}`;
+		}
+		if (this.concepts.has(member)) {
+			return `/concepts.html#${member}`;
+		}
+		if (this.classes.has(member)) {
+			return `/classes/${member}.html${part}`;
+		}
+		if (this.events.has(member)) {
+			return `/events.html#${member}`;
+		}
+		if (this.builtins.has(member)) {
+			return `/builtin-types.html#${member}`;
+		}
+		if (this.defines.has(member)) {
+			return `/defines.html#${member}`;
+		}
+		throw new Error("Invalid Link");
 	}
 
 	private with_base_classes<T>(c:ApiClass, getter:(c:ApiClass)=>T) {

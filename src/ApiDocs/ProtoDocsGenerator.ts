@@ -1,4 +1,4 @@
-import { LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSField, LuaLSFile, LuaLSLiteral, LuaLSTuple, LuaLSType, LuaLSTypeName, LuaLSUnion } from "./LuaLS";
+import { LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSLiteral, LuaLSParam, LuaLSTuple, LuaLSType, LuaLSTypeName, LuaLSUnion } from "./LuaLS";
 import type { DocSettings } from "./DocSettings";
 import type { WriteStream } from "fs";
 
@@ -57,35 +57,50 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 		return this.docs.application_version;
 	}
 
-	public generate_sumneko_docs(createWriteStream:(filename:string)=>WriteStream) {
-		{
-			const concepts = this.lua_concepts();
-			const file = createWriteStream(concepts.name+".lua");
-			concepts.write(file);
-			file.close();
+	public resolve_link(member:string, part?:string):string {
+		part = part ? `#${part}` : "";
+		if (['prototypes', 'types'].includes(member)) {
+			return `/${member}.html${part}`;
 		}
-		{
-			const protos = this.lua_prototypes();
-			const file = createWriteStream(protos.name+".lua");
-			protos.write(file);
-			file.close();
+		if (this.concepts.has(member)) {
+			return `/types/${member}.html${part}`;
 		}
+		if (this.prototypes.has(member)) {
+			return `/prototypes/${member}.html${part}`;
+		}
+		throw new Error("Invalid Link");
 	}
 
-	public lua_concepts(): LuaLSFile {
-		const file = new LuaLSFile("prototype-concepts", this.application_version);
+	public async generate_sumneko_docs(
+		createWriteStream:(filename:string)=>WriteStream,
+		format_description:DescriptionFormatter
+	) {
+		return Promise.all([
+			this.lua_concepts(format_description),
+			this.lua_prototypes(format_description),
+			this.lua_data(format_description),
+		].map(async plsfile=>{
+			const lsfile = await plsfile;
+			const file = createWriteStream(lsfile.name+".lua");
+			await lsfile.write(file);
+			file.close();
+		}));
+	}
+
+	public async lua_concepts(format_description:DescriptionFormatter): Promise<LuaLSFile> {
+		const file = new LuaLSFile("prototypes-concepts", this.application_version);
 
 		for (const [_, concept] of this.concepts) {
 			if (concept.properties) {
 				const lsclass = new LuaLSClass(this.type_prefix+concept.name+".struct");
-				lsclass.description = concept.description;
+				lsclass.description = await format_description(concept.description);
 				if (concept.parent) {
 					lsclass.parent = this.type_prefix+concept.parent+".struct";
 				}
 				lsclass.fields = [];
 				for (const prop of concept.properties) {
 					const field = new LuaLSField(prop.name, this.lua_proto_type(prop.type));
-					field.description = prop.description;
+					field.description = await format_description(prop.description);
 					lsclass.fields.push(field);
 				}
 
@@ -98,25 +113,29 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 					file.add(builtin);
 				}
 			} else {
-				file.add(new LuaLSAlias(this.type_prefix+concept.name, this.lua_proto_type(concept.type, concept)));
+				file.add(new LuaLSAlias(this.type_prefix+concept.name, this.lua_proto_type(concept.type, concept), concept.description));
 			}
 
-
-
 		}
-
-
 
 		return file;
 	}
 
-	public lua_prototypes(): LuaLSFile {
-		const file = new LuaLSFile("prototypes", this.application_version);
-
+	public lua_data(format_description:DescriptionFormatter): LuaLSFile {
+		const file = new LuaLSFile("prototypes-data", this.application_version);
 		const data = new LuaLSClass("data");
 		data.fields = [
 			new LuaLSField("raw", new LuaLSTypeName("data.raw")),
+			new LuaLSField("is_demo", new LuaLSTypeName("boolean")),
 		];
+		const extend = new LuaLSFunction("extend");
+		const self = new LuaLSParam("self", new LuaLSTypeName("data"));
+		self.optional = true;
+		extend.params = [
+			self,
+			new LuaLSParam("otherdata", new LuaLSArray(new LuaLSTypeName("data.PrototypeBase"))),
+		];
+		data.functions = [extend];
 		data.global_name = "data";
 		file.add(data);
 		const dataraw = new LuaLSClass("data.raw");
@@ -124,20 +143,41 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 		file.add(dataraw);
 
 		for (const [_, prototype] of this.prototypes) {
-
 			if (prototype.typename) {
-				dataraw.fields.push(new LuaLSField(prototype.typename, new LuaLSDict(new LuaLSTypeName("string"), new LuaLSTypeName(this.type_prefix+prototype.name) )));
+				dataraw.fields.push(new LuaLSField(new LuaLSLiteral(prototype.typename), new LuaLSDict(new LuaLSTypeName("string"), new LuaLSTypeName(this.type_prefix+prototype.name) )));
 			}
+		}
+
+		return file;
+	}
+
+	public async lua_prototypes(format_description:DescriptionFormatter): Promise<LuaLSFile> {
+		const file = new LuaLSFile("prototypes", this.application_version);
+
+		for (const [_, prototype] of this.prototypes) {
 
 			const lsproto = new LuaLSClass(this.type_prefix+prototype.name);
-			lsproto.description = prototype.description;
+			lsproto.description = await format_description(prototype.description);
 			if (prototype.parent) {
 				lsproto.parent = this.type_prefix+prototype.parent;
 			}
 			lsproto.fields = [];
 			for (const prop of prototype.properties) {
 				const field = new LuaLSField(prop.name, this.lua_proto_type(prop.type));
-				field.description = prop.description;
+				field.description = await format_description(prop.description);
+				field.optional = prop.optional;
+				lsproto.fields.push(field);
+				if (prop.alt_name) {
+					const field = new LuaLSField(prop.alt_name, this.lua_proto_type(prop.type));
+					field.description = await format_description(prop.description);
+					field.optional = prop.optional;
+					lsproto.fields.push(field);
+				}
+			}
+			if (prototype.custom_properties) {
+				const prop = prototype.custom_properties;
+				const field = new LuaLSField(this.lua_proto_type(prop.key_type), this.lua_proto_type(prop.value_type));
+				field.description = await format_description(prop.description);
 				lsproto.fields.push(field);
 			}
 			file.add(lsproto);
@@ -151,6 +191,7 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 				switch (type) {
 					case "bool":
 						return new LuaLSTypeName("boolean");
+					case "boolean":
 					case "string":
 					case "float":
 					case "double":

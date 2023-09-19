@@ -21,7 +21,7 @@ interface ProtoPrototype extends ProtoBasicMember {
 	readonly instance_limit?: number
 	readonly deprecated: boolean
 	readonly properties: ProtoProperty[]
-	readonly custom_properties: ProtoCustomProperty[]
+	readonly custom_properties: ProtoCustomProperty
 }
 
 interface ProtoConcept extends ProtoBasicMember {
