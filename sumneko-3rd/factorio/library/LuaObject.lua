@@ -1,4 +1,4 @@
----@meta
+---@meta _
 
 ---@param object LuaObject
 ---@return LuaObject.object_name object_name

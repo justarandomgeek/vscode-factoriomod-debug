@@ -1,4 +1,4 @@
----@meta
+---@meta _
 ---Lua serializer and pretty printer.\
 ---Author: [Paul Kulchenko](mailto:paul@kulchenko.com)\
 ---https://github.com/pkulchenko/serpent

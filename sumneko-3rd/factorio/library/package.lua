@@ -1,4 +1,4 @@
----@meta
+---@meta _
 
 ---Due to the changes to `package`, the functionality of `require()` changes. When using absolute paths, the path starts at the mod root. Additionally, `..` is disabled as a path variable. This means that it is not possible to load arbitrary files from outside the mod directory.
 ---
