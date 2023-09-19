@@ -91,6 +91,9 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 		const file = new LuaLSFile("prototypes-concepts", this.application_version);
 
 		for (const [_, concept] of this.concepts) {
+			if (concept.type === "builtin") {
+				continue;
+			}
 			if (concept.properties) {
 				const lsclass = new LuaLSClass(this.type_prefix+concept.name+".struct");
 				lsclass.description = await format_description(concept.description);
@@ -101,21 +104,14 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 				for (const prop of concept.properties) {
 					const field = new LuaLSField(prop.name, this.lua_proto_type(prop.type));
 					field.description = await format_description(prop.description);
+					field.optional = prop.optional;
 					lsclass.fields.push(field);
 				}
 
 				file.add(lsclass);
 			}
 
-			if (concept.type === "builtin") {
-				const builtin = this.lua_builtin(concept.name);
-				if (builtin) {
-					file.add(builtin);
-				}
-			} else {
-				file.add(new LuaLSAlias(this.type_prefix+concept.name, this.lua_proto_type(concept.type, concept), concept.description));
-			}
-
+			file.add(new LuaLSAlias(this.type_prefix+concept.name, this.lua_proto_type(concept.type, concept), concept.description));
 		}
 
 		return file;
@@ -231,32 +227,6 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 				}
 			default:
 				throw new Error("Invalid Type");
-		}
-	}
-
-	public lua_builtin(name:string) {
-		switch (name) {
-			case "bool":
-				// just rename it when referenced...
-				return undefined;
-			case "string":
-				// string is just itself
-				return undefined;
-			case "float":
-			case "double":
-			case "int8":
-			case "uint8":
-			case "uint16":
-			case "int64":
-			case "uint64":
-				// various number types already covered by runtime
-				return undefined;
-			case "int16":
-			case "int32":
-			case "uint32":
-				return new LuaLSAlias(name, new LuaLSTypeName("number"));
-			default:
-				throw new Error();
 		}
 	}
 }

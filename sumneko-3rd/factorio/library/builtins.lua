@@ -1,0 +1,27 @@
+---@meta _
+
+---Double precision floating point numbers. May not be NaN in prototypes.
+---@alias double number
+---Single precision floating point numbers. May not be NaN in prototypes.
+---@alias float number
+
+---8 bit signed integer. Ranges from -128 to 127, or [-2^7, 2^7-1]
+---@alias int8 integer
+---8 bit unsigned integer. Ranges from 0 to 255, or [0, 2^8-1]
+---@alias uint8 integer
+---16 bit signed integer. Ranges from -32'768 to 32'767, or [-2^15, 2^15-1]
+---@alias int16 integer
+---16 bit unsigned integer. Ranges from 0 to 65'535, or [0, 2^16-1]
+---@alias uint16 integer
+---32 bit signed integer. Ranges from -2'147'483'648 to 2'147'483'647, or [-2^31, 2^31-1]
+---@alias int32 integer
+---32 bit unsigned integer. Ranges from 0 to 4'294'967'295, or [0, 2^32-1]
+---@alias uint32 integer
+---32 bit signed integer. Ranges from -2'147'483'648 to 2'147'483'647, or [-2^31, 2^31-1]
+---@alias int integer
+---32 bit unsigned integer. Ranges from 0 to 4'294'967'295, or [0, 2^32-1]
+---@alias uint integer
+---64 bit signed integer.
+---@alias int64 integer
+---64 bit unsigned integer.
+---@alias uint64 integer
