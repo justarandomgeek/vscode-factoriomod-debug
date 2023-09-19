@@ -8,7 +8,6 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 	private readonly concepts:Map<string, ProtoConcept>;
 	private readonly prototypes:Map<string, ProtoPrototype>;
 
-	private readonly proto_api_base:string;
 	private readonly type_prefix = "data.";
 
 	constructor(docjson:string, private readonly docsettings:DocSettings) {
@@ -24,16 +23,6 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 
 		if (this.docs.stage !== "prototype") {
 			throw `Wrong stage: ${this.docs.stage}`;
-		}
-
-		switch (docsettings.docLinksVersion) {
-			case "latest":
-			default:
-				this.proto_api_base = "https://lua-api.factorio.com/latest/";
-				break;
-			case "current":
-				this.proto_api_base = `https://lua-api.factorio.com/${this.docs.application_version}/`;
-				break;
 		}
 
 		this.concepts = new Map(this.docs.types.map(c=>[c.name, c]));
