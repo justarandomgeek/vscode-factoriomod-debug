@@ -12,6 +12,7 @@ export interface FactorioVersion {
 	factorioPath: string
 	configPath?: string
 	docsPath?: string
+	protosPath?: string
 
 	nativeDebugger?: string
 }
@@ -83,6 +84,14 @@ export class ActiveFactorioVersion {
 			this.fv.docsPath ? this.fv.docsPath :
 			(os.platform() === "darwin") ? "../../doc-html/runtime-api.json" :
 			"../../../doc-html/runtime-api.json"
+		);
+	}
+
+	public get protosPath() {
+		return path.join(this.factorioPath,
+			this.fv.protosPath ? this.fv.protosPath :
+			(os.platform() === "darwin") ? "../../doc-html/prototype-api.json" :
+			"../../../doc-html/prototype-api.json"
 		);
 	}
 
@@ -220,6 +229,7 @@ export class ActiveFactorioVersion {
 			fv.factorioPath === other.factorioPath &&
 			fv.nativeDebugger === other.nativeDebugger &&
 			fv.docsPath === other.docsPath &&
+			fv.protosPath === other.protosPath &&
 			fv.configPath === other.configPath;
 	}
 }

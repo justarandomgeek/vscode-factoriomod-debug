@@ -315,6 +315,10 @@
                   "type": "string",
                   "description": "Path to runtime-api.json, must be relative to factorioPath."
                 },
+                "protosPath": {
+                  "type": "string",
+                  "description": "Path to prototype-api.json, must be relative to factorioPath."
+                },
                 "nativeDebugger": {
                   "type": "string",
                   "description": "Native debugger to launch factorio with",

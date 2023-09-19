@@ -146,8 +146,8 @@ export class FactorioVersionSelector {
 			const file = await vscode.window.showOpenDialog({
 				canSelectFiles: true,
 				canSelectFolders: false,
-				openLabel: "Select JSON Docs",
-				title: "Select JSON Docs",
+				openLabel: "Select Runtime JSON Docs",
+				title: "Select Runtime JSON Docs",
 				filters: { "JSON Docs": ["json"] },
 			});
 			if (!file) { return; }
@@ -252,6 +252,7 @@ export class FactorioVersionSelector {
 			[
 				"sumneko-3rd",
 				"-d", activeVersion.docsPath,
+				"-p", activeVersion.protosPath,
 			],
 			sumneko3rd.fsPath);
 
