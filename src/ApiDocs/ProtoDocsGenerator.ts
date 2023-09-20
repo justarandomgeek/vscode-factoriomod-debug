@@ -9,7 +9,7 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 
 	private readonly type_prefix = "data.";
 
-	constructor(docjson:string, private readonly docsettings:DocSettings) {
+	constructor(docjson:string, docsettings:DocSettings) {
 		this.docs = JSON.parse(docjson);
 
 		if (this.docs.application !== "factorio") {
@@ -107,10 +107,8 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 			new LuaLSField("is_demo", new LuaLSTypeName("boolean")),
 		];
 		const extend = new LuaLSFunction("extend");
-		const self = new LuaLSParam("self", new LuaLSTypeName("data"));
-		self.optional = true;
 		extend.params = [
-			self,
+			new LuaLSParam("self", new LuaLSTypeName("data")),
 			new LuaLSParam("otherdata", new LuaLSArray(new LuaLSTypeName("data.PrototypeBase"))),
 		];
 		data.functions = [extend];

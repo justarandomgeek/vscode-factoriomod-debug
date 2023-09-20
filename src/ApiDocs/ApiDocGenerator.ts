@@ -24,7 +24,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 	private readonly runtime_api_base:string;
 
-	constructor(docjson:string, private readonly docsettings:DocSettings) {
+	constructor(docjson:string, docsettings:DocSettings) {
 		this.docs = JSON.parse(docjson);
 
 		if (this.docs.application !== "factorio") {
