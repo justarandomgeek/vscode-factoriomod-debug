@@ -246,15 +246,18 @@ export class FactorioVersionSelector {
 		} catch (error) {
 		}
 
+		const docargs = [
+			"sumneko-3rd",
+			"-d", activeVersion.docsPath,
+		];
+		if (activeVersion.docs.api_version === 4) {
+			docargs.push("-p", activeVersion.protosPath);
+		}
+
 		await forkScript(
 			{ close() {}, write(data) {} },
 			this.context.asAbsolutePath("./dist/fmtk.js"),
-			[
-				"sumneko-3rd",
-				"-d", activeVersion.docsPath,
-				"-p", activeVersion.protosPath,
-			],
-			sumneko3rd.fsPath);
+			docargs, sumneko3rd.fsPath);
 
 		const luaconfig = vscode.workspace.getConfiguration("Lua");
 

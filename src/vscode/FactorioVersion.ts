@@ -132,8 +132,12 @@ export class ActiveFactorioVersion {
 	}
 
 	public async isPrototypeCacheEnabled() {
-		let configIni = await this.configIni();
-		return configIni.other?.["cache-prototype-data"];
+		try {
+			let configIni = await this.configIni();
+			return configIni.other?.["cache-prototype-data"];
+		} catch (error) {
+			return undefined;
+		}
 	}
 
 	public async disablePrototypeCache() {
@@ -175,7 +179,13 @@ export class ActiveFactorioVersion {
 	}
 
 	public async dataPath() {
-		const configDataPath = (await this.configIni()).path?.["read-data"];
+		const configDataPath = (await this.configIni().catch(()=>{
+			return {
+				path: {
+					["read-data"]: "__PATH__executable__/../../data",
+				},
+			};
+		})).path?.["read-data"];
 		if (!configDataPath) {
 			throw "path.read-data missing in config.ini";
 		}

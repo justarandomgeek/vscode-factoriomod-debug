@@ -1,6 +1,5 @@
 import { LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSLiteral, LuaLSParam, LuaLSTuple, LuaLSType, LuaLSTypeName, LuaLSUnion } from "./LuaLS";
 import type { DocSettings } from "./DocSettings";
-import type { WriteStream } from "fs";
 
 export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 	private readonly docs:ProtoDocs<V>;
@@ -60,20 +59,14 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 		throw new Error("Invalid Link");
 	}
 
-	public async generate_sumneko_docs(
-		createWriteStream:(filename:string)=>WriteStream,
+	public generate_LuaLS_docs(
 		format_description:DescriptionFormatter
-	) {
-		return Promise.all([
+	):(LuaLSFile|Promise<LuaLSFile>)[] {
+		return [
 			this.lua_concepts(format_description),
 			this.lua_prototypes(format_description),
 			this.lua_data(format_description),
-		].map(async plsfile=>{
-			const lsfile = await plsfile;
-			const file = createWriteStream(lsfile.name+".lua");
-			await lsfile.write(file);
-			file.close();
-		}));
+		];
 	}
 
 	public async lua_concepts(format_description:DescriptionFormatter): Promise<LuaLSFile> {
@@ -85,14 +78,14 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 			}
 			if (concept.properties) {
 				const lsclass = new LuaLSClass(this.type_prefix+concept.name+".struct");
-				lsclass.description = await format_description(concept.description);
+				lsclass.description = await format_description(concept.description, "prototype", concept.name);
 				if (concept.parent) {
 					lsclass.parent = this.type_prefix+concept.parent+".struct";
 				}
 				lsclass.fields = [];
 				for (const prop of concept.properties) {
 					const field = new LuaLSField(prop.name, this.lua_proto_type(prop.type));
-					field.description = await format_description(prop.description);
+					field.description = await format_description(prop.description, "prototype", concept.name, prop.name);
 					field.optional = prop.optional;
 					lsclass.fields.push(field);
 				}
@@ -142,19 +135,19 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 		for (const [_, prototype] of this.prototypes) {
 
 			const lsproto = new LuaLSClass(this.type_prefix+prototype.name);
-			lsproto.description = await format_description(prototype.description);
+			lsproto.description = await format_description(prototype.description, "prototype", prototype.name);
 			if (prototype.parent) {
 				lsproto.parent = this.type_prefix+prototype.parent;
 			}
 			lsproto.fields = [];
 			for (const prop of prototype.properties) {
 				const field = new LuaLSField(prop.name, this.lua_proto_type(prop.type));
-				field.description = await format_description(prop.description);
+				field.description = await format_description(prop.description, "prototype", prototype.name, prop.name);
 				field.optional = prop.optional;
 				lsproto.fields.push(field);
 				if (prop.alt_name) {
 					const field = new LuaLSField(prop.alt_name, this.lua_proto_type(prop.type));
-					field.description = await format_description(prop.description);
+					field.description = await format_description(prop.description, "prototype", prototype.name, prop.alt_name);
 					field.optional = prop.optional;
 					lsproto.fields.push(field);
 				}
@@ -162,7 +155,7 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 			if (prototype.custom_properties) {
 				const prop = prototype.custom_properties;
 				const field = new LuaLSField(this.lua_proto_type(prop.key_type), this.lua_proto_type(prop.value_type));
-				field.description = await format_description(prop.description);
+				field.description = await format_description(prop.description, "prototype", prototype.name, "custom_properties");
 				lsproto.fields.push(field);
 			}
 			file.add(lsproto);

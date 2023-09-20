@@ -35,4 +35,4 @@ interface BaseTypeType<T> {
 	readonly description: string
 }
 
-type DescriptionFormatter = (description?:string)=>string|undefined|Promise<string|undefined>;
+type DescriptionFormatter = (description:string|undefined, scope:"runtime"|"prototype", member:string, part?:string|undefined)=>string|undefined|Promise<string|undefined>;
