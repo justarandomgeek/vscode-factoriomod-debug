@@ -5,6 +5,9 @@
 ## 1.1.35
 * Debugger:
   * Fixed that fast bytecode dumps (1.1.33) would hang on some mods
+* Sumneko library package:
+  * Now generates prototype-api types
+  * Disables `lowercase-global` diagnostic
 
 ## 1.1.34
 * Add Support for Factorio JSON Runtime Docs v4 (Factorio >= 1.1.89)
