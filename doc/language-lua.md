@@ -12,7 +12,7 @@ Event payload types are generated as subclasses of the generic event payload `Ev
 
 Some types in the Runtime API have multiple definitions for the same type name, especially Concepts which accept both named-keys tables or array-like tables. In these cases the type will be a union of the set of definions, with the subtypes named `TypeName.0`, `TypeName.1`, etc.
 
-Types from the Prototype API are prefixed `data.` to separate the namespace. Prototype Concept with multiple definitions have a named class subtype suffixed `.struct` as well as the main alias type.
+Types from the Prototype API are prefixed `data.` to separate the namespaces, since several type names would conflict otherwise. Prototype Concept types with multiple definitions have a named class subtype suffixed `.struct` as well as the main alias type (usually a union).
 
 In addition to the types listed in the json, a few extra related types are defined:
  * `LuaObject.object_name`: Union of all LuaObject class names seen in the json.
