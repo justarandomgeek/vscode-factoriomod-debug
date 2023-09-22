@@ -70,13 +70,13 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 		format_description:DescriptionFormatter
 	):(LuaLSFile|Promise<LuaLSFile>)[] {
 		return [
-			this.lua_concepts(format_description),
-			this.lua_prototypes(format_description),
-			this.lua_data(format_description),
+			this.generate_LuaLS_concepts(format_description),
+			this.generate_LuaLS_prototypes(format_description),
+			this.generate_LuaLS_data(format_description),
 		];
 	}
 
-	public async lua_concepts(format_description:DescriptionFormatter): Promise<LuaLSFile> {
+	private async generate_LuaLS_concepts(format_description:DescriptionFormatter): Promise<LuaLSFile> {
 		const file = new LuaLSFile("prototypes-concepts", this.application_version);
 
 		for (const [_, concept] of this.concepts) {
@@ -110,7 +110,7 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 		return file;
 	}
 
-	public lua_data(format_description:DescriptionFormatter): LuaLSFile {
+	private generate_LuaLS_data(format_description:DescriptionFormatter): LuaLSFile {
 		const file = new LuaLSFile("prototypes-data", this.application_version);
 		const data = new LuaLSClass("data");
 		data.fields = [
@@ -138,7 +138,7 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 		return file;
 	}
 
-	public async lua_prototypes(format_description:DescriptionFormatter): Promise<LuaLSFile> {
+	private async generate_LuaLS_prototypes(format_description:DescriptionFormatter): Promise<LuaLSFile> {
 		const file = new LuaLSFile("prototypes", this.application_version);
 
 		for (const [_, prototype] of this.prototypes) {
@@ -172,7 +172,7 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 		return file;
 	}
 
-	public lua_proto_type(type:ProtoType, parent?:ProtoConcept):LuaLSType {
+	private lua_proto_type(type:ProtoType, parent?:ProtoConcept):LuaLSType {
 		switch (typeof type) {
 			case "string":
 				switch (type) {
