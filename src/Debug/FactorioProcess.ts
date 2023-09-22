@@ -18,7 +18,7 @@ export class FactorioProcess extends EventEmitter {
 
 	constructor(factorioPath:string, factorioArgs:string[], nativeDebugger?:string, env?:NodeJS.ProcessEnv) {
 		super();
-		let spawnOptions: SpawnOptions = {
+		const spawnOptions: SpawnOptions = {
 			cwd: path.dirname(factorioPath),
 			// applying passed environment variables over parent environment
 			env: Object.assign({}, process.env, env),
