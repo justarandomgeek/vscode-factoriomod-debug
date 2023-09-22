@@ -24,7 +24,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/justarandomgeek/vscode-factoriomod-debug.git"
+    "url": "git+https://github.com/justarandomgeek/vscode-factoriomod-debug.git"
   },
   "bugs": {
     "url": "https://github.com/justarandomgeek/vscode-factoriomod-debug/issues"
@@ -102,7 +102,7 @@
   },
   "main": "./dist/fmtk.js",
   "bin": {
-    "fmtk": "./dist/fmtk.js"
+    "fmtk": "dist/fmtk.js"
   },
   "activationEvents": [
     "onDebug",
