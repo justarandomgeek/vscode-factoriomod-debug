@@ -43,6 +43,7 @@ export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArgum
 	checkPrototypes?: boolean
 	checkGlobals?: string[]|boolean
 	factorioArgs?: Array<string>
+	env?: NodeJS.ProcessEnv
 	adjustMods?:{[key:string]:boolean|string}
 	adjustModSettings?:{
 		scope: "startup"|"runtime-global"|"runtime-per-user"
@@ -298,6 +299,10 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		args.trace = args.trace ?? false;
 		args.factorioArgs = args.factorioArgs||[];
 
+		if (args.env) {
+			this.sendEvent(new OutputEvent(`using custom environment variables: ${JSON.stringify(args.env)}\n`, "console"));
+		}
+
 		if (!await this.checkFactorioArgs(args)) {
 			// terminate to actually stop the debug session
 			// sending an error response to vscode doesn't seem to to anything, so dont' bother?
@@ -365,7 +370,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			this.fs.writeFile(modSettingsUri, settings.save());
 		}
 
-		this.factorio = new FactorioProcess(this.activeVersion.factorioPath, args.factorioArgs, this.activeVersion.nativeDebugger);
+		this.factorio = new FactorioProcess(this.activeVersion.factorioPath, args.factorioArgs, this.activeVersion.nativeDebugger, args.env);
 
 		this.factorio.on("exit", (code:number|null, signal:string)=>{
 			if (code) {

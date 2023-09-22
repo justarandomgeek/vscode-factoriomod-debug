@@ -1,5 +1,5 @@
 
-import { spawn, ChildProcess } from 'child_process';
+import { spawn, ChildProcess, SpawnOptions } from 'child_process';
 import { EventEmitter } from "events";
 import { BufferSplitter } from '../Util/BufferSplitter';
 import * as path from 'path';
@@ -16,17 +16,19 @@ export class FactorioProcess extends EventEmitter {
 	private readonly factorio: ChildProcess;
 	private readonly hasNativeDebug?: boolean;
 
-	constructor(factorioPath:string, factorioArgs:string[], nativeDebugger?:string) {
+	constructor(factorioPath:string, factorioArgs:string[], nativeDebugger?:string, env?:NodeJS.ProcessEnv) {
 		super();
+		let spawnOptions: SpawnOptions = {
+			cwd: path.dirname(factorioPath),
+			// applying passed environment variables over parent environment
+			env: Object.assign({}, process.env, env),
+		};
+
 		if (nativeDebugger) {
 			this.hasNativeDebug = true;
-			this.factorio = spawn(nativeDebugger, [factorioPath, ...factorioArgs], {
-				cwd: path.dirname(factorioPath),
-			});
+			this.factorio = spawn(nativeDebugger, [factorioPath, ...factorioArgs], spawnOptions);
 		} else {
-			this.factorio = spawn(factorioPath, factorioArgs, {
-				cwd: path.dirname(factorioPath),
-			});
+			this.factorio = spawn(factorioPath, factorioArgs, spawnOptions);
 		}
 		this.factorio.on("exit", (...args:any[])=>this.emit("exit", ...args));
 

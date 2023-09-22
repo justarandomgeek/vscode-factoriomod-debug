@@ -769,6 +769,13 @@
                 "default": [],
                 "description": "Extra command line arguments to pass to Factorio"
               },
+              "env": {
+                "type": "object",
+                "description": "Environment variables to pass to Factorio",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
               "adjustMods": {
                 "description": "Dictionary of modname -> true or version string to enable, false to disable",
                 "additionalProperties": {
