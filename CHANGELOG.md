@@ -5,6 +5,7 @@
 ## 1.1.35
 * Debugger:
   * Fixed that fast bytecode dumps (1.1.33) would hang on some mods
+  * Added support for passing environment variables via launch configuration to spawned factorio process (#95)
 * Sumneko library package:
   * Now generates prototype-api types
   * Disables `lowercase-global` diagnostic
