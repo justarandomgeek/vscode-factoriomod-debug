@@ -90,6 +90,7 @@ export class ActiveFactorioVersion {
 	public get protosPath() {
 		return path.join(this.factorioPath,
 			this.fv.protosPath ? this.fv.protosPath :
+			this.fv.docsPath ? path.join(this.fv.docsPath, "../prototype-api.json") :
 			(os.platform() === "darwin") ? "../../doc-html/prototype-api.json" :
 			"../../../doc-html/prototype-api.json"
 		);
