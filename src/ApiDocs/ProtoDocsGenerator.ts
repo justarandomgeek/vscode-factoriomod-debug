@@ -5,6 +5,7 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 	private readonly docs:ProtoDocs<V>;
 
 	private readonly concepts:Map<string, ProtoConcept>;
+	private readonly simple_structs:Set<string>;
 	private readonly prototypes:Map<string, ProtoPrototype>;
 
 	private readonly type_prefix = "data.";
@@ -25,6 +26,12 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 		}
 
 		this.concepts = new Map(this.docs.types.map(c=>[c.name, c]));
+		this.simple_structs = new Set();
+		for (const [name, concept] of this.concepts) {
+			if (typeof concept.type === "object" && concept.type.complex_type === "struct") {
+				this.simple_structs.add(name);
+			}
+		}
 		this.prototypes = new Map(this.docs.prototypes.map(c=>[c.name, c]));
 
 	}
@@ -76,11 +83,13 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 			if (concept.type === "builtin") {
 				continue;
 			}
+			const simple = this.simple_structs.has(concept.name);
+			const suffix = simple?"":".struct";
 			if (concept.properties) {
-				const lsclass = new LuaLSClass(this.type_prefix+concept.name+".struct");
+				const lsclass = new LuaLSClass(this.type_prefix+concept.name+suffix);
 				lsclass.description = await format_description(concept.description, "prototype", concept.name);
 				if (concept.parent) {
-					lsclass.parent = this.type_prefix+concept.parent+".struct";
+					lsclass.parent = this.type_prefix+concept.parent+suffix;
 				}
 				lsclass.fields = [];
 				for (const prop of concept.properties) {
@@ -93,7 +102,9 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 				file.add(lsclass);
 			}
 
-			file.add(new LuaLSAlias(this.type_prefix+concept.name, this.lua_proto_type(concept.type, concept), concept.description));
+			if (!simple) {
+				file.add(new LuaLSAlias(this.type_prefix+concept.name, this.lua_proto_type(concept.type, concept), concept.description));
+			}
 		}
 
 		return file;
@@ -187,6 +198,9 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 					case "struct":
 						if (!parent) {
 							throw new Error("struct without parent");
+						}
+						if (this.simple_structs.has(parent.name)) {
+							return new LuaLSTypeName(this.type_prefix+parent.name);
 						}
 						return new LuaLSTypeName(this.type_prefix+parent.name+".struct");
 					case "array":

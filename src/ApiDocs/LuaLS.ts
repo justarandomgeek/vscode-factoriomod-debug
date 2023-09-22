@@ -58,7 +58,7 @@ export class LuaLSFile {
 	}
 }
 
-export type LuaLSType = LuaLSTypeName|LuaLSLiteral|LuaLSDict|LuaLSTuple|LuaLSArray|LuaLSUnion;
+export type LuaLSType = LuaLSTypeName|LuaLSLiteral|LuaLSFunction|LuaLSDict|LuaLSTuple|LuaLSArray|LuaLSUnion;
 
 export class LuaLSTypeName {
 	constructor(
@@ -270,6 +270,18 @@ export class LuaLSFunction {
 
 
 	}
+
+	format():string {
+		let params = "";
+		if (this.params) {
+			params = this.params.map(p=>`${p.name}:${p.type.format()}`).join(", ");
+		}
+		let returns = "";
+		if (this.returns) {
+			returns = `:${this.returns.map(r=>r.type.format()).join(", ")}`;
+		}
+		return `fun(${params})${returns}`;
+	}
 }
 
 export class LuaLSParam {
@@ -287,7 +299,7 @@ export class LuaLSParam {
 
 export class LuaLSReturn {
 	constructor(
-		public type:string,
+		public type:LuaLSType,
 		public name?:string,
 	) {}
 	description?:string;

@@ -4,13 +4,15 @@ FMTK provides a third party library package for the [sumneko.lua](https://market
 
 In addition to the runtime-api docs (generated from [`runtime-api.json`](https://lua-api.factorio.com/latest/json-docs.html)), this package includes several static library files, configuration settings and a sumneko plugin that enables enhanced handling of `require`, `global`, event handlers, and `remote` interfaces.
 
-## Runtime API Docs
+## API Type Definitions
 
-Factorio's [`runtime-api.json`](https://lua-api.factorio.com/latest/json-docs.html) is used to generate class definitions for most of the runtime API.
+Factorio's [`runtime-api.json`](https://lua-api.factorio.com/latest/json-docs.html) and [`prototype-api.json`](https://lua-api.factorio.com/latest/auxiliary/json-docs-prototype.html) are used to generate type definitions for most of the API.
 
-Event payload types are generated as subclasses of the generic event payload `EventData`, named like `EventData.on_event_name`.
+Event payload types are generated as subclasses of the generic event payload `EventData`, named like `EventData.on_event_name`. A library definition for `event_handler` is also generated.
 
-Some types in the API have multiple definitions for the same type name, especially Concepts which accept both named-keys tables or array-like tables. In these cases the type will be a union of the set of definions, with the subtypes named `TypeName.0`, `TypeName.1`, etc.
+Some types in the Runtime API have multiple definitions for the same type name, especially Concepts which accept both named-keys tables or array-like tables. In these cases the type will be a union of the set of definions, with the subtypes named `TypeName.0`, `TypeName.1`, etc.
+
+Types from the Prototype API are prefixed `data.` to separate the namespace. Prototype Concept with multiple definitions have a named class subtype suffixed `.struct` as well as the main alias type.
 
 In addition to the types listed in the json, a few extra related types are defined:
  * `LuaObject.object_name`: Union of all LuaObject class names seen in the json.

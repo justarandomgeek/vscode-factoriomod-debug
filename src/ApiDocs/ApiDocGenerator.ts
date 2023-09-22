@@ -3,8 +3,7 @@ import { version as bundleVersion } from "../../package.json";
 import type { WriteStream } from "fs";
 import type { Writable } from "stream";
 import type { DocSettings } from "./DocSettings";
-import { escape_lua_keyword, to_lua_ident } from "./LuaLS";
-
+import { LuaLSClass, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSParam, LuaLSTypeName, escape_lua_keyword, to_lua_ident } from "./LuaLS";
 
 
 function sort_by_order(a:{order:number}, b:{order:number}) {
@@ -227,6 +226,66 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		return debuginfo;
 	}
 
+	public generate_LuaLS_docs(
+		format_description:DescriptionFormatter
+	):(LuaLSFile|Promise<LuaLSFile>)[] {
+		return [
+			this.generate_LuaLS_events(format_description),
+		];
+	}
+
+	private async generate_LuaLS_events(format_description:DescriptionFormatter) {
+		const file = new LuaLSFile("runtime-api-event_handler", this.docs.application_version);
+		const handlers = new LuaLSClass("event_handler.events");
+		handlers.fields = [];
+
+		for (const [_, event] of this.events) {
+			const handler = new LuaLSFunction("handler");
+			handler.params = [new LuaLSParam("event", new LuaLSTypeName(`EventData.${event.name}`))];
+			handlers.fields.push(new LuaLSField(
+				new LuaLSTypeName(event.name === "CustomInputEvent"?"string":`defines.events.${event.name}`),
+				handler));
+			/*
+			const lsevent = new LuaLSClass(`EventData.${event.name}`);
+			lsevent.fields = [];
+			lsevent.parent = "EventData";
+			lsevent.description = await format_description(event.description, "runtime", event.name);
+			for (const param of event.data) {
+				if (typeof param.type !== "string") {
+					throw new Error("oops");
+				}
+				const lsparam = new LuaLSField(param.name, new LuaLSTypeName(param.type));
+				lsparam.description = await format_description(param.description, "runtime", event.name, param.name);
+				lsparam.optional = param.optional;
+				lsevent.fields.push(lsparam);
+			}
+			file.add(lsevent);
+			*/
+		}
+
+		const generic_handler = new LuaLSFunction("handler");
+		generic_handler.params = [new LuaLSParam("event", new LuaLSTypeName(`EventData`))];
+		handlers.fields.push(new LuaLSField(new LuaLSTypeName("uint"), generic_handler));
+
+		file.add(handlers);
+		return file;
+	}
+
+	private generate_sumneko_events(output:Writable) {
+		this.docs.events.forEach(event=>{
+			const view_documentation_link = this.view_documentation(event.name);
+			output.write(this.convert_sumneko_description(this.format_entire_description(event, view_documentation_link)));
+			output.write(`---@class EventData.${event.name} : EventData\n`);
+			event.data.forEach(param=>{
+				this.write_sumneko_field(
+					output, param.name, param.type,
+					()=>[`${event.name}.${param.name}`, view_documentation_link],
+					[param.description, view_documentation_link], param.optional);
+			});
+			output.write("\n");
+		});
+	}
+
 	public generate_sumneko_docs(createWriteStream:(filename:string)=>WriteStream) {
 		const tables = createWriteStream(`runtime-api-table_types.lua`);
 		this.tables = tables;
@@ -298,20 +357,6 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		};
 
 		this.docs.defines.forEach(define=>generate(define, "defines."));
-	}
-	private generate_sumneko_events(output:Writable) {
-		this.docs.events.forEach(event=>{
-			const view_documentation_link = this.view_documentation(event.name);
-			output.write(this.convert_sumneko_description(this.format_entire_description(event, view_documentation_link)));
-			output.write(`---@class EventData.${event.name} : EventData\n`);
-			event.data.forEach(param=>{
-				this.write_sumneko_field(
-					output, param.name, param.type,
-					()=>[`${event.name}.${param.name}`, view_documentation_link],
-					[param.description, view_documentation_link], param.optional);
-			});
-			output.write("\n");
-		});
 	}
 	private generate_sumneko_LuaObjectNames(output:Writable) {
 		const names = this.docs.classes.map(c=>`"${c.name}"`);

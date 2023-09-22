@@ -21,7 +21,7 @@ program.command("sumneko-3rd [outdir]")
 		const docs = new ApiDocGenerator((await fsp.readFile(options.docs, "utf8")).toString(), docsettings);
 
 		let pdocs:ProtoDocGenerator|undefined;
-		let linkresolver = (node:Link)=>{
+		let resolve_link = (node:Link)=>{
 			const matches = node.url.match(/^(.+?)(?:::(.+))?$/);
 			if (matches) {
 				node.url = "https://lua-api.factorio.com/latest"+docs.resolve_link(matches[1], matches[2]);
@@ -34,7 +34,7 @@ program.command("sumneko-3rd [outdir]")
 			}
 			pdocs = new ProtoDocGenerator((await fsp.readFile(options.protos, "utf8")).toString(), docsettings);
 
-			linkresolver = (node:Link)=>{
+			resolve_link = (node:Link)=>{
 				const matches = node.url.match(/^(runtime|prototype):(.+?)(?:::(.+))?$/);
 				if (matches) {
 					switch (matches[1]) {
@@ -52,7 +52,7 @@ program.command("sumneko-3rd [outdir]")
 		const descr = remark()
 			.use(function () {
 				return async function(tree:Root, file:VFile) {
-					visit(tree, "link", linkresolver);
+					visit(tree, "link", resolve_link);
 				};
 			});
 
@@ -67,12 +67,16 @@ program.command("sumneko-3rd [outdir]")
 		await fsp.mkdir(libdir, { recursive: true });
 		docs.generate_sumneko_docs(createLibFileWriteStream);
 		if (pdocs) {
-			await Promise.all(pdocs.generate_LuaLS_docs(format_description).map(async plsfile=>{
-				const lsfile = await plsfile;
-				const file = createWriteStream(path.join(libdir, lsfile.name+".lua"));
-				await lsfile.write(file);
-				file.close();
-			}));
+			await Promise.all(
+				[
+					...docs.generate_LuaLS_docs(format_description),
+					...pdocs.generate_LuaLS_docs(format_description),
+				].map(async plsfile=>{
+					const lsfile = await plsfile;
+					const file = createWriteStream(path.join(libdir, lsfile.name+".lua"));
+					await lsfile.write(file);
+					file.close();
+				}));
 		}
 
 		const sumneko3rd = await import("../Sumneko3rd");
