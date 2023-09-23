@@ -299,7 +299,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		args.trace = args.trace ?? false;
 		args.factorioArgs = args.factorioArgs||[];
 
-		if (args.env) {
+		if (args.env && Object.keys(args.env).length > 0) {
 			this.sendEvent(new OutputEvent(`using custom environment variables: ${JSON.stringify(args.env)}\n`, "console"));
 		}
 

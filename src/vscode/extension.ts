@@ -58,6 +58,11 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 			}
 		}
 
+		const debugconfigenv = vscode.workspace.getConfiguration("factorio.debug").get("env", {});
+		if (Object.keys(debugconfigenv).length > 0) {
+			config.env = Object.assign({}, debugconfigenv, config.env);
+		}
+
 		return config;
 	}
 }

@@ -354,6 +354,13 @@
             "default": true,
             "description": "Automatically manage /data link in `\"Lua.workspace.library\"`."
           },
+          "factorio.debug.env": {
+            "type": "object",
+            "description": "Environment variables to pass to Factorio",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
           "factorio.debug.runMode": {
             "description": "Run mode for Debug Adapter",
             "default": "inline",
