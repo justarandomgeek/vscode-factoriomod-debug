@@ -316,8 +316,9 @@ export class LuaLSReturn {
 		public name?:string,
 	) {}
 	description?:string;
+	optional?:boolean;
 
 	write(output:Writable) {
-		output.write(`---@return ${this.type} ${this.name??""} #${this.description??""}\n`);
+		output.write(`---@return ${this.type.format()}${this.optional?"?":""} ${this.name??""} #${this.description??""}\n`);
 	}
 }

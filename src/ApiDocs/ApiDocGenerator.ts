@@ -3,7 +3,7 @@ import { version as bundleVersion } from "../../package.json";
 import type { WriteStream } from "fs";
 import type { Writable } from "stream";
 import type { DocSettings } from "./DocSettings";
-import { LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSEnum, LuaLSEnumField, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSLiteral, LuaLSParam, LuaLSType, LuaLSTypeName, LuaLSUnion, escape_lua_keyword, to_lua_ident } from "./LuaLS";
+import { LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSEnum, LuaLSEnumField, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSLiteral, LuaLSParam, LuaLSReturn, LuaLSType, LuaLSTypeName, LuaLSUnion, escape_lua_keyword, to_lua_ident } from "./LuaLS";
 
 
 function sort_by_order(a:{order:number}, b:{order:number}) {
@@ -233,6 +233,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			this.generate_LuaLS_defines(format_description),
 			this.generate_LuaLS_events(format_description),
 			this.generate_LuaLS_LuaObjectNames(format_description),
+			this.generate_LuaLS_global_functions(format_description),
 		];
 	}
 
@@ -323,6 +324,44 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		return file;
 	}
 
+	private async generate_LuaLS_global_functions(format_description:DescriptionFormatter) {
+		const file = new LuaLSFile("runtime-api-global_functions", this.docs.application_version);
+
+		for (const func of this.docs.global_functions) {
+			file.add(await this.LuaLS_function(func, format_description));
+		}
+
+		return file;
+	}
+
+	private async LuaLS_function(func:ApiMethod, format_description:DescriptionFormatter, in_class?:string):Promise<LuaLSFunction> {
+		if (func.takes_table) {
+			throw new Error("");
+		} else {
+			if (func.variadic_type) {
+				throw new Error("");
+			}
+			const lsfunc = new LuaLSFunction(func.name,
+				func.parameters.map(p=>{
+					const lsparam = new LuaLSParam(p.name, this.LuaLS_type(p.type));
+					lsparam.description = p.description;
+					lsparam.optional = p.optional;
+					return lsparam;
+				}),
+				func.return_values.map(r=>{
+					const lsreturn = new LuaLSReturn(this.LuaLS_type(r.type));
+					lsreturn.description = r.description;
+					lsreturn.optional = r.optional;
+					return lsreturn;
+				}));
+			lsfunc.description = await format_description(func.description, "runtime", in_class??"libraries", in_class?func.name:"new-functions");
+			return lsfunc;
+		}
+		throw new Error("");
+	}
+
+
+
 	private LuaLS_type(api_type:ApiType|undefined):LuaLSType {
 		if (!api_type) { return new LuaLSTypeName("any"); }
 		if (typeof api_type === "string") { return new LuaLSTypeName(api_type); }
@@ -360,13 +399,12 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 		this.generate_sumneko_classes(createWriteStream);
 		this.generate_sumneko_section("concepts", createWriteStream);
-		this.generate_sumneko_section("global_functions", createWriteStream);
 
 		tables.close();
 		this.tables = undefined;
 	}
 
-	private generate_sumneko_section(name:"concepts"|"global_functions", createWriteStream:(filename:string)=>WriteStream) {
+	private generate_sumneko_section(name:"concepts", createWriteStream:(filename:string)=>WriteStream) {
 		const fs = createWriteStream(`runtime-api-${name}.lua`);
 		this.generate_sumneko_header(fs, name);
 		this[`generate_sumneko_${name}`](fs);
@@ -615,11 +653,6 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 						throw `Unknown type in concept: ${concept.type.complex_type}`;
 				}
 			}
-		});
-	}
-	private generate_sumneko_global_functions(output:Writable) {
-		this.docs.global_functions.forEach((func)=>{
-			this.add_method(output, "", func);
 		});
 	}
 
