@@ -63,6 +63,7 @@ export type LuaLSType = LuaLSTypeName|LuaLSLiteral|LuaLSFunction|LuaLSDict|LuaLS
 export class LuaLSTypeName {
 	constructor(
 		public name:string,
+		public generic_args?:LuaLSType[]
 	) {}
 
 	format() {
@@ -151,6 +152,7 @@ export class LuaLSClass {
 	) {}
 	description?:string;
 	parent?:string|string[];
+	generic_args?:string[];
 	global_name?:string;
 
 	fields?:LuaLSField[];
@@ -226,11 +228,11 @@ export class LuaLSOverload {
 
 export class LuaLSFunction {
 	constructor(
-		public name:string,
+		public name:string|undefined,
+		public params?:LuaLSParam[]|undefined,
+		public returns?:LuaLSReturn[]|undefined,
 	) {}
 	description?:string;
-	params?:LuaLSParam[];
-	returns?:LuaLSReturn[];
 
 	overloads?:LuaLSOverload[];
 

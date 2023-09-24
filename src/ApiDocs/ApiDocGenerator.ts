@@ -3,7 +3,7 @@ import { version as bundleVersion } from "../../package.json";
 import type { WriteStream } from "fs";
 import type { Writable } from "stream";
 import type { DocSettings } from "./DocSettings";
-import { LuaLSClass, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSParam, LuaLSTypeName, escape_lua_keyword, to_lua_ident } from "./LuaLS";
+import { LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSLiteral, LuaLSParam, LuaLSType, LuaLSTypeName, LuaLSUnion, escape_lua_keyword, to_lua_ident } from "./LuaLS";
 
 
 function sort_by_order(a:{order:number}, b:{order:number}) {
@@ -231,11 +231,12 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	):(LuaLSFile|Promise<LuaLSFile>)[] {
 		return [
 			this.generate_LuaLS_events(format_description),
+			this.generate_LuaLS_LuaObjectNames(format_description),
 		];
 	}
 
 	private async generate_LuaLS_events(format_description:DescriptionFormatter) {
-		const file = new LuaLSFile("runtime-api-event_handler", this.docs.application_version);
+		const file = new LuaLSFile("runtime-api-events", this.docs.application_version);
 		const handlers = new LuaLSClass("event_handler.events");
 		handlers.fields = [];
 
@@ -245,22 +246,18 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			handlers.fields.push(new LuaLSField(
 				new LuaLSTypeName(event.name === "CustomInputEvent"?"string":`defines.events.${event.name}`),
 				handler));
-			/*
+
 			const lsevent = new LuaLSClass(`EventData.${event.name}`);
 			lsevent.fields = [];
 			lsevent.parent = "EventData";
 			lsevent.description = await format_description(event.description, "runtime", event.name);
 			for (const param of event.data) {
-				if (typeof param.type !== "string") {
-					throw new Error("oops");
-				}
-				const lsparam = new LuaLSField(param.name, new LuaLSTypeName(param.type));
+				const lsparam = new LuaLSField(param.name, this.LuaLS_type(param.type));
 				lsparam.description = await format_description(param.description, "runtime", event.name, param.name);
 				lsparam.optional = param.optional;
 				lsevent.fields.push(lsparam);
 			}
 			file.add(lsevent);
-			*/
 		}
 
 		const generic_handler = new LuaLSFunction("handler");
@@ -271,19 +268,44 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		return file;
 	}
 
-	private generate_sumneko_events(output:Writable) {
-		this.docs.events.forEach(event=>{
-			const view_documentation_link = this.view_documentation(event.name);
-			output.write(this.convert_sumneko_description(this.format_entire_description(event, view_documentation_link)));
-			output.write(`---@class EventData.${event.name} : EventData\n`);
-			event.data.forEach(param=>{
-				this.write_sumneko_field(
-					output, param.name, param.type,
-					()=>[`${event.name}.${param.name}`, view_documentation_link],
-					[param.description, view_documentation_link], param.optional);
-			});
-			output.write("\n");
-		});
+	private async generate_LuaLS_LuaObjectNames(format_description:DescriptionFormatter) {
+		const file = new LuaLSFile("runtime-api-LuaObjectNames", this.docs.application_version);
+		const names = new LuaLSAlias("LuaObject.object_name", new LuaLSUnion(
+			this.docs.classes.filter(c=>!c.abstract).map(c=>new LuaLSLiteral(c.name))
+		));
+		file.add(names);
+		return file;
+	}
+
+	private LuaLS_type(api_type:ApiType|undefined):LuaLSType {
+		if (!api_type) { return new LuaLSTypeName("any"); }
+		if (typeof api_type === "string") { return new LuaLSTypeName(api_type); }
+		switch (api_type.complex_type) {
+			case "array":
+				return new LuaLSArray(this.LuaLS_type(api_type.value));
+			case "dictionary":
+				return new LuaLSDict(this.LuaLS_type(api_type.key), this.LuaLS_type(api_type.value));
+			case "union":
+				return new LuaLSUnion(api_type.options.map(t=>this.LuaLS_type(t)));
+			case "LuaLazyLoadedValue":
+				return new LuaLSTypeName("LuaLazyLoadedValue", [this.LuaLS_type(api_type.value)]);
+			case "LuaCustomTable":
+				return new LuaLSTypeName("LuaLazyLoadedValue", [this.LuaLS_type(api_type.key), this.LuaLS_type(api_type.value)]);
+			case "literal":
+				return new LuaLSLiteral(api_type.value);
+			case "function":
+				return new LuaLSFunction(undefined, api_type.parameters.map((p, i)=>new LuaLSParam(`p${i+1}`, this.LuaLS_type(p))));
+			case "type":
+				return this.LuaLS_type(api_type.value);
+			case "table":
+			case "tuple":
+
+			case "struct":// V3
+			case "LuaStruct":// V4
+
+		}
+		throw new Error("Invalid Type");
+
 	}
 
 	public generate_sumneko_docs(createWriteStream:(filename:string)=>WriteStream) {
@@ -291,9 +313,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		this.tables = tables;
 
 		this.generate_sumneko_section("defines", createWriteStream);
-		this.generate_sumneko_section("events", createWriteStream);
 		this.generate_sumneko_classes(createWriteStream);
-		this.generate_sumneko_section("LuaObjectNames", createWriteStream);
 		this.generate_sumneko_section("concepts", createWriteStream);
 		this.generate_sumneko_section("global_functions", createWriteStream);
 
@@ -301,7 +321,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		this.tables = undefined;
 	}
 
-	private generate_sumneko_section(name:"defines"|"events"|"LuaObjectNames"|"concepts"|"global_functions", createWriteStream:(filename:string)=>WriteStream) {
+	private generate_sumneko_section(name:"defines"|"concepts"|"global_functions", createWriteStream:(filename:string)=>WriteStream) {
 		const fs = createWriteStream(`runtime-api-${name}.lua`);
 		this.generate_sumneko_header(fs, name);
 		this[`generate_sumneko_${name}`](fs);
@@ -358,10 +378,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 		this.docs.defines.forEach(define=>generate(define, "defines."));
 	}
-	private generate_sumneko_LuaObjectNames(output:Writable) {
-		const names = this.docs.classes.map(c=>`"${c.name}"`);
-		output.write(`---@alias LuaObject.object_name ${names.join("|")}\n`);
-	}
+
 	private generate_sumneko_classes(createWriteStream:(filename:string)=>WriteStream) {
 		this.docs.classes.forEach(async aclass=>{
 			const fs = createWriteStream(`runtime-api-${aclass.name}.lua`);
