@@ -137,11 +137,11 @@ function util.conditional_return(value, data) end
 ---@return table
 function util.merge(tables) end
 
----@param entity LuaEntity
+---@param entity LuaEntity?
 ---@param item_dict ItemStackDefinition
 util.insert_safe = function(entity, item_dict) end
 
----@param entity LuaEntity
+---@param entity LuaEntity?
 ---@param item_dict ItemStackDefinition
 util.remove_safe = function(entity, item_dict) end
 
