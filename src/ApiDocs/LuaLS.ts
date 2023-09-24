@@ -27,10 +27,9 @@ export class LuaLSFile {
 
 	meta?:string = "_";
 
-	members?:(LuaLSFunction|LuaLSClass|LuaLSAlias)[];
-	//TODO: module returns? globals?
+	members?:(LuaLSFunction|LuaLSClass|LuaLSAlias|LuaLSEnum)[];
 
-	add(member:LuaLSFunction|LuaLSClass|LuaLSAlias) {
+	add(member:LuaLSFunction|LuaLSClass|LuaLSAlias|LuaLSEnum) {
 		if (!this.members) {
 			this.members = [];
 		}
@@ -51,7 +50,7 @@ export class LuaLSFile {
 
 		if (this.members) {
 			for (const member of this.members) {
-				await member.write(output, "global");
+				await member.write(output);
 			}
 		}
 
@@ -146,12 +145,44 @@ export class LuaLSAlias {
 	}
 }
 
+export class LuaLSEnum {
+	constructor(
+		public name:string,
+		public fields:LuaLSEnumField[],
+	) {}
+	description?:string;
+
+
+	async write(output:Writable) {
+		await format_lua_description(output, this.description);
+		output.write(`---@enum ${this.name}\n`);
+
+		output.write(`${this.name}={\n`);
+		for (const field of this.fields) {
+			await field.write(output);
+		}
+		output.write(`}\n`);
+	}
+}
+
+export class LuaLSEnumField {
+	constructor(
+		public name:string,
+		public description?:string,
+	) {}
+
+	async write(output:Writable) {
+		await format_lua_description(output, this.description);
+		output.write(`${this.name}=#{},\n`);
+	}
+}
+
 export class LuaLSClass {
 	constructor(
 		public name:string,
 	) {}
 	description?:string;
-	parent?:string|string[];
+	parents?:LuaLSType[];
 	generic_args?:string[];
 	global_name?:string;
 
@@ -163,12 +194,8 @@ export class LuaLSClass {
 	async write(output:Writable) {
 		await format_lua_description(output, this.description);
 		output.write(`---@class ${this.name}`);
-		if (this.parent) {
-			if (typeof this.parent === "string") {
-				output.write(`:${this.parent}`);
-			} else {
-				output.write(`:${this.parent.join(", ")}`);
-			}
+		if (this.parents) {
+			output.write(`:${this.parents.map(t=>t.format()).join(", ")}`);
 		}
 		output.write(`\n`);
 
@@ -181,9 +208,9 @@ export class LuaLSClass {
 		if (this.global_name && !this.functions) {
 			output.write(`${this.global_name}={}\n`);
 		} else if (this.functions) {
-			output.write(`${this.global_name ?? "local " + to_lua_ident(this.name)}={\n`);
+			output.write(`${this.global_name ?? ("local " + to_lua_ident(this.name))}={\n`);
 			for (const func of this.functions) {
-				await func.write(output, "table");
+				await func.write(output);
 			}
 			output.write(`}\n`);
 		}
@@ -238,7 +265,7 @@ export class LuaLSFunction {
 
 	nodiscard?:boolean;
 
-	async write(output:Writable, style:"table"|"global") {
+	async write(output:Writable) {
 		await format_lua_description(output, this.description);
 		if (this.params) {
 			for (const param of this.params) {
@@ -250,27 +277,11 @@ export class LuaLSFunction {
 				ret.write(output);
 			}
 		}
-		switch (style) {
-			case "table":
-				output.write(`${this.name} = function(`);
-				break;
-			case "global":
-				output.write(`function ${this.name} (`);
-				break;
-		}
+		output.write(`${this.name} = function(`);
 		if (this.params) {
 			output.write(this.params.map(p=>p.name).join(", "));
 		}
-		switch (style) {
-			case "table":
-				output.write(`) end,\n`);
-				break;
-			case "global":
-				output.write(`) end\n`);
-				break;
-		}
-
-
+		output.write(`) end;\n`);
 	}
 
 	format():string {
