@@ -425,7 +425,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				let outbuffs = [];
 				let i = buffer.indexOf(0xef);
 				while (i>=0) {
-					if (buffer[i+1] >= 0x80 && buffer[i+1] <= 0xa3 &&
+					if (buffer[i+1] >= 0xA0 && buffer[i+1] <= 0xa3 &&
 						buffer[i+2] >= 0x80 && buffer[i+2] <= 0xbf) {
 						let esc = buffer.subarray(i, i+4).toString("utf8").charCodeAt(0) - 0xf800;
 						outbuffs.push(buffer.subarray(0, i), Buffer.from([esc]));
