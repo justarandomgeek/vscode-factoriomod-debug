@@ -20,8 +20,6 @@ import { LuaFunction } from './LuaDisassembler';
 import { BufferStream } from '../Util/BufferStream';
 import type { ActiveFactorioVersion } from '../vscode/FactorioVersion';
 import { PassThrough } from 'stream';
-//@ts-expect-error
-import replace from 'buffer-replace';
 
 interface ModPaths{
 	uri: URI
@@ -422,14 +420,26 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				//0xFDD7 raw buffer
 				const split = buff.indexOf(1, 3);
 
-				const id = Number.parseInt(buff.slice(3, split).toString().trim());
-				let buffer = buff.slice(split+1);
-				for (let i = 1; i <= 0x1f; i++) {
-					buffer = replace(buffer, Buffer.from(String.fromCharCode(0xf800+i), "utf8"), Buffer.from([i]));
-				}
+				const id = Number.parseInt(buff.subarray(3, split).toString().trim());
+				let buffer = buff.subarray(split+1);
+				let outbuffs = [];
+				let i = buffer.indexOf(0xef);
+				while (i>=0) {
+					if (buffer[i+1] >= 0x80 && buffer[i+1] <= 0xa3 &&
+						buffer[i+2] >= 0x80 && buffer[i+2] <= 0xbf) {
+						let esc = buffer.subarray(i, i+4).toString("utf8").charCodeAt(0) - 0xf800;
+						outbuffs.push(buffer.subarray(0, i), Buffer.from([esc]));
+						buffer = buffer.subarray(i+3);
+					} else {
+						outbuffs.push(buffer.subarray(0, i+1));
+						buffer = buffer.subarray(i+1);
+					}
 
-				buffer = replace(buffer, Buffer.from(String.fromCharCode(0xf800+0xef), "utf8"), Buffer.from([0xef]));
-				this.buffers.set(id, buffer);
+					i = buffer.indexOf(0xef);
+				}
+				outbuffs.push(buffer);
+				const outbuff = Buffer.concat(outbuffs);
+				this.buffers.set(id, outbuff);
 				return;
 			}
 

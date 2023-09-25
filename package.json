@@ -67,7 +67,6 @@
     "@vscode/vsce": "^2.21.0",
     "@vscode/webview-ui-toolkit": "^1.2.2",
     "archiver": "^5.3.2",
-    "buffer-replace": "^1.0.0",
     "c8": "^7.14.0",
     "chai": "^4.3.8",
     "chai-as-promised": "^7.1.1",
