@@ -5,6 +5,9 @@
 ## 1.1.36
 * Debugger:
   * Fixed that fast bytecode dumps (1.1.33) would hang on some mods (for real this time)
+* Sumneko library package:
+  * Updated library generator for some runtime types (events, defines)
+
 ## 1.1.35
 * Debugger:
   * Fixed that fast bytecode dumps (1.1.33) would hang on some mods
