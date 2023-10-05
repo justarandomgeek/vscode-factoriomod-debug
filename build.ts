@@ -105,7 +105,6 @@ const mainConfig:BuildOptions = {
 		fmtk: "./src/fmtk.ts",
 	},
 	external: [
-		"keytar",
 		"vscode",
 	],
 	loader: {

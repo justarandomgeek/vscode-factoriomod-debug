@@ -92,7 +92,6 @@ export async function activateModPackageProvider(context:vscode.ExtensionContext
 		context.subscriptions.push(treeDataProvider);
 		const view = vscode.window.createTreeView('factoriomods', { treeDataProvider: treeDataProvider });
 		context.subscriptions.push(view);
-		await keychain.MigrateApiKey();
 		extensionUri = context.extensionUri;
 	}
 }
@@ -417,7 +416,8 @@ class ModPackage extends vscode.TreeItem {
 					await forkScript(term,
 						this.context.asAbsolutePath("./dist/fmtk.js"),
 						["upload", packagepath, this.label ],
-						vscode.Uri.joinPath(this.resourceUri, "..").fsPath);
+						vscode.Uri.joinPath(this.resourceUri, "..").fsPath,
+						(APIKeyReady.from!=="env")?{ FACTORIO_UPLOAD_API_KEY: APIKeyReady.key }:undefined);
 				}
 				await this.Update();
 				term.close();
@@ -446,7 +446,8 @@ class ModPackage extends vscode.TreeItem {
 					await forkScript(term,
 						this.context.asAbsolutePath("./dist/fmtk.js"),
 						["publish"],
-						vscode.Uri.joinPath(this.resourceUri, "..").fsPath);
+						vscode.Uri.joinPath(this.resourceUri, "..").fsPath,
+						(APIKeyReady.from!=="env")?{ FACTORIO_UPLOAD_API_KEY: APIKeyReady.key }:undefined);
 				}
 				await this.Update();
 				term.close();

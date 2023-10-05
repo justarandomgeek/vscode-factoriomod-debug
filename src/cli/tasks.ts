@@ -187,26 +187,6 @@ async function getAPIKey() {
 		return env;
 	}
 
-	const keytar = await import("keytar").then(m=>m.default)
-		.catch(()=>{
-			// if we're running under vscode, we won't have our local npm dep
-			// so try to load their copy of keytar instead
-			// have to use `require` not `import` for electron's .asar hook
-			const resourcesPath = (<{resourcesPath?: string}>process).resourcesPath;
-			if (typeof resourcesPath === "string") {
-				return require(path.join(resourcesPath, "app", "node_modules.asar", "keytar")) as typeof import("keytar");
-			}
-			return undefined;
-		})
-		.catch(()=>undefined);
-	if (keytar) {
-		const key = await keytar.getPassword("fmtk", "factorio-uploadmods");
-		if (key) {
-			APIKey = key;
-			return key;
-		}
-	}
-
 	const { key } = await inquirer.prompt<{key:string}>([{
 		message: "Mod Portal API Key:",
 		name: "key",
@@ -214,9 +194,6 @@ async function getAPIKey() {
 	}]);
 
 	if (key) {
-		if (keytar) {
-			keytar.setPassword("fmtk", "factorio-uploadmods", key);
-		}
 		APIKey = key;
 		return key;
 	}
