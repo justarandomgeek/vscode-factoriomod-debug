@@ -67,7 +67,7 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 	}
 
 	public generate_LuaLS_docs(
-		format_description:DescriptionFormatter
+		format_description:DocDescriptionFormatter
 	):(LuaLSFile|Promise<LuaLSFile>)[] {
 		return [
 			this.generate_LuaLS_concepts(format_description),
@@ -76,7 +76,7 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 		];
 	}
 
-	private async generate_LuaLS_concepts(format_description:DescriptionFormatter): Promise<LuaLSFile> {
+	private async generate_LuaLS_concepts(format_description:DocDescriptionFormatter): Promise<LuaLSFile> {
 		const file = new LuaLSFile("prototypes-concepts", this.application_version);
 
 		for (const [_, concept] of this.concepts) {
@@ -87,14 +87,14 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 			const suffix = simple?"":".struct";
 			if (concept.properties) {
 				const lsclass = new LuaLSClass(this.type_prefix+concept.name+suffix);
-				lsclass.description = await format_description(concept.description, "prototype", concept.name);
+				lsclass.description = await format_description(concept.description, { scope: "prototype", member: concept.name });
 				if (concept.parent) {
 					lsclass.parents = [new LuaLSTypeName(this.type_prefix+concept.parent+suffix)];
 				}
 				lsclass.fields = [];
 				for (const prop of concept.properties) {
 					const field = new LuaLSField(prop.name, this.lua_proto_type(prop.type));
-					field.description = await format_description(prop.description, "prototype", concept.name, prop.name);
+					field.description = await format_description(prop.description, { scope: "prototype", member: concept.name, part: prop.name });
 					field.optional = prop.optional;
 					lsclass.fields.push(field);
 				}
@@ -110,7 +110,7 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 		return file;
 	}
 
-	private generate_LuaLS_data(format_description:DescriptionFormatter): LuaLSFile {
+	private generate_LuaLS_data(format_description:DocDescriptionFormatter): LuaLSFile {
 		const file = new LuaLSFile("prototypes-data", this.application_version);
 		const data = new LuaLSClass("data");
 		data.fields = [
@@ -138,25 +138,25 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 		return file;
 	}
 
-	private async generate_LuaLS_prototypes(format_description:DescriptionFormatter): Promise<LuaLSFile> {
+	private async generate_LuaLS_prototypes(format_description:DocDescriptionFormatter): Promise<LuaLSFile> {
 		const file = new LuaLSFile("prototypes", this.application_version);
 
 		for (const [_, prototype] of this.prototypes) {
 
 			const lsproto = new LuaLSClass(this.type_prefix+prototype.name);
-			lsproto.description = await format_description(prototype.description, "prototype", prototype.name);
+			lsproto.description = await format_description(prototype.description, { scope: "prototype", member: prototype.name });
 			if (prototype.parent) {
 				lsproto.parents = [new LuaLSTypeName(this.type_prefix+prototype.parent)];
 			}
 			lsproto.fields = [];
 			for (const prop of prototype.properties) {
 				const field = new LuaLSField(prop.name, this.lua_proto_type(prop.type));
-				field.description = await format_description(prop.description, "prototype", prototype.name, prop.name);
+				field.description = await format_description(prop.description, { scope: "prototype", member: prototype.name, part: prop.name });
 				field.optional = prop.optional;
 				lsproto.fields.push(field);
 				if (prop.alt_name) {
 					const field = new LuaLSField(prop.alt_name, this.lua_proto_type(prop.type));
-					field.description = await format_description(prop.description, "prototype", prototype.name, prop.alt_name);
+					field.description = await format_description(prop.description, { scope: "prototype", member: prototype.name, part: prop.alt_name });
 					field.optional = prop.optional;
 					lsproto.fields.push(field);
 				}
@@ -164,7 +164,7 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 			if (prototype.custom_properties) {
 				const prop = prototype.custom_properties;
 				const field = new LuaLSField(this.lua_proto_type(prop.key_type), this.lua_proto_type(prop.value_type));
-				field.description = await format_description(prop.description, "prototype", prototype.name, "custom_properties");
+				field.description = await format_description(prop.description, { scope: "prototype", member: prototype.name, part: "custom_properties" });
 				lsproto.fields.push(field);
 			}
 			file.add(lsproto);

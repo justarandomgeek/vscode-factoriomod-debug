@@ -217,6 +217,22 @@ export class LuaLSClass {
 
 		output.write(`\n`);
 	}
+
+	format():string {
+		if ( this.description || this.parents || this.generic_args || this.global_name || this.functions || this.call_op) {
+			throw new Error("Can't inline table with unsupported features");
+
+		}
+		if (!this.fields) {
+			return `{}`;
+		}
+		return `{${this.fields.map((f, i)=>{
+			if (typeof f.name === "string") {
+				return `${f.name}:${f.type.format()}`;
+			}
+			return `[${f.name.format()}]:${f.type.format()}`;
+		}).join(", ")}}`;
+	}
 }
 
 export class LuaLSField {

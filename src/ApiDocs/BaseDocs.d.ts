@@ -35,4 +35,10 @@ interface BaseTypeType<T> {
 	readonly description: string
 }
 
-type DescriptionFormatter = (description:string|undefined, scope:"runtime"|"prototype", member:string, part?:string|undefined)=>string|undefined|Promise<string|undefined>;
+type DocDescription = string|undefined;
+interface DocLink {
+	scope:"runtime"|"prototype"
+	member:string
+	part?:string|undefined
+}
+type DocDescriptionFormatter = (description:DocDescription, doclink?:DocLink)=>DocDescription|Promise<DocDescription>;

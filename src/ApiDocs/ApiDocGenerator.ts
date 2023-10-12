@@ -227,9 +227,10 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	}
 
 	public generate_LuaLS_docs(
-		format_description:DescriptionFormatter
+		format_description:DocDescriptionFormatter
 	):(LuaLSFile|Promise<LuaLSFile>)[] {
 		return [
+			this.generate_LuaLS_concepts(format_description),
 			this.generate_LuaLS_defines(format_description),
 			this.generate_LuaLS_events(format_description),
 			this.generate_LuaLS_LuaObjectNames(format_description),
@@ -237,16 +238,53 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		];
 	}
 
-	private async generate_LuaLS_defines(format_description:DescriptionFormatter) {
+	private async generate_LuaLS_concepts(format_description:DocDescriptionFormatter) {
+		const file = new LuaLSFile("runtime-api-concepts", this.docs.application_version);
+
+		for (const concept of this.docs.concepts) {
+			if (typeof concept.type === "string") {
+				//TODO: description
+				const alias = new LuaLSAlias(concept.name, await this.LuaLS_type(concept.type));
+				file.add(alias);
+			} else {
+				switch (concept.type.complex_type) {
+					case "dictionary":
+					case "union":
+					case "array":
+					case "table":
+					case "tuple":
+					{
+						const inner = await this.LuaLS_type(concept.type, {file, table_class_name: concept.name, format_description});
+						if (inner instanceof LuaLSTypeName && inner.name === concept.name) {
+
+						} else {
+							const alias = new LuaLSAlias(concept.name, inner);
+							file.add(alias);
+						}
+						break;
+					}
+					case "struct":
+					case "LuaStruct":
+					default:
+						break;
+						throw new Error("");
+
+				}
+			}
+		}
+		return file;
+	}
+
+	private async generate_LuaLS_defines(format_description:DocDescriptionFormatter) {
 		const file = new LuaLSFile("runtime-api-defines", this.docs.application_version);
 		const defines = new LuaLSClass("defines");
 		defines.global_name="defines";
-		defines.description = await format_description(undefined, "runtime", "defines");
+		defines.description = await format_description(undefined, {scope: "runtime", member: "defines"});
 		file.add(defines);
 
 		const generate = async (define:ApiDefine, name_prefix:string)=>{
 			const name = `${name_prefix}${define.name}`;
-			const description = format_description(define.description, "runtime", name);
+			const description = format_description(define.description, {scope: "runtime", member: name});
 			//there aren't any with both values and subkeys for now,
 			//we'll deal with that if it ever happens...
 			if (define.values) {
@@ -282,7 +320,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		return file;
 	}
 
-	private async generate_LuaLS_events(format_description:DescriptionFormatter) {
+	private async generate_LuaLS_events(format_description:DocDescriptionFormatter) {
 		const file = new LuaLSFile("runtime-api-events", this.docs.application_version);
 		const handlers = new LuaLSClass("event_handler.events");
 		handlers.fields = [];
@@ -297,10 +335,10 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			const lsevent = new LuaLSClass(`EventData.${event.name}`);
 			lsevent.fields = [];
 			lsevent.parents = [new LuaLSTypeName("EventData")];
-			lsevent.description = await format_description(event.description, "runtime", event.name);
+			lsevent.description = await format_description(event.description, {scope: "runtime", member: event.name});
 			for (const param of event.data) {
-				const lsparam = new LuaLSField(param.name, this.LuaLS_type(param.type));
-				lsparam.description = await format_description(param.description, "runtime", event.name, param.name);
+				const lsparam = new LuaLSField(param.name, await this.LuaLS_type(param.type));
+				lsparam.description = await format_description(param.description, {scope: "runtime", member: event.name, part: param.name});
 				lsparam.optional = param.optional;
 				lsevent.fields.push(lsparam);
 			}
@@ -315,7 +353,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		return file;
 	}
 
-	private async generate_LuaLS_LuaObjectNames(format_description:DescriptionFormatter) {
+	private async generate_LuaLS_LuaObjectNames(format_description:DocDescriptionFormatter) {
 		const file = new LuaLSFile("runtime-api-LuaObjectNames", this.docs.application_version);
 		const names = new LuaLSAlias("LuaObject.object_name", new LuaLSUnion(
 			this.docs.classes.filter(c=>!c.abstract).map(c=>new LuaLSLiteral(c.name))
@@ -324,7 +362,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		return file;
 	}
 
-	private async generate_LuaLS_global_functions(format_description:DescriptionFormatter) {
+	private async generate_LuaLS_global_functions(format_description:DocDescriptionFormatter) {
 		const file = new LuaLSFile("runtime-api-global_functions", this.docs.application_version);
 
 		for (const func of this.docs.global_functions) {
@@ -334,7 +372,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		return file;
 	}
 
-	private async LuaLS_function(func:ApiMethod, format_description:DescriptionFormatter, in_class?:string):Promise<LuaLSFunction> {
+	private async LuaLS_function(func:ApiMethod, format_description:DocDescriptionFormatter, in_class?:string):Promise<LuaLSFunction> {
 		if (func.takes_table) {
 			throw new Error("");
 		} else {
@@ -342,48 +380,98 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 				throw new Error("");
 			}
 			const lsfunc = new LuaLSFunction(func.name,
-				func.parameters.map(p=>{
-					const lsparam = new LuaLSParam(p.name, this.LuaLS_type(p.type));
+				await Promise.all(func.parameters.map(async p=>{
+					const lsparam = new LuaLSParam(p.name, await this.LuaLS_type(p.type));
 					lsparam.description = p.description;
 					lsparam.optional = p.optional;
 					return lsparam;
-				}),
-				func.return_values.map(r=>{
-					const lsreturn = new LuaLSReturn(this.LuaLS_type(r.type));
+				})),
+				await Promise.all(func.return_values.map(async r=>{
+					const lsreturn = new LuaLSReturn(await this.LuaLS_type(r.type));
 					lsreturn.description = r.description;
 					lsreturn.optional = r.optional;
 					return lsreturn;
-				}));
-			lsfunc.description = await format_description(func.description, "runtime", in_class??"libraries", in_class?func.name:"new-functions");
+				})));
+			lsfunc.description = await format_description(func.description, {scope: "runtime", member: in_class??"libraries", part: in_class?func.name:"new-functions"});
 			return lsfunc;
 		}
 		throw new Error("");
 	}
 
+	// method table params and table/tuple complex_types
+	private async LuaLS_table_type(type_data:ApiWithParameters, file:LuaLSFile,  table_class_name:string, format_description:DocDescriptionFormatter, parents?:LuaLSType[]):Promise<LuaLSTypeName> {
+		const lsclass = new LuaLSClass(table_class_name);
+		lsclass.parents = parents;
+		file.add(lsclass);
+		lsclass.fields = [];
 
+		let i = 1;
+		for (const param of type_data.parameters) {
+			const is_tuple = "complex_type" in type_data && type_data.complex_type === "tuple";
 
-	private LuaLS_type(api_type:ApiType|undefined):LuaLSType {
+			const field = new LuaLSField(is_tuple?new LuaLSLiteral(i++):param.name, await this.LuaLS_type(param.type));
+			//field.description = await format_description(param.description, "runtime", table_class_name, param.name);
+			field.optional = param.optional;
+			lsclass.fields.push(field);
+		}
+
+		if (type_data.variant_parameter_groups) {
+			const inners:LuaLSType[] = [];
+			const innerunion = new LuaLSAlias(lsclass.name, new LuaLSUnion(inners));
+			file.add(innerunion);
+			lsclass.name += ".base";
+			for (const group of type_data.variant_parameter_groups) {
+				const inner = (await this.LuaLS_table_type(group, file, `${table_class_name}.${to_lua_ident(group.name)}`, format_description, [ new LuaLSTypeName(lsclass.name) ]));
+
+				//TODO: proper link names?
+				//inner.description = await format_description(group.description, "runtime", "");
+				inners.push(inner);
+			}
+			return new LuaLSTypeName(innerunion.name);
+		}
+		return new LuaLSTypeName(lsclass.name);;
+	}
+
+	private async LuaLS_type(api_type:ApiType|undefined, in_parent?:{
+		file:LuaLSFile
+		table_class_name:string
+		format_description:DocDescriptionFormatter
+	}):Promise<LuaLSType> {
 		if (!api_type) { return new LuaLSTypeName("any"); }
 		if (typeof api_type === "string") { return new LuaLSTypeName(api_type); }
+		const sub_parent = (name:string)=>{
+			if (!in_parent) {
+				return in_parent;
+			}
+			return {
+				file: in_parent.file,
+				table_class_name: `${in_parent.table_class_name}.${name}`,
+				format_description: in_parent.format_description,
+			};
+		};
 		switch (api_type.complex_type) {
 			case "array":
-				return new LuaLSArray(this.LuaLS_type(api_type.value));
+				return new LuaLSArray(await this.LuaLS_type(api_type.value, sub_parent("member")));
 			case "dictionary":
-				return new LuaLSDict(this.LuaLS_type(api_type.key), this.LuaLS_type(api_type.value));
+				return new LuaLSDict(await this.LuaLS_type(api_type.key, sub_parent("key")), await this.LuaLS_type(api_type.value, sub_parent("value")));
 			case "union":
-				return new LuaLSUnion(api_type.options.map(t=>this.LuaLS_type(t)));
+				return new LuaLSUnion(await Promise.all(api_type.options.map((t, i)=>this.LuaLS_type(t, sub_parent(`${i}`)))));
 			case "LuaLazyLoadedValue":
-				return new LuaLSTypeName("LuaLazyLoadedValue", [this.LuaLS_type(api_type.value)]);
+				return new LuaLSTypeName("LuaLazyLoadedValue", [await this.LuaLS_type(api_type.value, sub_parent("value"))]);
 			case "LuaCustomTable":
-				return new LuaLSTypeName("LuaLazyLoadedValue", [this.LuaLS_type(api_type.key), this.LuaLS_type(api_type.value)]);
+				return new LuaLSTypeName("LuaCustomTable", await Promise.all([this.LuaLS_type(api_type.key, sub_parent("key")), this.LuaLS_type(api_type.value, sub_parent("value"))]));
 			case "literal":
 				return new LuaLSLiteral(api_type.value);
 			case "function":
-				return new LuaLSFunction(undefined, api_type.parameters.map((p, i)=>new LuaLSParam(`p${i+1}`, this.LuaLS_type(p))));
+				return new LuaLSFunction(undefined, await Promise.all(api_type.parameters.map(async(p, i, a)=>new LuaLSParam(`p${i+1}`, await this.LuaLS_type(p, sub_parent(`param${a.length>1?i:""}`))))));
 			case "type":
-				return this.LuaLS_type(api_type.value);
+				return this.LuaLS_type(api_type.value, in_parent);
 			case "table":
 			case "tuple":
+				if (!in_parent) {
+					throw new Error(`${api_type.complex_type} without parent`);
+				}
+				return this.LuaLS_table_type(api_type, in_parent.file, in_parent.table_class_name, in_parent.format_description);
 
 			case "struct":// V3
 			case "LuaStruct":// V4
@@ -398,18 +486,9 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		this.tables = tables;
 
 		this.generate_sumneko_classes(createWriteStream);
-		this.generate_sumneko_section("concepts", createWriteStream);
 
 		tables.close();
 		this.tables = undefined;
-	}
-
-	private generate_sumneko_section(name:"concepts", createWriteStream:(filename:string)=>WriteStream) {
-		const fs = createWriteStream(`runtime-api-${name}.lua`);
-		this.generate_sumneko_header(fs, name);
-		this[`generate_sumneko_${name}`](fs);
-		fs.write(`\n`);
-		fs.close();
 	}
 
 	private generate_sumneko_header(output:Writable, name:string) {
@@ -667,7 +746,6 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		interface parameter_info{
 			readonly name:string
 			readonly type:ApiType
-			readonly order:number
 			description:string
 			readonly optional?:boolean
 		}
@@ -682,7 +760,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		});
 
 		if (type_data.variant_parameter_groups) {
-			type_data.variant_parameter_groups.concat(overlay.adjust.table[table_class_name]?.variant_parameter_groups??[]).sort(sort_by_order).forEach(group=>{
+			type_data.variant_parameter_groups.sort(sort_by_order).forEach(group=>{
 				group.parameters.sort(sort_by_order).forEach(parameter=>{
 					let custom_description = `${applies_to} **"${group.name}"**: ${parameter.optional?"(optional)":"(required)"}${parameter.description?`\n${parameter.description}`:''}`;
 
@@ -690,7 +768,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 					if (custom_parameter) {
 						custom_parameter.description = custom_parameter.description ? `${custom_parameter.description}\n\n${custom_description}` : custom_description;
 					} else {
-						custom_parameter = {name: parameter.name, type: parameter.type, order: parameter.order, description: custom_description, optional: parameter.optional};
+						custom_parameter = {name: parameter.name, type: parameter.type, description: custom_description, optional: parameter.optional};
 						custom_parameter_map.set(parameter.name, custom_parameter);
 						custom_parameters.push(custom_parameter);
 					}

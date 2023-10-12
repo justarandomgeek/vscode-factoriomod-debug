@@ -56,8 +56,9 @@ program.command("sumneko-3rd [outdir]")
 				};
 			});
 
-		const format_description:DescriptionFormatter = async (description, scope, member, part)=>{
-			const result = String(await descr.process(`${description??""}\n\n[View Documentation](${scope}:${member}${part?"::"+part:""})`.trim())).trim();
+		const format_description:DocDescriptionFormatter = async (description, doclink?)=>{
+			const link = doclink ? `[View Documentation](${doclink.scope}:${doclink.member}${doclink.part?"::"+doclink.part:""})` : "" ;
+			const result = String(await descr.process(`${description??""}\n\n${link}`.trim())).trim();
 			return result;
 		};
 
