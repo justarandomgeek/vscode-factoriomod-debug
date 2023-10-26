@@ -6,13 +6,16 @@ If you want better LSP support outside of vscode, you can't just use the extensi
 
 Get [fmtk from npm](https://www.npmjs.com/package/factoriomod-debug), which is the commandline tool.
 
-Download the docs([direct link](https://lua-api.factorio.com/latest/static/archive.zip)) or go to the [API docs] (https://lua-api.factorio.com/latest/) and download from the link in the bottom (same thing as the direct link).
+Find the docs that came with your game install (recommended) or download them. On Windows the default directory is ```C:\Program Files (x86)\Steam\steamapps\common\Factorio\doc-html```
 
-Extract the docs anywhere and open that folder in a terminal and  run the following command to generate the files:
+If for some reason you need to, download the docs([direct link](https://lua-api.factorio.com/latest/static/archive.zip)) or go to the [API docs] (https://lua-api.factorio.com/latest/) and download from the link in the bottom (same thing as the direct link).
+
+Open that folder in a terminal and  run the following command to generate the files:
 
 ```fmtk sumneko-3rd -d runtime-api.json -p prototype-api.json```
 
-This will make a folder called factorio in the directory you opened the terminal in. You can copy paste this anywhere at all, I put it in C:/libraries.
+This will make a folder called factorio in the directory you opened the terminal in. You can copy paste this anywhere at all, I put it in C:/libraries (luals will look in the entire folder for any libraries you put there).
+
   
 # Inluding it in your LSP (Neovim)
 
