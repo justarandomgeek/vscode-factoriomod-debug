@@ -8,7 +8,7 @@ Get [fmtk from npm](https://www.npmjs.com/package/factoriomod-debug), which is t
 
 Find the docs that came with your game install (recommended) or download them. On Windows the default directory is ```C:\Program Files (x86)\Steam\steamapps\common\Factorio\doc-html```
 
-If for some reason you need to, download the docs([direct link](https://lua-api.factorio.com/latest/static/archive.zip)) or go to the [API docs] (https://lua-api.factorio.com/latest/) and download from the link in the bottom (same thing as the direct link).
+If for some reason you need to, download the docs([direct link](https://lua-api.factorio.com/latest/static/archive.zip)) or go to the [API docs](https://lua-api.factorio.com/latest/) and download from the link in the bottom (same thing as the direct link).
 
 Open that folder in a terminal and  run the following command to generate the files:
 

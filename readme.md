@@ -9,7 +9,7 @@ A collection of tools for developing Factorio mods. This package is both [an npm
  * [Language Server integration for Lua](doc/language-lua.md) via [sumneko.lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua)
  * [Packaging and Publishing](doc/package.md)
 
- * [Getting LSP text editors other than vscode](doc/lsptutorial.md)
+ * [Getting LSP on text editors other than vscode](doc/lsptutorial.md)
 
 ## Support FMTK
 
