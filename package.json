@@ -476,6 +476,11 @@
         "command": "factorio.setApiKey",
         "category": "Factorio",
         "title": "Set API Key"
+      },
+      {
+        "command": "factorio.selectVersion",
+        "category": "Factorio",
+        "title": "Select Version"
       }
     ],
     "views": {
