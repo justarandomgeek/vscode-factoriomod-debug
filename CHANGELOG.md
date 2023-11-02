@@ -3,10 +3,15 @@
 [<img height='36' style='border:0px;height:36px;' src='https://az743702.vo.msecnd.net/cdn/kofi2.png?v=2' border='0' alt='Buy Me a Coffee at ko-fi.com'/>](https://ko-fi.com/X8X41IE4T)
 
 ## 1.1.38
+* Debugger:
+  * Pass `SteamAppId` environment variable instead of trying to create `steam_appid.txt`
+* VSCode:
+  * Added Output channel for general logging and diagnostics
+* Sumneko library package:
+  * Updated library generator remaining runtime types
 
 ## 1.1.37
 * No longer use `keytar` which VSCode has removed.
-
 
 ## 1.1.36
 * Debugger:
