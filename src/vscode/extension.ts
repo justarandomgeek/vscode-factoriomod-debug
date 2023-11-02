@@ -8,24 +8,42 @@ import * as LanguageClient from "../Language/Client";
 import { ModSettingsEditorProvider } from '../ModSettings/ModSettingsEditorProvider';
 import { ScriptDatEditorProvider } from '../ScriptDat/ScritpDatEditorProvider';
 
+import { version } from "../../package.json";
+
 export function activate(context: vscode.ExtensionContext) {
-	const versionSelector = new FactorioVersionSelector(context);
 
-	const provider = new FactorioModConfigurationProvider(versionSelector);
-	context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('factoriomod', provider));
+	const output = vscode.window.createOutputChannel("FMTK", { log: true });
 
-	const factory = new DebugAdapterFactory(versionSelector);
+	output.info(`FMTK ${version}`);
+	try {
+		output.info(`Registering Version Selector...`);
+		const versionSelector = new FactorioVersionSelector(context, output);
 
-	context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('factoriomod', factory));
-	context.subscriptions.push(factory);
+		output.info(`Registering Debug Provider...`);
+		const provider = new FactorioModConfigurationProvider(versionSelector);
+		context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('factoriomod', provider));
 
-	LanguageClient.activate(context);
+		const factory = new DebugAdapterFactory(versionSelector);
+		context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('factoriomod', factory));
+		context.subscriptions.push(factory);
 
-	activateModPackageProvider(context);
+		output.info(`Registering Language Client...`);
+		LanguageClient.activate(context);
 
-	new ProfileRenderer(context);
-	new ModSettingsEditorProvider(context);
-	new ScriptDatEditorProvider(context);
+		output.info(`Registering Mod Package Provider...`);
+		activateModPackageProvider(context);
+
+		output.info(`Registering Profile Renderer...`);
+		new ProfileRenderer(context);
+
+		output.info(`Registering Custom Editors...`);
+		new ModSettingsEditorProvider(context);
+		new ScriptDatEditorProvider(context);
+
+		output.info(`Activate Complete`);
+	} catch (error) {
+		output.error(`Error while activating: ${error}`);
+	}
 }
 
 class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvider {

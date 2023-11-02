@@ -22,6 +22,7 @@ export class FactorioVersionSelector {
 
 	constructor(
 		private context:vscode.ExtensionContext,
+		private output:vscode.LogOutputChannel,
 	) {
 		this.bar = vscode.window.createStatusBarItem("factorio-version", vscode.StatusBarAlignment.Left, 10);
 		this.bar.name = "Factorio Version Selector";
@@ -59,6 +60,7 @@ export class FactorioVersionSelector {
 
 		this.bar.text = `Factorio ${docs.application_version} (${active_version.name})`;
 		this._active_version = new ActiveFactorioVersion(vscode.workspace.fs, active_version, docs, vscode.workspace.workspaceFolders);
+		this.output.info(`Active Factorio version: ${active_version.name} (${docs.application_version})`);
 
 		this.checkDocs();
 	}
@@ -173,6 +175,7 @@ export class FactorioVersionSelector {
 		this.bar.text = `Factorio ${docs.application_version} (${active_version.name})`;
 		const previous_active = this._active_version;
 		this._active_version = new ActiveFactorioVersion(vscode.workspace.fs, active_version, docs, vscode.workspace.workspaceFolders);
+		this.output.info(`Active Factorio version: ${active_version.name} (${docs.application_version})`);
 
 		this._active_version.checkSteamAppID(vscode.window);
 		await this.generateDocs(previous_active);
