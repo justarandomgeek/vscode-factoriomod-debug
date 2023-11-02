@@ -21,7 +21,7 @@ export class FactorioProcess extends EventEmitter {
 		const spawnOptions: SpawnOptions = {
 			cwd: path.dirname(factorioPath),
 			// applying passed environment variables over parent environment
-			env: Object.assign({}, process.env, env),
+			env: Object.assign({}, process.env, env, {SteamAppId: "427520"}),
 		};
 
 		if (nativeDebugger) {

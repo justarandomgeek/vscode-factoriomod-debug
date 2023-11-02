@@ -177,7 +177,6 @@ export class FactorioVersionSelector {
 		this._active_version = new ActiveFactorioVersion(vscode.workspace.fs, active_version, docs, vscode.workspace.workspaceFolders);
 		this.output.info(`Active Factorio version: ${active_version.name} (${docs.application_version})`);
 
-		this._active_version.checkSteamAppID(vscode.window);
 		await this.generateDocs(previous_active);
 	}
 

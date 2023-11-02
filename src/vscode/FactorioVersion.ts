@@ -2,7 +2,7 @@ import type * as vscode from 'vscode';
 import * as ini from 'ini';
 import * as os from 'os';
 import * as path from 'path';
-import { URI, Utils } from "vscode-uri";
+import { URI } from "vscode-uri";
 import type { ApiDocGenerator } from '../ApiDocs/ApiDocGenerator';
 
 export interface FactorioVersion {
@@ -148,27 +148,6 @@ export class ActiveFactorioVersion {
 		filedata = filedata.replace("cache-prototype-data=", "; cache-prototype-data=");
 		await this.fs.writeFile(configUri, Buffer.from(filedata));
 		this.iniData = ini.parse(filedata);
-	}
-
-	public async checkSteamAppID(prompt:Pick<typeof vscode.window, "showInformationMessage"|"showErrorMessage">) {
-		const factorioPath = URI.file(this.factorioPath);
-		const stats = await Promise.allSettled(
-			[ "../steam_api64.dll", "../libsteam_api.dylib", "../libsteam_api.so"]
-				.map(s=>this.fs.stat(Utils.joinPath(factorioPath, s)))
-		);
-		if (stats.find(psr=>psr.status==="fulfilled")) {
-			const appidUri = Utils.joinPath(factorioPath, "../steam_appid.txt");
-			const appidStat = await Promise.allSettled([this.fs.stat(appidUri)]);
-			if (!appidStat.find(psr=>psr.status==="fulfilled")) {
-				if ("Yes" === await prompt.showInformationMessage("This is a steam install, and will require `steam_appid.txt` in order to be used for debugging. Create it now?", "Yes", "No")) {
-					try {
-						await this.fs.writeFile(appidUri, Buffer.from("427520"));
-					} catch (error) {
-						prompt.showErrorMessage(`failed to write "427520" to ${appidUri}: ${error}`);
-					}
-				}
-			}
-		}
 	}
 
 	public async defaultModsPath() {
