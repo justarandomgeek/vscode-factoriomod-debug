@@ -29,7 +29,7 @@ program.command("sumneko-3rd [outdir]")
 		};
 		if (docs.api_version === 4) {
 			if (!options.protos) {
-				console.log("prototype-api.json is required for v4 docs");
+				console.log("prototype-api.json (specified with -p arg) is required for v4 docs");
 				return;
 			}
 			pdocs = new ProtoDocGenerator((await fsp.readFile(options.protos, "utf8")).toString(), docsettings);
