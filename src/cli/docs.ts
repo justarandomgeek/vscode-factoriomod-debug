@@ -62,23 +62,17 @@ program.command("sumneko-3rd [outdir]")
 			return result;
 		};
 
-		const createLibFileWriteStream =
-			(filename:string)=>createWriteStream(path.join(libdir, filename));
-
 		await fsp.mkdir(libdir, { recursive: true });
-		docs.generate_sumneko_docs(createLibFileWriteStream);
-		if (pdocs) {
-			await Promise.all(
-				[
-					...docs.generate_LuaLS_docs(format_description),
-					...pdocs.generate_LuaLS_docs(format_description),
-				].map(async plsfile=>{
-					const lsfile = await plsfile;
-					const file = createWriteStream(path.join(libdir, lsfile.name+".lua"));
-					await lsfile.write(file);
-					file.close();
-				}));
-		}
+		await Promise.all(
+			[
+				...await docs.generate_LuaLS_docs(format_description),
+				...pdocs?.generate_LuaLS_docs(format_description) ?? [],
+			].map(async plsfile=>{
+				const lsfile = await plsfile;
+				const file = createWriteStream(path.join(libdir, lsfile.name+".lua"));
+				await lsfile.write(file);
+				file.close();
+			}));
 
 		const sumneko3rd = await import("../Sumneko3rd");
 		await Promise.all((await sumneko3rd.getLuaFiles()).map(async (file)=>{

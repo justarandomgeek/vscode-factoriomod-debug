@@ -186,10 +186,11 @@ export class LuaLSClass {
 	generic_args?:string[];
 	global_name?:string;
 
+	operators?:LuaLSOperator[];
+	call_op?:LuaLSOverload;
+
 	fields?:LuaLSField[];
 	functions?:LuaLSFunction[];
-
-	call_op?:LuaLSOverload;
 
 	async write(output:Writable) {
 		await format_lua_description(output, this.description);
@@ -204,18 +205,26 @@ export class LuaLSClass {
 				await field.write(output);
 			}
 		}
+		output.write(`${this.global_name ?? ("local " + to_lua_ident(this.name))}={\n`);
 
-		if (this.global_name && !this.functions) {
-			output.write(`${this.global_name}={}\n`);
-		} else if (this.functions) {
-			output.write(`${this.global_name ?? ("local " + to_lua_ident(this.name))}={\n`);
+		if (this.operators) {
+			for (const op of this.operators) {
+				await op.write(output);
+			}
+		}
+
+
+		if (this.call_op) {
+			await this.call_op.write(output);
+		}
+
+		if (this.functions) {
 			for (const func of this.functions) {
 				await func.write(output);
 			}
-			output.write(`}\n`);
 		}
 
-		output.write(`\n`);
+		output.write(`}\n\n`);
 	}
 
 	format():string {
@@ -234,6 +243,25 @@ export class LuaLSClass {
 		}).join(", ")}}`;
 	}
 }
+
+export class LuaLSOperator {
+	constructor(
+		public name:"len",
+		public type:LuaLSType,
+		public input_type?:LuaLSType,
+	) {}
+
+	async write(output:Writable) {
+		output.write(`---@operator ${this.name}`);
+
+		if (this.input_type) {
+			output.write(`(${this.input_type.format()})`);
+		}
+		output.write(`:${this.type.format()}\n`);
+
+	}
+}
+
 
 export class LuaLSField {
 	constructor(
@@ -264,8 +292,16 @@ export class LuaLSOverload {
 	params?:LuaLSParam[];
 	returns?:LuaLSReturn[];
 
-	write(output:Writable) {
-
+	async write(output:Writable) {
+		let params = "";
+		if (this.params) {
+			params = this.params.map(p=>`${p.name}:${p.type.format()}`).join(", ");
+		}
+		let returns = "";
+		if (this.returns) {
+			returns = `:${this.returns.map(r=>r.type.format()).join(", ")}`;
+		}
+		output.write(`---@overload fun(${params})${returns}\n`);
 	}
 }
 
@@ -291,6 +327,11 @@ export class LuaLSFunction {
 		if (this.returns) {
 			for (const ret of this.returns) {
 				ret.write(output);
+			}
+		}
+		if (this.overloads) {
+			for (const ol of this.overloads) {
+				ol.write(output);
 			}
 		}
 		output.write(`${this.name} = function(`);
