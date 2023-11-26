@@ -121,8 +121,8 @@
 			"cwd": "${workspaceFolder}",
 			"args": [
 				"sumneko-3rd",
-				"-d","d:/factorio/factoriogit/scripts/lua_doc/doc-files/runtime-api.json",
-				"-p","d:/factorio/factoriogit/scripts/lua_doc/doc-files/prototype-api.json",
+				"-d","${workspaceFolder}/test/factorio/doc-html/runtime-api.json",
+				"-p","${workspaceFolder}/test/factorio/doc-html/prototype-api.json",
 				"${workspaceFolder}/out/sumneko-3rd",
 			],
 			"console": "integratedTerminal",
