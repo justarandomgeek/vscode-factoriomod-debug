@@ -5,14 +5,10 @@ export const overlay:{
 		table: { [classname:string]: ApiWithParameters }
 		class: { [classname:string]: {
 			generic_params?: string[]
-			generic_methods?: {
-				name:string
-				return_values:(string|undefined)[]
-			}[]
-			indexed?: {
-				key: ApiType
-				value?: ApiType
-			}
+			generic_parent?: ApiType
+			no_index?: boolean
+			index_key?: ApiType
+			split_funcs?: boolean
 		} }
 		define: { [name:string]: {
 			subkeys?:string[]
@@ -225,30 +221,22 @@ export const overlay:{
 		class: {
 			"LuaLazyLoadedValue": {
 				generic_params: ["T"],
-				generic_methods: [
-					{
-						name: "get",
-						return_values: ["T"],
-					},
-				],
+				generic_parent: "{get:fun():T}",
 			},
 			"LuaCustomTable": {
 				generic_params: ["K", "V"],
-				indexed: {
-					key: "K",
-					value: "V",
-				},
+				generic_parent: "{[K]:V}",
+				no_index: true,
 			},
 			"LuaGuiElement": {
-				indexed: {
-					key: {
-						complex_type: "union",
-						options: [
-							"string",
-							"uint",
-						],
-					},
+				index_key: {
+					complex_type: "union",
+					options: [
+						"string",
+						"uint",
+					],
 				},
+				split_funcs: true,
 			},
 		},
 		define: {

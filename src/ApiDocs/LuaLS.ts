@@ -194,7 +194,11 @@ export class LuaLSClass {
 
 	async write(output:Writable) {
 		await format_lua_description(output, this.description);
+		output.write(`do\n`);
 		output.write(`---@class ${this.name}`);
+		if (this.generic_args) {
+			output.write(`<${this.generic_args.join(",")}>`);
+		}
 		if (this.parents) {
 			output.write(`:${this.parents.map(t=>t.format()).join(", ")}`);
 		}
@@ -205,7 +209,10 @@ export class LuaLSClass {
 				await field.write(output);
 			}
 		}
-		output.write(`${this.global_name ?? ("local " + to_lua_ident(this.name))}={\n`);
+
+		if (this.call_op) {
+			await this.call_op.write(output);
+		}
 
 		if (this.operators) {
 			for (const op of this.operators) {
@@ -213,10 +220,7 @@ export class LuaLSClass {
 			}
 		}
 
-
-		if (this.call_op) {
-			await this.call_op.write(output);
-		}
+		output.write(`${this.global_name ?? ("local " + to_lua_ident(this.name))}={\n`);
 
 		if (this.functions) {
 			for (const func of this.functions) {
@@ -224,7 +228,7 @@ export class LuaLSClass {
 			}
 		}
 
-		output.write(`}\n\n`);
+		output.write(`}\nend\n\n`);
 	}
 
 	format():string {

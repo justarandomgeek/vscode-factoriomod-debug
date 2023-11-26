@@ -1,7 +1,7 @@
 import { overlay } from "./Overlay";
 import type { Writable } from "stream";
 import type { DocSettings } from "./DocSettings";
-import { LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSEnum, LuaLSEnumField, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSLiteral, LuaLSParam, LuaLSReturn, LuaLSType, LuaLSTypeName, LuaLSUnion, escape_lua_keyword, to_lua_ident } from "./LuaLS";
+import { LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSEnum, LuaLSEnumField, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSLiteral, LuaLSOperator, LuaLSOverload, LuaLSParam, LuaLSReturn, LuaLSType, LuaLSTypeName, LuaLSUnion, escape_lua_keyword, to_lua_ident } from "./LuaLS";
 
 
 function sort_by_order(a:{order:number}, b:{order:number}) {
@@ -250,25 +250,20 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	private async generate_LuaLS_class(aclass:ApiClass, format_description:DocDescriptionFormatter) {
 		const file = new LuaLSFile(`runtime-api-${aclass.name}`, this.docs.application_version);
 		const lsclass = new LuaLSClass(aclass.name);
+
+		const global = this.globals.get(aclass.name);
+		if (global) {
+			lsclass.global_name = global.name;
+		}
 		//TODO: description
 
 		lsclass.parents = (aclass.base_classes ?? ["LuaObject"]).map(t=>new LuaLSTypeName(t));
 		lsclass.generic_args = overlay.adjust.class[aclass.name]?.generic_params;
-		lsclass.fields = [];
-		lsclass.functions = [];
-
-		for (const operator of aclass.operators) {
-			switch (operator.name) {
-				case "call":
-				case "length":
-				case "index":
-
-					break;
-
-				default:
-					throw `Unkown operator: ${(<ApiOperator>operator).name}`;
-			}
+		if (overlay.adjust.class[aclass.name]?.generic_parent) {
+			lsclass.parents.push(await this.LuaLS_type(overlay.adjust.class[aclass.name]?.generic_parent));
 		}
+		lsclass.fields = [];
+		lsclass.operators = [];
 
 		for (const attribute of aclass.attributes) {
 			const lsfield = new LuaLSField(attribute.name, await this.LuaLS_type(attribute.type, {
@@ -277,10 +272,49 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			lsclass.fields.push(lsfield);
 		}
 
-		for (const method of aclass.methods) {
-			lsclass.functions.push(await this.LuaLS_function(method, file, format_description, aclass.name));
+		for (const operator of aclass.operators) {
+			switch (operator.name) {
+				case "call":
+				{
+					const callop = new LuaLSOverload();
+					callop.params = await this.LuaLS_params(operator.parameters, format_description);
+					callop.returns = await this.LuaLS_returns(operator.return_values, format_description);
+					lsclass.call_op = callop;
+					break;
+				}
+				case "length":
+				{
+					const lenop = new LuaLSOperator("len", await this.LuaLS_type(operator.type));
+					lsclass.operators.push(lenop);
+					break;
+				}
+				case "index":
+				{
+					if (overlay.adjust.class[aclass.name]?.no_index) { break; }
+					const lsfield = new LuaLSField(
+						await this.LuaLS_type(overlay.adjust.class[aclass.name]?.index_key ?? "uint"),
+						await this.LuaLS_type(operator.type),
+					);
+					lsclass.fields.push(lsfield);
+					break;
+				}
+				default:
+					throw `Unkown operator: ${(<ApiOperator>operator).name}`;
+			}
 		}
 
+		let funcclass = lsclass;
+		if (overlay.adjust.class[aclass.name]?.split_funcs) {
+			funcclass = new LuaLSClass(`${aclass.name}_funcs`);
+
+			file.add(funcclass);
+			lsclass.parents.push(new LuaLSTypeName(`${aclass.name}_funcs`));
+		}
+		funcclass.functions = [];
+
+		for (const method of aclass.methods) {
+			funcclass.functions.push(await this.LuaLS_function(method, file, format_description, aclass.name));
+		}
 
 		file.add(lsclass);
 		return file;
@@ -316,6 +350,8 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 					case "array":
 					case "table":
 					case "tuple":
+					case "struct":
+					case "LuaStruct":
 					{
 						const inner = await this.LuaLS_type(concept.type, {file, table_class_name: concept.name, format_description});
 						if (inner instanceof LuaLSTypeName && inner.name === concept.name) {
@@ -326,8 +362,6 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 						}
 						break;
 					}
-					case "struct":
-					case "LuaStruct":
 					default:
 						break;
 						throw new Error("");
@@ -435,10 +469,9 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		return file;
 	}
 
-
 	private async LuaLS_params(params:ApiParameter[], format_description:DocDescriptionFormatter):Promise<LuaLSParam[]> {
 		return Promise.all(params.map(async p=>{
-			const lsparam = new LuaLSParam(p.name, await this.LuaLS_type(p.type));
+			const lsparam = new LuaLSParam(to_lua_ident(p.name), await this.LuaLS_type(p.type));
 			lsparam.description = p.description;
 			lsparam.optional = p.optional;
 			return lsparam;
@@ -456,7 +489,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 	private async LuaLS_function(func:ApiMethod, file:LuaLSFile, format_description:DocDescriptionFormatter, in_class?:string):Promise<LuaLSFunction> {
 		const params = func.takes_table ?
-			[ new LuaLSParam("param", await this.LuaLS_table_type(func, file, `${func.name}_param`, format_description)) ]:
+			[ new LuaLSParam("param", await this.LuaLS_table_type(func, file, `${in_class??""}${in_class?".":""}${func.name}_param`, format_description)) ]:
 			await this.LuaLS_params(func.parameters, format_description);
 		if (func.variadic_type) {
 			const dots = new LuaLSParam("...", await this.LuaLS_type(func.variadic_type));
@@ -548,6 +581,23 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 			case "struct":// V3
 			case "LuaStruct":// V4
+			{
+				if (!in_parent) {
+					throw new Error(`${api_type.complex_type} without parent`);
+				}
+				const lsclass = new LuaLSClass(in_parent.table_class_name);
+				lsclass.fields = [];
+				for (const attribute of api_type.attributes) {
+					const lsfield = new LuaLSField(attribute.name, await this.LuaLS_type(attribute.type, {
+						file: in_parent.file,
+						table_class_name: `${in_parent.table_class_name}.${attribute.name}`,
+						format_description: in_parent.format_description,
+					}));
+					lsclass.fields.push(lsfield);
+				}
+				in_parent.file.add(lsclass);
+				return new LuaLSTypeName(in_parent.table_class_name);
+			}
 
 		}
 		throw new Error("Invalid Type");
@@ -663,17 +713,8 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		const generic_params = overlay.adjust.class[aclass.name]?.generic_params;
 		const operators = aclass.operators;
 		const generic_tag = generic_params? `<${generic_params.join(',')}>`:'';
-		const indexed = generic_params ?
-			overlay.adjust.class[aclass.name]?.indexed :
-			undefined;
-		const indexed_table = indexed ?
-			`{[${this.format_sumneko_type(indexed.key, ()=>[`${aclass.name}.__indexkey`, ''])}]:${this.format_sumneko_type(indexed.value, ()=>[`${aclass.name}.__index`, ''])}}`:
-			'';
-
-		const generic_methods = overlay.adjust.class[aclass.name]?.generic_methods;
-		const generic_bases = generic_methods?.map(m=>`{${m.name}:fun():${m.return_values.join(",")}}`);
-
-		const bases = [indexed_table, ...generic_bases??[], ...base_classes??[]].filter(s=>!!s);
+		const indexed_table = '';
+		const bases = [indexed_table, ...base_classes??[]].filter(s=>!!s);
 
 		const bases_tag = bases.length>0 ? `:${bases.join(',')}` :'';
 
@@ -696,20 +737,6 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 		aclass.attributes.forEach(a=>this.add_attribute(output, aclass.name, a));
 
-		const lenop = operators.find((op): op is ApiAttribute&{name:"length"}=>op.name==="length");
-		if (lenop) {
-			this.add_operator(output, aclass.name, lenop);
-		};
-
-		const indexop = operators?.find?.((op):op is ApiAttribute&{name:"index"}=>op.name==="index");
-		if (indexop && !overlay.adjust.class[aclass.name]?.generic_params) {
-			const indexed = overlay.adjust.class[aclass.name]?.indexed;
-
-			const opname = `[${this.format_sumneko_type(lenop?.type ?? indexed?.key ?? 'AnyBasic', ()=>[`${aclass.name}.__indexkey`, ''])}]`;
-			const indexoptype = indexed?.value ?? indexop?.type;
-
-			this.add_attribute(output, aclass.name, indexop, opname, indexoptype);
-		}
 
 		output.write(`${this.globals.get(aclass.name)?.name ?? `local ${to_lua_ident(aclass.name)}`}={\n`);
 		aclass.methods.forEach(method=>{
@@ -719,25 +746,6 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		output.write("}\n\n");
 	}
 
-	private generate_sumneko_concepts(output:Writable) {
-		this.docs.concepts.forEach(concept=>{
-			const view_documentation_link = this.view_documentation(concept.name);
-			if (typeof concept.type === "string") {
-			} else {
-				switch (concept.type.complex_type) {
-					case "struct": //V3
-					case "LuaStruct": //V4
-						output.write(this.convert_sumneko_description(this.format_entire_description(concept, this.view_documentation(concept.name))));
-						output.write(`---@class ${concept.name}\n`);
-						concept.type.attributes.forEach(a=>this.add_attribute(output, concept.name, a));
-						break;
-
-					default:
-						throw `Unknown type in concept: ${concept.type.complex_type}`;
-				}
-			}
-		});
-	}
 
 	private readonly complex_table_type_name_lut = new Set<string>();
 	private tables?:Writable;
