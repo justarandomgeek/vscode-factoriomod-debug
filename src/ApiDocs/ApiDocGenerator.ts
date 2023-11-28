@@ -1,8 +1,6 @@
 import { overlay } from "./Overlay";
-import type { Writable } from "stream";
 import type { DocSettings } from "./DocSettings";
-import { LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSEnum, LuaLSEnumField, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSLiteral, LuaLSOperator, LuaLSOverload, LuaLSParam, LuaLSReturn, LuaLSType, LuaLSTypeName, LuaLSUnion, escape_lua_keyword, to_lua_ident } from "./LuaLS";
-
+import { LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSEnum, LuaLSEnumField, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSLiteral, LuaLSOperator, LuaLSOverload, LuaLSParam, LuaLSReturn, LuaLSType, LuaLSTypeName, LuaLSUnion, to_lua_ident } from "./LuaLS";
 
 function sort_by_order(a:{order:number}, b:{order:number}) {
 	return a.order - b.order;
@@ -19,8 +17,6 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 	private readonly defines:Set<string>;
 
-	private readonly runtime_api_base:string;
-
 	constructor(docjson:string, docsettings:DocSettings) {
 		this.docs = JSON.parse(docjson);
 
@@ -36,27 +32,12 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			throw `Wrong stage: ${this.docs.stage}`;
 		}
 
-		switch (docsettings.docLinksVersion) {
-			case "latest":
-			default:
-				this.runtime_api_base = "https://lua-api.factorio.com/latest/";
-				break;
-			case "current":
-				this.runtime_api_base = `https://lua-api.factorio.com/${this.docs.application_version}/`;
-				break;
-		}
-
 		this.classes = new Map(this.docs.classes.map(c=>[c.name, c]));
 		this.events = new Map(this.docs.events.map(c=>[c.name, c]));
 		this.concepts = new Map(this.docs.concepts.map(c=>[c.name, c]));
 		this.builtins = new Map(this.docs.builtin_types.map(c=>[c.name, c]));
 
-		this.globals = new Map(this.docs.global_objects.map(g=>[
-			this.format_sumneko_type(g.type, ()=>{
-				throw "complex global";
-			}),
-			g,
-		]));
+		this.globals = new Map(this.docs.global_objects.map(g=>[g.type, g]));
 
 
 		const add_define = (define:ApiDefine, name_prefix:string)=>{
@@ -102,7 +83,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		if (member === 'builtin_types') {
 			return `/builtin-types.html${part}`;
 		}
-		if (member === 'libraries') {
+		if (['libraries', 'global', 'migrations'].includes(member)) {
 			return `/auxiliary/${member}.html${part}`;
 		}
 		if (this.concepts.has(member)) {
@@ -233,7 +214,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			this.generate_LuaLS_concepts(format_description),
 			this.generate_LuaLS_defines(format_description),
 			this.generate_LuaLS_events(format_description),
-			this.generate_LuaLS_LuaObjectNames(format_description),
+			this.generate_LuaLS_LuaObjectNames(),
 			this.generate_LuaLS_global_functions(format_description),
 		]);
 	}
@@ -255,7 +236,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		if (global) {
 			lsclass.global_name = global.name;
 		}
-		//TODO: description
+		lsclass.description = format_description(this.collect_description(aclass, { scope: "runtime", member: aclass.name }));
 
 		lsclass.parents = (aclass.base_classes ?? ["LuaObject"]).map(t=>new LuaLSTypeName(t));
 		lsclass.generic_args = overlay.adjust.class[aclass.name]?.generic_params;
@@ -269,6 +250,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			const lsfield = new LuaLSField(attribute.name, await this.LuaLS_type(attribute.type, {
 				file, table_class_name: `${aclass.name}.${attribute.name}`, format_description,
 			}));
+			lsfield.description = format_description(this.collect_description(attribute, { scope: "runtime", member: aclass.name, part: attribute.name }));
 			lsclass.fields.push(lsfield);
 		}
 
@@ -277,6 +259,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 				case "call":
 				{
 					const callop = new LuaLSOverload();
+					callop.description = format_description(this.collect_description(operator,  { scope: "runtime", member: aclass.name, part: "call_operator" }));
 					callop.params = await this.LuaLS_params(operator.parameters, format_description);
 					callop.returns = await this.LuaLS_returns(operator.return_values, format_description);
 					lsclass.call_op = callop;
@@ -285,6 +268,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 				case "length":
 				{
 					const lenop = new LuaLSOperator("len", await this.LuaLS_type(operator.type));
+					lenop.description = format_description(this.collect_description(operator, { scope: "runtime", member: aclass.name, part: "length_operator" }));
 					lsclass.operators.push(lenop);
 					break;
 				}
@@ -295,6 +279,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 						await this.LuaLS_type(overlay.adjust.class[aclass.name]?.index_key ?? "uint"),
 						await this.LuaLS_type(operator.type),
 					);
+					lsfield.description = format_description(this.collect_description(operator, { scope: "runtime", member: aclass.name, part: "index_operator" }));
 					lsclass.fields.push(lsfield);
 					break;
 				}
@@ -324,9 +309,10 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		const file = new LuaLSFile("runtime-api-concepts", this.docs.application_version);
 
 		for (const concept of this.docs.concepts) {
+			const description = format_description(this.collect_description(concept, { scope: "runtime", member: concept.name }));
 			if (typeof concept.type === "string") {
-				//TODO: description
 				const alias = new LuaLSAlias(concept.name, await this.LuaLS_type(concept.type));
+				alias.description = description;
 				file.add(alias);
 			} else {
 				switch (concept.type.complex_type) {
@@ -338,6 +324,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 						if (typeof v === "object" && v.complex_type === "literal" && v.value === true &&
 								typeof k === "object" && k.complex_type === "union") {
 							const lsclass = new LuaLSClass(concept.name);
+							lsclass.description = description;
 							lsclass.fields = [];
 							for (const option of k.options) {
 								const lsfield = new LuaLSField(await this.LuaLS_type(option), await this.LuaLS_type(v));
@@ -358,6 +345,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 						} else {
 							const alias = new LuaLSAlias(concept.name, inner);
+							alias.description = description;
 							file.add(alias);
 						}
 						break;
@@ -376,22 +364,22 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		const file = new LuaLSFile("runtime-api-defines", this.docs.application_version);
 		const defines = new LuaLSClass("defines");
 		defines.global_name="defines";
-		defines.description = await format_description(undefined, {scope: "runtime", member: "defines"});
+		defines.description = format_description(undefined, {scope: "runtime", member: "defines"});
 		file.add(defines);
 
 		const generate = async (define:ApiDefine, name_prefix:string)=>{
 			const name = `${name_prefix}${define.name}`;
-			const description = format_description(define.description, {scope: "runtime", member: name});
+			const description = format_description(this.collect_description(define, {scope: "runtime", member: name}));
 			//there aren't any with both values and subkeys for now,
 			//we'll deal with that if it ever happens...
 			if (define.values) {
 				const lsenum = new LuaLSEnum(name, define.values.map(v=>new LuaLSEnumField(v.name, v.description)));
-				lsenum.description = await description;
+				lsenum.description = description;
 				file.add(lsenum);
 			} else {
 				const lsclass = new LuaLSClass(name);
 				lsclass.global_name = name;
-				lsclass.description = await description;
+				lsclass.description = description;
 				const adjust = overlay.adjust.define[name];
 				if (adjust?.subkeys) {
 					lsclass.parents = [
@@ -432,10 +420,10 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			const lsevent = new LuaLSClass(`EventData.${event.name}`);
 			lsevent.fields = [];
 			lsevent.parents = [new LuaLSTypeName("EventData")];
-			lsevent.description = await format_description(event.description, {scope: "runtime", member: event.name});
+			lsevent.description = format_description(this.collect_description(event, {scope: "runtime", member: event.name}));
 			for (const param of event.data) {
 				const lsparam = new LuaLSField(param.name, await this.LuaLS_type(param.type));
-				lsparam.description = await format_description(param.description, {scope: "runtime", member: event.name, part: param.name});
+				lsparam.description = format_description(this.collect_description(param, {scope: "runtime", member: event.name, part: param.name}));
 				lsparam.optional = param.optional;
 				lsevent.fields.push(lsparam);
 			}
@@ -450,7 +438,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		return file;
 	}
 
-	private async generate_LuaLS_LuaObjectNames(format_description:DocDescriptionFormatter) {
+	private async generate_LuaLS_LuaObjectNames() {
 		const file = new LuaLSFile("runtime-api-LuaObjectNames", this.docs.application_version);
 		const names = new LuaLSAlias("LuaObject.object_name", new LuaLSUnion(
 			this.docs.classes.filter(c=>!c.abstract).map(c=>new LuaLSLiteral(c.name))
@@ -470,18 +458,18 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	}
 
 	private async LuaLS_params(params:ApiParameter[], format_description:DocDescriptionFormatter):Promise<LuaLSParam[]> {
-		return Promise.all(params.map(async p=>{
+		return Promise.all(params.sort(sort_by_order).map(async p=>{
 			const lsparam = new LuaLSParam(to_lua_ident(p.name), await this.LuaLS_type(p.type));
-			lsparam.description = p.description;
+			lsparam.description = format_description(this.collect_description(p));
 			lsparam.optional = p.optional;
 			return lsparam;
 		}));
 	}
 
 	private async LuaLS_returns(returns:ApiMethod["return_values"], format_description:DocDescriptionFormatter):Promise<LuaLSReturn[]> {
-		return Promise.all(returns.map(async r=>{
+		return Promise.all(returns.sort(sort_by_order).map(async r=>{
 			const lsreturn = new LuaLSReturn(await this.LuaLS_type(r.type));
-			lsreturn.description = r.description;
+			lsreturn.description = format_description(this.collect_description(r));
 			lsreturn.optional = r.optional;
 			return lsreturn;
 		}));
@@ -493,14 +481,14 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			await this.LuaLS_params(func.parameters, format_description);
 		if (func.variadic_type) {
 			const dots = new LuaLSParam("...", await this.LuaLS_type(func.variadic_type));
-			dots.description = await format_description(func.variadic_description);
+			dots.description = format_description(func.variadic_description);
 			params.push(dots);
 		}
 		const lsfunc = new LuaLSFunction(func.name,
 			params,
 			await this.LuaLS_returns(func.return_values, format_description)
 		);
-		lsfunc.description = await format_description(func.description, {scope: "runtime", member: in_class??"libraries", part: in_class?func.name:"new-functions"});
+		lsfunc.description = format_description(func.description, {scope: "runtime", member: in_class??"libraries", part: in_class?func.name:"new-functions"});
 		return lsfunc;
 	}
 
@@ -512,11 +500,11 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		lsclass.fields = [];
 
 		let i = 1;
-		for (const param of type_data.parameters) {
+		for (const param of type_data.parameters.sort(sort_by_order)) {
 			const is_tuple = "complex_type" in type_data && type_data.complex_type === "tuple";
 
 			const field = new LuaLSField(is_tuple?new LuaLSLiteral(i++):param.name, await this.LuaLS_type(param.type));
-			//field.description = await format_description(param.description, "runtime", table_class_name, param.name);
+			field.description = format_description(this.collect_description(param));
 			field.optional = param.optional;
 			lsclass.fields.push(field);
 		}
@@ -528,9 +516,6 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			lsclass.name += ".base";
 			for (const group of type_data.variant_parameter_groups) {
 				const inner = (await this.LuaLS_table_type(group, file, `${table_class_name}.${to_lua_ident(group.name)}`, format_description, [ new LuaLSTypeName(lsclass.name) ]));
-
-				//TODO: proper link names?
-				//inner.description = await format_description(group.description, "runtime", "");
 				inners.push(inner);
 			}
 			return new LuaLSTypeName(innerunion.name);
@@ -593,6 +578,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 						table_class_name: `${in_parent.table_class_name}.${attribute.name}`,
 						format_description: in_parent.format_description,
 					}));
+					lsfield.description = in_parent.format_description(this.collect_description(attribute));
 					lsclass.fields.push(lsfield);
 				}
 				in_parent.file.add(lsclass);
@@ -604,384 +590,27 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 	}
 
-	private write_sumneko_field(
-		output:Writable, name:string, type:ApiType,
-		get_table_name_and_view_doc_link:()=>[string, string],
-		description:string|string[], optional?:boolean, inline_desc?:string) {
-		output.write(this.convert_sumneko_description(...(description instanceof Array ? description : [description])));
-		output.write(`---@field ${name}${optional ? "?" : ""} ${this.format_sumneko_type(type, get_table_name_and_view_doc_link)} ${inline_desc??""}\n`);
-	}
-
-	private add_attribute(output:Writable, classname:string, attribute:ApiAttribute, oper_lua_name?:string, type?:ApiType) {
-		const aname = attribute.name;
-		const view_doc_link = this.view_documentation(`${classname}.${aname}`);
-
-		const description = this.format_entire_description(
-			attribute, view_doc_link, `[${attribute.read?"R":""}${attribute.write?"W":""}]${attribute.description?`\n${attribute.description}`:''}`
-		);
-		this.write_sumneko_field(
-			output, oper_lua_name ?? aname, type ?? attribute.type,
-			()=>[`${classname}.${aname}`, view_doc_link],
-			description, attribute.optional);
-	};
-
-
-	private add_operator(output:Writable, classname:string, ApiOperator:ApiOperator&{name:"length"}) {
-		const opnames = {
-			["length"]: "len",
-		};
-		const aname = ApiOperator.name;
-		const view_doc_link = this.view_documentation(`${classname}.${aname}`);
-
-		const description = this.format_entire_description(
-			ApiOperator, view_doc_link, `[${ApiOperator.read?"R":""}${ApiOperator.write?"W":""}]${ApiOperator.description?`\n${ApiOperator.description}`:''}`
-		);
-		output.write(this.convert_sumneko_description(description));
-		output.write(`---@operator ${opnames[aname]}: ${this.format_sumneko_type(ApiOperator.type, ()=>[`${classname}.${aname}`, view_doc_link])}\n`);
-	}
-
-	private convert_param_or_return(api_type:ApiType|undefined, optional:boolean, description:string|undefined, get_table_name_and_view_doc_link:()=>[string, string]):string {
-		const formatted_type = this.format_sumneko_type(api_type, get_table_name_and_view_doc_link);
-		const optional_tag = optional ? "?":"";
+	private collect_description(obj:Omit<ApiWithNotes, "name">&{
+		readonly subclasses?:string[]
+		readonly raises?: ApiEventRaised[]
+	}&({
+		readonly read: boolean
+		readonly write: boolean
+	}|{}), doclink?:DocLink, description?:string) {
 		if (!description) {
-			return `${formatted_type}${optional_tag}\n`;
-		} else if (!description.includes("\n")) {
-			return `${formatted_type}${optional_tag}@${this.preprocess_description(description)}\n`;
-		} else {
-			return `${formatted_type}${optional_tag}@\n${this.convert_sumneko_description(description)}`;
+			description = obj.description;
 		}
-	};
-
-	private add_return_annotation(output:Writable, classname:string, method:ApiMethod) {
-		method.return_values.forEach((rv)=>{
-			output.write(`---@return ${this.convert_param_or_return(rv.type, rv.optional, rv.description, ()=>[
-				`${classname}.${method.name}_return`, this.view_documentation(`${classname}.${method.name}`),
-			])}`);
-		});
-	};
-
-	private convert_description_for_method(classname:string, method:ApiMethod, html_name?:string) {
-		return this.convert_sumneko_description(
-			this.format_entire_description(method, this.view_documentation(`${classname}.${html_name??method.name}`)));
-	}
-
-	private add_regular_method(output:Writable, classname:string, method:ApiMethod) {
-		output.write(this.convert_description_for_method(classname, method));
-		const sorted_params = method.parameters.sort(sort_by_order);
-		sorted_params.forEach(parameter=>{
-			output.write(`---@param ${escape_lua_keyword(parameter.name)} `);
-			output.write(this.convert_param_or_return(parameter.type, parameter.optional, parameter.description, ()=>[
-				`${classname}.${method.name}.${parameter.name}`, this.view_documentation(`${classname}.${method.name}`),
-			]));
-		});
-		if (method.variadic_type) {
-			output.write(`---@vararg ${this.format_sumneko_type(method.variadic_type, ()=>[`${classname}.${method.name}_vararg`, this.view_documentation(`${classname}.${method.name}`)])}\n`);
-			if (method.variadic_description) {
-				output.write(this.convert_sumneko_description(`\n**vararg**: ${method.variadic_description.includes("\n")?"\n\n":""}${method.variadic_description}`));
-			}
+		if ('read' in obj) {
+			description = `[${obj.read?"R":""}${obj.write?"W":""}] ${description??""}`;
 		}
-		this.add_return_annotation(output, classname, method);
-
-		output.write(`${method.name}=function(${sorted_params.map(p=>escape_lua_keyword(p.name)).concat(method.variadic_type?["..."]:[]).join(",")})end${classname!==""?",":""}\n`);
-	};
-
-	private add_method_taking_table(output:Writable, classname:string, method:ApiMethod) {
-		const param_class_name = `${classname}.${method.name}_param`;
-		this.add_table_type(output, method, param_class_name, this.view_documentation(`${classname}.${method.name}`));
-		output.write("\n");
-		output.write(this.convert_description_for_method(classname, method));
-		output.write(`---@param param${method.table_is_optional?"?":" "}${param_class_name}\n`);
-		this.add_return_annotation(output, classname, method);
-		output.write(`${method.name}=function(param)end${classname!==""?",":""}\n`);
-	};
-
-	private add_method(output:Writable, classname:string, method:ApiMethod) {
-		return method.takes_table?this.add_method_taking_table(output, classname, method):this.add_regular_method(output, classname, method);
-	}
-
-	private add_sumneko_class(output:Writable, aclass:ApiClass):void {
-
-		const needs_label = !!(aclass.description || aclass.notes);
-		output.write(this.convert_sumneko_description(this.format_entire_description(
-			aclass, this.view_documentation(aclass.name),
-			this.globals.get(aclass.name)?.description ?
-				`**Global Description:**\n${this.globals.get(aclass.name)?.description}${needs_label?"\n\n**Class Description:**\n":"\n\n"}${aclass.description}` :
-				aclass.description
-		)));
-
-		const base_classes = aclass.base_classes ?? ["LuaObject"];
-		const generic_params = overlay.adjust.class[aclass.name]?.generic_params;
-		const operators = aclass.operators;
-		const generic_tag = generic_params? `<${generic_params.join(',')}>`:'';
-		const indexed_table = '';
-		const bases = [indexed_table, ...base_classes??[]].filter(s=>!!s);
-
-		const bases_tag = bases.length>0 ? `:${bases.join(',')}` :'';
-
-		output.write(`---@class ${aclass.name}${generic_tag}${bases_tag}\n`);
-		if (operators.find((operator)=>!["index", "length", "call"].includes(operator.name))) {
-			throw "Unkown operator";
-		}
-
-		const callop = operators.find((op): op is ApiMethod&{name:"call"}=>op.name==="call");
-		if (callop) {
-			const params = callop.parameters.map((p, i)=>`${p.name??`param${i+1}`}${p.optional?'?':''}:${this.format_sumneko_type(p.type, ()=>[`${aclass.name}()`, ''])}`);
-			const returns = ("return_values" in callop) ?
-				callop.return_values.map((p, i)=>`${this.format_sumneko_type(p.type, ()=>[`${aclass.name}.__call`, ''])}`):
-				undefined;
-
-			output.write(this.convert_description_for_method(aclass.name, callop, "operator%20()"));
-			output.write(`---@overload fun(${params})${returns?`:${returns}`:''}\n`);
-		}
-
-
-		aclass.attributes.forEach(a=>this.add_attribute(output, aclass.name, a));
-
-
-		output.write(`${this.globals.get(aclass.name)?.name ?? `local ${to_lua_ident(aclass.name)}`}={\n`);
-		aclass.methods.forEach(method=>{
-			return this.add_method(output, aclass.name, method);
-		});
-
-		output.write("}\n\n");
-	}
-
-
-	private readonly complex_table_type_name_lut = new Set<string>();
-	private tables?:Writable;
-
-	private add_table_type(output:Writable, type_data:ApiWithParameters, table_class_name:string, view_documentation_link:string, applies_to:string = "Applies to"): string {
-
-		output.write(this.convert_sumneko_description(view_documentation_link));
-		output.write(`---@class ${table_class_name}\n`);
-
-		interface parameter_info{
-			readonly name:string
-			readonly type:ApiType
-			description:string
-			readonly optional?:boolean
-		}
-		const custom_parameter_map = new Map<string, parameter_info>();
-		const custom_parameters:parameter_info[] = [];
-
-		type_data.parameters.concat(overlay.adjust.table[table_class_name]?.parameters??[]).sort(sort_by_order).forEach((parameter, i)=>{
-			const name = parameter.name;
-			const custom_parameter = {name: name, type: parameter.type, order: parameter.order, description: parameter.description, optional: parameter.optional};
-			custom_parameter_map.set(name, custom_parameter);
-			custom_parameters.push(custom_parameter);
-		});
-
-		if (type_data.variant_parameter_groups) {
-			type_data.variant_parameter_groups.sort(sort_by_order).forEach(group=>{
-				group.parameters.sort(sort_by_order).forEach(parameter=>{
-					let custom_description = `${applies_to} **"${group.name}"**: ${parameter.optional?"(optional)":"(required)"}${parameter.description?`\n${parameter.description}`:''}`;
-
-					let custom_parameter = custom_parameter_map.get(parameter.name);
-					if (custom_parameter) {
-						custom_parameter.description = custom_parameter.description ? `${custom_parameter.description}\n\n${custom_description}` : custom_description;
-					} else {
-						custom_parameter = {name: parameter.name, type: parameter.type, description: custom_description, optional: parameter.optional};
-						custom_parameter_map.set(parameter.name, custom_parameter);
-						custom_parameters.push(custom_parameter);
-					}
-				});
-			});
-		}
-
-		if ('complex_type' in type_data) {
-			const type_data_ = type_data as Extends<ApiType, ApiWithParameters>;
-			switch (type_data_.complex_type) {
-				case "table":
-					custom_parameters.forEach(custom_parameter=>{
-						this.write_sumneko_field(
-							output, custom_parameter.name, custom_parameter.type,
-							()=>[`${table_class_name}.${custom_parameter.name}`, view_documentation_link],
-							[custom_parameter.description, view_documentation_link], custom_parameter.optional);
-					});
-					break;
-				case "tuple":
-					let i = 1;
-					custom_parameters.forEach(custom_parameter=>{
-						this.write_sumneko_field(
-							output, `[${i++}]`, custom_parameter.type,
-							()=>[`${table_class_name}.${custom_parameter.name}`, view_documentation_link],
-							[custom_parameter.description, view_documentation_link], custom_parameter.optional, custom_parameter.name);
-					});
-					break;
-			}
-		} else {
-			custom_parameters.forEach(custom_parameter=>{
-				this.write_sumneko_field(
-					output, custom_parameter.name, custom_parameter.type,
-					()=>[`${table_class_name}.${custom_parameter.name}`, view_documentation_link],
-					[custom_parameter.description, view_documentation_link], custom_parameter.optional);
-			});
-		}
-
-		output.write("\n");
-
-		return table_class_name;
-	}
-
-	private resolve_internal_reference(reference:string, display_name?:string):string {
-		let relative_link:string;
-		reference = reference.replace(/^runtime:/, "");
-		if (this.builtins.has(reference)) {
-			relative_link = "Builtin-Types.html#"+reference;
-		} else if (this.classes.has(reference)) {
-			relative_link = reference+".html";
-		} else if (this.events.has(reference)) {
-			relative_link = "events.html#"+reference;
-		} else if (this.defines.has(reference)) {
-			relative_link = "defines.html#"+reference;
-		} else {
-			const matches = reference.match(/^(.*?)(\.|::)(.*)$/);
-			if (!!matches) {
-				const class_name = matches[1];
-				const member_name = matches[3];
-				const build_link = (main:string)=>`${main}.html#${class_name}.${member_name}`;
-				if (this.classes.has(class_name)) {
-					relative_link = build_link(class_name);
-				} else if (this.concepts.has(class_name)) {
-					relative_link = build_link("Concepts");
-				} else {
-					return "";
-				}
-			} else if (reference.match(/Filters$/)) {
-				if (reference.match(/^Lua/)) {
-					relative_link = "Event-Filters.html#"+reference;
-				} else if (this.concepts.has(reference)) { // the other types of filters are just concepts
-					relative_link = "Concepts.html#"+reference;
-				} else {
-					throw "unresolved reference";
-				}
-			} else if (this.concepts.has(reference)) {
-				relative_link = "Concepts.html#"+reference;
-			} else {
-				return "";
-			}
-		}
-		return `[${display_name??reference}](${this.runtime_api_base}${relative_link})`;
-	}
-
-	private resolve_all_links(str:string):string {
-		return str.replace(/\[(.+?)\]\((.+?)\)/g, (match, display_name, link)=>{
-			if (link.match(/^http(s?):\/\//)) {
-				return `[${display_name}](${link})`;
-			} else if (link.match(/\.html($|#)/)) {
-				return `[${display_name}](${this.runtime_api_base}${link})`;
-			} else {
-				return this.resolve_internal_reference(link, display_name);
-			}
-		});
-	}
-
-	private view_documentation(reference:string):string {
-		return this.resolve_internal_reference(reference, "View documentation");
-	}
-
-	private preprocess_description(description:string):string {
-		const escape_single_newline = (str:string)=>{
-			return this.resolve_all_links(str.replace(/([^\n])\n([^\n])/g, "$1  \n$2"));
-		};
-
-		const result = [];
-		for (const match of description.matchAll(/((?:(?!```).)*)($|```(?:(?!```).)*```)/gs)) {
-			result.push(escape_single_newline(match[1]));
-			if (match[2]) {
-				result.push(match[2]);
-			}
-		}
-		return result.join("");
-	}
-
-	private convert_sumneko_description(...descriptionParts:string[]):string {
-		const description = descriptionParts.filter(s=>!!s).join("\n\n");
-		if (!description) {
-			return "";
-		}
-		return `---${this.preprocess_description(description).replace(/\n/g, "\n---")}\n`;
-	}
-
-	private format_sumneko_type(api_type:ApiType|undefined, get_table_name_and_view_doc_link:()=>[string, string], add_doc_links?: boolean):string {
-		const wrap = add_doc_links ? (x:string)=>this.resolve_internal_reference(x) : (x:string)=>x;
-
-		const modify_getter = (table_name_appended_str:string)=>():[string, string]=>{
-			const [table_class_name, view_documentation_link] = get_table_name_and_view_doc_link();
-			return [table_class_name+table_name_appended_str, view_documentation_link];
-		};
-
-		if (!api_type) { return "any"; }
-		if (typeof api_type === "string") { return wrap(api_type); }
-
-		switch (api_type.complex_type) {
-			case "array":
-				if (typeof api_type.value === "object") {
-					switch (api_type.value.complex_type) {
-						case "union":
-							return `(${this.format_sumneko_type(api_type.value, get_table_name_and_view_doc_link)})[]`;
-
-						default:
-							// default format
-							break;
-					}
-				}
-				return this.format_sumneko_type(api_type.value, get_table_name_and_view_doc_link)+"[]";
-			case "dictionary":
-				return `{[${this.format_sumneko_type(api_type.key, modify_getter("_key"))}]: ${this.format_sumneko_type(api_type.value, modify_getter("_value"))}}`;
-			case "union":
-				return api_type.options.map((o, i)=>this.format_sumneko_type(o, modify_getter("."+i))).join("|");
-			case "LuaLazyLoadedValue":
-				return `${wrap("LuaLazyLoadedValue")}<${this.format_sumneko_type(api_type.value, get_table_name_and_view_doc_link)}>`;
-			case "LuaCustomTable":
-				return `${wrap("LuaCustomTable")}<${this.format_sumneko_type(api_type.key, modify_getter("_key"))},${this.format_sumneko_type(api_type.value, modify_getter("_value"))}>`;
-			case "table":
-			case "tuple":
-			{
-				const [table_class_name, view_documentation_link] = get_table_name_and_view_doc_link();
-
-				if (this.complex_table_type_name_lut.has(table_class_name)) { return table_class_name; }
-
-				this.complex_table_type_name_lut.add(table_class_name);
-				if (!this.tables) { throw new Error("table_types not ready"); }
-				return this.add_table_type(this.tables, api_type, table_class_name, view_documentation_link);
-			}
-			case "function":
-				if (api_type.parameters.length === 0 ) {
-					return `function`;
-				} else {
-					return `fun(${api_type.parameters.map((p, i)=>`param${i+1}:${this.format_sumneko_type(p, modify_getter(`_param${i+1}`))}`).join(",")})`;
-				}
-			case "literal":
-				switch (typeof api_type.value) {
-					case "number":
-					case "boolean":
-						return `${api_type.value}`;
-					case "string":
-						return `"${api_type.value}"`;
-				}
-			case "type":
-				//TODO: do something with the description?
-				// at least for inside described enums?
-				return this.format_sumneko_type(api_type.value, get_table_name_and_view_doc_link);
-
-			case "LuaStruct": // V4
-			case "struct": // V3
-				// struct only appears in concepts which handle them more directly
-			default:
-				return "error";
-		}
-	}
-
-	private format_entire_description(obj:ApiWithNotes&{readonly description:string; readonly subclasses?:string[]; readonly raises?: ApiEventRaised[]}, view_documentation_link:string, description?:string) {
 		return [
-			description??obj.description,
+			description,
 			obj.notes?.map(note=>`**Note:** ${note}`)?.join("\n\n"),
 			obj.raises && (
 				`**Events:**\n${
-					obj.raises?.map(raised=>` * ${raised.optional?"May":"Will"} raise ${this.resolve_internal_reference(raised.name)} ${{instantly: "instantly", current_tick: "later in the current tick", future_tick: "in a future tick"}[raised.timeframe]}.${raised.description?"\n"+raised.description:""}`,)?.join("\n\n") }`
+					obj.raises?.map(raised=>` * ${raised.optional?"May":"Will"} raise [${raised.name}](runtime:events::${raised.name}) ${{instantly: "instantly", current_tick: "later in the current tick", future_tick: "in a future tick"}[raised.timeframe]}.${raised.description?"\n"+raised.description:""}`,)?.join("\n\n") }`
 			),
-			view_documentation_link,
+			doclink && `[View Documentation](${doclink.scope}:${doclink.member}${doclink.part?"::"+doclink.part:""})`,
 			obj.examples?.map(example=>`### Example\n${example}`)?.join("\n\n"),
 			obj.subclasses && (
 				`_Can only be used if this is ${

@@ -12,11 +12,13 @@ export function to_lua_ident(str:string) {
 	return escape_lua_keyword(str.replace(/[^a-zA-Z0-9]/g, "_").replace(/^([0-9])/, "_$1"));
 }
 
+type Description = string|undefined|Promise<string|undefined>;
 
-
-async function format_lua_description(output:Writable, description?:string) {
+async function format_lua_description(output:Writable, description?:Description) {
 	if (!description) { return; }
-	output.write(`---${description.replace(/\n/g, "\n---")}\n`);
+	const desc = await description;
+	if (!desc) { return; }
+	output.write(`---${desc.replace(/\n/g, "\n---")}\n`);
 }
 
 export class LuaLSFile {
@@ -135,7 +137,7 @@ export class LuaLSAlias {
 	constructor(
 		public name:string,
 		public type:LuaLSType,
-		public description?:string,
+		public description?:Description,
 	) {}
 
 
@@ -150,7 +152,7 @@ export class LuaLSEnum {
 		public name:string,
 		public fields:LuaLSEnumField[],
 	) {}
-	description?:string;
+	description?:Description;
 
 
 	async write(output:Writable) {
@@ -168,7 +170,7 @@ export class LuaLSEnum {
 export class LuaLSEnumField {
 	constructor(
 		public name:string,
-		public description?:string,
+		public description?:Description,
 	) {}
 
 	async write(output:Writable) {
@@ -181,7 +183,7 @@ export class LuaLSClass {
 	constructor(
 		public name:string,
 	) {}
-	description?:string;
+	description?:Description;
 	parents?:LuaLSType[];
 	generic_args?:string[];
 	global_name?:string;
@@ -193,8 +195,8 @@ export class LuaLSClass {
 	functions?:LuaLSFunction[];
 
 	async write(output:Writable) {
-		await format_lua_description(output, this.description);
 		output.write(`do\n`);
+		await format_lua_description(output, this.description);
 		output.write(`---@class ${this.name}`);
 		if (this.generic_args) {
 			output.write(`<${this.generic_args.join(",")}>`);
@@ -255,7 +257,10 @@ export class LuaLSOperator {
 		public input_type?:LuaLSType,
 	) {}
 
+	description?:Description;
+
 	async write(output:Writable) {
+		await format_lua_description(output, this.description);
 		output.write(`---@operator ${this.name}`);
 
 		if (this.input_type) {
@@ -272,7 +277,7 @@ export class LuaLSField {
 		public name:string|LuaLSType,
 		public type:LuaLSType,
 	) {}
-	description?:string;
+	description?:Description;
 	optional?:boolean;
 
 	async write(output:Writable) {
@@ -293,10 +298,12 @@ export class LuaLSField {
 }
 
 export class LuaLSOverload {
+	description?:Description;
 	params?:LuaLSParam[];
 	returns?:LuaLSReturn[];
 
 	async write(output:Writable) {
+		await format_lua_description(output, this.description);
 		let params = "";
 		if (this.params) {
 			params = this.params.map(p=>`${p.name}:${p.type.format()}`).join(", ");
@@ -315,7 +322,7 @@ export class LuaLSFunction {
 		public params?:LuaLSParam[]|undefined,
 		public returns?:LuaLSReturn[]|undefined,
 	) {}
-	description?:string;
+	description?:Description;
 
 	overloads?:LuaLSOverload[];
 
@@ -325,17 +332,17 @@ export class LuaLSFunction {
 		await format_lua_description(output, this.description);
 		if (this.params) {
 			for (const param of this.params) {
-				param.write(output);
+				await param.write(output);
 			}
 		}
 		if (this.returns) {
 			for (const ret of this.returns) {
-				ret.write(output);
+				await ret.write(output);
 			}
 		}
 		if (this.overloads) {
 			for (const ol of this.overloads) {
-				ol.write(output);
+				await ol.write(output);
 			}
 		}
 		output.write(`${this.name} = function(`);
@@ -363,11 +370,11 @@ export class LuaLSParam {
 		public name:string,
 		public type:LuaLSType,
 	) {}
-	description?:string;
+	description?:Description;
 	optional?:boolean;
 
-	write(output:Writable) {
-		output.write(`---@param ${this.name}${this.optional?"?":""} ${this.type.format()} ${this.description??""}\n`);
+	async write(output:Writable) {
+		output.write(`---@param ${this.name}${this.optional?"?":""} ${this.type.format()} ${(await this.description)??""}\n`);
 	}
 }
 
@@ -376,10 +383,10 @@ export class LuaLSReturn {
 		public type:LuaLSType,
 		public name?:string,
 	) {}
-	description?:string;
+	description?:Description;
 	optional?:boolean;
 
-	write(output:Writable) {
-		output.write(`---@return ${this.type.format()}${this.optional?"?":""} ${this.name??""} #${this.description??""}\n`);
+	async write(output:Writable) {
+		output.write(`---@return ${this.type.format()}${this.optional?"?":""} ${this.name??""} #${(await this.description)??""}\n`);
 	}
 }
