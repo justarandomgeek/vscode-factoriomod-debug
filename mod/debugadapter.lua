@@ -19,6 +19,7 @@ end
 
 -- Various fields set by vscode to configure the debug adapter
 ---@class DebugAdapter.Config
+---@field instrument boolean set in DA's instrument-*.lua
 ---@field nohook boolean set in DA's control.lua if it does not have hooks installed
 ---@field hooklog? boolean enable replacing `log`
 ---@field keepoldlog? boolean when set, `log` replacement will still call original `log`
@@ -28,8 +29,8 @@ end
 
 -- this is a global so the vscode extension can get to it from debug.debug()
 ---@class DebugAdapter : DebugAdapter.Config, DebugAdapter.Stepping, DebugAdapter.Variables, DebugAdapter.Evaluate, DebugAdapter.Print, DebugAdapter.Entrypoints, DebugAdapter.Stacks
-__DebugAdapter = __DebugAdapter or {} -- but might have been defined already for selective instrument mode
-local __DebugAdapter = __DebugAdapter
+local __DebugAdapter = _ENV.__DebugAdapter or {} -- but might have been defined already for selective instrument mode
+_ENV.__DebugAdapter = __DebugAdapter
 
 ---@param t table<string,any>
 local function DAMerge(t)
