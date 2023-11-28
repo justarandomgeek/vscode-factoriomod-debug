@@ -118,46 +118,6 @@ gmeta.__debugline = "<Global Self Reference>"
 gmeta.__debugtype = "_ENV"
 gmeta.__debugcontents = iterutil.sectioned_contents(env_sections,env_opts)
 
-if __DebugAdapter.checkGlobals == nil and script and script.level.is_simulation then
-  __DebugAdapter.checkGlobals = false
-end
-
-if __DebugAdapter.checkGlobals ~= false then
-  local definedGlobals = {_=true}
-  function DAvars.defineGlobal(name)
-    definedGlobals[name] = true
-  end
-
-  local function ignore_global(k,info)
-    if definedGlobals[k] then return true end
-    if info.source:match("^@__core__") then return true end
-    if info.source:match("^@__base__") then return true end
-    return false
-  end
-  __DebugAdapter.stepIgnore(ignore_global)
-
-  gmeta.__newindex = __DebugAdapter.stepIgnore(function(t,k,v)
-    local info = debug.getinfo(2,"lS")
-    if not ignore_global(k,info) then
-      local body = {
-        category = "console",
-        output = "Assignment to undefined global: "..k.."="..variables.describe(v),
-      }
-      ---@type {source:string, currentline:number}|nil
-      local source
-      local istail = debug.getinfo(1,"t")
-      if istail.istailcall then
-        source = {source = "=(...tailcall...)", currentline = 1}
-      else
-        body.line = info.currentline
-        source = {source = normalizeLuaSource(info.source), currentline = info.currentline}
-      end
-      __DebugAdapter.outputEvent(body, source)
-    end
-    rawset(t,k,v)
-  end)
-end
-
 -- variable id refs
 local nextID
 do

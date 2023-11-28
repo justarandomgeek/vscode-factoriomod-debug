@@ -755,16 +755,6 @@
                 "type": "boolean",
                 "description": "Add --check-unused-prototype-data to factorioArgs."
               },
-              "checkGlobals": {
-                "type": [
-                  "boolean",
-                  "array"
-                ],
-                "description": "Check for assignment to undefined globals. Boolean to enable/disable for all mods, or array of mod names (`#settings` and `#data` for settings/data stage).",
-                "items": {
-                  "type": "string"
-                }
-              },
               "factorioArgs": {
                 "type": "array",
                 "items": {

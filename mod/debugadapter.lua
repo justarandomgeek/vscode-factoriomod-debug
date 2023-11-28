@@ -23,7 +23,6 @@ end
 ---@field hooklog? boolean enable replacing `log`
 ---@field keepoldlog? boolean when set, `log` replacement will still call original `log`
 ---@field runningBreak? number frequency to check for pause in long-running code
----@field checkGlobals? boolean enable warnings on writing to undefined globlas
 ---@field hascurrentpc? boolean set to `true` if debug.getinfo supports 'p'->`currentpc`
 
 

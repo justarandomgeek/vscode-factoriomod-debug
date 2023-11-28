@@ -5,6 +5,7 @@
 ## 1.1.38
 * Debugger:
   * Pass `SteamAppId` environment variable instead of trying to create `steam_appid.txt`
+  * Removed `checkGlobals` warning on newly created variables
 * VSCode:
   * Added Output channel for general logging and diagnostics
 * Sumneko library package:

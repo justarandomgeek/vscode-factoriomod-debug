@@ -39,7 +39,6 @@ export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArgum
 	manageMod?: boolean
 	useInstrumentMode?: boolean
 	checkPrototypes?: boolean
-	checkGlobals?: string[]|boolean
 	factorioArgs?: Array<string>
 	env?: NodeJS.ProcessEnv
 	adjustMods?:{[key:string]:boolean|string}
@@ -1276,12 +1275,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			}
 			if (this.launchArgs!.runningBreak !== undefined) {
 				hookopts += `runningBreak=${this.launchArgs!.runningBreak},`;
-			}
-			if (this.launchArgs!.checkGlobals !== undefined) {
-				hookopts += `checkGlobals=${
-					Array.isArray(this.launchArgs!.checkGlobals)?
-						this.launchArgs!.checkGlobals.includes(modname):
-						this.launchArgs!.checkGlobals},`;
 			}
 
 			this.writeStdin(`__DebugAdapter={${hookopts}}`);
