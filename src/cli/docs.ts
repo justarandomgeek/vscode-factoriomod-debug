@@ -71,7 +71,9 @@ program.command("luals-addon [outdir]")
 				...pdocs?.generate_LuaLS_docs(format_description) ?? [],
 			].map(async plsfile=>{
 				const lsfile = await plsfile;
-				const file = createWriteStream(path.join(libdir, lsfile.name+".lua"));
+				const filepath = path.join(libdir, lsfile.name+".lua");
+				await fsp.mkdir(path.dirname(filepath), { recursive: true });
+				const file = createWriteStream(filepath);
 				await lsfile.write(file);
 				file.close();
 			}));

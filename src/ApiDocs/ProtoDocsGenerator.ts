@@ -77,7 +77,7 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 	}
 
 	private async generate_LuaLS_concepts(format_description:DocDescriptionFormatter): Promise<LuaLSFile> {
-		const file = new LuaLSFile("prototypes-concepts", this.application_version);
+		const file = new LuaLSFile("prototype-api/concepts", this.application_version);
 
 		for (const [_, concept] of this.concepts) {
 			if (concept.type === "builtin") {
@@ -111,7 +111,7 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 	}
 
 	private generate_LuaLS_data(format_description:DocDescriptionFormatter): LuaLSFile {
-		const file = new LuaLSFile("prototypes-data", this.application_version);
+		const file = new LuaLSFile("prototype-api/data", this.application_version);
 		const data = new LuaLSClass("data");
 		data.fields = [
 			new LuaLSField("raw", new LuaLSTypeName("data.raw")),
@@ -139,7 +139,7 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 	}
 
 	private async generate_LuaLS_prototypes(format_description:DocDescriptionFormatter): Promise<LuaLSFile> {
-		const file = new LuaLSFile("prototypes", this.application_version);
+		const file = new LuaLSFile("prototype-api/prototypes", this.application_version);
 
 		for (const [_, prototype] of this.prototypes) {
 

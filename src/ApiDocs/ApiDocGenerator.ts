@@ -229,7 +229,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	}
 
 	private async generate_LuaLS_class(aclass:ApiClass, format_description:DocDescriptionFormatter) {
-		const file = new LuaLSFile(`runtime-api-${aclass.name}`, this.docs.application_version);
+		const file = new LuaLSFile(`runtime-api/${aclass.name}`, this.docs.application_version);
 		const lsclass = new LuaLSClass(aclass.name);
 
 		const global = this.globals.get(aclass.name);
@@ -306,7 +306,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	}
 
 	private async generate_LuaLS_concepts(format_description:DocDescriptionFormatter) {
-		const file = new LuaLSFile("runtime-api-concepts", this.docs.application_version);
+		const file = new LuaLSFile("runtime-api/concepts", this.docs.application_version);
 
 		for (const concept of this.docs.concepts) {
 			const description = format_description(this.collect_description(concept, { scope: "runtime", member: concept.name }));
@@ -361,7 +361,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	}
 
 	private async generate_LuaLS_defines(format_description:DocDescriptionFormatter) {
-		const file = new LuaLSFile("runtime-api-defines", this.docs.application_version);
+		const file = new LuaLSFile("runtime-api/defines", this.docs.application_version);
 		const defines = new LuaLSClass("defines");
 		defines.global_name="defines";
 		defines.description = format_description(undefined, {scope: "runtime", member: "defines"});
@@ -406,7 +406,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	}
 
 	private async generate_LuaLS_events(format_description:DocDescriptionFormatter) {
-		const file = new LuaLSFile("runtime-api-events", this.docs.application_version);
+		const file = new LuaLSFile("runtime-api/events", this.docs.application_version);
 		const handlers = new LuaLSClass("event_handler.events");
 		handlers.fields = [];
 
@@ -439,7 +439,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	}
 
 	private async generate_LuaLS_LuaObjectNames() {
-		const file = new LuaLSFile("runtime-api-LuaObjectNames", this.docs.application_version);
+		const file = new LuaLSFile("runtime-api/LuaObjectNames", this.docs.application_version);
 		const names = new LuaLSAlias("LuaObject.object_name", new LuaLSUnion(
 			this.docs.classes.filter(c=>!c.abstract).map(c=>new LuaLSLiteral(c.name))
 		));
@@ -448,7 +448,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	}
 
 	private async generate_LuaLS_global_functions(format_description:DocDescriptionFormatter) {
-		const file = new LuaLSFile("runtime-api-global_functions", this.docs.application_version);
+		const file = new LuaLSFile("runtime-api/global_functions", this.docs.application_version);
 
 		for (const func of this.docs.global_functions) {
 			file.add(await this.LuaLS_function(func, file, format_description));
