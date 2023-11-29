@@ -353,6 +353,9 @@ export class LuaLSFunction {
 	}
 
 	format():string {
+		if ((!this.params || this.params.length === 0 ) && !this.returns) {
+			return `function`;
+		}
 		let params = "";
 		if (this.params) {
 			params = this.params.map(p=>`${p.name}:${p.type.format()}`).join(", ");
