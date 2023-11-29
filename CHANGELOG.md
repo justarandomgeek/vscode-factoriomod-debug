@@ -11,6 +11,7 @@
   * Added Check Config command (run from command pallete)
 * Sumneko library package:
   * Updated library generator remaining runtime types
+  * Split up table types with variant_parameter_groups for bettery diagnostics
 
 ## 1.1.37
 * No longer use `keytar` which VSCode has removed.
