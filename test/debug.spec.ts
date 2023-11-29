@@ -162,6 +162,49 @@ suite('Debug Adapter', ()=>{
 		await dc.terminateRequest();
 	});
 
+
+	test('should stop at conditional breakpoint only if test is true', async ()=>{
+		await launch({
+			hookSettings: true,
+		});
+		await dc.waitForEvent('initialized');
+		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/settings.lua");
+		if (process.platform === 'win32') {
+			scriptpath = scriptpath[0].toLowerCase() + scriptpath.slice(1);
+		}
+		const bps = await dc.setBreakpointsRequest({
+			source: {
+				path: scriptpath,
+			},
+			breakpoints: [
+				{
+					line: 1,
+					condition: "not data",
+				},
+				{
+					line: 2,
+					condition: "not foo",
+				},
+				{
+					line: 3,
+					condition: "bar",
+				},
+				{
+					line: 4,
+					condition: "data",
+				},
+			],
+		});
+		expect(bps.success);
+		await dc.configurationDoneRequest();
+		await dc.waitForEvent('stopped');
+		const stack1 = await dc.stackTraceRequest({threadId: 1});
+		expect(stack1.success);
+		expect(stack1.body.stackFrames[0].source?.path).equals(scriptpath);
+		expect(stack1.body.stackFrames[0].line).equals(4);
+		await dc.terminateRequest();
+	});
+
 	test('should stop at breakpoint in data', async ()=>{
 		await launch({
 			hookData: true,

@@ -1,3 +1,6 @@
+local foo = true
+local bar = false
+local box = "oops"
 data:extend({
   {
     type = "string-setting",
