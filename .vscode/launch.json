@@ -114,7 +114,7 @@
 			},
 		},
 		{
-			"name": "Standalone Sumneko 3rd",
+			"name": "Standalone LuaLS Addon",
 			"type": "node",
 			"request": "launch",
 			"program": "${workspaceFolder}/dist/fmtk.js",

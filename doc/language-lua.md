@@ -1,8 +1,8 @@
-# Sumneko Lua LSP integration
+# LuaLS (Sumneko) LSP integration
 
 FMTK provides a third party library package for the [sumneko.lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua) language server which provides various adaptations to Factorio's Lua environment. The VS Code extension will automatically install this when a Factorio version is selected, or it can be generated manually with `fmtk sumneko-3rd`.
 
-In addition to the runtime-api docs (generated from [`runtime-api.json`](https://lua-api.factorio.com/latest/json-docs.html)), this package includes several static library files, configuration settings and a sumneko plugin that enables enhanced handling of `require`, `global`, event handlers, and `remote` interfaces.
+In addition to the runtime-api docs (generated from [`runtime-api.json`](https://lua-api.factorio.com/latest/json-docs.html)), this package includes several static library files, configuration settings and a luals plugin that enables enhanced handling of `require`, `global`, event handlers, and `remote` interfaces.
 
 ## API Type Definitions
 

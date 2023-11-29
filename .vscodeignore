@@ -4,7 +4,7 @@
 .travis.yml
 appveyor.yml
 mod
-sumneko-3rd
+luals-addon
 src
 out
 test

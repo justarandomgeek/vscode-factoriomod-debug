@@ -11,9 +11,9 @@
     "Lua.workspace.ignoreDir": [
         ".vscode",
         "test/factorio",
-        "sumneko-3rd/factorio/library",
+        "luals-addon/factorio/library",
     ],
-    // run debug config "Standalone Sumneko Docs" to generate out/docs
+    // run debug config "Standalone LuaLS Addon" to generate out/docs
     "Lua.workspace.library": [
         "out/sumneko-3rd/factorio/library",
         "d:\\factorio\\factoriogit\\data",

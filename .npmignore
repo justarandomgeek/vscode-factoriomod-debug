@@ -5,7 +5,7 @@
 appveyor.yml
 mod
 bin
-sumneko-3rd
+luals-addon
 src
 out
 test

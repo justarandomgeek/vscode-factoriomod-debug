@@ -10,8 +10,10 @@ import type { Root, Link } from "mdast";
 import { ApiDocGenerator } from '../ApiDocs/ApiDocGenerator';
 import { ProtoDocGenerator } from '../ApiDocs/ProtoDocsGenerator';
 
-program.command("sumneko-3rd [outdir]")
-	.description("Generate a library bundle for sumneko.lua LSP")
+
+program.command("luals-addon [outdir]")
+	.alias("sumneko-3rd")
+	.description("Generate a library bundle for LuaLS (sumneko.lua) LSP")
 	.requiredOption("-d, --docs <docsjson>", "Runtime docs")
 	.option("-p, --protos <protosjson>", "Prototype docs")
 	.action(async (outdir:string|undefined, options:{docs:string; protos?:string})=>{
@@ -74,13 +76,13 @@ program.command("sumneko-3rd [outdir]")
 				file.close();
 			}));
 
-		const sumneko3rd = await import("../Sumneko3rd");
-		await Promise.all((await sumneko3rd.getLuaFiles()).map(async (file)=>{
+		const lualsAddon = await import("../LuaLSAddon");
+		await Promise.all((await lualsAddon.getLuaFiles()).map(async (file)=>{
 			const filepath = path.join(outdir ?? process.cwd(), file.name);
 			await fsp.mkdir(path.dirname(filepath), { recursive: true });
 			return fsp.writeFile(filepath, Buffer.from(file.content));
 		}));
 
-		const config = await sumneko3rd.getConfig(docs.application_version);
+		const config = await lualsAddon.getConfig(docs.application_version);
 		await fsp.writeFile(path.join(outdir ?? process.cwd(), config.name), Buffer.from(config.content));
 	});

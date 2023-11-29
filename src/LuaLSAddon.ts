@@ -1,35 +1,35 @@
 import {version}  from "../package.json";
-let sumneko3rdLuaFiles: { name: string; content: string }[];
+let addonLuaFiles: { name: string; content: string }[];
 
 
 // zip together the two arrays of imports...
 
 
 export async function getLuaFiles() {
-	if (!sumneko3rdLuaFiles) {
+	if (!addonLuaFiles) {
 
-		sumneko3rdLuaFiles = [];
+		addonLuaFiles = [];
 		// @ts-ignore
-		const glob = await import('../sumneko-3rd/**/*.lua');
+		const glob = await import('../luals-addon/**/*.lua');
 		const files = glob.default;
 		const filenames = glob.filenames;
 
 		for (let i = 0; i < files.length; i++) {
-			sumneko3rdLuaFiles.push({
-				name: (filenames[i] as string).replace("../sumneko-3rd/", ""),
+			addonLuaFiles.push({
+				name: (filenames[i] as string).replace("../luals-addon/", ""),
 				content: files[i].default,
 			});
 		}
 	}
 
-	return sumneko3rdLuaFiles;
+	return addonLuaFiles;
 }
 
 export async function getConfig(factorioVersion?:string) {
 	return {
 		name: "factorio/config.json",
 		content: JSON.stringify(Object.assign(
-			await import("../sumneko-3rd/factorio/config.json"),
+			await import("../luals-addon/factorio/config.json"),
 			{
 				bundleVersion: version,
 				factorioVersion: factorioVersion,
