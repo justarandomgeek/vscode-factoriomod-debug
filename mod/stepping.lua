@@ -408,7 +408,6 @@ function DAstep.canRemoteCall()
 end
 
 ---@param change string
----@private
 function DAstep.updateBreakpoints(change)
   -- pass it around to everyone if possible, else just set it here...
   if DAstep.canRemoteCall() and remote.interfaces["debugadapter"] then
