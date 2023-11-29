@@ -33,6 +33,7 @@ export class FactorioVersionSelector {
 		context.subscriptions.push(this.bar);
 
 		context.subscriptions.push(vscode.commands.registerCommand("factorio.selectVersion", this.selectVersionCommand, this));
+		context.subscriptions.push(vscode.commands.registerCommand("factorio.checkConfig", this.checkConfigCommand, this));
 		this.loadActiveVersion();
 
 		context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(e=>{
@@ -63,6 +64,100 @@ export class FactorioVersionSelector {
 		this.output.info(`Active Factorio version: ${active_version.name} (${docs.application_version})`);
 
 		this.checkDocs();
+	}
+
+	private async checkConfigCommand() {
+		this.output.info(`Check Config:`);
+		this.output.show();
+		const activeVersion = await this.getActiveVersion();
+		if (!activeVersion) {
+			this.output.error(`No Active Factorio Version`);
+			return;
+		}
+		this.output.info(`Active Factorio Version: ${activeVersion.docs.application_version}`);
+
+		const workspaceLibrary = this.context.storageUri;
+		if (!workspaceLibrary) {
+			this.output.error(`No Workspace`);
+			return;
+		}
+
+		try {
+			const filecontent = (await fs.readFile(Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/config.json"))).toString();
+			const config = JSON.parse(filecontent);
+			this.output.info(`Library bundle OK in ${workspaceLibrary.fsPath}, generated from Factorio ${config.factorioVersion} with FMTK ${config.bundleVersion}`);
+		} catch (error) {
+			this.output.error(`Missing or damaged library bundle`);
+		}
+
+		const luals = vscode.extensions.getExtension("sumneko.lua");
+		if (!luals) {
+			this.output.warn(`LuaLS (sumneko.lua) not present!`);
+			return;
+		}
+		this.output.info(`LuaLS ${luals.packageJSON.version} ${luals.isActive?"Activated":"Not Yet Activated"}`);
+
+		const luaconfig = vscode.workspace.getConfiguration("Lua");
+
+		const userThirdParty = luaconfig.get<string[]>("workspace.userThirdParty");
+		if (!userThirdParty) {
+			this.output.warn(`Lua.workspace.userThirdParty not present!`);
+		} else {
+			const workspace3rd = Utils.joinPath(workspaceLibrary, "sumneko-3rd").fsPath;
+			if (userThirdParty.includes(workspace3rd)) {
+				this.output.info(`Lua.workspace.userThirdParty: workspace link OK (${workspace3rd})`);
+			} else {
+				this.output.warn(`Lua.workspace.userThirdParty: workspace link missing! (${workspace3rd})`);
+			}
+
+			const otherThird = userThirdParty.filter(s=>s!==workspace3rd);
+			for (const other of otherThird) {
+				if (other.match(/justarandomgeek\.factoriomod\-debug[\\\/]sumneko\-3rd$/)) {
+					this.output.warn(`Lua.workspace.userThirdParty: stale workspace link? (${other})`);
+				} else {
+					this.output.info(`Lua.workspace.userThirdParty: other library (${other})`);
+				}
+			}
+		}
+		const checkThirdParty = luaconfig.get("workspace.checkThirdParty");
+		const ApplyInMemory = checkThirdParty==="ApplyInMemory";
+		if (checkThirdParty === false || checkThirdParty === "Disable") {
+			this.output.warn(`Lua.workspace.checkThirdParty = ${checkThirdParty}`);
+		} else {
+			this.output.info(`Lua.workspace.checkThirdParty = ${checkThirdParty}`);
+		}
+
+		const library = luaconfig.get<string[]>("workspace.library");
+		if (!library) {
+			this.output.warn(`Lua.workspace.library not present!`);
+		} else {
+			const dataPath = URI.file(await activeVersion.dataPath()).fsPath;
+			if (library.includes(dataPath)) {
+				this.output.info(`Lua.workspace.library: /data link OK (${dataPath})`);
+			} else {
+				this.output.warn(`Lua.workspace.library: /data link missing! (${dataPath})`);
+			}
+
+			const workspaceLibPath = Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/library").fsPath;
+			if (library.includes(workspaceLibPath)) {
+				this.output.info(`Lua.workspace.library: workspace library link OK (${workspaceLibPath})`);
+			} else {
+				if (!ApplyInMemory) {
+					this.output.warn(`Lua.workspace.library: workspace library link missing! (${workspaceLibPath})`);
+				}
+			}
+
+			const otherLibs = library.filter(s=>!([dataPath, workspaceLibPath].includes(s)));
+			for (const other of otherLibs) {
+				if (other.match(/justarandomgeek\.factoriomod\-debug[\\\/]sumneko\-3rd[\\\/]factorio[\\\/]library$/)) {
+					this.output.warn(`Lua.workspace.library: stale workspace link? (${other})`);
+				} else if (other.endsWith("data")) {
+					this.output.warn(`Lua.workspace.library: stale data link? (${other})`);
+				} else {
+					this.output.info(`Lua.workspace.library: other library (${other})`);
+				}
+			}
+		}
 	}
 
 	private async selectVersionCommand() {

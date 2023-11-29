@@ -8,6 +8,7 @@
   * Removed `checkGlobals` warning on newly created variables
 * VSCode:
   * Added Output channel for general logging and diagnostics
+  * Added Check Config command (run from command pallete)
 * Sumneko library package:
   * Updated library generator remaining runtime types
 

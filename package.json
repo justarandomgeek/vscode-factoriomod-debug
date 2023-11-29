@@ -481,6 +481,11 @@
         "command": "factorio.selectVersion",
         "category": "Factorio",
         "title": "Select Version"
+      },
+      {
+        "command": "factorio.checkConfig",
+        "category": "Factorio",
+        "title": "Check Config"
       }
     ],
     "views": {
