@@ -158,6 +158,20 @@ export class FactorioVersionSelector {
 				}
 			}
 		}
+
+		const plugin = luaconfig.get<string>("workspace.plugin");
+		if (!plugin) {
+			if (!ApplyInMemory) {
+				this.output.warn(`Lua.workspace.plugin not present!`);
+			}
+		} else {
+			const workspacePluginPath = Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/plugin.lua").fsPath.replace(/[\\]/g, "/");
+			if (plugin === workspacePluginPath) {
+				this.output.info(`Lua.workspace.plugin: OK (${plugin})`);
+			} else {
+				this.output.warn(`Lua.workspace.plugin: wrong plugin? (${plugin})`);
+			}
+		}
 	}
 
 	private async selectVersionCommand() {
