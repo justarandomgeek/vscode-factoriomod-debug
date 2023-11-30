@@ -1,7 +1,6 @@
 --##
 
 local util = require("factorio-plugin.util")
-local shared_state = require("factorio-plugin.shared-state")
 local workspace
 if not __plugin_dev then
   workspace = require("workspace")
@@ -70,9 +69,6 @@ local function replace(uri, text, diffs)
     --   matches_to_ignore[start] = nil
     -- end
 
-    local eq_chain = shared_state.safe_equal_chain
-    local diagnostic_disable -- Cache it at least for multiple occurrences of global in one file.
-
     for preceding_text, start, finish, ignore_pos, ignore_char in
       util.gmatch_at_start_of_line(text, "([^\n]-)%f[a-zA-Z0-9_]()global()%s*()([=.%[])")--[[@as fun(): string, integer, integer, integer, string]]
     do
@@ -87,8 +83,7 @@ local function replace(uri, text, diffs)
       end
       util.add_diff(diffs, start, finish, global_name)
       -- Put the diagnostic after the '.' otherwise code completion/suggestions don't work.
-      diagnostic_disable = diagnostic_disable or ("--["..eq_chain.."[@diagnostic disable-line:undefined-global]"..eq_chain.."]\n")
-      util.add_diff(diffs, ignore_pos, ignore_pos + 1, ignore_char..diagnostic_disable)
+      util.add_diff(diffs, ignore_pos, ignore_pos + 1, ignore_char.."---@diagnostic disable-line:undefined-global\n")
       ::continue::
     end
   end
