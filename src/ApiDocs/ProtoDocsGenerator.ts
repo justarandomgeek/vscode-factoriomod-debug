@@ -91,12 +91,13 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 				if (concept.parent) {
 					lsclass.parents = [new LuaLSTypeName(this.type_prefix+concept.parent+suffix)];
 				}
-				lsclass.fields = [];
 				for (const prop of concept.properties) {
-					const field = new LuaLSField(prop.name, this.lua_proto_type(prop.type));
-					field.description = await format_description(prop.description, { scope: "prototype", member: concept.name, part: prop.name });
-					field.optional = prop.optional;
-					lsclass.fields.push(field);
+					lsclass.add(new LuaLSField(
+						prop.name,
+						this.lua_proto_type(prop.type),
+						await format_description(prop.description, { scope: "prototype", member: concept.name, part: prop.name }),
+						prop.optional,
+					));
 				}
 
 				file.add(lsclass);
@@ -113,25 +114,21 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 	private generate_LuaLS_data(format_description:DocDescriptionFormatter): LuaLSFile {
 		const file = new LuaLSFile("prototype-api/data", this.application_version);
 		const data = new LuaLSClass("data");
-		data.fields = [
-			new LuaLSField("raw", new LuaLSTypeName("data.raw")),
-			new LuaLSField("is_demo", new LuaLSTypeName("boolean")),
-		];
-		const extend = new LuaLSFunction("extend");
-		extend.params = [
+		data.add(new LuaLSField("raw", new LuaLSTypeName("data.raw")));
+		data.add(new LuaLSField("is_demo", new LuaLSTypeName("boolean")));
+		const extend = new LuaLSFunction("extend", [
 			new LuaLSParam("self", new LuaLSTypeName("data")),
 			new LuaLSParam("otherdata", new LuaLSArray(new LuaLSTypeName("data.PrototypeBase"))),
-		];
-		data.functions = [extend];
+		]);
+		data.add(extend);
 		data.global_name = "data";
 		file.add(data);
 		const dataraw = new LuaLSClass("data.raw");
-		dataraw.fields = [];
 		file.add(dataraw);
 
 		for (const [_, prototype] of this.prototypes) {
 			if (prototype.typename) {
-				dataraw.fields.push(new LuaLSField(new LuaLSLiteral(prototype.typename), new LuaLSDict(new LuaLSTypeName("string"), new LuaLSTypeName(this.type_prefix+prototype.name) )));
+				dataraw.add(new LuaLSField(new LuaLSLiteral(prototype.typename), new LuaLSDict(new LuaLSTypeName("string"), new LuaLSTypeName(this.type_prefix+prototype.name) )));
 			}
 		}
 
@@ -148,24 +145,30 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 			if (prototype.parent) {
 				lsproto.parents = [new LuaLSTypeName(this.type_prefix+prototype.parent)];
 			}
-			lsproto.fields = [];
 			for (const prop of prototype.properties) {
-				const field = new LuaLSField(prop.name, this.lua_proto_type(prop.type));
-				field.description = await format_description(prop.description, { scope: "prototype", member: prototype.name, part: prop.name });
-				field.optional = prop.optional;
-				lsproto.fields.push(field);
+				const field = new LuaLSField(
+					prop.name,
+					this.lua_proto_type(prop.type),
+					await format_description(prop.description, { scope: "prototype", member: prototype.name, part: prop.name }),
+					prop.optional,
+				);
+				lsproto.add(field);
 				if (prop.alt_name) {
-					const field = new LuaLSField(prop.alt_name, this.lua_proto_type(prop.type));
-					field.description = await format_description(prop.description, { scope: "prototype", member: prototype.name, part: prop.alt_name });
-					field.optional = prop.optional;
-					lsproto.fields.push(field);
+					lsproto.add(new LuaLSField(
+						prop.alt_name,
+						this.lua_proto_type(prop.type),
+						await format_description(prop.description, { scope: "prototype", member: prototype.name, part: prop.alt_name }),
+						prop.optional,
+					));
 				}
 			}
 			if (prototype.custom_properties) {
 				const prop = prototype.custom_properties;
-				const field = new LuaLSField(this.lua_proto_type(prop.key_type), this.lua_proto_type(prop.value_type));
-				field.description = await format_description(prop.description, { scope: "prototype", member: prototype.name, part: "custom_properties" });
-				lsproto.fields.push(field);
+				lsproto.add(new LuaLSField(
+					this.lua_proto_type(prop.key_type),
+					this.lua_proto_type(prop.value_type),
+					await format_description(prop.description, { scope: "prototype", member: prototype.name, part: "custom_properties" }),
+				));
 			}
 			file.add(lsproto);
 		}

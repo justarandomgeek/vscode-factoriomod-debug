@@ -1,7 +1,7 @@
 import type { Writable } from "stream";
 import { version as bundleVersion } from "../../package.json";
 
-export function escape_lua_keyword(str:string) {
+function escape_lua_keyword(str:string) {
 	const keywords = ["and", "break", "do", "else", "elseif", "end", "false", "for",
 		"function", "goto", "if", "in", "local", "nil", "not", "or", "repeat", "return",
 		"then", "true", "until", "while"];
@@ -14,7 +14,7 @@ export function to_lua_ident(str:string) {
 
 type Description = string|undefined|Promise<string|undefined>;
 
-async function format_lua_description(output:Writable, description?:Description) {
+async function comment_description(output:Writable, description?:Description) {
 	if (!description) { return; }
 	const desc = await description;
 	if (!desc) { return; }
@@ -23,13 +23,12 @@ async function format_lua_description(output:Writable, description?:Description)
 
 export class LuaLSFile {
 	constructor(
-		public name:string,
-		public app_version:string,
+		public readonly name:string,
+		public readonly app_version:string,
+		public readonly meta:string = "_",
 	) {}
 
-	meta?:string = "_";
-
-	members?:(LuaLSFunction|LuaLSClass|LuaLSAlias|LuaLSEnum)[];
+	private members?:(LuaLSFunction|LuaLSClass|LuaLSAlias|LuaLSEnum)[];
 
 	add(member:LuaLSFunction|LuaLSClass|LuaLSAlias|LuaLSEnum) {
 		if (!this.members) {
@@ -63,18 +62,21 @@ export type LuaLSType = LuaLSTypeName|LuaLSLiteral|LuaLSFunction|LuaLSDict|LuaLS
 
 export class LuaLSTypeName {
 	constructor(
-		public name:string,
-		public generic_args?:LuaLSType[]
+		public readonly name:string,
+		public readonly generic_args?:LuaLSType[]
 	) {}
 
-	format() {
+	format():string {
+		if (this.generic_args) {
+			return `${this.name}<${this.generic_args.map(a=>a.format()).join(", ")}>`;
+		}
 		return this.name;
 	}
 }
 
 export class LuaLSLiteral {
 	constructor(
-		public value:string|number|boolean,
+		public readonly value:string|number|boolean,
 	) {}
 	format() {
 		switch (typeof this.value) {
@@ -93,10 +95,9 @@ export class LuaLSLiteral {
 
 export class LuaLSDict {
 	constructor(
-		public key:LuaLSType,
-		public value:LuaLSType,
+		public readonly key:LuaLSType,
+		public readonly value:LuaLSType,
 	) {}
-
 
 	format():string {
 		return `{[${this.key.format()}]:${this.value.format()}}`;
@@ -105,7 +106,7 @@ export class LuaLSDict {
 
 export class LuaLSArray {
 	constructor(
-		public member:LuaLSType,
+		public readonly member:LuaLSType,
 	) {}
 
 	format():string {
@@ -115,7 +116,7 @@ export class LuaLSArray {
 
 export class LuaLSTuple {
 	constructor(
-		public members:LuaLSType[],
+		public readonly members:LuaLSType[],
 	) {}
 
 	format():string {
@@ -125,7 +126,7 @@ export class LuaLSTuple {
 
 export class LuaLSUnion {
 	constructor(
-		public members:LuaLSType[],
+		public readonly members:LuaLSType[],
 	) {}
 
 	format():string {
@@ -135,28 +136,26 @@ export class LuaLSUnion {
 
 export class LuaLSAlias {
 	constructor(
-		public name:string,
-		public type:LuaLSType,
-		public description?:Description,
+		public readonly name:string,
+		public readonly type:LuaLSType,
+		public readonly description?:Description,
 	) {}
 
-
 	async write(output:Writable) {
-		await format_lua_description(output, this.description);
+		await comment_description(output, this.description);
 		output.write(`---@alias ${this.name} ${this.type.format()}\n\n`);
 	}
 }
 
 export class LuaLSEnum {
 	constructor(
-		public name:string,
-		public fields:LuaLSEnumField[],
+		public readonly name:string,
+		public readonly fields:LuaLSEnumField[],
+		public readonly description?:Description,
 	) {}
-	description?:Description;
-
 
 	async write(output:Writable) {
-		await format_lua_description(output, this.description);
+		await comment_description(output, this.description);
 		output.write(`---@enum ${this.name}\n`);
 
 		output.write(`${this.name}={\n`);
@@ -169,12 +168,12 @@ export class LuaLSEnum {
 
 export class LuaLSEnumField {
 	constructor(
-		public name:string,
-		public description?:Description,
+		public readonly name:string,
+		public readonly description?:Description,
 	) {}
 
 	async write(output:Writable) {
-		await format_lua_description(output, this.description);
+		await comment_description(output, this.description);
 		output.write(`${this.name}=#{},\n`);
 	}
 }
@@ -188,20 +187,44 @@ export class LuaLSClass {
 	generic_args?:string[];
 	global_name?:string;
 
-	operators?:LuaLSOperator[];
-	call_op?:LuaLSOverload;
+	private operators?:LuaLSOperator[];
+	private call_op?:LuaLSOverload[];
 
-	fields?:LuaLSField[];
-	functions?:LuaLSFunction[];
+	private fields?:LuaLSField[];
+	private functions?:LuaLSFunction[];
+
+	add(member:LuaLSOperator|LuaLSOverload|LuaLSField|LuaLSFunction) {
+		if (member instanceof LuaLSOperator) {
+			if (!this.operators) {
+				this.operators = [];
+			}
+			this.operators.push(member);
+		} else if (member instanceof LuaLSOverload) {
+			if (!this.call_op) {
+				this.call_op = [];
+			}
+			this.call_op.push(member);
+		} else if (member instanceof LuaLSField) {
+			if (!this.fields) {
+				this.fields = [];
+			}
+			this.fields.push(member);
+		} else if (member instanceof LuaLSFunction) {
+			if (!this.functions) {
+				this.functions = [];
+			}
+			this.functions.push(member);
+		}
+	}
 
 	async write(output:Writable) {
 		output.write(`do\n`);
-		await format_lua_description(output, this.description);
+		await comment_description(output, this.description);
 		output.write(`---@class ${this.name}`);
-		if (this.generic_args) {
+		if (this.generic_args && this.generic_args.length > 0) {
 			output.write(`<${this.generic_args.join(",")}>`);
 		}
-		if (this.parents) {
+		if (this.parents && this.parents.length > 0) {
 			output.write(`:${this.parents.map(t=>t.format()).join(", ")}`);
 		}
 		output.write(`\n`);
@@ -213,7 +236,9 @@ export class LuaLSClass {
 		}
 
 		if (this.call_op) {
-			await this.call_op.write(output);
+			for (const call_op of this.call_op) {
+				await call_op.write(output);
+			}
 		}
 
 		if (this.operators) {
@@ -252,15 +277,15 @@ export class LuaLSClass {
 
 export class LuaLSOperator {
 	constructor(
-		public name:"len",
-		public type:LuaLSType,
-		public input_type?:LuaLSType,
+		public readonly name:"len",
+		public readonly type:LuaLSType,
+		public readonly input_type?:LuaLSType,
 	) {}
 
 	description?:Description;
 
 	async write(output:Writable) {
-		await format_lua_description(output, this.description);
+		await comment_description(output, this.description);
 		output.write(`---@operator ${this.name}`);
 
 		if (this.input_type) {
@@ -274,14 +299,14 @@ export class LuaLSOperator {
 
 export class LuaLSField {
 	constructor(
-		public name:string|LuaLSType,
-		public type:LuaLSType,
+		public readonly name:string|LuaLSType,
+		public readonly type:LuaLSType,
+		public readonly description?:Description,
+		public readonly optional?:boolean,
 	) {}
-	description?:Description;
-	optional?:boolean;
 
 	async write(output:Writable) {
-		await format_lua_description(output, this.description);
+		await comment_description(output, this.description);
 
 		output.write(`---@field `);
 		if (typeof this.name === "string") {
@@ -303,7 +328,7 @@ export class LuaLSOverload {
 	returns?:LuaLSReturn[];
 
 	async write(output:Writable) {
-		await format_lua_description(output, this.description);
+		await comment_description(output, this.description);
 		let params = "";
 		if (this.params) {
 			params = this.params.map(p=>`${p.name}:${p.type.format()}`).join(", ");
@@ -318,9 +343,9 @@ export class LuaLSOverload {
 
 export class LuaLSFunction {
 	constructor(
-		public name:string|undefined,
-		public params?:LuaLSParam[]|undefined,
-		public returns?:LuaLSReturn[]|undefined,
+		public readonly name:string|undefined,
+		public readonly params?:LuaLSParam[]|undefined,
+		public readonly returns?:LuaLSReturn[]|undefined,
 	) {}
 	description?:Description;
 
@@ -329,7 +354,7 @@ export class LuaLSFunction {
 	nodiscard?:boolean;
 
 	async write(output:Writable) {
-		await format_lua_description(output, this.description);
+		await comment_description(output, this.description);
 		if (this.params) {
 			for (const param of this.params) {
 				await param.write(output);
@@ -339,6 +364,9 @@ export class LuaLSFunction {
 			for (const ret of this.returns) {
 				await ret.write(output);
 			}
+		}
+		if (this.nodiscard) {
+			output.write(`---@nodiscard\n`);
 		}
 		if (this.overloads) {
 			for (const ol of this.overloads) {
@@ -370,8 +398,8 @@ export class LuaLSFunction {
 
 export class LuaLSParam {
 	constructor(
-		public name:string,
-		public type:LuaLSType,
+		public readonly name:string,
+		public readonly type:LuaLSType,
 	) {}
 	description?:Description;
 	optional?:boolean;
@@ -383,13 +411,18 @@ export class LuaLSParam {
 
 export class LuaLSReturn {
 	constructor(
-		public type:LuaLSType,
-		public name?:string,
+		public readonly type:LuaLSType,
+		public readonly name?:string,
 	) {}
 	description?:Description;
 	optional?:boolean;
 
 	async write(output:Writable) {
-		output.write(`---@return ${this.type.format()}${this.optional?"?":""} ${this.name??""} #${(await this.description)??""}\n`);
+		output.write(`---@return ${this.type.format()}${this.optional?"?":""} ${this.name??""}`);
+		const desc = await this.description;
+		if (desc) {
+			output.write(` #${desc}`);
+		}
+		output.write(`\n`);
 	}
 }
