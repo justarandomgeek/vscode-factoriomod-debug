@@ -365,8 +365,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			//there aren't any with both values and subkeys for now,
 			//we'll deal with that if it ever happens...
 			if (define.values) {
-				const lsenum = new LuaLSEnum(name, define.values.map(v=>new LuaLSEnumField(v.name, v.description)), description);
-				file.add(lsenum);
+				file.add(new LuaLSEnum(name, define.values.map(v=>new LuaLSEnumField(v.name, v.description)), description));
 			} else {
 				const lsclass = new LuaLSClass(name);
 				lsclass.global_name = name;
@@ -429,10 +428,9 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 	private async generate_LuaLS_LuaObjectNames() {
 		const file = new LuaLSFile("runtime-api/LuaObjectNames", this.docs.application_version);
-		const names = new LuaLSAlias("LuaObject.object_name", new LuaLSUnion(
+		file.add(new LuaLSAlias("LuaObject.object_name", new LuaLSUnion(
 			this.docs.classes.filter(c=>!c.abstract).map(c=>new LuaLSLiteral(c.name))
-		));
-		file.add(names);
+		)));
 		return file;
 	}
 
@@ -447,21 +445,21 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	}
 
 	private async LuaLS_params(params:ApiParameter[], format_description:DocDescriptionFormatter):Promise<LuaLSParam[]> {
-		return Promise.all(params.sort(sort_by_order).map(async p=>{
-			const lsparam = new LuaLSParam(to_lua_ident(p.name), await this.LuaLS_type(p.type));
-			lsparam.description = format_description(this.collect_description(p));
-			lsparam.optional = p.optional;
-			return lsparam;
-		}));
+		return Promise.all(params.sort(sort_by_order).map(async p=>new LuaLSParam(
+			to_lua_ident(p.name),
+			await this.LuaLS_type(p.type),
+			format_description(this.collect_description(p)),
+			p.optional,
+		)));
 	}
 
 	private async LuaLS_returns(returns:ApiMethod["return_values"], format_description:DocDescriptionFormatter):Promise<LuaLSReturn[]> {
-		return Promise.all(returns.sort(sort_by_order).map(async r=>{
-			const lsreturn = new LuaLSReturn(await this.LuaLS_type(r.type));
-			lsreturn.description = format_description(this.collect_description(r));
-			lsreturn.optional = r.optional;
-			return lsreturn;
-		}));
+		return Promise.all(returns.sort(sort_by_order).map(async r=>new LuaLSReturn(
+			await this.LuaLS_type(r.type),
+			undefined,
+			format_description(this.collect_description(r)),
+			r.optional,
+		)));
 	}
 
 	private async LuaLS_function(func:ApiMethod, file:LuaLSFile, format_description:DocDescriptionFormatter, in_class?:string):Promise<LuaLSFunction> {
@@ -469,15 +467,17 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			[ new LuaLSParam("param", await this.LuaLS_table_type(func, file, `${in_class??""}${in_class?".":""}${func.name}_param`, format_description)) ]:
 			await this.LuaLS_params(func.parameters, format_description);
 		if (func.variadic_type) {
-			const dots = new LuaLSParam("...", await this.LuaLS_type(func.variadic_type));
-			dots.description = format_description(func.variadic_description);
-			params.push(dots);
+			params.push(new LuaLSParam(
+				"...",
+				await this.LuaLS_type(func.variadic_type),
+				format_description(func.variadic_description)
+			));
 		}
 		const lsfunc = new LuaLSFunction(func.name,
 			params,
-			await this.LuaLS_returns(func.return_values, format_description)
+			await this.LuaLS_returns(func.return_values, format_description),
+			format_description(func.description, {scope: "runtime", member: in_class??"libraries", part: in_class?func.name:"new-functions"})
 		);
-		lsfunc.description = format_description(func.description, {scope: "runtime", member: in_class??"libraries", part: in_class?func.name:"new-functions"});
 		return lsfunc;
 	}
 

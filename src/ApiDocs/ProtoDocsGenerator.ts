@@ -146,13 +146,12 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 				lsproto.parents = [new LuaLSTypeName(this.type_prefix+prototype.parent)];
 			}
 			for (const prop of prototype.properties) {
-				const field = new LuaLSField(
+				lsproto.add(new LuaLSField(
 					prop.name,
 					this.lua_proto_type(prop.type),
 					await format_description(prop.description, { scope: "prototype", member: prototype.name, part: prop.name }),
 					prop.optional,
-				);
-				lsproto.add(field);
+				));
 				if (prop.alt_name) {
 					lsproto.add(new LuaLSField(
 						prop.alt_name,

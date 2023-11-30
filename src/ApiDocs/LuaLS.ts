@@ -116,7 +116,7 @@ export class LuaLSArray {
 
 export class LuaLSTuple {
 	constructor(
-		public readonly members:LuaLSType[],
+		public readonly members:ReadonlyArray<LuaLSType>,
 	) {}
 
 	format():string {
@@ -126,7 +126,7 @@ export class LuaLSTuple {
 
 export class LuaLSUnion {
 	constructor(
-		public readonly members:LuaLSType[],
+		public readonly members:ReadonlyArray<LuaLSType>,
 	) {}
 
 	format():string {
@@ -150,7 +150,7 @@ export class LuaLSAlias {
 export class LuaLSEnum {
 	constructor(
 		public readonly name:string,
-		public readonly fields:LuaLSEnumField[],
+		public readonly fields:ReadonlyArray<LuaLSEnumField>,
 		public readonly description?:Description,
 	) {}
 
@@ -324,8 +324,8 @@ export class LuaLSField {
 
 export class LuaLSOverload {
 	description?:Description;
-	params?:LuaLSParam[];
-	returns?:LuaLSReturn[];
+	params?:ReadonlyArray<LuaLSParam>;
+	returns?:ReadonlyArray<LuaLSReturn>;
 
 	async write(output:Writable) {
 		await comment_description(output, this.description);
@@ -344,14 +344,21 @@ export class LuaLSOverload {
 export class LuaLSFunction {
 	constructor(
 		public readonly name:string|undefined,
-		public readonly params?:LuaLSParam[]|undefined,
-		public readonly returns?:LuaLSReturn[]|undefined,
+		public readonly params?:ReadonlyArray<LuaLSParam>|undefined,
+		public readonly returns?:ReadonlyArray<LuaLSReturn>|undefined,
+		public readonly description?:Description,
 	) {}
-	description?:Description;
 
-	overloads?:LuaLSOverload[];
+	private overloads?:LuaLSOverload[];
 
 	nodiscard?:boolean;
+
+	add(overload:LuaLSOverload) {
+		if (!this.overloads) {
+			this.overloads = [];
+		}
+		this.overloads.push(overload);
+	}
 
 	async write(output:Writable) {
 		await comment_description(output, this.description);
@@ -400,9 +407,9 @@ export class LuaLSParam {
 	constructor(
 		public readonly name:string,
 		public readonly type:LuaLSType,
+		public readonly description?:Description,
+		public readonly optional?:boolean,
 	) {}
-	description?:Description;
-	optional?:boolean;
 
 	async write(output:Writable) {
 		output.write(`---@param ${this.name}${this.optional?"?":""} ${this.type.format()} ${(await this.description)??""}\n`);
@@ -413,9 +420,9 @@ export class LuaLSReturn {
 	constructor(
 		public readonly type:LuaLSType,
 		public readonly name?:string,
+		public readonly description?:Description,
+		public readonly optional?:boolean,
 	) {}
-	description?:Description;
-	optional?:boolean;
 
 	async write(output:Writable) {
 		output.write(`---@return ${this.type.format()}${this.optional?"?":""} ${this.name??""}`);
