@@ -18,6 +18,7 @@ if not __plugin_dev then
   furi = require("file-uri")
 end
 
+local shared_state = require("factorio-plugin.shared-state")
 local require_module = require("factorio-plugin.require")
 local global = require("factorio-plugin.global")
 local remote = require("factorio-plugin.remote")
@@ -77,6 +78,7 @@ function OnSetText(uri, text)
 
   local diffs = {count = 0} ---@type Diff.ArrayWithCount
 
+  shared_state.calculate_state_for_file(uri, text)
   require_module.replace(uri, text, diffs)
   global.replace(uri, text, diffs)
   remote.replace(uri, text, diffs)
