@@ -56,18 +56,13 @@ local function replace(uri, text, diffs)
     local matches_to_ignore = {}
     -- remove matches that where `global` is actually indexing into something (`.global`)
     for dot_pos, start in text:gmatch("()%.[^%S\n]*()global%s*[=.%[]")--[[@as fun():integer, integer]] do
-      if text:sub(dot_pos - 1, dot_pos - 1) ~= "." then
+      if text:sub(dot_pos - 1, dot_pos - 1) ~= "." -- If it's a concat, keep it.
+        and text:sub(dot_pos - 2, dot_pos - 1) ~= "_G" -- Keep indexes into _G
+        and text:sub(dot_pos - 4, dot_pos - 1) ~= "_ENV" -- and _ENV
+      then
         matches_to_ignore[start] = true
       end
     end
-    -- `_ENV.global` and `_G.global` now get ignored because of this, we can add them back in
-    -- with the code bellow, but it's a 66% performance cost increase for hardly any gain
-    -- for start, finish in text:gmatch("_ENV%.%s*()global()%s*[=.%[]") do
-    --   matches_to_ignore[start] = nil
-    -- end
-    -- for start, finish in text:gmatch("_G%.%s*()global()%s*[=.%[]") do
-    --   matches_to_ignore[start] = nil
-    -- end
 
     for preceding_text, start, finish, ignore_pos, ignore_char in
       util.gmatch_at_start_of_line(text, "([^\n]-)%f[a-zA-Z0-9_]()global()%s*()([=.%[])")--[[@as fun(): string, integer, integer, integer, string]]
