@@ -1,5 +1,22 @@
 --##
 
+local file_id = 0
+---@type table<integer, Diff>
+local diff_finish_pos_to_diff_map = {}
+
+local function on_process_file()
+  file_id = file_id + 1
+  if file_id == 100 then
+    -- Free all that memory. But only every now and then, because as the programmer is typing,
+    -- they'll naturally be in the same file, which has a high chance of using the same indexes
+    -- in this table. That way the total amount of allocations may be lower.
+    -- Clearing the table through iteration every time would certainly result in fewer allocations
+    -- however in more time spent in Lua. Having it be managed on the native side should be faster.
+    file_id = 0
+    diff_finish_pos_to_diff_map = {}
+  end
+end
+
 ---it's string.gmatch, but anchored at the start of a line
 ---it is not supported to capture the entire match by not defining any captures
 ---in that case explicitly define the capture. (Because a newline might be added at the start)
@@ -49,14 +66,33 @@ end
 ---@param finish integer
 ---@param replacement string
 local function add_diff(diffs, start, finish, replacement)
+  -- Finish is treated as including, but we want excluding for consistency with chain diffs.
+  finish = finish - 1
   local count = diffs.count
   count = count + 1
   diffs.count = count
-  diffs[count] = {
+  ---@type Diff
+  local diff = {
     start = start,
-    finish = finish - 1,
+    finish = finish,
     text = replacement,
+    __file_id = file_id,
   }
+  diffs[count] = diff
+  diff_finish_pos_to_diff_map[finish] = diff
+end
+
+---@param diffs Diff.ArrayWithCount
+---@param position integer @ Position of a single character, instead of start and finish.
+---@param prev_char string @ The character at the given position, before replacements.
+---@param addition string @ The string to append after `prev_char`.
+local function add_or_append_diff(diffs, position, prev_char, addition)
+  local diff = diff_finish_pos_to_diff_map[position]
+  if diff and diff.__file_id == file_id then
+    diff.text = diff.text..addition
+  else
+    return add_diff(diffs, position, position + 1, prev_char..addition)
+  end
 end
 
 ---@param diffs Diff.ArrayWithCount
@@ -111,11 +147,16 @@ local function add_chain_diff(chain_diff, diffs)
       local count = diffs.count
       count = count + 1
       diffs.count = count
-      diffs[count] = {
+      local finish = chain_diff_elem.i - 1 -- finish is treated as including, which we don't want
+      ---@type Diff
+      local diff = {
         start = prev_chain_diff_elem.i,
-        finish = chain_diff_elem.i - 1, -- finish is treated as including, which we don't want
+        finish = finish,
         text = prev_chain_diff_elem.text,
+        __file_id = file_id,
       }
+      diffs[count] = diff
+      diff_finish_pos_to_diff_map[finish] = diff
     end
     prev_chain_diff_elem = chain_diff_elem
   end
@@ -123,17 +164,24 @@ local function add_chain_diff(chain_diff, diffs)
     local count = diffs.count
     count = count + 1
     diffs.count = count
-    diffs[count] = {
+    local finish = prev_chain_diff_elem.i - 1
+    ---@type Diff
+    local diff = {
       start = prev_chain_diff_elem.i,
-      finish = prev_chain_diff_elem.i - 1,
+      finish = finish,
       text = prev_chain_diff_elem.text,
+      __file_id = file_id,
     }
+    diffs[count] = diff
+    diff_finish_pos_to_diff_map[finish] = diff
   end
 end
 
 return {
+  on_process_file = on_process_file,
   gmatch_at_start_of_line = gmatch_at_start_of_line,
   add_diff = add_diff,
+  add_or_append_diff = add_or_append_diff,
   remove_diff = remove_diff,
   add_chain_diff = add_chain_diff,
   extend_chain_diff_elem_text = extend_chain_diff_elem_text,

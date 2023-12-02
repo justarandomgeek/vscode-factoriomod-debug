@@ -74,7 +74,7 @@ local function replace(uri, text, diffs)
         -- otherwise hovers and syntax highlighting doesn't work.
         -- This can cause issues if there is already a diff for that character. Chances of someone writing
         -- that kind of code however are so low that it's a "fix when it gets reported" kind of issue.
-        util.add_diff(diffs, start - 1, start, before.."--\n")
+        util.add_or_append_diff(diffs, start - 1, before, "--\n")
       end
       util.add_diff(diffs, start, finish, global_name)
       -- Put the diagnostic after the '.' otherwise code completion/suggestions don't work.

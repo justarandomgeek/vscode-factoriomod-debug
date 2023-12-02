@@ -18,6 +18,7 @@ if not __plugin_dev then
   furi = require("file-uri")
 end
 
+local util = require("factorio-plugin.util")
 local require_module = require("factorio-plugin.require")
 local global = require("factorio-plugin.global")
 local remote = require("factorio-plugin.remote")
@@ -29,6 +30,7 @@ local command_line = require("factorio-plugin.command-line")
 ---@field start integer @ The number of bytes at the beginning of the replacement
 ---@field finish integer @ The number of bytes at the end of the replacement
 ---@field text string @ What to replace
+---@field __file_id integer @ Custom field, used to identify and deduplicate diffs within the same file.
 
 ---@alias Diff.ArrayWithCount {[integer]: Diff, ["count"]: integer}
 
@@ -77,12 +79,15 @@ function OnSetText(uri, text)
 
   local diffs = {count = 0} ---@type Diff.ArrayWithCount
 
+  util.on_process_file()
   require_module.replace(uri, text, diffs)
-  global.replace(uri, text, diffs)
   remote.replace(uri, text, diffs)
   on_event.replace(uri, text, diffs)
   object_name.replace(uri, text, diffs)
   command_line.replace(uri, text, diffs)
+  -- The following replacements require other diffs to be created already
+  -- to be able to check for their existence to prevent duplication/overlaps.
+  global.replace(uri, text, diffs)
 
   diffs.count = nil
   return diffs
