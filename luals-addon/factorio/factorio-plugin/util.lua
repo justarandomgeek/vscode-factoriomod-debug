@@ -1,19 +1,15 @@
 --##
 
-local file_id = 0
 ---@type table<integer, Diff>
 local diff_finish_pos_to_diff_map = {}
 
-local function on_process_file()
-  file_id = file_id + 1
-  if file_id == 100 then
-    -- Free all that memory. But only every now and then, because as the programmer is typing,
-    -- they'll naturally be in the same file, which has a high chance of using the same indexes
-    -- in this table. That way the total amount of allocations may be lower.
-    -- Clearing the table through iteration every time would certainly result in fewer allocations
-    -- however in more time spent in Lua. Having it be managed on the native side should be faster.
-    file_id = 0
-    diff_finish_pos_to_diff_map = {}
+local function on_post_process_file()
+  local next = next
+  local k = next(diff_finish_pos_to_diff_map)
+  while k do
+    local next_k = next(diff_finish_pos_to_diff_map, k)
+    diff_finish_pos_to_diff_map[k] = nil
+    k = next_k
   end
 end
 
@@ -76,7 +72,6 @@ local function add_diff(diffs, start, finish, replacement)
     start = start,
     finish = finish,
     text = replacement,
-    __file_id = file_id,
   }
   diffs[count] = diff
   diff_finish_pos_to_diff_map[finish] = diff
@@ -88,7 +83,7 @@ end
 ---@param addition string @ The string to append after `prev_char`.
 local function add_or_append_diff(diffs, position, prev_char, addition)
   local diff = diff_finish_pos_to_diff_map[position]
-  if diff and diff.__file_id == file_id then
+  if diff then
     diff.text = diff.text..addition
   else
     return add_diff(diffs, position, position + 1, prev_char..addition)
@@ -153,7 +148,6 @@ local function add_chain_diff(chain_diff, diffs)
         start = prev_chain_diff_elem.i,
         finish = finish,
         text = prev_chain_diff_elem.text,
-        __file_id = file_id,
       }
       diffs[count] = diff
       diff_finish_pos_to_diff_map[finish] = diff
@@ -170,7 +164,6 @@ local function add_chain_diff(chain_diff, diffs)
       start = prev_chain_diff_elem.i,
       finish = finish,
       text = prev_chain_diff_elem.text,
-      __file_id = file_id,
     }
     diffs[count] = diff
     diff_finish_pos_to_diff_map[finish] = diff
@@ -178,7 +171,7 @@ local function add_chain_diff(chain_diff, diffs)
 end
 
 return {
-  on_process_file = on_process_file,
+  on_post_process_file = on_post_process_file,
   gmatch_at_start_of_line = gmatch_at_start_of_line,
   add_diff = add_diff,
   add_or_append_diff = add_or_append_diff,
