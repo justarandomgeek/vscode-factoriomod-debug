@@ -139,15 +139,17 @@ export class FactorioVersionSelector {
 			}
 
 			const workspaceLibPath = Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/library").fsPath;
-			if (library.includes(workspaceLibPath)) {
-				this.output.info(`Lua.workspace.library: workspace library link OK (${workspaceLibPath})`);
+			// luals sets this, so the slashes might be wrong. check more leniently, and use the found path later for exclusion
+			const foundWorkspaceLibPath = library.find(l=>URI.file(l).fsPath === workspaceLibPath);
+			if (foundWorkspaceLibPath) {
+				this.output.info(`Lua.workspace.library: workspace library link OK (${foundWorkspaceLibPath})`);
 			} else {
 				if (!ApplyInMemory) {
 					this.output.warn(`Lua.workspace.library: workspace library link missing! (${workspaceLibPath})`);
 				}
 			}
 
-			const otherLibs = library.filter(s=>!([dataPath, workspaceLibPath].includes(s)));
+			const otherLibs = library.filter(s=>!([dataPath, foundWorkspaceLibPath].includes(s)));
 			for (const other of otherLibs) {
 				if (other.match(/justarandomgeek\.factoriomod\-debug[\\\/]sumneko\-3rd[\\\/]factorio[\\\/]library$/)) {
 					this.output.warn(`Lua.workspace.library: stale workspace link? (${other})`);
