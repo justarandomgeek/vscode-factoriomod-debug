@@ -2,11 +2,11 @@
 
 FMTK provides a third party library package for the [sumneko.lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua) language server which provides various adaptations to Factorio's Lua environment. The VS Code extension will automatically install this when a Factorio version is selected, or it can be generated manually with `fmtk sumneko-3rd`.
 
-In addition to the runtime-api docs (generated from [`runtime-api.json`](https://lua-api.factorio.com/latest/json-docs.html)), this package includes several static library files, configuration settings and a luals plugin that enables enhanced handling of `require`, `global`, event handlers, and `remote` interfaces.
+In addition to the docs (generated from [`runtime-api.json`](https://lua-api.factorio.com/latest/auxiliary/json-docs-runtime.html) and [`prototype-api.json`](https://lua-api.factorio.com/latest/auxiliary/json-docs-prototype.html)), this package includes several static library files, configuration settings and a luals plugin that enables enhanced handling of `require`, `global`, event handlers, and `remote` interfaces.
 
 ## API Type Definitions
 
-Factorio's [`runtime-api.json`](https://lua-api.factorio.com/latest/json-docs.html) and [`prototype-api.json`](https://lua-api.factorio.com/latest/auxiliary/json-docs-prototype.html) are used to generate type definitions for most of the API.
+Factorio's [`runtime-api.json`](https://lua-api.factorio.com/latest/auxiliary/json-docs-runtime.html) and [`prototype-api.json`](https://lua-api.factorio.com/latest/auxiliary/json-docs-prototype.html) are used to generate type definitions for most of the API.
 
 Event payload types are generated as subclasses of the generic event payload `EventData`, named like `EventData.on_event_name`. A library definition for `event_handler` is also generated.
 
@@ -20,7 +20,7 @@ In addition to the types listed in the json, a few extra related types are defin
 
 ## Libraries
 
-Factorio [modifies some builtin libraries](https://lua-api.factorio.com/latest/Libraries.html), and this package includes corresponding modified definitions for those libraries.
+Factorio [modifies some builtin libraries](https://lua-api.factorio.com/latest/auxiliary/libraries.html), and this package includes corresponding modified definitions for those libraries.
 
 Type definitions are also included for some of the libraries included in `__core__/lualib`, such as `util` and `mod-gui`.
 
@@ -30,7 +30,7 @@ The VS Code extension will automatically configure `"Lua.workspace.userThirdPart
 
 ## Plugin Features
 
-Because Factorio mods run in [several Lua VMs](https://lua-api.factorio.com/latest/Data-Lifecycle.html), some functions have cross-VM behavior that cannot be described fully with type definitions. We handle these by providing a plugin which transforms them into a more easily understood form before the Language Server sees them.
+Because Factorio mods run in [several Lua VMs](https://lua-api.factorio.com/latest/auxiliary/data-lifecycle.html), some functions have cross-VM behavior that cannot be described fully with type definitions. We handle these by providing a plugin which transforms them into a more easily understood form before the Language Server sees them.
 
 ### `require()`
 
@@ -45,7 +45,7 @@ Additionally, in require paths with slashes, Factorio replaces any file extensio
 
 ### `global`
 
-Each mod has its own private version of [the global named `global`](https://lua-api.factorio.com/latest/Global.html). To allow the Language Server to see this separation, `global` is renamed to `__modname__global` when used as the base variable in indexing or the target of assignment.
+Each mod has its own private version of [the global named `global`](https://lua-api.factorio.com/latest/auxiliary/global.html). To allow the Language Server to see this separation, `global` is renamed to `__modname__global` when used as the base variable in indexing or the target of assignment.
 
 ### Event Handlers
 
