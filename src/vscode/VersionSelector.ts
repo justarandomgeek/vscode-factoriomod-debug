@@ -57,7 +57,11 @@ export class FactorioVersionSelector {
 		const docs =  await this.tryJsonDocs(active_version);
 
 		// can't activate without docs...
-		if (!docs) { return; }
+		if (!docs) {
+			delete active_version.active;
+			config.update("versions", versions);
+			return;
+		}
 
 		this.bar.text = `Factorio ${docs.application_version} (${active_version.name})`;
 		this._active_version = new ActiveFactorioVersion(vscode.workspace.fs, active_version, docs, vscode.workspace.workspaceFolders);
@@ -218,13 +222,40 @@ export class FactorioVersionSelector {
 				detail: fv.factorioPath,
 			})),
 			{
+				fv: undefined,
 				label: "Select other version...",
 			},
 		]),
 		{title: "Select Factorio Version"});
 		if (!qpresult) { return; }
 
-		let active_version = ("fv" in qpresult) && qpresult.fv;
+		let active_version = qpresult.fv;
+
+		// check that the factorio binary referenced by qpresult.fv really still exists
+		if (active_version) {
+			let found = false;
+			try {
+				const stat = await fs.stat(URI.file(substitutePathVariables(active_version.factorioPath, vscode.workspace.workspaceFolders)));
+				// eslint-disable-next-line no-bitwise
+				if (stat.type & vscode.FileType.File) {
+					found = true;
+				}
+			} catch (error) {}
+
+			if (!found) {
+				const action = await vscode.window.showErrorMessage(
+					`The selected factorio version is no longer present at the specified location`,
+					"Remove from settings", "Cancel");
+				switch (action) {
+					case "Remove from settings":
+						config.update("versions", versions.filter(v=>v!==active_version));
+						return;
+					default:
+						return;
+				}
+			}
+		}
+
 		if (!active_version) {
 			// file picker for undiscovered factorios
 			const factorioPath = await vscode.window.showOpenDialog({
