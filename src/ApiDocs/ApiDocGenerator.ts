@@ -464,7 +464,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 	private async LuaLS_function(func:ApiMethod, file:LuaLSFile, format_description:DocDescriptionFormatter, in_class?:string):Promise<LuaLSFunction> {
 		const params = func.takes_table ?
-			[ new LuaLSParam("param", await this.LuaLS_table_type(func, file, `${in_class??""}${in_class?".":""}${func.name}_param`, format_description)) ]:
+			[ new LuaLSParam("param", await this.LuaLS_table_type(func, file, `${in_class??""}${in_class?".":""}${func.name}_param`, format_description), undefined, func.table_is_optional) ]:
 			await this.LuaLS_params(func.parameters, format_description);
 		if (func.variadic_type) {
 			params.push(new LuaLSParam(
