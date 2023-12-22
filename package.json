@@ -486,6 +486,16 @@
         "command": "factorio.checkConfig",
         "category": "Factorio",
         "title": "Check Config"
+      },
+      {
+        "command": "factorio.disablePrototypeCache",
+        "category": "Factorio",
+        "title": "Disable Prototype Cache"
+      },
+      {
+        "command": "factorio.disableMouseAutoCapture",
+        "category": "Factorio",
+        "title": "Disable Mouse Auto Capture"
       }
     ],
     "views": {

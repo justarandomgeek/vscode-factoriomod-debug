@@ -34,6 +34,8 @@ export class FactorioVersionSelector {
 
 		context.subscriptions.push(vscode.commands.registerCommand("factorio.selectVersion", this.selectVersionCommand, this));
 		context.subscriptions.push(vscode.commands.registerCommand("factorio.checkConfig", this.checkConfigCommand, this));
+		context.subscriptions.push(vscode.commands.registerCommand("factorio.disablePrototypeCache", this.disablePrototypeCacheCommand, this));
+		context.subscriptions.push(vscode.commands.registerCommand("factorio.disableMouseAutoCapture", this.disableMouseAutoCaptureCommand, this));
 		this.loadActiveVersion();
 
 		context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(e=>{
@@ -79,6 +81,14 @@ export class FactorioVersionSelector {
 			return;
 		}
 		this.output.info(`Active Factorio Version: ${activeVersion.docs.application_version}`);
+
+		if (await activeVersion.isPrototypeCacheEnabled()) {
+			this.output.warn(`Prototype Cache is enabled!`);
+		}
+
+		if (await activeVersion.isMouseAutoCaptureDisabled()) {
+			this.output.info(`Mouse Auto Capture is disabled`);
+		}
 
 		const workspaceLibrary = this.context.storageUri;
 		if (!workspaceLibrary) {
@@ -178,6 +188,14 @@ export class FactorioVersionSelector {
 				this.output.warn(`Lua.runtime.plugin: wrong plugin? (${plugin})`);
 			}
 		}
+	}
+
+	private async disablePrototypeCacheCommand() {
+		return (await this.getActiveVersion())?.disablePrototypeCache();
+	}
+
+	private async disableMouseAutoCaptureCommand() {
+		return (await this.getActiveVersion())?.disableMouseAutoCapture();
 	}
 
 	private async selectVersionCommand() {

@@ -25,6 +25,7 @@ interface FactorioConfigIni {
 	}
 	other?:{
 		"cache-prototype-data"?:boolean
+		"disable-mouse-auto-capture"?:boolean
 	}
 };
 
@@ -146,6 +147,38 @@ export class ActiveFactorioVersion {
 		const configUri = URI.file(await this.configPath());
 		let filedata = (await this.fs.readFile(configUri)).toString();
 		filedata = filedata.replace("cache-prototype-data=", "; cache-prototype-data=");
+		await this.fs.writeFile(configUri, Buffer.from(filedata));
+		this.iniData = ini.parse(filedata);
+	}
+
+	public async isMouseAutoCaptureDisabled() {
+		try {
+			let configIni = await this.configIni();
+			return configIni.other?.["disable-mouse-auto-capture"];
+		} catch (error) {
+			return undefined;
+		}
+	}
+
+	public async disableMouseAutoCapture() {
+		this.iniData = undefined;
+		const configUri = URI.file(await this.configPath());
+		let filedata = (await this.fs.readFile(configUri)).toString();
+
+		const match = filedata.match(/^;? *disable-mouse-auto-capture=.*$/m);
+		if (match) {
+			filedata =
+				filedata.slice(0, match.index) +
+				`\ndisable-mouse-auto-capture=true\n` +
+				filedata.slice(match.index! + match[0].length);
+		} else {
+			const other = filedata.match(/^\[other\]$/m);
+			filedata =
+				filedata.slice(0, other!.index! + other![0].length) +
+				`\ndisable-mouse-auto-capture=true\n` +
+				filedata.slice(other!.index! + other![0].length);
+		}
+
 		await this.fs.writeFile(configUri, Buffer.from(filedata));
 		this.iniData = ini.parse(filedata);
 	}
