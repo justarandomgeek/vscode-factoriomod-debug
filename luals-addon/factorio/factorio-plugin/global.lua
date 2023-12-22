@@ -83,13 +83,13 @@ local function replace(uri, text, diffs)
     -- however since we are dealing with a variable amount of values, creating a generic
     -- function for it would be incredibly inefficient, constantly allocating new tables.
     for preceding_text, start, finish, ignore_pos, ignore_char, final_pos in
-      util.gmatch_at_start_of_line(text, "([^\n]-)%f[a-zA-Z0-9_]()global()%s*()([=.%[])()")--[[@as fun(): string, integer, integer, integer, string, integer]]
+      util.gmatch_at_start_of_line(text, "([^\n]-)%f[a-zA-Z0-9_]()global()[^%S\n]*()([=.%[])()")--[[@as fun(): string, integer, integer, integer, string, integer]]
     do
       if preceding_text:find("--", 1, true) then goto continue end
       add_diffs(start, finish, ignore_pos, ignore_char)
       while true do
         preceding_text, start, finish, ignore_pos, ignore_char, final_pos
-          = text:match("([^\n]-)%f[a-zA-Z0-9_]()global()%s*()([=.%[])()", final_pos)
+          = text:match("^([^\n]-)%f[a-zA-Z0-9_]()global()[^%S\n]*()([=.%[])()", final_pos)
         if not start or preceding_text:find("--", 1, true) then break end
         add_diffs(start, finish, ignore_pos, ignore_char)
       end
