@@ -3,6 +3,12 @@
 [<img height='36' style='border:0px;height:36px;' src='https://az743702.vo.msecnd.net/cdn/kofi2.png?v=2' border='0' alt='Buy Me a Coffee at ko-fi.com'/>](https://ko-fi.com/X8X41IE4T)
 
 ## 1.1.39
+* VSCode:
+  * Added commands to adjust config.ini settings (prototype cache, mouse auto capture)
+  * Check config.ini settings in Check Config
+* Sumneko library package:
+  * Correctly mark function optional table params
+  * Fix `global` rename only being applied once per line
 
 ## 1.1.38
 * Debugger:
@@ -13,7 +19,7 @@
   * Added Check Config command (run from command pallete)
 * Sumneko library package:
   * Updated library generator remaining runtime types
-  * Split up table types with variant_parameter_groups for bettery diagnostics
+  * Split up table types with variant_parameter_groups for better diagnostics
 
 ## 1.1.37
 * No longer use `keytar` which VSCode has removed.
