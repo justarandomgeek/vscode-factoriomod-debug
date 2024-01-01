@@ -75,7 +75,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		return this.docs.application_version;
 	}
 
-	public resolve_link(member:string, part?:string):string {
+	public resolve_link(member:string, part?:string):string|undefined {
 		part = part ? `#${part}` : "";
 		if (['classes', 'events', 'concepts', 'defines'].includes(member)) {
 			return `/${member}.html${part}`;
@@ -101,8 +101,8 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		if (this.defines.has(member)) {
 			return `/defines.html#${member}`;
 		}
-		return "###INVALID LINK###";
-		throw new Error("Invalid Link");
+		console.warn(`Invalid Link: runtime:${member}${part}`);
+		return undefined;
 	}
 
 	private with_base_classes<T>(c:ApiClass, getter:(c:ApiClass)=>T) {

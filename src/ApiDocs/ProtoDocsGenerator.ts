@@ -52,7 +52,7 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 		return this.docs.application_version;
 	}
 
-	public resolve_link(member:string, part?:string):string {
+	public resolve_link(member:string, part?:string):string|undefined {
 		part = part ? `#${part}` : "";
 		if (['prototypes', 'types'].includes(member)) {
 			return `/${member}.html${part}`;
@@ -63,7 +63,8 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 		if (this.prototypes.has(member)) {
 			return `/prototypes/${member}.html${part}`;
 		}
-		throw new Error("Invalid Link");
+		console.warn(`Invalid Link: prototype:${member}${part}`);
+		return undefined;
 	}
 
 	public generate_LuaLS_docs(

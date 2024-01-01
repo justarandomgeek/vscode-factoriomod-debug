@@ -41,10 +41,16 @@ program.command("luals-addon [outdir]")
 				if (matches) {
 					switch (matches[1]) {
 						case 'runtime':
-							node.url = "https://lua-api.factorio.com/latest"+docs.resolve_link(matches[2], matches[3]);
+							const rlink = docs.resolve_link(matches[2], matches[3]);
+							if (rlink) {
+								node.url = "https://lua-api.factorio.com/latest"+rlink;
+							}
 							break;
 						case 'prototype':
-							node.url = "https://lua-api.factorio.com/latest"+pdocs!.resolve_link(matches[2], matches[3]);
+							const plink = pdocs!.resolve_link(matches[2], matches[3]);
+							if (plink) {
+								node.url = "https://lua-api.factorio.com/latest"+plink;
+							}
 							break;
 					}
 				}
