@@ -250,7 +250,8 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 				await this.LuaLS_type(attribute.type, {
 					file, table_class_name: `${aclass.name}.${attribute.name}`, format_description,
 				}),
-				format_description(this.collect_description(attribute, { scope: "runtime", member: aclass.name, part: attribute.name }))
+				format_description(this.collect_description(attribute, { scope: "runtime", member: aclass.name, part: attribute.name })),
+				attribute.optional
 			));
 		}
 
@@ -570,6 +571,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 							format_description: in_parent.format_description,
 						}),
 						in_parent.format_description(this.collect_description(attribute)),
+						attribute.optional
 					));
 				}
 				in_parent.file.add(lsclass);
