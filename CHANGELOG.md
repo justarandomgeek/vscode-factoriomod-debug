@@ -6,6 +6,7 @@
 * Sumneko library package:
   * Generate even if some doc links are broken
   * Correctly mark Attributes as optional
+  * set Lua.workspace.checkThirdParty=ApplyInMemory to work around LuaLS's broken defaults
 
 ## 1.1.39
 * VSCode:

@@ -470,6 +470,7 @@ export class FactorioVersionSelector {
 			userThirdParty.push(path);
 			userThirdPartyAdded = true;
 		}
+		await luaconfig.update("workspace.checkThirdParty", "ApplyInMemory");
 		await luaconfig.update("workspace.userThirdParty", userThirdParty);
 
 		const sumneko = vscode.extensions.getExtension("sumneko.lua");
