@@ -70,8 +70,8 @@ local function replace(uri, text, diffs)
       if before ~= "" then
         -- Put the newline on a separate diff before the one replacing 'global',
         -- otherwise hovers and syntax highlighting doesn't work.
-        -- This can cause issues if there is already a diff for that character. Chances of someone writing
-        -- that kind of code however are so low that it's a "fix when it gets reported" kind of issue.
+        -- This can cause issues if there is already a diff for that character,
+        -- which is why it's using add_or_append_diff.
         util.add_or_append_diff(diffs, start - 1, before, "--\n")
       end
       util.add_diff(diffs, start, finish, global_name)
