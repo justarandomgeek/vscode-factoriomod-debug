@@ -82,6 +82,9 @@ local function replace(uri, text, diffs)
         util.add_or_append_diff(diffs, start - 1, before, "--\n")
       end
       util.add_diff(diffs, start, finish, global_name)
+      if ignore_char == "" then
+        ignore_pos = finish -- Move it directly next to `global`, not past all the whitespace after it.
+      end
       -- Put the diagnostic after the '.' otherwise code completion/suggestions don't work.
       util.add_diff(diffs, ignore_pos, ignore_pos + #ignore_char, ignore_char.."---@diagnostic disable-line:undefined-global\n")
     end
