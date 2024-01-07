@@ -75,9 +75,18 @@ local function clean_up_disabled_data()
   current_disabled_positions_lower_bound = 0
 end
 
-local function add_disabled_flags(position, flags)
+---@param position integer
+---@param flags PluginDisableFlags
+---@param may_not_be_last boolean? @
+---The current last position may actually be past this position. Check and adjust for that.
+local function add_disabled_flags(position, flags, may_not_be_last)
   local count = disabled_positions_count + 1
   disabled_positions_count = count
+  if may_not_be_last and disabled_positions[count - 1] > position then
+    disabled_positions[count] = disabled_positions[count - 1]
+    disabled_flags[count] = disabled_flags[count - 1]
+    count = count - 1
+  end
   disabled_positions[count] = position
   disabled_flags[count] = flags
 end
@@ -169,10 +178,12 @@ local function find_plugin_disable_annotations(text, diffs)
       end
     elseif tag == "disable" then
       current_flags = bor(current_flags, flags)
-      add_disabled_flags(colon_pos, current_flags)
+      -- 'may_not_be_last = true' because the pervious line may have been 'disable-next-line'.
+      add_disabled_flags(colon_pos, current_flags, true)
     elseif tag == "enable" then
       current_flags = band(current_flags, bnot(flags))
-      add_disabled_flags(colon_pos, current_flags)
+      -- 'may_not_be_last = true' because the pervious line may have been 'disable-next-line'.
+      add_disabled_flags(colon_pos, current_flags, true)
     else
       add_diff(diffs, s_plugin, f_plugin, "diagnostic") -- To get a warning for an invalid tag.
     end
