@@ -1,7 +1,134 @@
 --##
 
+local floor_div = __plugin_dev
+  and function(left, right) return math.floor(left / right) end
+  or load("return function(left, right) return left // right end")()
+local band = __plugin_dev and bit32.band or load("return function(left, right) return left & right end")()
+local bor = __plugin_dev and bit32.bor or load("return function(left, right) return left | right end")()
+local bnot = __plugin_dev and bit32.bnot or load("return function(value) return ~value end")()
+
+---@enum PluginDisableFlags
+local module_flags = {
+  none = 0,
+  command_line = 1,
+  global = 2,
+  object_name = 4,
+  on_event = 8,
+  remote_add = 16,
+  remote_call = 32,
+  require = 64,
+  all = 127,
+}
+
+---@type integer[]
+local disabled_positions = {1} -- Always contains 1 element.
+---@type PluginDisableFlags[]
+local disabled_flags = {module_flags.none} -- Indexes match up with `disabled_positions`.
+local disabled_positions_count = 1
+local current_disabled_positions_lower_bound = 0 -- Zero based.
+
+---@param position integer
+---@param flag PluginDisableFlags
+---@return boolean
+local function is_disabled(position, flag)
+  local lower_bound = current_disabled_positions_lower_bound -- Zero based, inclusive.
+  local upper_bound = disabled_positions_count -- Zero based, exclusive.
+  local i = floor_div(lower_bound + upper_bound, 2)
+  -- Try close to the lower bound first, since text is processed front to back.
+  i = math.min(i, lower_bound + 8)
+  while true do
+    local pos = disabled_positions[i + 1]
+    if position >= pos then
+      lower_bound = i + 1
+    else
+      upper_bound = i
+    end
+    if lower_bound == upper_bound then break end
+    i = floor_div(lower_bound + upper_bound, 2)
+  end
+  lower_bound = lower_bound - 1
+  current_disabled_positions_lower_bound = lower_bound
+  local flags = disabled_flags[lower_bound + 1] -- + 1 to go from zero to one based.
+  return band(flags, flag) ~= 0
+end
+
+local function reset_is_disabled_to_file_start()
+  current_disabled_positions_lower_bound = 0
+end
+
+local function clean_up_disabled_data()
+  for i = 2, disabled_positions_count do
+    disabled_positions[i] = nil
+    disabled_flags[i] = nil
+  end
+  disabled_positions_count = 1
+  current_disabled_positions_lower_bound = 0
+end
+
+local function add_disabled_flags(position, flags)
+  local count = disabled_positions_count + 1
+  disabled_positions_count = count
+  disabled_positions[count] = position
+  disabled_flags[count] = flags
+end
+
+local gmatch_at_start_of_line
+
+---@param text string
+local function find_plugin_disable_annotations(text)
+  local current_flags = disabled_flags[1]
+  for line_start, tag, colon_pos, done_pos in
+    gmatch_at_start_of_line(text, "()[^\n]-%-%-%-[^%S\n]*@plugin[^%S\n]+([%a%-]+)[^%S\n]*():?()")--[[@as fun(): integer, string, integer, integer]]
+  do
+    local flags
+    if colon_pos == done_pos then
+      flags = module_flags.all
+    else
+      flags = module_flags.none
+      repeat
+        local module_name, p_comma
+        module_name, p_comma, done_pos = text:match("^[^%S\n]*([%a_]+)[^%S\n]*(),?()", done_pos)
+        if not module_name then break end -- Syntax error: missing module name after ':' or ','.
+        local module_flag = module_flags[module_name]
+        if not module_flag then module_flag = 0 end -- Invalid 'module_name'.
+        -- if band(flags, module_flag) ~= 0 then end -- Duplicate 'module_name' in list.
+        flags = bor(flags, module_flag)
+      until p_comma == done_pos
+    end
+
+    if tag == "disable-next-line" then
+      local next_line_start, next_line_finish = text:match("\n()[^\n]*()", done_pos)
+      if next_line_start then
+        add_disabled_flags(next_line_start, bor(current_flags, flags))
+        add_disabled_flags(next_line_finish, current_flags)
+      end
+    elseif tag == "disable-line" then
+      if disabled_positions[disabled_positions_count - 1] == line_start then
+        -- If the previous line had a disable-next-line, combine them.
+        disabled_flags[disabled_positions_count - 1] = bor(disabled_flags[disabled_positions_count - 1], flags)
+      else
+        add_disabled_flags(line_start, bor(current_flags, flags))
+        add_disabled_flags(text:match("^[^\n]*()", done_pos), current_flags)
+      end
+    elseif tag == "disable" then
+      current_flags = bor(current_flags, flags)
+      add_disabled_flags(colon_pos, current_flags)
+    elseif tag == "enable" then
+      current_flags = band(current_flags, bnot(flags))
+      add_disabled_flags(colon_pos, current_flags)
+    else
+      -- Invalid tag.
+    end
+  end
+end
+
 ---@type table<integer, Diff>
 local diff_finish_pos_to_diff_map = {}
+
+---@param text string
+local function on_pre_process_file(text)
+  find_plugin_disable_annotations(text)
+end
 
 local function on_post_process_file()
   local next = next
@@ -11,6 +138,7 @@ local function on_post_process_file()
     diff_finish_pos_to_diff_map[k] = nil
     k = next_k
   end
+  clean_up_disabled_data()
 end
 
 ---it's string.gmatch, but anchored at the start of a line
@@ -29,7 +157,7 @@ end
 ---@param s string
 ---@param pattern string
 ---@return fun(): string|integer, ...
-local function gmatch_at_start_of_line(s, pattern)
+function gmatch_at_start_of_line(s, pattern)
   local first = true
   local unpack = table.unpack
   ---@type fun(): string|integer, ...
@@ -171,6 +299,10 @@ local function add_chain_diff(chain_diff, diffs)
 end
 
 return {
+  module_flags = module_flags,
+  is_disabled = is_disabled,
+  reset_is_disabled_to_file_start = reset_is_disabled_to_file_start,
+  on_pre_process_file = on_pre_process_file,
   on_post_process_file = on_post_process_file,
   gmatch_at_start_of_line = gmatch_at_start_of_line,
   add_diff = add_diff,

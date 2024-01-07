@@ -1,6 +1,8 @@
 --##
 
 local util = require("factorio-plugin.util")
+local remote_add_module_flag = util.module_flags.remote_add
+local remote_call_module_flag = util.module_flags.remote_call
 
 ---@alias comma_or_paren ','|`)`
 
@@ -36,6 +38,7 @@ local function replace(_, text, diffs)
 
   -- remote.add_interface
 
+  util.reset_is_disabled_to_file_start()
   for preceding_text, s_entire_thing, s_add, f_add, p_open_paren, p_param_1 in
     util.gmatch_at_start_of_line(text, "([^\n]-)()remote%s*%.%s*()add_interface()%s*()%(()") --[[@as fun(): string, integer, integer, integer, integer, integer]]
   do
@@ -50,7 +53,7 @@ local function replace(_, text, diffs)
         goto continue
       end
 
-      if name_comma_or_paren == "," then
+      if name_comma_or_paren == "," and not util.is_disabled(s_entire_thing, remote_add_module_flag) then
         util.extend_chain_diff_elem_text(chain_diff[3], "=(")
         chain_diff[4] = {i = s_param_2 --[[@as integer]]}
         util.add_diff(diffs, s_add - 1, s_add, text:sub(s_add - 1, s_add - 1).."--\n")
@@ -69,10 +72,11 @@ local function replace(_, text, diffs)
   -- this in particular needs to work as you're typing, not just once you're done
   -- which significantly complicates things, like we can't use the commas as reliable anchors
 
+  util.reset_is_disabled_to_file_start()
   for preceding_text, s_call, f_call, p_open_paren, s_param_1 in
     util.gmatch_at_start_of_line(text, "([^\n]-)remote%s*%.%s*()call()%s*()%(()")--[[@as fun():string, integer, integer, integer, integer]]
   do
-    if not preceding_text:find("--", 1, true) then
+    if not preceding_text:find("--", 1, true) and not util.is_disabled(s_call, remote_call_module_flag) then
       util.add_diff(diffs, s_call - 1, s_call, text:sub(s_call - 1, s_call - 1).."--\n")
       util.add_diff(diffs, s_call, f_call,
         "__typed_interfaces---@diagnostic disable-line:undefined-field\n")
