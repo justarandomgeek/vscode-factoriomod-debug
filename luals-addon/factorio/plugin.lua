@@ -78,7 +78,7 @@ function OnSetText(uri, text)
 
   local diffs = {count = 0} ---@type Diff.ArrayWithCount
 
-  util.on_pre_process_file(text)
+  util.on_pre_process_file(text, diffs)
 
   require_module.replace(uri, text, diffs)
   remote.replace(uri, text, diffs)

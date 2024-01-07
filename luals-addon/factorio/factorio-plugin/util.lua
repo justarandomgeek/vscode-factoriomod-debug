@@ -27,6 +27,16 @@ local disabled_flags = {module_flags.none} -- Indexes match up with `disabled_po
 local disabled_positions_count = 1
 local current_disabled_positions_lower_bound = 0 -- Zero based.
 
+-- -- Premature optimization
+-- local flags_lookups = {}
+-- for _, flag in pairs(disabled_flags) do
+--   local lut = {}
+--   flags_lookups[flag] = lut
+--   for _, other_flag in pairs(disabled_flags) do
+--     lut[flag + (other_flag == flag and 0 or other_flag)] = true
+--   end
+-- end
+
 ---@param position integer
 ---@param flag PluginDisableFlags
 ---@return boolean
@@ -73,26 +83,73 @@ local function add_disabled_flags(position, flags)
 end
 
 local gmatch_at_start_of_line
+local add_diff
+
+local module_name_intellisense = [[
+__plugin_dummy(({---@diagnostic disable-line: undefined-global
+---Removal of `/c` and friends at the start of a line.
+command_line=true,
+---Replacement of expressions involving `global` to help the language sever distinguish global tables between different mods.
+global=true,
+---Rearrangement of `obj.object_name == "LuaEntity"` for the language server to perform type narrowing, same as how `type()` works.
+object_name=true,
+---Insertion of `@param` tag for inline event registrations, with support for flib and stdlib.
+on_event=true,
+---Hacks for `remote.add_interface` to look like table assignments, allowing the remote_add hack to provide intellisense.
+remote_add=true,
+---Hacks for `remote.call` to look like table indexes into a fake table with all found remote interfaces to provide intellisense.
+remote_call=true,
+---Mainly removal of the `__` in `require("__mod-name__.file")` for better cross mod file resolution.
+require=true,
+}).]]
 
 ---@param text string
-local function find_plugin_disable_annotations(text)
+---@param diffs Diff.ArrayWithCount
+local function find_plugin_disable_annotations(text, diffs)
   local current_flags = disabled_flags[1]
-  for line_start, tag, colon_pos, done_pos in
-    gmatch_at_start_of_line(text, "()[^\n]-%-%-%-[^%S\n]*@plugin[^%S\n]+([%a%-]+)[^%S\n]*():?()")--[[@as fun(): integer, string, integer, integer]]
+  ---@type integer, integer, integer, integer, string, integer, integer
+  for line_start, s_plugin, f_plugin, s_tag, tag, colon_pos, done_pos in
+    gmatch_at_start_of_line(text, "()[^\n]-%-%-%-[^%S\n]*@()plugin()[^%S\n]*()([%a%-]*)[^%S\n]*():?()")
   do
+    if f_plugin == s_tag then
+      if tag == "" then
+        add_diff(diffs, s_plugin, f_plugin, "diagnostic") -- To get disable/enable etc suggestions.
+      end
+      goto continue
+    end
+
     local flags
-    if colon_pos == done_pos then
+    if colon_pos == done_pos then -- No colon, so it disables/enables everything.
       flags = module_flags.all
-    else
+    else -- Parse the list of module names, and provide intellisense.
       flags = module_flags.none
       repeat
-        local module_name, p_comma
-        module_name, p_comma, done_pos = text:match("^[^%S\n]*([%a_]+)[^%S\n]*(),?()", done_pos)
-        if not module_name then break end -- Syntax error: missing module name after ':' or ','.
+        local s_module_name, module_name, f_module_name, p_comma
+        local start_pos = done_pos
+        ---@type integer, string, integer, integer, integer
+        s_module_name, module_name, f_module_name, p_comma, done_pos
+          = text:match("^[^%S\n]*()([%a_]*)()[^%S\n]*(),?()", done_pos)
         local module_flag = module_flags[module_name]
-        if not module_flag then module_flag = 0 end -- Invalid 'module_name'.
+        if not module_flag then-- Invalid 'module_name'.
+          -- Add a newline followed by a function call (to make it valid both as a statement and in
+          -- table constructors). The first argument to the call is a table constructor wrapped in
+          -- '()' followed by '.' to instantly index into that constructed table. The table contains
+          -- all the valid module names with a short comment describing what that module does.
+          add_diff(diffs, start_pos - 1, start_pos,
+            text:sub(start_pos - 1, start_pos - 1).."\n"..module_name_intellisense
+          )
+          -- Must be split into 2 diffs like this to actually get the intellisense from the "table index".
+          -- Using an undefined global to get a warning. Extra ',' in the argument list to ensure
+          -- there is an error visible to the programmer, even with undefined global warnings disabled.
+          -- ';' at the end because it is valid both in statement and in table constructor context.
+          add_diff(diffs, s_module_name, f_module_name,
+            module_name..","..(module_name == "" and "missing" or "invalid").."_module_name,);--"
+          )
+          goto continue
+        end
         -- if band(flags, module_flag) ~= 0 then end -- Duplicate 'module_name' in list.
         flags = bor(flags, module_flag)
+        ::continue::
       until p_comma == done_pos
     end
 
@@ -117,8 +174,9 @@ local function find_plugin_disable_annotations(text)
       current_flags = band(current_flags, bnot(flags))
       add_disabled_flags(colon_pos, current_flags)
     else
-      -- Invalid tag.
+      add_diff(diffs, s_plugin, f_plugin, "diagnostic") -- To get a warning for an invalid tag.
     end
+    ::continue::
   end
 end
 
@@ -126,8 +184,9 @@ end
 local diff_finish_pos_to_diff_map = {}
 
 ---@param text string
-local function on_pre_process_file(text)
-  find_plugin_disable_annotations(text)
+---@param diffs Diff.ArrayWithCount
+local function on_pre_process_file(text, diffs)
+  find_plugin_disable_annotations(text, diffs)
 end
 
 local function on_post_process_file()
@@ -189,7 +248,7 @@ end
 ---@param start integer
 ---@param finish integer
 ---@param replacement string
-local function add_diff(diffs, start, finish, replacement)
+function add_diff(diffs, start, finish, replacement)
   -- Finish is treated as including, but we want excluding for consistency with chain diffs.
   finish = finish - 1
   local count = diffs.count
