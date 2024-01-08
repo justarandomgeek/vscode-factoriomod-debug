@@ -23,13 +23,9 @@ local function replace(_, text, diffs)
   ---@param s_func_param integer
   ---@param class_name_getter fun(): string
   local function process_func_param(s_func_param, class_name_getter)
-    ---@type integer|nil, integer, string, integer
-    local s_func, p_param_name, param_name, f_func = text:match("^%s*()function%s*%(%s*()([^)%s]+)()", s_func_param)
-
-    if s_func
-      and not text:match("^[^\n]-%-%-##()", f_func)
-      and not util.is_disabled(p_param_name, on_event_module_flag)
-    then
+    ---@type integer|nil, integer, string
+    local s_func, s_param_name, param_name = text:match("^%s*()function%s*%(%s*()([^)%s]+)", s_func_param)
+    if s_func and not util.is_disabled(s_param_name, on_event_module_flag) then
       local class_name = class_name_getter()
       if class_name then
         util.add_diff(diffs, s_func_param, s_func,
