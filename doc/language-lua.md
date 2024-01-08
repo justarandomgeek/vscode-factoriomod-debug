@@ -32,6 +32,10 @@ The VS Code extension will automatically configure `"Lua.workspace.userThirdPart
 
 Because Factorio mods run in [several Lua VMs](https://lua-api.factorio.com/latest/auxiliary/data-lifecycle.html), some functions have cross-VM behavior that cannot be described fully with type definitions. We handle these by providing a plugin which transforms them into a more easily understood form before the Language Server sees them.
 
+### Plugin Disabling
+
+The plugin isn't perfect, so whenever it does something undesirable use `---@plugin ...` to disable it. It works very similar to `---@diagnostic`, for example: `---@plugin disable-line: on_event` or `---@plugin disable-next-line`.
+
 ### `require()`
 
 Factorio allows requiring files from another mod with a `__modname__` prefix:
