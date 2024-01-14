@@ -188,7 +188,6 @@ local function lex_lua_nonexecutables(source)
   local ranges = {}
   ---@type LexerState
   local state = "code"
-  local long_bracket_count = 0
   local cursor = 1 -- 1 is the first character in the source file.
 
   local delimit = ""
@@ -216,12 +215,12 @@ local function lex_lua_nonexecutables(source)
   ---@return boolean, integer | nil
   local function parse_longbracket_open()
     -- Consume all the '='s
-    long_bracket_count = 0
+    local count = 0
     while take("=") do
-      long_bracket_count = long_bracket_count + 1
+      count = count + 1
     end
     if take("[") then
-      return true, long_bracket_count
+      return true, count
     else
       return false, nil
     end
