@@ -344,13 +344,13 @@ local function lex_lua_nonexecutables(source)
     }
     local default = function() error("bad state: " .. state) end
     ; (modes[state] or default)()
-    if cursor == anchor then
+    if cursor == origin then
       error("lexer stalled! state: " ..
         state .. " cursor: " .. cursor .. " ref: " .. source:sub(cursor, cursor + 10))
     end
   end
   local timer = (os.clock() - start_clock)
-  if timer > 0.1 then
+  if timer > 0.01 then
     print("Lexer perf: " .. #source .. " bytes in " .. timer .. " seconds")
   end
   return ranges
