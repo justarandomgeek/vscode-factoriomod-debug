@@ -64,34 +64,47 @@ local function replace(uri, text, diffs)
       end
     end
 
-    local function add_diffs(start, finish, ignore_pos, ignore_char)
+    ---@param preceding_text string
+    ---@param start integer
+    ---@param finish integer
+    ---@param ignore_pos integer
+    ---@param ignore_char string
+    local function add_diffs(preceding_text, start, finish, ignore_pos, ignore_char)
       if matches_to_ignore[start] then return end
+      if ignore_char == "" and not preceding_text:find("=[^%S\n]*$") then return end
+
       local before = text:sub(start - 1, start - 1)
       if before ~= "" then
         -- Put the newline on a separate diff before the one replacing 'global',
         -- otherwise hovers and syntax highlighting doesn't work.
-        -- This can cause issues if there is already a diff for that character. Chances of someone writing
-        -- that kind of code however are so low that it's a "fix when it gets reported" kind of issue.
+        -- This can cause issues if there is already a diff for that character,
+        -- which is why it's using add_or_append_diff.
         util.add_or_append_diff(diffs, start - 1, before, "--\n")
       end
       util.add_diff(diffs, start, finish, global_name)
+      if ignore_char == "" then
+        ignore_pos = finish -- Move it directly next to `global`, not past all the whitespace after it.
+      end
       -- Put the diagnostic after the '.' otherwise code completion/suggestions don't work.
-      util.add_diff(diffs, ignore_pos, ignore_pos + 1, ignore_char.."---@diagnostic disable-line:undefined-global\n")
+      util.add_diff(diffs, ignore_pos, ignore_pos + #ignore_char, ignore_char.."---@diagnostic disable-line:undefined-global\n")
     end
 
     -- There is duplication here, which would usually be handled by a util function,
     -- however since we are dealing with a variable amount of values, creating a generic
     -- function for it would be incredibly inefficient, constantly allocating new tables.
     for preceding_text, start, finish, ignore_pos, ignore_char, final_pos in
-      util.gmatch_at_start_of_line(text, "([^\n]-)%f[a-zA-Z0-9_]()global()[^%S\n]*()([=.%[])()")--[[@as fun(): string, integer, integer, integer, string, integer]]
+      util.gmatch_at_start_of_line(text, "([^\n]-)%f[a-zA-Z0-9_]()global()[^%S\n]*()([=.%[]?)()")--[[@as fun(): string, integer, integer, integer, string, integer]]
     do
       if preceding_text:find("--", 1, true) then goto continue end
-      add_diffs(start, finish, ignore_pos, ignore_char)
+      add_diffs(preceding_text, start, finish, ignore_pos, ignore_char)
       while true do
+        if ignore_char == "=" then -- To support `global = global`.
+          final_pos = final_pos - 1
+        end
         preceding_text, start, finish, ignore_pos, ignore_char, final_pos
-          = text:match("^([^\n]-)%f[a-zA-Z0-9_]()global()[^%S\n]*()([=.%[])()", final_pos)
+          = text:match("^([^\n]-)%f[a-zA-Z0-9_]()global()[^%S\n]*()([=.%[]?)()", final_pos)
         if not start or preceding_text:find("--", 1, true) then break end
-        add_diffs(start, finish, ignore_pos, ignore_char)
+        add_diffs(preceding_text, start, finish, ignore_pos, ignore_char)
       end
       ::continue::
     end
