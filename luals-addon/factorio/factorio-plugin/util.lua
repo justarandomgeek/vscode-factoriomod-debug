@@ -434,8 +434,6 @@ local function lex_lua_nonexecutables(source)
     }
   end
 
-  local start_clock = os.clock()
-
   while cursor <= #source do
     -- read this as a switch statement.
     local origin = cursor
@@ -546,10 +544,6 @@ local function lex_lua_nonexecutables(source)
   if state ~= "code" then
     _end = cursor - 1
     append_range()
-  end
-  local timer = (os.clock() - start_clock)
-  if timer > 0.01 then
-    print("Lexer perf: " .. #source .. " bytes in " .. timer .. " seconds")
   end
   return ranges
 end
