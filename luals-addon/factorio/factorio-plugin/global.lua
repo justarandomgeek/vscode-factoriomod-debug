@@ -89,12 +89,20 @@ local function replace(uri, text, diffs)
       util.add_diff(diffs, ignore_pos, ignore_pos + #ignore_char, ignore_char.."---@diagnostic disable-line:undefined-global\n")
     end
 
+    -- Compute locations of strings and comments
+    local non_code_positions = util.lex_lua_nonexecutables(text)
+
     -- There is duplication here, which would usually be handled by a util function,
     -- however since we are dealing with a variable amount of values, creating a generic
     -- function for it would be incredibly inefficient, constantly allocating new tables.
     for preceding_text, start, finish, ignore_pos, ignore_char, final_pos in
       util.gmatch_at_start_of_line(text, "([^\n]-)%f[a-zA-Z0-9_]()global()[^%S\n]*()([=.%[]?)()")--[[@as fun(): string, integer, integer, integer, string, integer]]
     do
+      for _, non_code in ipairs(non_code_positions) do
+        if non_code.from <= start and non_code.to >= finish then
+          goto continue
+        end
+      end
       if preceding_text:find("--", 1, true) then goto continue end
       add_diffs(preceding_text, start, finish, ignore_pos, ignore_char)
       while true do

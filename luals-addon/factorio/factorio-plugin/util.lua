@@ -235,13 +235,18 @@ local function lex_lua_nonexecutables(source)
     }
   end
 
+  local start_clock = os.clock()
+
   while cursor <= #source do
     -- read this as a switch statement.
-    local anchor = cursor
+    local origin = cursor
 
     ---@type {[LexerState]: fun()}
     local modes = {
       code = function()
+        -- rapid advance to the next interesting character
+        cursor = string.match(source, "()[-[\"']", cursor) or #source + 1
+        local anchor = cursor
         if take("--") then
           local anchor2 = cursor -- we're still a comment if the long bracket is invalid
           if take("[") then
@@ -296,6 +301,7 @@ local function lex_lua_nonexecutables(source)
         end
       end,
       long_string = function()
+        cursor = string.match(source, "()" .. delimit, cursor) or #source + 1
         if take(delimit) then
           state = "code"
           _end = cursor - 1
@@ -314,6 +320,7 @@ local function lex_lua_nonexecutables(source)
         end
       end,
       long_comment = function()
+        cursor = string.match(source, "()" .. delimit, cursor) or #source + 1
         if take(delimit) then
           state = "code"
           _end = cursor - 1
@@ -330,6 +337,7 @@ local function lex_lua_nonexecutables(source)
         state .. " cursor: " .. cursor .. " ref: " .. source:sub(cursor, cursor + 10))
     end
   end
+  print("Lexing " .. #source .. " bytes took " .. (os.clock() - start_clock) .. " seconds")
   return ranges
 end
 
