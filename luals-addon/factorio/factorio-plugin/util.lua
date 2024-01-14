@@ -1,7 +1,204 @@
 --##
 
+local floor_div = __plugin_dev
+  and function(left, right) return math.floor(left / right) end
+  or load("return function(left, right) return left // right end")()
+local band = __plugin_dev and bit32.band or load("return function(left, right) return left & right end")()
+local bor = __plugin_dev and bit32.bor or load("return function(left, right) return left | right end")()
+local bnot = __plugin_dev and bit32.bnot or load("return function(value) return ~value end")()
+
+---@enum PluginDisableFlags
+local module_flags = {
+  none = 0,
+  command_line = 1,
+  global = 2,
+  object_name = 4,
+  on_event = 8,
+  remote_add = 16,
+  remote_call = 32,
+  require = 64,
+  all = 127,
+}
+
+---@type integer[]
+local disabled_positions = {1} -- Always contains 1 element.
+---@type PluginDisableFlags[]
+local disabled_flags = {module_flags.none} -- Indexes match up with `disabled_positions`.
+local disabled_positions_count = 1
+local current_disabled_positions_lower_bound = 0 -- Zero based.
+
+-- -- Premature optimization
+-- local flags_lookups = {}
+-- for _, flag in pairs(disabled_flags) do
+--   local lut = {}
+--   flags_lookups[flag] = lut
+--   for _, other_flag in pairs(disabled_flags) do
+--     lut[flag + (other_flag == flag and 0 or other_flag)] = true
+--   end
+-- end
+
+---@param position integer
+---@param flag PluginDisableFlags
+---@return boolean
+local function is_disabled(position, flag)
+  local lower_bound = current_disabled_positions_lower_bound -- Zero based, inclusive.
+  local upper_bound = disabled_positions_count -- Zero based, exclusive.
+  local i = floor_div(lower_bound + upper_bound, 2)
+  -- Try close to the lower bound first, since text is processed front to back.
+  i = math.min(i, lower_bound + 8)
+  while true do
+    local pos = disabled_positions[i + 1]
+    if position >= pos then
+      lower_bound = i + 1
+    else
+      upper_bound = i
+    end
+    if lower_bound == upper_bound then break end
+    i = floor_div(lower_bound + upper_bound, 2)
+  end
+  lower_bound = lower_bound - 1
+  current_disabled_positions_lower_bound = lower_bound
+  local flags = disabled_flags[lower_bound + 1] -- + 1 to go from zero to one based.
+  return band(flags, flag) ~= 0
+end
+
+local function reset_is_disabled_to_file_start()
+  current_disabled_positions_lower_bound = 0
+end
+
+local function clean_up_disabled_data()
+  for i = 2, disabled_positions_count do
+    disabled_positions[i] = nil
+    disabled_flags[i] = nil
+  end
+  disabled_positions_count = 1
+  current_disabled_positions_lower_bound = 0
+end
+
+---@param position integer
+---@param flags PluginDisableFlags
+---@param may_not_be_last boolean? @
+---The current last position may actually be past this position. Check and adjust for that.
+local function add_disabled_flags(position, flags, may_not_be_last)
+  local count = disabled_positions_count + 1
+  disabled_positions_count = count
+  if may_not_be_last and disabled_positions[count - 1] > position then
+    disabled_positions[count] = disabled_positions[count - 1]
+    disabled_flags[count] = disabled_flags[count - 1]
+    count = count - 1
+  end
+  disabled_positions[count] = position
+  disabled_flags[count] = flags
+end
+
+local gmatch_at_start_of_line
+local add_diff
+
+local module_name_intellisense = [[
+__plugin_dummy(({---@diagnostic disable-line: undefined-global
+---Removal of `/c` and friends at the start of a line.
+command_line=true,
+---Replacement of expressions involving `global` to help the language sever distinguish global tables between different mods.
+global=true,
+---Rearrangement of `obj.object_name == "LuaEntity"` for the language server to perform type narrowing, same as how `type()` works.
+object_name=true,
+---Insertion of `@param` tag for inline event registrations, with support for flib and stdlib.
+on_event=true,
+---Hacks for `remote.add_interface` to look like table assignments, allowing the remote_add hack to provide intellisense.
+remote_add=true,
+---Hacks for `remote.call` to look like table indexes into a fake table with all found remote interfaces to provide intellisense.
+remote_call=true,
+---Mainly removal of the `__` in `require("__mod-name__.file")` for better cross mod file resolution.
+require=true,
+}).]]
+
+---@param text string
+---@param diffs Diff.ArrayWithCount
+local function find_plugin_disable_annotations(text, diffs)
+  local current_flags = disabled_flags[1]
+  ---@type integer, integer, integer, integer, string, integer, integer
+  for line_start, s_plugin, f_plugin, s_tag, tag, colon_pos, done_pos in
+    gmatch_at_start_of_line(text, "()[^\n]-%-%-%-[^%S\n]*@()plugin()[^%S\n]*()([%a%-]*)[^%S\n]*():?()")
+  do
+    if f_plugin == s_tag then
+      if tag == "" then
+        add_diff(diffs, s_plugin, f_plugin, "diagnostic") -- To get disable/enable etc suggestions.
+      end
+      goto continue
+    end
+
+    local flags
+    if colon_pos == done_pos then -- No colon, so it disables/enables everything.
+      flags = module_flags.all
+    else -- Parse the list of module names, and provide intellisense.
+      flags = module_flags.none
+      repeat
+        local s_module_name, module_name, f_module_name, p_comma
+        local start_pos = done_pos
+        ---@type integer, string, integer, integer, integer
+        s_module_name, module_name, f_module_name, p_comma, done_pos
+          = text:match("^[^%S\n]*()([%a_]*)()[^%S\n]*(),?()", done_pos)
+        local module_flag = module_flags[module_name]
+        if not module_flag then-- Invalid 'module_name'.
+          -- Add a newline followed by a function call (to make it valid both as a statement and in
+          -- table constructors). The first argument to the call is a table constructor wrapped in
+          -- '()' followed by '.' to instantly index into that constructed table. The table contains
+          -- all the valid module names with a short comment describing what that module does.
+          add_diff(diffs, start_pos - 1, start_pos,
+            text:sub(start_pos - 1, start_pos - 1).."\n"..module_name_intellisense
+          )
+          -- Must be split into 2 diffs like this to actually get the intellisense from the "table index".
+          -- Using an undefined global to get a warning. Extra ',' in the argument list to ensure
+          -- there is an error visible to the programmer, even with undefined global warnings disabled.
+          -- ';' at the end because it is valid both in statement and in table constructor context.
+          add_diff(diffs, s_module_name, f_module_name,
+            module_name..","..(module_name == "" and "missing" or "invalid").."_module_name,);--"
+          )
+          goto continue
+        end
+        -- if band(flags, module_flag) ~= 0 then end -- Duplicate 'module_name' in list.
+        flags = bor(flags, module_flag)
+        ::continue::
+      until p_comma == done_pos
+    end
+
+    if tag == "disable-next-line" then
+      local next_line_start, next_line_finish = text:match("\n()[^\n]*()", done_pos)
+      if next_line_start then
+        add_disabled_flags(next_line_start, bor(current_flags, flags))
+        add_disabled_flags(next_line_finish, current_flags)
+      end
+    elseif tag == "disable-line" then
+      if disabled_positions[disabled_positions_count - 1] == line_start then
+        -- If the previous line had a disable-next-line, combine them.
+        disabled_flags[disabled_positions_count - 1] = bor(disabled_flags[disabled_positions_count - 1], flags)
+      else
+        add_disabled_flags(line_start, bor(current_flags, flags))
+        add_disabled_flags(text:match("^[^\n]*()", done_pos), current_flags)
+      end
+    elseif tag == "disable" then
+      current_flags = bor(current_flags, flags)
+      -- 'may_not_be_last = true' because the pervious line may have been 'disable-next-line'.
+      add_disabled_flags(colon_pos, current_flags, true)
+    elseif tag == "enable" then
+      current_flags = band(current_flags, bnot(flags))
+      -- 'may_not_be_last = true' because the pervious line may have been 'disable-next-line'.
+      add_disabled_flags(colon_pos, current_flags, true)
+    else
+      add_diff(diffs, s_plugin, f_plugin, "diagnostic") -- To get a warning for an invalid tag.
+    end
+    ::continue::
+  end
+end
+
 ---@type table<integer, Diff>
 local diff_finish_pos_to_diff_map = {}
+
+---@param text string
+---@param diffs Diff.ArrayWithCount
+local function on_pre_process_file(text, diffs)
+  find_plugin_disable_annotations(text, diffs)
+end
 
 local function on_post_process_file()
   local next = next
@@ -11,6 +208,7 @@ local function on_post_process_file()
     diff_finish_pos_to_diff_map[k] = nil
     k = next_k
   end
+  clean_up_disabled_data()
 end
 
 ---it's string.gmatch, but anchored at the start of a line
@@ -29,7 +227,7 @@ end
 ---@param s string
 ---@param pattern string
 ---@return fun(): string|integer, ...
-local function gmatch_at_start_of_line(s, pattern)
+function gmatch_at_start_of_line(s, pattern)
   local first = true
   local unpack = table.unpack
   ---@type fun(): string|integer, ...
@@ -61,7 +259,7 @@ end
 ---@param start integer
 ---@param finish integer
 ---@param replacement string
-local function add_diff(diffs, start, finish, replacement)
+function add_diff(diffs, start, finish, replacement)
   -- Finish is treated as including, but we want excluding for consistency with chain diffs.
   finish = finish - 1
   local count = diffs.count
@@ -171,6 +369,10 @@ local function add_chain_diff(chain_diff, diffs)
 end
 
 return {
+  module_flags = module_flags,
+  is_disabled = is_disabled,
+  reset_is_disabled_to_file_start = reset_is_disabled_to_file_start,
+  on_pre_process_file = on_pre_process_file,
   on_post_process_file = on_post_process_file,
   gmatch_at_start_of_line = gmatch_at_start_of_line,
   add_diff = add_diff,

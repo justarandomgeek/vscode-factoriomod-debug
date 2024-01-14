@@ -1,15 +1,16 @@
 --##
 
 local util = require("factorio-plugin.util")
+local require_module_flag = util.module_flags.require
 
 ---@param _ string @ The uri of file
 ---@param text string @ The content of file
 ---@param diffs Diff[] @ The diffs to add more diffs to
 local function replace(_, text, diffs)
+  util.reset_is_disabled_to_file_start()
   for start, name, finish in
     text:gmatch("require%s*%(?%s*['\"]()(.-)()['\"]%s*%)?")--[=[@as fun(): integer, string, integer]=]
   do
-
     local original_name = name
 
     ---Convert the mod name prefix if there is one
@@ -25,7 +26,7 @@ local function replace(_, text, diffs)
       name = name:gsub("%.[^.\\/]+$", "")
     end
 
-    if name ~= original_name then
+    if name ~= original_name and not util.is_disabled(start, require_module_flag) then
       util.add_diff(diffs, start, finish, name)
     end
   end
