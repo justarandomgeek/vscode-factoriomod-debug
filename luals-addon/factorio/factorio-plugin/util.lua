@@ -170,6 +170,170 @@ local function add_chain_diff(chain_diff, diffs)
   end
 end
 
+---@alias SourceRange {from: integer, to: integer, length: integer, content: string}
+---@alias LexerState
+--- | '"code"'
+--- | '"short_string"'
+--- | '"long_string"'
+--- | '"short_comment"'
+--- | '"long_comment"'
+
+---Lexically analyze Lua source files for positions of strings and comments.
+---Notably, this needs to be able to handle 'long brackets', which are context-sensitive.
+---We should really only be doing this once per source file.
+---@param source string
+---@return SourceRange[]
+local function lex_lua_nonexecutables(source)
+  ---@type SourceRange[]
+  local ranges = {}
+  ---@type LexerState
+  local state = "code"
+  local long_bracket_count = 0
+  local cursor = 1 -- 1 is the first character in the source file.
+
+  local delimit = ""
+  local start = 0
+  local _end = 0
+
+  local char_escaped = false
+
+  ---check if the next character(s) are equal to the given string
+  ---@param query string
+  ---@return boolean
+  local function peek(query)
+    if cursor + #query > #source then return false end
+    return source:sub(cursor, cursor + #query - 1) == query
+  end
+
+  local function take(query)
+    if not peek(query) then return false end
+    cursor = cursor + #query
+    return true
+  end
+
+  ---Parse a opening long bracket, like `[[` or `[=[`
+  ---Assumes the first bracket has already been consumed.
+  ---@return boolean, integer | nil
+  local function parse_longbracket_open()
+    -- Consume all the '='s
+    long_bracket_count = 0
+    while take("=") do
+      long_bracket_count = long_bracket_count + 1
+    end
+    if take("[") then
+      return true, long_bracket_count
+    else
+      return false, nil
+    end
+  end
+
+  local function append_range()
+    ranges[#ranges + 1] = {
+      from = start,
+      to = _end,
+      length = _end - start + 1,
+      content = source:sub(start, _end),
+    }
+  end
+
+  while cursor <= #source do
+    -- read this as a switch statement.
+    local anchor = cursor
+
+    ---@type {[LexerState]: fun()}
+    local modes = {
+      code = function()
+        if take("--") then
+          local anchor2 = cursor -- we're still a comment if the long bracket is invalid
+          if take("[") then
+            local is_long, count = parse_longbracket_open()
+            if is_long then
+              if not count then return end
+              state = "long_comment"
+              start = anchor
+              delimit = "]" .. ("="):rep(count) .. "]"
+              return
+            else
+              cursor = anchor2
+            end
+          end
+          state = "short_comment"
+          start = anchor
+        elseif take("[") then
+          local is_long, count = parse_longbracket_open()
+          if is_long then
+            if not count then return end
+            state = "long_string"
+            char_escaped = false
+            start = anchor
+            delimit = "]" .. ("="):rep(count) .. "]"
+          end
+        elseif take('"') then
+          state = "short_string"
+          char_escaped = false
+          start = anchor
+          delimit = '"'
+        elseif take("'") then
+          state = "short_string"
+          char_escaped = false
+          start = anchor
+          delimit = "'"
+        else
+          cursor = cursor + 1
+        end
+      end,
+      short_string = function()
+        if char_escaped then
+          char_escaped = false
+          cursor = cursor + 1
+        elseif take("\\") then
+          char_escaped = true
+        elseif take(delimit) then
+          state = "code"
+          _end = cursor - 1
+          append_range()
+        else
+          cursor = cursor + 1
+        end
+      end,
+      long_string = function()
+        if take(delimit) then
+          state = "code"
+          _end = cursor - 1
+          append_range()
+        else
+          cursor = cursor + 1
+        end
+      end,
+      short_comment = function()
+        if take("\n") then
+          state = "code"
+          _end = cursor - 1
+          append_range()
+        else
+          cursor = cursor + 1
+        end
+      end,
+      long_comment = function()
+        if take(delimit) then
+          state = "code"
+          _end = cursor - 1
+          append_range()
+        else
+          cursor = cursor + 1
+        end
+      end,
+    }
+    local default = function() error("bad state: " .. state) end
+    ; (modes[state] or default)()
+    if cursor == anchor then
+      error("lexer stalled! state: " ..
+        state .. " cursor: " .. cursor .. " ref: " .. source:sub(cursor, cursor + 10))
+    end
+  end
+  return ranges
+end
+
 return {
   on_post_process_file = on_post_process_file,
   gmatch_at_start_of_line = gmatch_at_start_of_line,
@@ -180,4 +344,5 @@ return {
   extend_chain_diff_elem_text = extend_chain_diff_elem_text,
   try_parse_string_literal = try_parse_string_literal,
   use_source_to_index = use_source_to_index,
+  lex_lua_nonexecutables = lex_lua_nonexecutables
 }
