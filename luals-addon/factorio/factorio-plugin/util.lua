@@ -349,6 +349,10 @@ local function lex_lua_nonexecutables(source)
         state .. " cursor: " .. cursor .. " ref: " .. source:sub(cursor, cursor + 10))
     end
   end
+  if state ~= "code" then
+    _end = cursor - 1
+    append_range()
+  end
   local timer = (os.clock() - start_clock)
   if timer > 0.01 then
     print("Lexer perf: " .. #source .. " bytes in " .. timer .. " seconds")
