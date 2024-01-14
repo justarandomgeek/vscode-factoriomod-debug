@@ -79,7 +79,7 @@ local function replace(uri, text, diffs)
         -- otherwise hovers and syntax highlighting doesn't work.
         -- This can cause issues if there is already a diff for that character,
         -- which is why it's using add_or_append_diff.
-        util.add_or_append_diff(diffs, start - 1, before, "--\n")
+        util.add_or_append_diff(diffs, start - 1, before, " --\n")
       end
       util.add_diff(diffs, start, finish, global_name)
       if ignore_char == "" then
