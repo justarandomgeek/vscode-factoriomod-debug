@@ -47,9 +47,9 @@ if not __plugin_dev then
       ignoring = true
     else
       if ignoring then
-        arg = workspace.getAbsolutePath(workspace_uti, arg)
+        arg = workspace.getAbsolutePath(workspace_uti, arg) -- Returns a normalized path.
         if arg then
-          ignored_paths[workspace.normalize(arg)] = true
+          ignored_paths[arg] = true
         end
       end
     end
