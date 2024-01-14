@@ -194,11 +194,16 @@ end
 ---@type table<integer, Diff>
 local diff_finish_pos_to_diff_map = {}
 
+local lex_lua_nonexecutables
+
 ---@param text string
 ---@param diffs Diff.ArrayWithCount
 local function on_pre_process_file(text, diffs)
   find_plugin_disable_annotations(text, diffs)
+  lex_lua_nonexecutables(text)
 end
+
+local clean_up_code_ranges
 
 local function on_post_process_file()
   local next = next
@@ -209,6 +214,7 @@ local function on_post_process_file()
     k = next_k
   end
   clean_up_disabled_data()
+  clean_up_code_ranges()
 end
 
 ---it's string.gmatch, but anchored at the start of a line
@@ -368,7 +374,6 @@ local function add_chain_diff(chain_diff, diffs)
   end
 end
 
----@alias SourceRange {from: integer, to: integer, length: integer, content: string}
 ---@alias LexerState
 --- | '"code"'
 --- | '"short_string"'
@@ -376,14 +381,28 @@ end
 --- | '"short_comment"'
 --- | '"long_comment"'
 
+---@type integer[]
+local code_ranges = {0} -- Always contains 1 element.
+local code_ranges_count = 1
+local current_code_ranges_lower_bound = 0 -- Zero based.
+
+function clean_up_code_ranges()
+  for i = code_ranges_count, 2, -1 do
+    code_ranges[i] = nil
+  end
+  code_ranges_count = 1
+  current_code_ranges_lower_bound = 0
+end
+
+local function reset_code_ranges()
+  current_code_ranges_lower_bound = 0
+end
+
 ---Lexically analyze Lua source files for positions of strings and comments.
 ---Notably, this needs to be able to handle 'long brackets', which are context-sensitive.
 ---We should really only be doing this once per source file.
 ---@param source string
----@return SourceRange[]
-local function lex_lua_nonexecutables(source)
-  ---@type SourceRange[]
-  local ranges = {}
+function lex_lua_nonexecutables(source)
   ---@type LexerState
   local state = "code"
   local cursor = 1 -- 1 is the first character in the source file.
@@ -426,12 +445,14 @@ local function lex_lua_nonexecutables(source)
   end
 
   local function append_range()
-    ranges[#ranges + 1] = {
-      from = start,
-      to = _end,
-      length = _end - start + 1,
-      content = source:sub(start, _end),
-    }
+    if code_ranges[code_ranges_count] == start then
+      code_ranges[code_ranges_count] = _end + 1
+      return
+    end
+    code_ranges_count = code_ranges_count + 1
+    code_ranges[code_ranges_count] = start
+    code_ranges_count = code_ranges_count + 1
+    code_ranges[code_ranges_count] = _end + 1
   end
 
   while cursor <= #source do
@@ -545,7 +566,29 @@ local function lex_lua_nonexecutables(source)
     _end = cursor - 1
     append_range()
   end
-  return ranges
+end
+
+---@param position integer
+---@return boolean
+local function is_code(position)
+  local lower_bound = current_code_ranges_lower_bound -- Zero based, inclusive.
+  local upper_bound = #code_ranges -- Zero based, exclusive.
+  local i = floor_div(lower_bound + upper_bound, 2)
+  -- Try close to the lower bound first, since text is processed front to back.
+  i = math.min(i, lower_bound + 16)
+  while true do
+    local pos = code_ranges[i + 1]
+    if position >= pos then
+      lower_bound = i + 1
+    else
+      upper_bound = i
+    end
+    if lower_bound == upper_bound then break end
+    i = floor_div(lower_bound + upper_bound, 2)
+  end
+  lower_bound = lower_bound - 1
+  current_code_ranges_lower_bound = lower_bound
+  return (lower_bound % 2) == 0 -- Remember it's zero based.
 end
 
 return {
@@ -562,5 +605,6 @@ return {
   extend_chain_diff_elem_text = extend_chain_diff_elem_text,
   try_parse_string_literal = try_parse_string_literal,
   use_source_to_index = use_source_to_index,
-  lex_lua_nonexecutables = lex_lua_nonexecutables
+  is_code = is_code,
+  reset_code_ranges = reset_code_ranges,
 }
