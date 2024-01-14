@@ -178,6 +178,10 @@ end
 --- | '"short_comment"'
 --- | '"long_comment"'
 
+local function pattern_const(s)
+  return s:gsub("[%(%)%.%%%+%-%*%?%[%]%^%$]", "%%%1")
+end
+
 ---Lexically analyze Lua source files for positions of strings and comments.
 ---Notably, this needs to be able to handle 'long brackets', which are context-sensitive.
 ---We should really only be doing this once per source file.
@@ -191,6 +195,7 @@ local function lex_lua_nonexecutables(source)
   local cursor = 1 -- 1 is the first character in the source file.
 
   local delimit = ""
+  local patterned_delimit = ""
   local start = 0
   local _end = 0
 
@@ -277,16 +282,22 @@ local function lex_lua_nonexecutables(source)
           char_escaped = false
           start = anchor
           delimit = '"'
+          patterned_delimit = "()[\\"..delimit.."]"
         elseif take("'") then
           state = "short_string"
           char_escaped = false
           start = anchor
           delimit = "'"
+          patterned_delimit = "()[\\"..delimit.."]"
         else
           cursor = cursor + 1
         end
       end,
       short_string = function()
+        -- we still need to handle escapes correctly
+        if not char_escaped then
+          cursor = string.match(source, patterned_delimit, cursor) or #source + 1
+        end
         if char_escaped then
           char_escaped = false
           cursor = cursor + 1
@@ -311,6 +322,7 @@ local function lex_lua_nonexecutables(source)
         end
       end,
       short_comment = function()
+        cursor = string.match(source, "()\n", cursor) or #source + 1
         if take("\n") then
           state = "code"
           _end = cursor - 1
