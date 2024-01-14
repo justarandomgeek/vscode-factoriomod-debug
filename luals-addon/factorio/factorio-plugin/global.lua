@@ -1,6 +1,7 @@
 --##
 
 local util = require("factorio-plugin.util")
+local global_module_flag = util.module_flags.global
 local workspace
 if not __plugin_dev then
   workspace = require("workspace")
@@ -70,8 +71,12 @@ local function replace(uri, text, diffs)
     ---@param ignore_pos integer
     ---@param ignore_char string
     local function add_diffs(preceding_text, start, finish, ignore_pos, ignore_char)
-      if matches_to_ignore[start] then return end
-      if ignore_char == "" and not preceding_text:find("=[^%S\n]*$") then return end
+      if matches_to_ignore[start]
+        or (ignore_char == "" and not preceding_text:find("=[^%S\n]*$"))
+        or util.is_disabled(start, global_module_flag)
+      then
+        return
+      end
 
       local before = text:sub(start - 1, start - 1)
       if before ~= "" then
@@ -95,6 +100,7 @@ local function replace(uri, text, diffs)
     -- There is duplication here, which would usually be handled by a util function,
     -- however since we are dealing with a variable amount of values, creating a generic
     -- function for it would be incredibly inefficient, constantly allocating new tables.
+    util.reset_is_disabled_to_file_start()
     for preceding_text, start, finish, ignore_pos, ignore_char, final_pos in
       util.gmatch_at_start_of_line(text, "([^\n]-)%f[a-zA-Z0-9_]()global()[^%S\n]*()([=.%[]?)()")--[[@as fun(): string, integer, integer, integer, string, integer]]
     do

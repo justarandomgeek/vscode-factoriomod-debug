@@ -1,6 +1,7 @@
 --##
 
 local util = require("factorio-plugin.util")
+local on_event_module_flag = util.module_flags.on_event
 
 ---@param event_id_param string
 ---@return string|nil
@@ -22,11 +23,10 @@ local function replace(_, text, diffs)
   ---@param s_func_param integer
   ---@param class_name_getter fun(): string
   local function process_func_param(s_func_param, class_name_getter)
-    ---@type integer|nil, string, integer
-    local s_func, param_name, f_func = text:match("^%s*()function%s*%(%s*([^)%s]+)()", s_func_param)
-
-    if s_func and not text:match("^[^\n]-%-%-##()", f_func) then
-    local class_name = class_name_getter()
+    ---@type integer|nil, integer, string
+    local s_func, s_param_name, param_name = text:match("^%s*()function%s*%(%s*()([^)%s]+)", s_func_param)
+    if s_func and not util.is_disabled(s_param_name, on_event_module_flag) then
+      local class_name = class_name_getter()
       if class_name then
         util.add_diff(diffs, s_func_param, s_func,
           "\n---@diagnostic disable-next-line:undefined-doc-name\n---@param "
@@ -66,6 +66,7 @@ local function replace(_, text, diffs)
     end
   end
 
+  util.reset_is_disabled_to_file_start()
   for preceding_text, s_param in
     util.gmatch_at_start_of_line(text, "([^\n]-)on_event%s*%(%s*()")--[[@as fun():string, integer]]
   do
@@ -74,6 +75,7 @@ local function replace(_, text, diffs)
     end
   end
 
+  util.reset_is_disabled_to_file_start()
   for preceding_text, s_param in
     util.gmatch_at_start_of_line(text, "([^\n]-)[Ee]vent%s*%.%s*register%s*%(%s*()")--[[@as fun():string, integer]]
   do
@@ -82,6 +84,7 @@ local function replace(_, text, diffs)
     end
   end
 
+  util.reset_is_disabled_to_file_start()
   for preceding_text, class_name, s_func_param in
     util.gmatch_at_start_of_line(text, "([^\n]-)[Ee]vent%s*%.%s*([a-zA-Z_][a-zA-Z0-9_]*)%s*%(()")--[[@as fun():string, string, integer]]
   do
