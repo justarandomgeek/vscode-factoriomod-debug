@@ -178,10 +178,6 @@ end
 --- | '"short_comment"'
 --- | '"long_comment"'
 
-local function pattern_const(s)
-  return s:gsub("[%(%)%.%%%+%-%*%?%[%]%^%$]", "%%%1")
-end
-
 ---Lexically analyze Lua source files for positions of strings and comments.
 ---Notably, this needs to be able to handle 'long brackets', which are context-sensitive.
 ---We should really only be doing this once per source file.
