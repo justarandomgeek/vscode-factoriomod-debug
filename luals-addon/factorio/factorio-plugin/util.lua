@@ -433,13 +433,11 @@ function lex_lua_nonexecutables(source)
   ---@return boolean, integer | nil
   local function parse_longbracket_open()
     -- Consume all the '='s
-    local count = source:match("^=*()", cursor) - cursor
-    cursor = cursor + count
-    if take("[") then
-      return true, count
-    else
-      return false, nil
-    end
+    local match = source:match("^=*%[()", cursor)
+    if not match then return false, nil end
+    local level = match - cursor - 1
+    cursor = match
+    return true, level
   end
 
   local function append_range()
