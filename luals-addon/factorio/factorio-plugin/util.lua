@@ -238,107 +238,107 @@ local function lex_lua_nonexecutables(source)
 
   local start_clock = os.clock()
 
-  while cursor <= #source do
-    -- read this as a switch statement.
-    local origin = cursor
-
-    ---@type {[LexerState]: fun()}
-    local modes = {
-      code = function()
-        -- rapid advance to the next interesting character
-        cursor = string.match(source, "()[-[\"']", cursor) or #source + 1
-        local anchor = cursor
-        if take("--") then
-          local anchor2 = cursor -- we're still a comment if the long bracket is invalid
-          if take("[") then
-            local is_long, count = parse_longbracket_open()
-            if is_long then
-              if not count then return end
-              state = "long_comment"
-              start = anchor
-              delimit = "]" .. ("="):rep(count) .. "]"
-              return
-            else
-              cursor = anchor2
-            end
-          end
-          state = "short_comment"
-          start = anchor
-        elseif take("[") then
+  ---@type {[LexerState]: fun()}
+  local modes = {
+    code = function()
+      -- rapid advance to the next interesting character
+      cursor = string.match(source, "()[-[\"']", cursor) or #source + 1
+      local anchor = cursor
+      if take("--") then
+        local anchor2 = cursor -- we're still a comment if the long bracket is invalid
+        if take("[") then
           local is_long, count = parse_longbracket_open()
           if is_long then
             if not count then return end
-            state = "long_string"
-            char_escaped = false
+            state = "long_comment"
             start = anchor
             delimit = "]" .. ("="):rep(count) .. "]"
+            return
+          else
+            cursor = anchor2
           end
-        elseif take('"') then
-          state = "short_string"
+        end
+        state = "short_comment"
+        start = anchor
+      elseif take("[") then
+        local is_long, count = parse_longbracket_open()
+        if is_long then
+          if not count then return end
+          state = "long_string"
           char_escaped = false
           start = anchor
-          delimit = '"'
-          patterned_delimit = "()[\\"..delimit.."]"
-        elseif take("'") then
-          state = "short_string"
-          char_escaped = false
-          start = anchor
-          delimit = "'"
-          patterned_delimit = "()[\\"..delimit.."]"
-        else
-          cursor = cursor + 1
+          delimit = "]" .. ("="):rep(count) .. "]"
         end
-      end,
-      short_string = function()
-        -- we still need to handle escapes correctly
-        if not char_escaped then
-          cursor = string.match(source, patterned_delimit, cursor) or #source + 1
-        end
-        if char_escaped then
-          char_escaped = false
-          cursor = cursor + 1
-        elseif take("\\") then
-          char_escaped = true
-        elseif take(delimit) then
-          state = "code"
-          _end = cursor - 1
-          append_range()
-        else
-          cursor = cursor + 1
-        end
-      end,
-      long_string = function()
-        cursor = string.match(source, "()" .. delimit, cursor) or #source + 1
-        if take(delimit) then
-          state = "code"
-          _end = cursor - 1
-          append_range()
-        else
-          cursor = cursor + 1
-        end
-      end,
-      short_comment = function()
-        cursor = string.match(source, "()\n", cursor) or #source + 1
-        if take("\n") then
-          state = "code"
-          _end = cursor - 1
-          append_range()
-        else
-          cursor = cursor + 1
-        end
-      end,
-      long_comment = function()
-        cursor = string.match(source, "()" .. delimit, cursor) or #source + 1
-        if take(delimit) then
-          state = "code"
-          _end = cursor - 1
-          append_range()
-        else
-          cursor = cursor + 1
-        end
-      end,
-    }
-    local default = function() error("bad state: " .. state) end
+      elseif take('"') then
+        state = "short_string"
+        char_escaped = false
+        start = anchor
+        delimit = '"'
+        patterned_delimit = "()[\\"..delimit.."]"
+      elseif take("'") then
+        state = "short_string"
+        char_escaped = false
+        start = anchor
+        delimit = "'"
+        patterned_delimit = "()[\\"..delimit.."]"
+      else
+        cursor = cursor + 1
+      end
+    end,
+    short_string = function()
+      -- we still need to handle escapes correctly
+      if not char_escaped then
+        cursor = string.match(source, patterned_delimit, cursor) or #source + 1
+      end
+      if char_escaped then
+        char_escaped = false
+        cursor = cursor + 1
+      elseif take("\\") then
+        char_escaped = true
+      elseif take(delimit) then
+        state = "code"
+        _end = cursor - 1
+        append_range()
+      else
+        cursor = cursor + 1
+      end
+    end,
+    long_string = function()
+      cursor = string.match(source, "()" .. delimit, cursor) or #source + 1
+      if take(delimit) then
+        state = "code"
+        _end = cursor - 1
+        append_range()
+      else
+        cursor = cursor + 1
+      end
+    end,
+    short_comment = function()
+      cursor = string.match(source, "()\n", cursor) or #source + 1
+      if take("\n") then
+        state = "code"
+        _end = cursor - 1
+        append_range()
+      else
+        cursor = cursor + 1
+      end
+    end,
+    long_comment = function()
+      cursor = string.match(source, "()" .. delimit, cursor) or #source + 1
+      if take(delimit) then
+        state = "code"
+        _end = cursor - 1
+        append_range()
+      else
+        cursor = cursor + 1
+      end
+    end,
+  }
+  local default = function() error("bad state: " .. state) end
+
+  while cursor <= #source do
+    -- read this as a switch statement.
+    local origin = cursor
     ; (modes[state] or default)()
     if cursor == origin then
       error("lexer stalled! state: " ..
