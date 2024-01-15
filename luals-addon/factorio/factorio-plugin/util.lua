@@ -390,6 +390,7 @@ function clean_up_code_ranges()
   for i = code_ranges_count, 2, -1 do
     code_ranges[i] = nil
   end
+  code_ranges[0] = 0
   code_ranges_count = 1
   current_code_ranges_lower_bound = 0
 end
