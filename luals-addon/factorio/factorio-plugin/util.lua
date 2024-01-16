@@ -419,8 +419,6 @@ function lex_lua_nonexecutables(source)
   local start = 0
   local _end = 0
 
-  local char_escaped = false
-
   ---check if the next character(s) are equal to the given string
   ---@param query string
   ---@return boolean
@@ -429,6 +427,8 @@ function lex_lua_nonexecutables(source)
     return source:sub(cursor, cursor + #query - 1) == query
   end
 
+  ---@param query string
+  ---@return boolean
   local function take(query)
     if not peek(query) then return false end
     cursor = cursor + #query
@@ -478,6 +478,10 @@ function lex_lua_nonexecutables(source)
             cursor = anchor2
           end
         end
+        if take("-") then
+          if take("@plugin") then
+          end
+        end
         state = "short_comment"
         start = anchor
       elseif take("[") then
@@ -485,43 +489,52 @@ function lex_lua_nonexecutables(source)
         if is_long then
           if not count then return end
           state = "long_string"
-          char_escaped = false
           start = anchor
           delimit = "]" .. ("="):rep(count) .. "]"
         end
       elseif take('"') then
         state = "short_string"
-        char_escaped = false
         start = anchor
         delimit = '"'
-        patterned_delimit = "()[\\"..delimit.."]"
+        patterned_delimit = "()[\\"..delimit.."\n\r]"
       elseif take("'") then
         state = "short_string"
-        char_escaped = false
         start = anchor
         delimit = "'"
-        patterned_delimit = "()[\\"..delimit.."]"
+        patterned_delimit = "()[\\"..delimit.."\r\n]"
       else
         cursor = cursor + 1
       end
     end,
     short_string = function()
-      -- we still need to handle escapes correctly
-      if not char_escaped then
-        cursor = string.match(source, patterned_delimit, cursor) or #source + 1
+      cursor = string.match(source, patterned_delimit, cursor)
+      if not cursor then
+        cursor = #source + 1
+        return
       end
-      if char_escaped then
-        char_escaped = false
-        cursor = cursor + 1
-      elseif take("\\") then
-        char_escaped = true
-      elseif take(delimit) then
+      if not take("\\") then
+        cursor = cursor + 1 -- Consume quote or newline (Don't care about 2 char wide newlines).
         state = "code"
         _end = cursor - 1
         append_range()
-      else
-        cursor = cursor + 1
+        return
       end
+      -- `\` has been consumed.
+      local escaped_char = source:sub(cursor, cursor)
+      cursor = cursor + 1 -- Consume escaped char.
+      if escaped_char == "z" then
+        cursor = string.match(source, "^%s*()", cursor)
+        return
+      end
+      if escaped_char == "\n" or escaped_char == "\r" then
+        local next_char = source:sub(cursor, cursor)
+        if (next_char == "\n" or next_char == "\r") and next_char ~= escaped_char then
+          -- Handle `\r\n` and `\n\r` in source files. They are both treated as a single newline in Lua.
+          -- (And they are converted to just `\n`, but we don't care about that here.)
+          cursor = cursor + 1
+        end
+      end
+      -- All other escaped characters, valid or not, don't require special handling.
     end,
     long_string = function()
       cursor = string.match(source, "()" .. delimit, cursor) or #source + 1
