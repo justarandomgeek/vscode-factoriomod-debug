@@ -386,7 +386,7 @@ end
 ---Notably, this needs to be able to handle 'long brackets', which are context-sensitive.
 ---We should really only be doing this once per source file.
 ---@param source string
-local function lex_lua_nonexecutables(source)
+local function lex_lua_non_executables(source)
   ---@type LexerState
   local state = "code"
   local cursor = 1 -- 1 is the first character in the source file.
@@ -415,7 +415,7 @@ local function lex_lua_nonexecutables(source)
   ---Parse a opening long bracket, like `[[` or `[=[`
   ---Assumes the first bracket has already been consumed.
   ---@return boolean, integer | nil
-  local function parse_longbracket_open()
+  local function parse_long_bracket_open()
     -- Consume all the '='s
     local match = source:match("^=*%[()", cursor)
     if not match then return false, nil end
@@ -444,7 +444,7 @@ local function lex_lua_nonexecutables(source)
       if take("--") then
         local anchor2 = cursor -- we're still a comment if the long bracket is invalid
         if take("[") then
-          local is_long, count = parse_longbracket_open()
+          local is_long, count = parse_long_bracket_open()
           if is_long then
             if not count then return end
             state = "long_comment"
@@ -458,7 +458,7 @@ local function lex_lua_nonexecutables(source)
         state = "short_comment"
         start = anchor
       elseif take("[") then
-        local is_long, count = parse_longbracket_open()
+        local is_long, count = parse_long_bracket_open()
         if is_long then
           if not count then return end
           state = "long_string"
@@ -585,7 +585,7 @@ end
 ---@param diffs Diff.ArrayWithCount
 local function on_pre_process_file(text, diffs)
   find_plugin_disable_annotations(text, diffs)
-  lex_lua_nonexecutables(text)
+  lex_lua_non_executables(text)
 end
 
 local function on_post_process_file()
