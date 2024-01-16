@@ -10,6 +10,16 @@ local bnot = __plugin_dev and bit32.bnot or load("return function(value) return 
 ---@type table<integer, Diff>
 local diff_finish_pos_to_diff_map = {}
 
+local function clean_up_diff_finished_pos_to_diff_map()
+  local next = next
+  local k = next(diff_finish_pos_to_diff_map)
+  while k do
+    local next_k = next(diff_finish_pos_to_diff_map, k)
+    diff_finish_pos_to_diff_map[k] = nil
+    k = next_k
+  end
+end
+
 ---it's string.gmatch, but anchored at the start of a line
 ---it is not supported to capture the entire match by not defining any captures
 ---in that case explicitly define the capture. (Because a newline might be added at the start)
@@ -583,13 +593,7 @@ local function on_pre_process_file(text, diffs)
 end
 
 local function on_post_process_file()
-  local next = next
-  local k = next(diff_finish_pos_to_diff_map)
-  while k do
-    local next_k = next(diff_finish_pos_to_diff_map, k)
-    diff_finish_pos_to_diff_map[k] = nil
-    k = next_k
-  end
+  clean_up_diff_finished_pos_to_diff_map()
   clean_up_disabled_data()
   clean_up_code_ranges()
 end
