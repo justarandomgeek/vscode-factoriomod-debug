@@ -351,13 +351,6 @@ local function add_chain_diff(chain_diff, diffs)
   end
 end
 
----@alias LexerState
---- | '"code"'
---- | '"short_string"'
---- | '"long_string"'
---- | '"short_comment"'
---- | '"long_comment"'
-
 ---Always contains 1 element.\
 ---This element must exist because the binary search expects at least 1 element. It searches for a value <=
 ---the given position, but this has to be 0 because 1 could be an index in the actual code already. So this 0
@@ -382,8 +375,9 @@ local function reset_code_ranges()
   current_code_ranges_lower_bound = 0
 end
 
----@param position integer
+---@param position integer? @ `nil` means end of file.
 local function add_code_range_position(position)
+  if not position then return end -- End of file, nothing to do.
   -- If the latest position is the same then simply extend that range. Do so by removing the
   -- current end of the range, it will get closed by the next call to `add_code_range_position`.
   if code_ranges[code_ranges_count] == position then
@@ -396,29 +390,28 @@ local function add_code_range_position(position)
   code_ranges[code_ranges_count] = position
 end
 
----Lexically analyze Lua source files for positions of strings and comments.
----Notably, this needs to be able to handle 'long brackets', which are context-sensitive.
----We should really only be doing this once per source file.
----@param source string
-local function lex_lua_non_executables(source)
-  ---@type LexerState
-  local state = "code"
-  local cursor = 1 -- 1 is the first character in the source file.
+local lex_lua_non_executables
+do
+  ---@type string
+  local source
+  ---@type integer?
+  local cursor
 
-  local delimit = ""
-  local patterned_delimit = ""
-
+  ---`cursor` must not be `nil`.\
   ---check if the next character(s) are equal to the given string
   ---@param query string
   ---@return boolean
   local function peek(query)
+    ---@cast cursor -nil
     if cursor + #query > #source then return false end
     return source:sub(cursor, cursor + #query - 1) == query
   end
 
+  ---`cursor` must not be `nil`.
   ---@param query string
   ---@return boolean
   local function take(query)
+    ---@cast cursor -nil
     if not peek(query) then return false end
     cursor = cursor + #query
     return true
@@ -426,70 +419,25 @@ local function lex_lua_non_executables(source)
 
   ---Parse a opening long bracket, like `[[` or `[=[`
   ---Assumes the first bracket has already been consumed.
-  ---@return boolean, integer | nil
+  ---@return integer? level @ `nil` when there isn't a valid open bracket.
   local function parse_long_bracket_open()
     -- Consume all the '='s
     local match = source:match("^=*%[()", cursor)
-    if not match then return false, nil end
-    local level = match - cursor - 1
+    if not match then return nil end
     cursor = match
-    return true, level
+    return match - cursor - 1
   end
 
-  ---@type {[LexerState]: fun()}
-  local modes = {
-    code = function()
-      -- rapid advance to the next interesting character
-      cursor = string.match(source, "()[-[\"']", cursor) or #source + 1
-      local anchor = cursor
-      if take("--") then
-        local anchor2 = cursor -- we're still a comment if the long bracket is invalid
-        if take("[") then
-          local is_long, count = parse_long_bracket_open()
-          if is_long then
-            if not count then return end
-            state = "long_comment"
-            add_code_range_position(anchor)
-            delimit = "]" .. ("="):rep(count) .. "]"
-            return
-          else
-            cursor = anchor2
-          end
-        end
-        state = "short_comment"
-        add_code_range_position(anchor)
-      elseif take("[") then
-        local is_long, count = parse_long_bracket_open()
-        if is_long then
-          if not count then return end
-          state = "long_string"
-          add_code_range_position(anchor)
-          delimit = "]" .. ("="):rep(count) .. "]"
-        end
-      elseif take('"') then
-        state = "short_string"
-        add_code_range_position(anchor)
-        delimit = '"'
-        patterned_delimit = "()[\\"..delimit.."\n\r]"
-      elseif take("'") then
-        state = "short_string"
-        add_code_range_position(anchor)
-        delimit = "'"
-        patterned_delimit = "()[\\"..delimit.."\r\n]"
-      else
-        cursor = cursor + 1
-      end
-    end,
-    short_string = function()
-      cursor = string.match(source, patterned_delimit, cursor)
-      if not cursor then
-        cursor = #source + 1
-        return
-      end
+  ---@param start_position integer
+  ---@param quote `"`|`'`
+  local function parse_short_string(start_position, quote)
+    add_code_range_position(start_position)
+    while cursor do
+      cursor = string.match(source, "()[\\"..quote.."\r\n]", cursor)
+      if not cursor then return end
       if not take("\\") then
         cursor = cursor + 1 -- Consume quote or newline (Don't care about 2 char wide newlines).
-        state = "code"
-        add_code_range_position(cursor - 1)
+        add_code_range_position(cursor)
         return
       end
       -- `\` has been consumed.
@@ -497,7 +445,7 @@ local function lex_lua_non_executables(source)
       cursor = cursor + 1 -- Consume escaped char.
       if escaped_char == "z" then
         cursor = string.match(source, "^%s*()", cursor)
-        return
+        goto continue
       end
       if escaped_char == "\n" or escaped_char == "\r" then
         local next_char = source:sub(cursor, cursor)
@@ -506,52 +454,78 @@ local function lex_lua_non_executables(source)
           -- (And they are converted to just `\n`, but we don't care about that here.)
           cursor = cursor + 1
         end
-        return
+        goto continue
       end
       -- All other escaped characters, valid or not, don't require special handling.
-    end,
-    long_string = function()
-      cursor = string.match(source, "()" .. delimit, cursor) or #source + 1
-      if take(delimit) then
-        state = "code"
-        add_code_range_position(cursor - 1)
-      else
-        cursor = cursor + 1
-      end
-    end,
-    short_comment = function()
-      cursor = string.match(source, "()\n", cursor) or #source + 1
-      if take("\n") then
-        state = "code"
-        add_code_range_position(cursor - 1)
-      else
-        cursor = cursor + 1
-      end
-    end,
-    long_comment = function()
-      cursor = string.match(source, "()" .. delimit, cursor) or #source + 1
-      if take(delimit) then
-        state = "code"
-        add_code_range_position(cursor - 1)
-      else
-        cursor = cursor + 1
-      end
-    end,
-  }
-  local default = function() error("bad state: " .. state) end
-
-  while cursor <= #source do
-    -- read this as a switch statement.
-    local origin = cursor
-    ; (modes[state] or default)()
-    if cursor == origin then
-      error("lexer stalled! state: " ..
-        state .. " cursor: " .. cursor .. " ref: " .. source:sub(cursor, cursor + 10))
+      ::continue::
     end
   end
-  if state ~= "code" then
-    -- This is not required, but just for clarity also close the final non code range.
-    add_code_range_position(cursor - 1)
+
+  ---@param start_position integer
+  ---@param level integer @ The amount of `=` between the square brackets
+  local function parse_long_string(start_position, level)
+    add_code_range_position(start_position)
+    cursor = string.match(source, "%]"..string.rep("=", level).."%]()", cursor)
+    add_code_range_position(cursor)
+  end
+
+  ---@param start_position integer
+  local function parse_short_comment(start_position)
+    add_code_range_position(start_position)
+    -- Technically in Lua newlines are not part of the single line comment anymore,
+    -- however this distinction does not matter for us here, in fact this is more efficient
+    -- because it can allow for ranges to be combined into 1. Unless the source uses `\r\n`.
+    cursor = string.match(source, "[\r\n]()", cursor)
+    add_code_range_position(cursor)
+  end
+
+  local function parse()
+    while cursor do
+      local current_char
+      -- rapid advance to the next interesting character
+      current_char, cursor = string.match(source, "([-[\"'])()", cursor)
+      if not cursor then break end
+      local anchor = cursor
+
+      if current_char == "-" then
+        if not take("-") then goto continue end
+        if not take("[") then
+          parse_short_comment(anchor)
+          goto continue
+        end
+        -- `[` has been consumed.
+        local level = parse_long_bracket_open()
+        if level then
+          parse_long_string(anchor, level)
+        else
+          cursor = cursor - 1 -- Don't consume `[`.
+          parse_short_comment(anchor)
+        end
+      elseif current_char == "[" then
+        local level = parse_long_bracket_open()
+        if level then
+          parse_long_string(anchor, level)
+        end
+      elseif current_char == '"' or current_char == "'" then
+        parse_short_string(anchor, current_char)
+      else
+        error("Impossible current_char '"..tostring(current_char).."'.")
+      end
+      ::continue::
+    end
+  end
+
+  ---Lexically analyze Lua source files for positions of strings and comments.
+  ---Notably, this needs to be able to handle 'long brackets', which are context-sensitive.
+  ---This is only run once per file.
+  ---@param text string
+  function lex_lua_non_executables(text)
+    source = text
+    cursor = 1 -- 1 is the first character in the source file.
+    parse()
+    -- If it is currently still inside of a string or comment, that range will not get closed.
+    -- That's fine however because nothing will be checking if a position past the end of the
+    -- file is code, a string or a comment.
   end
 end
 
