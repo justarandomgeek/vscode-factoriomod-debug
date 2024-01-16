@@ -91,9 +91,6 @@ local function add_disabled_flags(position, flags, may_not_be_last)
   disabled_flags[count] = flags
 end
 
-local gmatch_at_start_of_line
-local add_diff
-
 local module_name_intellisense = [[
 __plugin_dummy(({---@diagnostic disable-line: undefined-global
 ---Removal of `/c` and friends at the start of a line.
@@ -111,85 +108,6 @@ remote_call=true,
 ---Mainly removal of the `__` in `require("__mod-name__.file")` for better cross mod file resolution.
 require=true,
 }).]]
-
----@param text string
----@param diffs Diff.ArrayWithCount
-local function find_plugin_disable_annotations(text, diffs)
-  local current_flags = disabled_flags[1]
-  ---@type integer, integer, integer, integer, string, integer, integer
-  for line_start, s_plugin, f_plugin, s_tag, tag, colon_pos, done_pos in
-    gmatch_at_start_of_line(text, "()[^\n]-%-%-%-[^%S\n]*@()plugin()[^%S\n]*()([%a%-]*)[^%S\n]*():?()")
-  do
-    if f_plugin == s_tag then
-      if tag == "" then
-        add_diff(diffs, s_plugin, f_plugin, "diagnostic") -- To get disable/enable etc suggestions.
-      end
-      goto continue
-    end
-
-    local flags
-    if colon_pos == done_pos then -- No colon, so it disables/enables everything.
-      flags = module_flags.all
-    else -- Parse the list of module names, and provide intellisense.
-      flags = module_flags.none
-      repeat
-        local s_module_name, module_name, f_module_name, p_comma
-        local start_pos = done_pos
-        ---@type integer, string, integer, integer, integer
-        s_module_name, module_name, f_module_name, p_comma, done_pos
-          = text:match("^[^%S\n]*()([%a_]*)()[^%S\n]*(),?()", done_pos)
-        local module_flag = module_flags[module_name]
-        if not module_flag then-- Invalid 'module_name'.
-          -- Add a newline followed by a function call (to make it valid both as a statement and in
-          -- table constructors). The first argument to the call is a table constructor wrapped in
-          -- '()' followed by '.' to instantly index into that constructed table. The table contains
-          -- all the valid module names with a short comment describing what that module does.
-          add_diff(diffs, start_pos - 1, start_pos,
-            text:sub(start_pos - 1, start_pos - 1).."\n"..module_name_intellisense
-          )
-          -- Must be split into 2 diffs like this to actually get the intellisense from the "table index".
-          -- Using an undefined global to get a warning. Extra ',' in the argument list to ensure
-          -- there is an error visible to the programmer, even with undefined global warnings disabled.
-          -- ';' at the end because it is valid both in statement and in table constructor context.
-          add_diff(diffs, s_module_name, f_module_name,
-            module_name..","..(module_name == "" and "missing" or "invalid").."_module_name,);--"
-          )
-          goto continue
-        end
-        -- if band(flags, module_flag) ~= 0 then end -- Duplicate 'module_name' in list.
-        flags = bor(flags, module_flag)
-        ::continue::
-      until p_comma == done_pos
-    end
-
-    if tag == "disable-next-line" then
-      local next_line_start, next_line_finish = text:match("\n()[^\n]*()", done_pos)
-      if next_line_start then
-        add_disabled_flags(next_line_start, bor(current_flags, flags))
-        add_disabled_flags(next_line_finish, current_flags)
-      end
-    elseif tag == "disable-line" then
-      if disabled_positions[disabled_positions_count - 1] == line_start then
-        -- If the previous line had a disable-next-line, combine them.
-        disabled_flags[disabled_positions_count - 1] = bor(disabled_flags[disabled_positions_count - 1], flags)
-      else
-        add_disabled_flags(line_start, bor(current_flags, flags))
-        add_disabled_flags(text:match("^[^\n]*()", done_pos), current_flags)
-      end
-    elseif tag == "disable" then
-      current_flags = bor(current_flags, flags)
-      -- 'may_not_be_last = true' because the pervious line may have been 'disable-next-line'.
-      add_disabled_flags(colon_pos, current_flags, true)
-    elseif tag == "enable" then
-      current_flags = band(current_flags, bnot(flags))
-      -- 'may_not_be_last = true' because the pervious line may have been 'disable-next-line'.
-      add_disabled_flags(colon_pos, current_flags, true)
-    else
-      add_diff(diffs, s_plugin, f_plugin, "diagnostic") -- To get a warning for an invalid tag.
-    end
-    ::continue::
-  end
-end
 
 ---@type table<integer, Diff>
 local diff_finish_pos_to_diff_map = {}
@@ -210,7 +128,7 @@ local diff_finish_pos_to_diff_map = {}
 ---@param s string
 ---@param pattern string
 ---@return fun(): string|integer, ...
-function gmatch_at_start_of_line(s, pattern)
+local function gmatch_at_start_of_line(s, pattern)
   local first = true
   local unpack = table.unpack
   ---@type fun(): string|integer, ...
@@ -242,7 +160,7 @@ end
 ---@param start integer
 ---@param finish integer
 ---@param replacement string
-function add_diff(diffs, start, finish, replacement)
+local function add_diff(diffs, start, finish, replacement)
   -- Finish is treated as including, but we want excluding for consistency with chain diffs.
   finish = finish - 1
   local count = diffs.count
@@ -390,12 +308,18 @@ local function add_code_range_position(position)
   code_ranges[code_ranges_count] = position
 end
 
-local lex_lua_non_executables
+local parse_strings_comments_and_annotations
 do
   ---@type string
   local source
+  ---@type Diff.ArrayWithCount
+  local diffs
   ---@type integer?
   local cursor
+  ---@type integer
+  local line_start
+  ---@type PluginDisableFlags
+  local current_flags
 
   ---`cursor` must not be `nil`.\
   ---check if the next character(s) are equal to the given string
@@ -469,9 +393,102 @@ do
     add_code_range_position(cursor)
   end
 
+  ---@return PluginDisableFlags
+  local function parse_module_flags_list()
+    local flags = module_flags.none
+    repeat
+      local s_module_name, module_name, f_module_name, p_comma
+      local start_pos = cursor
+      ---@type integer, string, integer, integer, integer
+      s_module_name, module_name, f_module_name, p_comma, cursor
+        = string.match(source, "^[^%S\r\n]*()([%a_]*)()[^%S\r\n]*(),?()", cursor)
+      local module_flag = module_flags[module_name]
+      if not module_flag then-- Invalid 'module_name'.
+        -- Add a newline followed by a function call (to make it valid both as a statement and in
+        -- table constructors). The first argument to the call is a table constructor wrapped in
+        -- '()' followed by '.' to instantly index into that constructed table. The table contains
+        -- all the valid module names with a short comment describing what that module does.
+        add_diff(diffs, start_pos - 1, start_pos,
+          string.sub(source, start_pos - 1, start_pos - 1).."\n"..module_name_intellisense
+        )
+        -- Must be split into 2 diffs like this to actually get the intellisense from the "table index".
+        -- Using an undefined global to get a warning. Extra ',' in the argument list to ensure
+        -- there is an error visible to the programmer, even with undefined global warnings disabled.
+        -- ';' at the end because it is valid both in statement and in table constructor context.
+        add_diff(diffs, s_module_name, f_module_name,
+          module_name..","..(module_name == "" and "missing" or "invalid").."_module_name,);--"
+        )
+        goto continue
+      end
+      -- if band(flags, module_flag) ~= 0 then end -- Duplicate 'module_name' in list.
+      flags = bor(flags, module_flag)
+      ::continue::
+    until p_comma == cursor
+    return flags
+  end
+
+  local valid_tags_lut = {
+    ["disable-next-line"] = true,
+    ["disable-line"] = true,
+    ["disable"] = true,
+    ["enable"] = true,
+  }
+
+  local function parse_plugin_annotation()
+    ---@cast cursor -nil
+    ---@type integer, string, integer, integer
+    local s_tag, tag, colon_pos, done_pos = string.match(source, "^[^%S\r\n]*()([%a%-]*)[^%S\r\n]*():?()", cursor)
+    if (cursor == s_tag and tag == "")
+      or (cursor ~= s_tag and not valid_tags_lut[tag])
+    then
+      add_diff(diffs, cursor - #"plugin", cursor, "diagnostic") -- To get disable/enable etc suggestions.
+      return
+    end
+    if cursor == s_tag then return end -- It isn't actually an ---@plugin annotation.
+
+    cursor = done_pos
+    local flags = colon_pos == done_pos
+      and module_flags.all -- No colon.
+      or parse_module_flags_list() -- Has colon, must have a list of flags.
+
+    if flags == module_flags.none then return end -- Short circuit.
+
+    if tag == "disable-next-line" then
+      local next_line_start, next_line_finish = string.match(source, "[\r\n]()[^\r\n]*()", done_pos)
+      if next_line_start then
+        add_disabled_flags(next_line_start, bor(current_flags, flags))
+        add_disabled_flags(next_line_finish, current_flags)
+      end
+    elseif tag == "disable-line" then
+      if disabled_positions[disabled_positions_count - 1] == line_start then
+        -- If the previous line had a disable-next-line, combine them.
+        disabled_flags[disabled_positions_count - 1] = bor(disabled_flags[disabled_positions_count - 1], flags)
+      else
+        add_disabled_flags(line_start, bor(current_flags, flags))
+        add_disabled_flags(string.match(source, "^[^\r\n]*()", done_pos), current_flags)
+      end
+    elseif tag == "disable" then
+      current_flags = bor(current_flags, flags)
+      -- 'may_not_be_last = true' because the pervious line may have been 'disable-next-line'.
+      add_disabled_flags(colon_pos, current_flags, true)
+    elseif tag == "enable" then
+      current_flags = band(current_flags, bnot(flags))
+      -- 'may_not_be_last = true' because the pervious line may have been 'disable-next-line'.
+      add_disabled_flags(colon_pos, current_flags, true)
+    else
+      error("Impossible tag "..tostring(tag).." because the tag has already been checked using valid_tags_lut.")
+    end
+  end
+
   ---@param start_position integer
   local function parse_short_comment(start_position)
     add_code_range_position(start_position)
+    if take("-") then
+      cursor = string.match(source, "^[^%S\r\n]*()", cursor)
+      if take("@plugin") then
+        parse_plugin_annotation()
+      end
+    end
     -- Technically in Lua newlines are not part of the single line comment anymore,
     -- however this distinction does not matter for us here, in fact this is more efficient
     -- because it can allow for ranges to be combined into 1. Unless the source uses `\r\n`.
@@ -483,7 +500,7 @@ do
     while cursor do
       local current_char
       -- rapid advance to the next interesting character
-      current_char, cursor = string.match(source, "([-[\"'])()", cursor)
+      current_char, cursor = string.match(source, "([-[\"'\r\n])()", cursor)
       if not cursor then break end
       local anchor = cursor
 
@@ -508,6 +525,8 @@ do
         end
       elseif current_char == '"' or current_char == "'" then
         parse_short_string(anchor, current_char)
+      elseif current_char == "\r" or current_char == "\n" then
+        line_start = cursor
       else
         error("Impossible current_char '"..tostring(current_char).."'.")
       end
@@ -517,11 +536,16 @@ do
 
   ---Lexically analyze Lua source files for positions of strings and comments.
   ---Notably, this needs to be able to handle 'long brackets', which are context-sensitive.
+  ---Also parses ---@plugin annotations.
   ---This is only run once per file.
   ---@param text string
-  function lex_lua_non_executables(text)
+  ---@param diffs_array Diff.ArrayWithCount
+  function parse_strings_comments_and_annotations(text, diffs_array)
     source = text
+    diffs = diffs_array
     cursor = 1 -- 1 is the first character in the source file.
+    line_start = 1
+    current_flags = module_flags.none
     parse()
     -- If it is currently still inside of a string or comment, that range will not get closed.
     -- That's fine however because nothing will be checking if a position past the end of the
@@ -555,8 +579,7 @@ end
 ---@param text string
 ---@param diffs Diff.ArrayWithCount
 local function on_pre_process_file(text, diffs)
-  find_plugin_disable_annotations(text, diffs)
-  lex_lua_non_executables(text)
+  parse_strings_comments_and_annotations(text, diffs)
 end
 
 local function on_post_process_file()
