@@ -382,6 +382,20 @@ local function reset_code_ranges()
   current_code_ranges_lower_bound = 0
 end
 
+---@param position integer
+local function add_code_range_position(position)
+  -- If the latest position is the same then simply extend that range. Do so by removing the
+  -- current end of the range, it will get closed by the next call to `add_code_range_position`.
+  if code_ranges[code_ranges_count] == position then
+    -- Does not need to remove from code_ranges, because it'll
+    -- probably get overwritten and count is tracked separately anyway.
+    code_ranges_count = code_ranges_count - 1
+    return
+  end
+  code_ranges_count = code_ranges_count + 1
+  code_ranges[code_ranges_count] = position
+end
+
 ---Lexically analyze Lua source files for positions of strings and comments.
 ---Notably, this needs to be able to handle 'long brackets', which are context-sensitive.
 ---We should really only be doing this once per source file.
@@ -393,8 +407,6 @@ local function lex_lua_non_executables(source)
 
   local delimit = ""
   local patterned_delimit = ""
-  local start = 0
-  local _end = 0
 
   ---check if the next character(s) are equal to the given string
   ---@param query string
@@ -424,17 +436,6 @@ local function lex_lua_non_executables(source)
     return true, level
   end
 
-  local function append_range()
-    if code_ranges[code_ranges_count] == start then
-      code_ranges[code_ranges_count] = _end + 1
-      return
-    end
-    code_ranges_count = code_ranges_count + 1
-    code_ranges[code_ranges_count] = start
-    code_ranges_count = code_ranges_count + 1
-    code_ranges[code_ranges_count] = _end + 1
-  end
-
   ---@type {[LexerState]: fun()}
   local modes = {
     code = function()
@@ -448,7 +449,7 @@ local function lex_lua_non_executables(source)
           if is_long then
             if not count then return end
             state = "long_comment"
-            start = anchor
+            add_code_range_position(anchor)
             delimit = "]" .. ("="):rep(count) .. "]"
             return
           else
@@ -456,23 +457,23 @@ local function lex_lua_non_executables(source)
           end
         end
         state = "short_comment"
-        start = anchor
+        add_code_range_position(anchor)
       elseif take("[") then
         local is_long, count = parse_long_bracket_open()
         if is_long then
           if not count then return end
           state = "long_string"
-          start = anchor
+          add_code_range_position(anchor)
           delimit = "]" .. ("="):rep(count) .. "]"
         end
       elseif take('"') then
         state = "short_string"
-        start = anchor
+        add_code_range_position(anchor)
         delimit = '"'
         patterned_delimit = "()[\\"..delimit.."\n\r]"
       elseif take("'") then
         state = "short_string"
-        start = anchor
+        add_code_range_position(anchor)
         delimit = "'"
         patterned_delimit = "()[\\"..delimit.."\r\n]"
       else
@@ -488,8 +489,7 @@ local function lex_lua_non_executables(source)
       if not take("\\") then
         cursor = cursor + 1 -- Consume quote or newline (Don't care about 2 char wide newlines).
         state = "code"
-        _end = cursor - 1
-        append_range()
+        add_code_range_position(cursor - 1)
         return
       end
       -- `\` has been consumed.
@@ -514,8 +514,7 @@ local function lex_lua_non_executables(source)
       cursor = string.match(source, "()" .. delimit, cursor) or #source + 1
       if take(delimit) then
         state = "code"
-        _end = cursor - 1
-        append_range()
+        add_code_range_position(cursor - 1)
       else
         cursor = cursor + 1
       end
@@ -524,8 +523,7 @@ local function lex_lua_non_executables(source)
       cursor = string.match(source, "()\n", cursor) or #source + 1
       if take("\n") then
         state = "code"
-        _end = cursor - 1
-        append_range()
+        add_code_range_position(cursor - 1)
       else
         cursor = cursor + 1
       end
@@ -534,8 +532,7 @@ local function lex_lua_non_executables(source)
       cursor = string.match(source, "()" .. delimit, cursor) or #source + 1
       if take(delimit) then
         state = "code"
-        _end = cursor - 1
-        append_range()
+        add_code_range_position(cursor - 1)
       else
         cursor = cursor + 1
       end
@@ -553,8 +550,8 @@ local function lex_lua_non_executables(source)
     end
   end
   if state ~= "code" then
-    _end = cursor - 1
-    append_range()
+    -- This is not required, but just for clarity also close the final non code range.
+    add_code_range_position(cursor - 1)
   end
 end
 
