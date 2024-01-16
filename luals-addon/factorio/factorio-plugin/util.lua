@@ -381,8 +381,14 @@ end
 --- | '"short_comment"'
 --- | '"long_comment"'
 
+---Always contains 1 element.\
+---This element must exist because the binary search expects at least 1 element. It searches for a value <=
+---the given position, but this has to be 0 because 1 could be an index in the actual code already. So this 0
+---basically defines the range starting at "before the code" until the first position, exclusive.\
+---Additionally for code ranges the index in the code_ranges array defines whether or not it is code or a
+---string or comment. They alternate, so the first range is code, the second string/comment, and so on.
 ---@type integer[]
-local code_ranges = {0} -- Always contains 1 element.
+local code_ranges = {0}
 local code_ranges_count = 1
 local current_code_ranges_lower_bound = 0 -- Zero based.
 
