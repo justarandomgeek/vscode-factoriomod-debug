@@ -533,6 +533,7 @@ function lex_lua_nonexecutables(source)
           -- (And they are converted to just `\n`, but we don't care about that here.)
           cursor = cursor + 1
         end
+        return
       end
       -- All other escaped characters, valid or not, don't require special handling.
     end,
