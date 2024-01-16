@@ -7,108 +7,6 @@ local band = __plugin_dev and bit32.band or load("return function(left, right) r
 local bor = __plugin_dev and bit32.bor or load("return function(left, right) return left | right end")()
 local bnot = __plugin_dev and bit32.bnot or load("return function(value) return ~value end")()
 
----@enum PluginDisableFlags
-local module_flags = {
-  none = 0,
-  command_line = 1,
-  global = 2,
-  object_name = 4,
-  on_event = 8,
-  remote_add = 16,
-  remote_call = 32,
-  require = 64,
-  all = 127,
-}
-
----@type integer[]
-local disabled_positions = {1} -- Always contains 1 element.
----@type PluginDisableFlags[]
-local disabled_flags = {module_flags.none} -- Indexes match up with `disabled_positions`.
-local disabled_positions_count = 1
-local current_disabled_positions_lower_bound = 0 -- Zero based.
-
--- -- Premature optimization
--- local flags_lookups = {}
--- for _, flag in pairs(disabled_flags) do
---   local lut = {}
---   flags_lookups[flag] = lut
---   for _, other_flag in pairs(disabled_flags) do
---     lut[flag + (other_flag == flag and 0 or other_flag)] = true
---   end
--- end
-
----@param position integer
----@param flag PluginDisableFlags
----@return boolean
-local function is_disabled(position, flag)
-  local lower_bound = current_disabled_positions_lower_bound -- Zero based, inclusive.
-  local upper_bound = disabled_positions_count -- Zero based, exclusive.
-  local i = floor_div(lower_bound + upper_bound, 2)
-  -- Try close to the lower bound first, since text is processed front to back.
-  i = math.min(i, lower_bound + 8)
-  while true do
-    local pos = disabled_positions[i + 1]
-    if position >= pos then
-      lower_bound = i + 1
-    else
-      upper_bound = i
-    end
-    if lower_bound == upper_bound then break end
-    i = floor_div(lower_bound + upper_bound, 2)
-  end
-  lower_bound = lower_bound - 1
-  current_disabled_positions_lower_bound = lower_bound
-  local flags = disabled_flags[lower_bound + 1] -- + 1 to go from zero to one based.
-  return band(flags, flag) ~= 0
-end
-
-local function reset_is_disabled_to_file_start()
-  current_disabled_positions_lower_bound = 0
-end
-
-local function clean_up_disabled_data()
-  for i = 2, disabled_positions_count do
-    disabled_positions[i] = nil
-    disabled_flags[i] = nil
-  end
-  disabled_positions_count = 1
-  current_disabled_positions_lower_bound = 0
-end
-
----@param position integer
----@param flags PluginDisableFlags
----@param may_not_be_last boolean? @
----The current last position may actually be past this position. Check and adjust for that.
-local function add_disabled_flags(position, flags, may_not_be_last)
-  local count = disabled_positions_count + 1
-  disabled_positions_count = count
-  if may_not_be_last and disabled_positions[count - 1] > position then
-    disabled_positions[count] = disabled_positions[count - 1]
-    disabled_flags[count] = disabled_flags[count - 1]
-    count = count - 1
-  end
-  disabled_positions[count] = position
-  disabled_flags[count] = flags
-end
-
-local module_name_intellisense = [[
-__plugin_dummy(({---@diagnostic disable-line: undefined-global
----Removal of `/c` and friends at the start of a line.
-command_line=true,
----Replacement of expressions involving `global` to help the language sever distinguish global tables between different mods.
-global=true,
----Rearrangement of `obj.object_name == "LuaEntity"` for the language server to perform type narrowing, same as how `type()` works.
-object_name=true,
----Insertion of `@param` tag for inline event registrations, with support for flib and stdlib.
-on_event=true,
----Hacks for `remote.add_interface` to look like table assignments, allowing the remote_add hack to provide intellisense.
-remote_add=true,
----Hacks for `remote.call` to look like table indexes into a fake table with all found remote interfaces to provide intellisense.
-remote_call=true,
----Mainly removal of the `__` in `require("__mod-name__.file")` for better cross mod file resolution.
-require=true,
-}).]]
-
 ---@type table<integer, Diff>
 local diff_finish_pos_to_diff_map = {}
 
@@ -268,6 +166,108 @@ local function add_chain_diff(chain_diff, diffs)
     diff_finish_pos_to_diff_map[finish] = diff
   end
 end
+
+---@enum PluginDisableFlags
+local module_flags = {
+  none = 0,
+  command_line = 1,
+  global = 2,
+  object_name = 4,
+  on_event = 8,
+  remote_add = 16,
+  remote_call = 32,
+  require = 64,
+  all = 127,
+}
+
+---@type integer[]
+local disabled_positions = {1} -- Always contains 1 element.
+---@type PluginDisableFlags[]
+local disabled_flags = {module_flags.none} -- Indexes match up with `disabled_positions`.
+local disabled_positions_count = 1
+local current_disabled_positions_lower_bound = 0 -- Zero based.
+
+-- -- Premature optimization
+-- local flags_lookups = {}
+-- for _, flag in pairs(disabled_flags) do
+--   local lut = {}
+--   flags_lookups[flag] = lut
+--   for _, other_flag in pairs(disabled_flags) do
+--     lut[flag + (other_flag == flag and 0 or other_flag)] = true
+--   end
+-- end
+
+---@param position integer
+---@param flag PluginDisableFlags
+---@return boolean
+local function is_disabled(position, flag)
+  local lower_bound = current_disabled_positions_lower_bound -- Zero based, inclusive.
+  local upper_bound = disabled_positions_count -- Zero based, exclusive.
+  local i = floor_div(lower_bound + upper_bound, 2)
+  -- Try close to the lower bound first, since text is processed front to back.
+  i = math.min(i, lower_bound + 8)
+  while true do
+    local pos = disabled_positions[i + 1]
+    if position >= pos then
+      lower_bound = i + 1
+    else
+      upper_bound = i
+    end
+    if lower_bound == upper_bound then break end
+    i = floor_div(lower_bound + upper_bound, 2)
+  end
+  lower_bound = lower_bound - 1
+  current_disabled_positions_lower_bound = lower_bound
+  local flags = disabled_flags[lower_bound + 1] -- + 1 to go from zero to one based.
+  return band(flags, flag) ~= 0
+end
+
+local function reset_is_disabled_to_file_start()
+  current_disabled_positions_lower_bound = 0
+end
+
+local function clean_up_disabled_data()
+  for i = 2, disabled_positions_count do
+    disabled_positions[i] = nil
+    disabled_flags[i] = nil
+  end
+  disabled_positions_count = 1
+  current_disabled_positions_lower_bound = 0
+end
+
+---@param position integer
+---@param flags PluginDisableFlags
+---@param may_not_be_last boolean? @
+---The current last position may actually be past this position. Check and adjust for that.
+local function add_disabled_flags(position, flags, may_not_be_last)
+  local count = disabled_positions_count + 1
+  disabled_positions_count = count
+  if may_not_be_last and disabled_positions[count - 1] > position then
+    disabled_positions[count] = disabled_positions[count - 1]
+    disabled_flags[count] = disabled_flags[count - 1]
+    count = count - 1
+  end
+  disabled_positions[count] = position
+  disabled_flags[count] = flags
+end
+
+local module_name_intellisense = [[
+__plugin_dummy(({---@diagnostic disable-line: undefined-global
+---Removal of `/c` and friends at the start of a line.
+command_line=true,
+---Replacement of expressions involving `global` to help the language sever distinguish global tables between different mods.
+global=true,
+---Rearrangement of `obj.object_name == "LuaEntity"` for the language server to perform type narrowing, same as how `type()` works.
+object_name=true,
+---Insertion of `@param` tag for inline event registrations, with support for flib and stdlib.
+on_event=true,
+---Hacks for `remote.add_interface` to look like table assignments, allowing the remote_add hack to provide intellisense.
+remote_add=true,
+---Hacks for `remote.call` to look like table indexes into a fake table with all found remote interfaces to provide intellisense.
+remote_call=true,
+---Mainly removal of the `__` in `require("__mod-name__.file")` for better cross mod file resolution.
+require=true,
+}).]]
 
 ---Always contains 1 element.\
 ---This element must exist because the binary search expects at least 1 element. It searches for a value <=
