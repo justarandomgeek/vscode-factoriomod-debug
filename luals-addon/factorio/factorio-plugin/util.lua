@@ -478,10 +478,6 @@ function lex_lua_nonexecutables(source)
             cursor = anchor2
           end
         end
-        if take("-") then
-          if take("@plugin") then
-          end
-        end
         state = "short_comment"
         start = anchor
       elseif take("[") then
