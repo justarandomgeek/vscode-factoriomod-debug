@@ -194,29 +194,6 @@ end
 ---@type table<integer, Diff>
 local diff_finish_pos_to_diff_map = {}
 
-local lex_lua_nonexecutables
-
----@param text string
----@param diffs Diff.ArrayWithCount
-local function on_pre_process_file(text, diffs)
-  find_plugin_disable_annotations(text, diffs)
-  lex_lua_nonexecutables(text)
-end
-
-local clean_up_code_ranges
-
-local function on_post_process_file()
-  local next = next
-  local k = next(diff_finish_pos_to_diff_map)
-  while k do
-    local next_k = next(diff_finish_pos_to_diff_map, k)
-    diff_finish_pos_to_diff_map[k] = nil
-    k = next_k
-  end
-  clean_up_disabled_data()
-  clean_up_code_ranges()
-end
-
 ---it's string.gmatch, but anchored at the start of a line
 ---it is not supported to capture the entire match by not defining any captures
 ---in that case explicitly define the capture. (Because a newline might be added at the start)
@@ -392,7 +369,7 @@ local code_ranges = {0}
 local code_ranges_count = 1
 local current_code_ranges_lower_bound = 0 -- Zero based.
 
-function clean_up_code_ranges()
+local function clean_up_code_ranges()
   for i = code_ranges_count, 2, -1 do
     code_ranges[i] = nil
   end
@@ -409,7 +386,7 @@ end
 ---Notably, this needs to be able to handle 'long brackets', which are context-sensitive.
 ---We should really only be doing this once per source file.
 ---@param source string
-function lex_lua_nonexecutables(source)
+local function lex_lua_nonexecutables(source)
   ---@type LexerState
   local state = "code"
   local cursor = 1 -- 1 is the first character in the source file.
@@ -604,12 +581,29 @@ local function is_code(position)
   return (lower_bound % 2) == 0 -- Remember it's zero based.
 end
 
+---@param text string
+---@param diffs Diff.ArrayWithCount
+local function on_pre_process_file(text, diffs)
+  find_plugin_disable_annotations(text, diffs)
+  lex_lua_nonexecutables(text)
+end
+
+local function on_post_process_file()
+  local next = next
+  local k = next(diff_finish_pos_to_diff_map)
+  while k do
+    local next_k = next(diff_finish_pos_to_diff_map, k)
+    diff_finish_pos_to_diff_map[k] = nil
+    k = next_k
+  end
+  clean_up_disabled_data()
+  clean_up_code_ranges()
+end
+
 return {
   module_flags = module_flags,
   is_disabled = is_disabled,
   reset_is_disabled_to_file_start = reset_is_disabled_to_file_start,
-  on_pre_process_file = on_pre_process_file,
-  on_post_process_file = on_post_process_file,
   gmatch_at_start_of_line = gmatch_at_start_of_line,
   add_diff = add_diff,
   add_or_append_diff = add_or_append_diff,
@@ -620,4 +614,6 @@ return {
   use_source_to_index = use_source_to_index,
   is_code = is_code,
   reset_code_ranges = reset_code_ranges,
+  on_pre_process_file = on_pre_process_file,
+  on_post_process_file = on_post_process_file,
 }
