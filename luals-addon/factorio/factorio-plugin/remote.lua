@@ -73,10 +73,10 @@ local function replace(_, text, diffs)
   -- which significantly complicates things, like we can't use the commas as reliable anchors
 
   util.reset_is_disabled_to_file_start()
-  for preceding_text, s_call, f_call, p_open_paren, s_param_1 in
-    util.gmatch_at_start_of_line(text, "([^\n]-)remote%s*%.%s*()call()%s*()%(()")--[[@as fun():string, integer, integer, integer, integer]]
+  for preceding_text, s_entire_thing, s_call, f_call, p_open_paren, s_param_1 in
+    util.gmatch_at_start_of_line(text, "([^\n]-)()remote%s*%.%s*()call()%s*()%(()")--[[@as fun(): string, integer, integer, integer, integer, integer]]
   do
-    if not preceding_text:find("--", 1, true) and not util.is_disabled(s_call, remote_call_module_flag) then
+    if not preceding_text:find("--", 1, true) and not util.is_disabled(s_entire_thing, remote_call_module_flag) then
       util.add_diff(diffs, s_call - 1, s_call, text:sub(s_call - 1, s_call - 1).."--\n")
       util.add_diff(diffs, s_call, f_call,
         "__typed_interfaces---@diagnostic disable-line:undefined-field\n")

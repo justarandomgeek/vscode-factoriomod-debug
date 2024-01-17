@@ -190,79 +190,169 @@ local module_flags = {
   all = 127,
 }
 
+---Always contains 1 element.\
+---This element must exist because the binary search expects at least 1 element. It searches for a value <=
+---the given position, but this has to be 0 because 1 could be an index in the actual code already. So this 0
+---basically defines the range starting at "before the code" until the first position, exclusive.
 ---@type integer[]
-local disabled_positions = {1} -- Always contains 1 element.
+local ranges = {0}
 ---@type PluginDisableFlags[]
-local disabled_flags = {module_flags.none} -- Indexes match up with `disabled_positions`.
-local disabled_positions_count = 1
-local current_disabled_positions_lower_bound = 0 -- Zero based.
+local ranges_flags = {module_flags.none} -- Indexes match up with `disabled_positions`.
+local ranges_count = 1
+local ranges_current_lower_bound = 0 -- Zero based.
 
--- -- Premature optimization
--- local flags_lookups = {}
--- for _, flag in pairs(disabled_flags) do
---   local lut = {}
---   flags_lookups[flag] = lut
---   for _, other_flag in pairs(disabled_flags) do
---     lut[flag + (other_flag == flag and 0 or other_flag)] = true
---   end
--- end
+---@param position integer @ The position to search for in `ranges`.
+---@param lower_bound integer @ Zero based, inclusive.
+---@param upper_bound integer @ Zero based, exclusive.
+---@param start_index integer? @ Zero based. Must be within bounds.
+---@return integer found_index @ The position at this index is the greatest position which is <= `position`.
+local function binary_search(position, lower_bound, upper_bound, start_index)
+  local i = start_index or floor_div(lower_bound + upper_bound, 2)
+  while true do
+    local pos = ranges[i + 1]
+    if pos <= position then
+      lower_bound = i + 1 -- It's inclusive, so +1 to make it not check this index twice.
+    else
+      upper_bound = i -- It's exclusive, it won't check this index twice.
+    end
+    if lower_bound == upper_bound then break end
+    i = floor_div(lower_bound + upper_bound, 2)
+  end
+  return lower_bound - 1
+end
 
 ---@param position integer
 ---@param flag PluginDisableFlags
 ---@return boolean
 local function is_disabled(position, flag)
-  local lower_bound = current_disabled_positions_lower_bound -- Zero based, inclusive.
-  local upper_bound = disabled_positions_count -- Zero based, exclusive.
-  local i = floor_div(lower_bound + upper_bound, 2)
+  local lower_bound = ranges_current_lower_bound -- Zero based, inclusive.
+  local upper_bound = ranges_count -- Zero based, exclusive.
+  local start_index = floor_div(lower_bound + upper_bound, 2) -- Zero based.
   -- Try close to the lower bound first, since text is processed front to back.
-  i = math.min(i, lower_bound + 8)
-  while true do
-    local pos = disabled_positions[i + 1]
-    if position >= pos then
-      lower_bound = i + 1
-    else
-      upper_bound = i
-    end
-    if lower_bound == upper_bound then break end
-    i = floor_div(lower_bound + upper_bound, 2)
-  end
-  lower_bound = lower_bound - 1
-  current_disabled_positions_lower_bound = lower_bound
-  local flags = disabled_flags[lower_bound + 1] -- + 1 to go from zero to one based.
+  start_index = math.min(start_index, lower_bound + 8) -- TODO: check if this number requires tweaking.
+  local index = binary_search(position, lower_bound, upper_bound, start_index)
+  ranges_current_lower_bound = index
+  local flags = ranges_flags[index + 1] -- + 1 to go from zero to one based.
   return band(flags, flag) ~= 0
 end
 
 local function reset_is_disabled_to_file_start()
-  current_disabled_positions_lower_bound = 0
+  ranges_current_lower_bound = 0
 end
 
 local function clean_up_disabled_data()
-  for i = 2, disabled_positions_count do
-    disabled_positions[i] = nil
-    disabled_flags[i] = nil
+  for i = 2, ranges_count do
+    ranges[i] = nil
+    ranges_flags[i] = nil
   end
-  disabled_positions_count = 1
-  current_disabled_positions_lower_bound = 0
+  ranges_count = 1
+  ranges_current_lower_bound = 0
 end
 
----@param position integer
+---@param position integer @ One based.
 ---@param flags PluginDisableFlags
----@param may_not_be_last boolean? @
----The current last position may actually be past this position. Check and adjust for that.
-local function add_disabled_flags(position, flags, may_not_be_last)
-  local count = disabled_positions_count + 1
-  disabled_positions_count = count
-  if may_not_be_last and disabled_positions[count - 1] > position then
-    disabled_positions[count] = disabled_positions[count - 1]
-    disabled_flags[count] = disabled_flags[count - 1]
-    count = count - 1
+local function append_range_flags(position, flags)
+  if ranges_flags[ranges_count] == flags then return end
+  ranges_count = ranges_count + 1
+  ranges[ranges_count] = position
+  ranges_flags[ranges_count] = flags
+end
+
+---@param index integer @ Zero based. Can be past `ranges_count`. Otherwise must be
+---the index of a position which is equal or adjacent to the given position arg.
+---@param position integer @ One based.
+---@param flags PluginDisableFlags
+---@return integer? modified_index @ Non `nil` when flags got set at a different `index`.
+---(Can also still return the same index as given by the `index` arg.)
+local function set_flags_at(index, position, flags)
+  if index > ranges_count then
+    -- assert(index == ranges_count + 1) -- This assert is true, but it doesn't really matter.
+    return append_range_flags(position, flags)
   end
-  disabled_positions[count] = position
-  disabled_flags[count] = flags
+  local pos_at_index = ranges[index]
+  if pos_at_index == position then -- Same position, just overwrite.
+    -- Even if this causes 2 consecutive ranges to have the same flags, it's not worth using `table.remove`.
+    ranges_flags[index] = flags
+    return
+  end
+  if pos_at_index < position then -- Greater position, insert after `index`.
+    if index == ranges_count then -- Appending is faster than inserting.
+      return append_range_flags(position, flags) -- Tail call.
+    end
+    index = index + 1
+  end
+  if ranges_flags[index - 1] == flags then return end -- Phew, nothing to do, don't have to insert.
+  if ranges_flags[index] == flags then -- Phew, can just move the next range to start a bit earlier.
+    ranges[index] = position
+    return index
+  end
+  -- Alright fine, has to insert.
+  ranges_count = ranges_count + 1
+  table.insert(ranges, index, position)
+  table.insert(ranges_flags, index, flags)
+  return index
+end
+
+---@param start_position integer @ One based, inclusive. Is allowed to be `== ranges[ranges_count]`.
+---@param stop_position integer? @ Default: infinity. One based, exclusive. Must be > `start_position`.
+---@param start_flags PluginDisableFlags
+---@param stop_flags PluginDisableFlags
+local function append_flags_range(start_position, stop_position, start_flags, stop_flags)
+  set_flags_at(ranges_count, start_position, start_flags) -- Will overwrite at `ranges_count` or append.
+  if stop_position then
+    return append_range_flags(stop_position, stop_flags) -- Tail call.
+  end
+end
+
+---@param start_position integer @ One based, inclusive.
+---@param stop_position integer? @ Default: infinity. One based, exclusive. Must be > `start_position`.
+---@param flags_to_combine PluginDisableFlags
+---@param binary_op fun(left: integer, right: integer): integer
+local function combine_flags_for_range(start_position, stop_position, flags_to_combine, binary_op)
+  if start_position >= ranges[ranges_count] then -- Update last or append.
+    local original_flags = ranges_flags[ranges_count]
+    local combined_flags = binary_op(original_flags, flags_to_combine)
+    return append_flags_range(start_position, stop_position, combined_flags, original_flags) -- Tail call.
+  end
+
+  -- +1 to make it 1 based.
+  local index = binary_search(start_position, ranges_current_lower_bound, ranges_count) + 1
+  local original_flags = ranges_flags[index] -- The flags to restore at `stop_position`.
+  index = set_flags_at(index, start_position, binary_op(original_flags, flags_to_combine)) or index
+
+  stop_position = stop_position or (1/0)
+  index = index + 1
+  while index <= ranges_count do
+    if ranges[index] >= stop_position then break end
+    original_flags = ranges_flags[index] -- Update the flags to restore.
+    ranges_flags[index] = binary_op(original_flags, flags_to_combine)
+    index = index + 1
+  end
+
+  if stop_position ~= (1/0) then
+    if ranges[index] == stop_position then return end -- Do not overwrite, only insert or append.
+    -- The reason is that if there already is a range start at this stop_index, then the range
+    -- that just got set is already terminated properly. Overwriting would just break the next range.
+    return set_flags_at(index, stop_position, original_flags) -- Tail call.
+  end
+end
+
+---@param start_position integer
+---@param stop_position integer? @ Default: infinity. One based, exclusive. Must be > `start_position`.
+---@param flags_to_add PluginDisableFlags
+local function add_flags_to_range(start_position, stop_position, flags_to_add)
+  return combine_flags_for_range(start_position, stop_position, flags_to_add, bor) -- Tail call.
+end
+
+---@param start_position integer
+---@param stop_position integer? @ Default: infinity. One based, exclusive. Must be > `start_position`.
+---@param flags_to_remove PluginDisableFlags
+local function remove_flags_from_range(start_position, stop_position, flags_to_remove)
+  return combine_flags_for_range(start_position, stop_position, bnot(flags_to_remove), band) -- Tail call.
 end
 
 local module_name_intellisense = [[
-__plugin_dummy(({---@diagnostic disable-line: undefined-global
+__plugin_dummy(({---@diagnostic disable-line:undefined-global
 ---Removal of `/c` and friends at the start of a line.
 command_line=true,
 ---Replacement of expressions involving `global` to help the language sever distinguish global tables between different mods.
@@ -279,45 +369,6 @@ remote_call=true,
 require=true,
 }).]]
 
----Always contains 1 element.\
----This element must exist because the binary search expects at least 1 element. It searches for a value <=
----the given position, but this has to be 0 because 1 could be an index in the actual code already. So this 0
----basically defines the range starting at "before the code" until the first position, exclusive.\
----Additionally for code ranges the index in the code_ranges array defines whether or not it is code or a
----string or comment. They alternate, so the first range is code, the second string/comment, and so on.
----@type integer[]
-local code_ranges = {0}
-local code_ranges_count = 1
-local current_code_ranges_lower_bound = 0 -- Zero based.
-
-local function clean_up_code_ranges()
-  for i = code_ranges_count, 2, -1 do
-    code_ranges[i] = nil
-  end
-  code_ranges[1] = 0
-  code_ranges_count = 1
-  current_code_ranges_lower_bound = 0
-end
-
-local function reset_code_ranges()
-  current_code_ranges_lower_bound = 0
-end
-
----@param position integer? @ `nil` means end of file.
-local function add_code_range_position(position)
-  if not position then return end -- End of file, nothing to do.
-  -- If the latest position is the same then simply extend that range. Do so by removing the
-  -- current end of the range, it will get closed by the next call to `add_code_range_position`.
-  if code_ranges[code_ranges_count] == position then
-    -- Does not need to remove from code_ranges, because it'll
-    -- probably get overwritten and count is tracked separately anyway.
-    code_ranges_count = code_ranges_count - 1
-    return
-  end
-  code_ranges_count = code_ranges_count + 1
-  code_ranges[code_ranges_count] = position
-end
-
 local parse_strings_comments_and_annotations
 do
   ---@type string
@@ -328,8 +379,6 @@ do
   local cursor
   ---@type integer
   local line_start
-  ---@type PluginDisableFlags
-  local current_flags
 
   ---`cursor` must not be `nil`.\
   ---check if the next character(s) are equal to the given string
@@ -366,13 +415,12 @@ do
   ---@param start_position integer
   ---@param quote `"`|`'`
   local function parse_short_string(start_position, quote)
-    add_code_range_position(start_position)
     while cursor do
       cursor = string.match(source, "()[\\"..quote.."\r\n]", cursor)
       if not cursor then return end
       if not take("\\") then
         cursor = cursor + 1 -- Consume quote or newline (Don't care about 2 char wide newlines).
-        add_code_range_position(cursor)
+        add_flags_to_range(start_position, cursor, module_flags.all)
         return
       end
       -- `\` has been consumed.
@@ -399,9 +447,8 @@ do
   ---@param start_position integer
   ---@param level integer @ The amount of `=` between the square brackets
   local function parse_long_string(start_position, level)
-    add_code_range_position(start_position)
     cursor = string.match(source, "%]"..string.rep("=", level).."%]()", cursor)
-    add_code_range_position(cursor)
+    add_flags_to_range(start_position, cursor, module_flags.all)
   end
 
   ---@return PluginDisableFlags
@@ -465,27 +512,17 @@ do
     if flags == module_flags.none then return end -- Short circuit.
 
     if tag == "disable-next-line" then
+      -- TODO: fix this, with \r\n it thinks the next line is just empty.
       local next_line_start, next_line_finish = string.match(source, "[\r\n]()[^\r\n]*()", done_pos)
       if next_line_start then
-        add_disabled_flags(next_line_start, bor(current_flags, flags))
-        add_disabled_flags(next_line_finish, current_flags)
+        add_flags_to_range(next_line_start, next_line_finish, flags)
       end
     elseif tag == "disable-line" then
-      if disabled_positions[disabled_positions_count - 1] == line_start then
-        -- If the previous line had a disable-next-line, combine them.
-        disabled_flags[disabled_positions_count - 1] = bor(disabled_flags[disabled_positions_count - 1], flags)
-      else
-        add_disabled_flags(line_start, bor(current_flags, flags))
-        add_disabled_flags(string.match(source, "^[^\r\n]*()", done_pos), current_flags)
-      end
+      add_flags_to_range(line_start, string.match(source, "^[^\r\n]*()", done_pos), flags)
     elseif tag == "disable" then
-      current_flags = bor(current_flags, flags)
-      -- 'may_not_be_last = true' because the pervious line may have been 'disable-next-line'.
-      add_disabled_flags(colon_pos, current_flags, true)
+      add_flags_to_range(cursor, nil, flags)
     elseif tag == "enable" then
-      current_flags = band(current_flags, bnot(flags))
-      -- 'may_not_be_last = true' because the pervious line may have been 'disable-next-line'.
-      add_disabled_flags(colon_pos, current_flags, true)
+      remove_flags_from_range(cursor, nil, flags)
     else
       error("Impossible tag "..tostring(tag).." because the tag has already been checked using valid_tags_lut.")
     end
@@ -493,7 +530,6 @@ do
 
   ---@param start_position integer
   local function parse_short_comment(start_position)
-    add_code_range_position(start_position)
     if take("-") then
       cursor = string.match(source, "^[^%S\r\n]*()", cursor)
       if take("@plugin") then
@@ -504,7 +540,7 @@ do
     -- however this distinction does not matter for us here, in fact this is more efficient
     -- because it can allow for ranges to be combined into 1. Unless the source uses `\r\n`.
     cursor = string.match(source, "[\r\n]()", cursor)
-    add_code_range_position(cursor)
+    add_flags_to_range(start_position, cursor, module_flags.all)
   end
 
   local function parse()
@@ -537,7 +573,17 @@ do
       elseif current_char == '"' or current_char == "'" then
         parse_short_string(anchor, current_char)
       elseif current_char == "\r" or current_char == "\n" then
-        line_start = cursor
+        line_start = cursor -- The next line starts after the newline character. Cursor has already advanced.
+        -- During the creation of `ranges` and `ranges_flags` there can be overlapping ranges,
+        -- mainly due to ---@plugin disable-next-line and disable-line.
+        -- When this happens, the functions for adding or removing flags for ranges perform
+        -- binary searches to find the index to insert at. However since overlapping ranges can
+        -- only occur within the current line, once done with a line the lower bound can be shifted up.
+        if line_start >= ranges[ranges_count] then
+          ranges_current_lower_bound = ranges_count
+        else -- There are already ranges on this next line, find the index for the start of the line.
+          ranges_current_lower_bound = binary_search(line_start, ranges_current_lower_bound, ranges_count)
+        end
       else
         error("Impossible current_char '"..tostring(current_char).."'.")
       end
@@ -556,35 +602,11 @@ do
     diffs = diffs_array
     cursor = 1 -- 1 is the first character in the source file.
     line_start = 1
-    current_flags = module_flags.none
     parse()
     -- If it is currently still inside of a string or comment, that range will not get closed.
     -- That's fine however because nothing will be checking if a position past the end of the
     -- file is code, a string or a comment.
   end
-end
-
----@param position integer
----@return boolean
-local function is_code(position)
-  local lower_bound = current_code_ranges_lower_bound -- Zero based, inclusive.
-  local upper_bound = #code_ranges -- Zero based, exclusive.
-  local i = floor_div(lower_bound + upper_bound, 2)
-  -- Try close to the lower bound first, since text is processed front to back.
-  i = math.min(i, lower_bound + 16)
-  while true do
-    local pos = code_ranges[i + 1]
-    if position >= pos then
-      lower_bound = i + 1
-    else
-      upper_bound = i
-    end
-    if lower_bound == upper_bound then break end
-    i = floor_div(lower_bound + upper_bound, 2)
-  end
-  lower_bound = lower_bound - 1
-  current_code_ranges_lower_bound = lower_bound
-  return (lower_bound % 2) == 0 -- Remember it's zero based.
 end
 
 ---@param text string
@@ -596,7 +618,6 @@ end
 local function on_post_process_file()
   clean_up_diff_finished_pos_to_diff_map()
   clean_up_disabled_data()
-  clean_up_code_ranges()
 end
 
 return {
@@ -611,8 +632,6 @@ return {
   extend_chain_diff_elem_text = extend_chain_diff_elem_text,
   try_parse_string_literal = try_parse_string_literal,
   use_source_to_index = use_source_to_index,
-  is_code = is_code,
-  reset_code_ranges = reset_code_ranges,
   on_pre_process_file = on_pre_process_file,
   on_post_process_file = on_post_process_file,
 }
