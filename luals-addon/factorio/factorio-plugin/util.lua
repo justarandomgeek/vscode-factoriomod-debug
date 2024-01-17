@@ -241,10 +241,9 @@ local function reset_is_disabled_to_file_start()
 end
 
 local function clean_up_disabled_data()
-  for i = 2, ranges_count do
-    ranges[i] = nil
-    ranges_flags[i] = nil
-  end
+  -- Not `nil`ing out `ranges` nor `ranges_flags` because count is tracked separately.
+  -- Lua doesn't shrink tables anyway, and even if LuaLS's version of Lua does shrink
+  -- tables, we don't want it to shrink these tables, because they're constantly reused.
   ranges_count = 1
   ranges_current_lower_bound = 0
 end
