@@ -13,8 +13,7 @@ local function replace(_, text, diffs)
   for preceding_text, p_front, p_dot, f_obj_name in
     util.gmatch_at_start_of_line(text, "([^\n]-)()[a-zA-Z_][a-zA-Z0-9_]*%s*()%.%s*object_name()%f[^a-zA-Z0-9_]")
   do
-    if preceding_text:find("--", 1, true)
-      or preceding_text:find("%.%s*$")
+    if preceding_text:find("%.%s*$")
       or preceding_text:find("function%s*$")
       or util.is_disabled(p_front, object_name_module_flag)
     then

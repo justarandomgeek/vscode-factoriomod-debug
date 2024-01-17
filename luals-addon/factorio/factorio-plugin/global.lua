@@ -101,7 +101,6 @@ local function replace(uri, text, diffs)
     for preceding_text, start, finish, ignore_pos, ignore_char, final_pos in
       util.gmatch_at_start_of_line(text, "([^\n]-)%f[a-zA-Z0-9_]()global()[^%S\n]*()([=.%[]?)()")--[[@as fun(): string, integer, integer, integer, string, integer]]
     do
-      if preceding_text:find("--", 1, true) then goto continue end
       add_diffs(preceding_text, start, finish, ignore_pos, ignore_char)
       while true do
         if ignore_char == "=" then -- To support `global = global`.
@@ -109,10 +108,9 @@ local function replace(uri, text, diffs)
         end
         preceding_text, start, finish, ignore_pos, ignore_char, final_pos
           = text:match("^([^\n]-)%f[a-zA-Z0-9_]()global()[^%S\n]*()([=.%[]?)()", final_pos)
-        if not start or preceding_text:find("--", 1, true) then break end
+        if not start then break end
         add_diffs(preceding_text, start, finish, ignore_pos, ignore_char)
       end
-      ::continue::
     end
   end
 end

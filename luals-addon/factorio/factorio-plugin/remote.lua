@@ -39,31 +39,28 @@ local function replace(_, text, diffs)
   -- remote.add_interface
 
   util.reset_is_disabled_to_file_start()
-  for preceding_text, s_entire_thing, s_add, f_add, p_open_paren, p_param_1 in
-    util.gmatch_at_start_of_line(text, "([^\n]-)()remote%s*%.%s*()add_interface()%s*()%(()") --[[@as fun(): string, integer, integer, integer, integer, integer]]
+  for s_entire_thing, s_add, f_add, p_open_paren, p_param_1 in
+    string.gmatch(text, "()remote%s*%.%s*()add_interface()%s*()%(()") --[[@as fun(): integer, integer, integer, integer, integer]]
   do
-    if not preceding_text:find("--", 1, true) then
+    local chain_diff = {} ---@type ChainDiffElem[]
+    local open_paren_diff = {i = p_open_paren, text = ""}
+    chain_diff[1] = open_paren_diff
 
-      local chain_diff = {} ---@type ChainDiffElem[]
-      local open_paren_diff = {i = p_open_paren, text = ""}
-      chain_diff[1] = open_paren_diff
-
-      local name, name_comma_or_paren, s_param_2 = process_param(chain_diff, p_param_1)
-      if not name then
-        goto continue
-      end
-
-      if name_comma_or_paren == "," and not util.is_disabled(s_entire_thing, remote_add_module_flag) then
-        util.extend_chain_diff_elem_text(chain_diff[3], "=(")
-        chain_diff[4] = {i = s_param_2 --[[@as integer]]}
-        util.add_diff(diffs, s_add - 1, s_add, text:sub(s_add - 1, s_add - 1).."--\n")
-        util.add_diff(diffs, s_add, f_add,
-          "__typed_interfaces---@diagnostic disable-line:undefined-field\n")
-        util.add_chain_diff(chain_diff, diffs)
-      end
-
-      ::continue::
+    local name, name_comma_or_paren, s_param_2 = process_param(chain_diff, p_param_1)
+    if not name then
+      goto continue
     end
+
+    if name_comma_or_paren == "," and not util.is_disabled(s_entire_thing, remote_add_module_flag) then
+      util.extend_chain_diff_elem_text(chain_diff[3], "=(")
+      chain_diff[4] = {i = s_param_2 --[[@as integer]]}
+      util.add_diff(diffs, s_add - 1, s_add, text:sub(s_add - 1, s_add - 1).."--\n")
+      util.add_diff(diffs, s_add, f_add,
+        "__typed_interfaces---@diagnostic disable-line:undefined-field\n")
+      util.add_chain_diff(chain_diff, diffs)
+    end
+
+    ::continue::
   end
 
 
@@ -73,49 +70,48 @@ local function replace(_, text, diffs)
   -- which significantly complicates things, like we can't use the commas as reliable anchors
 
   util.reset_is_disabled_to_file_start()
-  for preceding_text, s_entire_thing, s_call, f_call, p_open_paren, s_param_1 in
-    util.gmatch_at_start_of_line(text, "([^\n]-)()remote%s*%.%s*()call()%s*()%(()")--[[@as fun(): string, integer, integer, integer, integer, integer]]
+  for s_entire_thing, s_call, f_call, p_open_paren, s_param_1 in
+    string.gmatch(text, "()remote%s*%.%s*()call()%s*()%(()")--[[@as fun(): integer, integer, integer, integer, integer]]
   do
-    if not preceding_text:find("--", 1, true) and not util.is_disabled(s_entire_thing, remote_call_module_flag) then
-      util.add_diff(diffs, s_call - 1, s_call, text:sub(s_call - 1, s_call - 1).."--\n")
-      util.add_diff(diffs, s_call, f_call,
-        "__typed_interfaces---@diagnostic disable-line:undefined-field\n")
+    if util.is_disabled(s_entire_thing, remote_call_module_flag) then goto continue end
+    util.add_diff(diffs, s_call - 1, s_call, text:sub(s_call - 1, s_call - 1).."--\n")
+    util.add_diff(diffs, s_call, f_call,
+      "__typed_interfaces---@diagnostic disable-line:undefined-field\n")
 
-      local chain_diff = {} ---@type ChainDiffElem[]
-      local open_paren_diff = {i = p_open_paren, text = ""}
-      chain_diff[1] = open_paren_diff
+    local chain_diff = {} ---@type ChainDiffElem[]
+    local open_paren_diff = {i = p_open_paren, text = ""}
+    chain_diff[1] = open_paren_diff
 
-      local name, name_comma_or_paren, s_param_2 = process_param(chain_diff, s_param_1)
-      if not name then
+    local name, name_comma_or_paren, s_param_2 = process_param(chain_diff, s_param_1)
+    if not name then
+      util.remove_diff(diffs)
+      goto continue
+    end
+    ---@cast s_param_2 -nil
+
+    if name_comma_or_paren == "," then
+      local func, func_comma_or_paren, p_finish = process_param(chain_diff, s_param_2)
+      if not func then
         util.remove_diff(diffs)
         goto continue
       end
-      ---@cast s_param_2 -nil
+      ---@cast p_finish -nil
 
-      if name_comma_or_paren == "," then
-        local func, func_comma_or_paren, p_finish = process_param(chain_diff, s_param_2)
-        if not func then
-          util.remove_diff(diffs)
-          goto continue
-        end
-        ---@cast p_finish -nil
-
-        chain_diff[6] = {i = p_finish}
-        if func_comma_or_paren == ")" then
-          util.extend_chain_diff_elem_text(chain_diff[5], "()")
+      chain_diff[6] = {i = p_finish}
+      if func_comma_or_paren == ")" then
+        util.extend_chain_diff_elem_text(chain_diff[5], "()")
+      else
+        if text:match("^%s*%)", p_finish) then
+          util.extend_chain_diff_elem_text(chain_diff[5], "(,") -- unexpected symbol near ','
         else
-          if text:match("^%s*%)", p_finish) then
-            util.extend_chain_diff_elem_text(chain_diff[5], "(,") -- unexpected symbol near ','
-          else
-            util.extend_chain_diff_elem_text(chain_diff[5], "(")
-          end
+          util.extend_chain_diff_elem_text(chain_diff[5], "(")
         end
       end
-
-      util.add_chain_diff(chain_diff, diffs)
-
-      ::continue::
     end
+
+    util.add_chain_diff(chain_diff, diffs)
+
+    ::continue::
   end
 end
 

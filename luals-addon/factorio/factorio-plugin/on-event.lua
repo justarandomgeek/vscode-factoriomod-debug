@@ -67,28 +67,24 @@ local function replace(_, text, diffs)
   end
 
   util.reset_is_disabled_to_file_start()
-  for preceding_text, s_param in
-    util.gmatch_at_start_of_line(text, "([^\n]-)on_event%s*%(%s*()")--[[@as fun():string, integer]]
+  for s_param in
+    string.gmatch(text, "on_event%s*%(%s*()")--[[@as fun():integer]]
   do
-    if not preceding_text:find("--", 1, true) then
-      process_regular(s_param)
-    end
+    process_regular(s_param)
   end
 
   util.reset_is_disabled_to_file_start()
-  for preceding_text, s_param in
-    util.gmatch_at_start_of_line(text, "([^\n]-)[Ee]vent%s*%.%s*register%s*%(%s*()")--[[@as fun():string, integer]]
+  for s_param in
+    string.gmatch(text, "[Ee]vent%s*%.%s*register%s*%(%s*()")--[[@as fun():integer]]
   do
-    if not preceding_text:find("--", 1, true) then
-      process_regular(s_param)
-    end
+    process_regular(s_param)
   end
 
   util.reset_is_disabled_to_file_start()
-  for preceding_text, class_name, s_func_param in
-    util.gmatch_at_start_of_line(text, "([^\n]-)[Ee]vent%s*%.%s*([a-zA-Z_][a-zA-Z0-9_]*)%s*%(()")--[[@as fun():string, string, integer]]
+  for class_name, s_func_param in
+    string.gmatch(text, "[Ee]vent%s*%.%s*([a-zA-Z_][a-zA-Z0-9_]*)%s*%(()")--[[@as fun():string, integer]]
   do
-    if class_name ~= "on_configuration_changed" and not preceding_text:find("--", 1, true) then
+    if class_name ~= "on_configuration_changed" then
       process_func_param(s_func_param, function() return "EventData."..class_name end)
     end
   end
