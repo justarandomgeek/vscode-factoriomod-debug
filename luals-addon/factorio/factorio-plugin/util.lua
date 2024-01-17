@@ -358,8 +358,9 @@ do
     -- Consume all the '='s
     local match = source:match("^=*%[()", cursor)
     if not match then return nil end
+    local level = match - cursor - 1
     cursor = match
-    return match - cursor - 1
+    return level
   end
 
   ---@param start_position integer
