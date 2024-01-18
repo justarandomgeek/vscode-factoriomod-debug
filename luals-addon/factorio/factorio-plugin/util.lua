@@ -304,10 +304,12 @@ local function append_flags_range(start_position, stop_position, start_flags, st
 end
 
 ---@param start_position integer @ One based, inclusive.
----@param stop_position integer? @ Default: infinity. One based, exclusive. Must be > `start_position`.
+---@param stop_position integer? @ Default: infinity. One based, exclusive. Must be >= `start_position`.
 ---@param flags_to_combine PluginDisableFlags
 ---@param binary_op fun(left: integer, right: integer): integer
 local function combine_flags_for_range(start_position, stop_position, flags_to_combine, binary_op)
+  if start_position == stop_position then return end
+
   if start_position >= ranges[ranges_count] then -- Update last or append.
     local original_flags = ranges_flags[ranges_count]
     local combined_flags = binary_op(original_flags, flags_to_combine)
@@ -491,6 +493,22 @@ do
     ["enable"] = true,
   }
 
+  ---@param init_position integer
+  ---@return integer?
+  local function find_next_line_start(init_position)
+    local char, pos = string.match(source, "([\r\n])()", init_position)
+    if not char then return end
+    return string.find(source, char == "\n" and "^\r" or "^\n", init_position)
+      and pos + 1
+      or pos
+  end
+
+  ---@param init_position integer
+  ---@return integer
+  local function find_next_line_start_or_eof(init_position)
+    return find_next_line_start(init_position) or (#source + 1)
+  end
+
   local function parse_plugin_annotation()
     ---@cast cursor -nil
     ---@type integer, string, integer, integer
@@ -511,13 +529,12 @@ do
     if flags == module_flags.none then return end -- Short circuit.
 
     if tag == "disable-next-line" then
-      -- TODO: fix this, with \r\n it thinks the next line is just empty.
-      local next_line_start, next_line_finish = string.match(source, "[\r\n]()[^\r\n]*()", done_pos)
+      local next_line_start = find_next_line_start(done_pos)
       if next_line_start then
-        add_flags_to_range(next_line_start, next_line_finish, flags)
+        add_flags_to_range(next_line_start, find_next_line_start_or_eof(next_line_start), flags)
       end
     elseif tag == "disable-line" then
-      add_flags_to_range(line_start, string.match(source, "^[^\r\n]*()", done_pos), flags)
+      add_flags_to_range(line_start, find_next_line_start_or_eof(done_pos), flags)
     elseif tag == "disable" then
       add_flags_to_range(cursor, nil, flags)
     elseif tag == "enable" then
@@ -535,10 +552,10 @@ do
         parse_plugin_annotation()
       end
     end
-    -- Technically in Lua newlines are not part of the single line comment anymore,
-    -- however this distinction does not matter for us here, in fact this is more efficient
-    -- because it can allow for ranges to be combined into 1. Unless the source uses `\r\n`.
-    cursor = string.match(source, "[\r\n]()", cursor)
+    -- Technically in Lua newline chars are not part of the single line comment anymore,
+    -- however this distinction does not matter here, in fact this is more efficient
+    -- because it can allow for ranges to be combined into 1.
+    cursor = find_next_line_start(cursor)
     add_flags_to_range(start_position, cursor, module_flags.all)
   end
 
