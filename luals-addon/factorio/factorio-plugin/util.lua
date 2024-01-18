@@ -407,8 +407,9 @@ do
   ---@param start_position integer
   ---@param quote `"`|`'`
   local function parse_short_string(start_position, quote)
+    local pattern = "()[\\"..quote.."\r\n]"
     while cursor do
-      cursor = string.match(source, "()[\\"..quote.."\r\n]", cursor)
+      cursor = string.match(source, pattern, cursor)
       if not cursor then return end
       if not take("\\") then
         cursor = cursor + 1 -- Consume quote or newline (Don't care about 2 char wide newlines).
@@ -423,8 +424,7 @@ do
         goto continue
       end
       if escaped_char == "\n" or escaped_char == "\r" then
-        local next_char = source:sub(cursor, cursor)
-        if (next_char == "\n" or next_char == "\r") and next_char ~= escaped_char then
+        if string.find(source, escaped_char == "\n" and "^\r" or "^\n", cursor) then
           -- Handle `\r\n` and `\n\r` in source files. They are both treated as a single newline in Lua.
           -- (And they are converted to just `\n`, but we don't care about that here.)
           cursor = cursor + 1
