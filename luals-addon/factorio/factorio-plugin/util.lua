@@ -202,22 +202,18 @@ local ranges_count = 1
 local ranges_current_lower_bound = 0 -- Zero based.
 
 ---@param position integer @ The position to search for in `ranges`.
----@param lower_bound integer @ Zero based, inclusive.
----@param upper_bound integer @ Zero based, exclusive.
----@param start_index integer? @ Zero based. Must be within bounds.
 ---@return integer found_index @ The position at this index is the greatest position which is <= `position`.
-local function binary_search(position, lower_bound, upper_bound, start_index)
-  local i = start_index or floor_div(lower_bound + upper_bound, 2)
-  while true do
-    local pos = ranges[i + 1]
-    if pos <= position then
+local function binary_search_ranges(position)
+  local lower_bound = ranges_current_lower_bound -- Zero based, inclusive.
+  local upper_bound = ranges_count -- Zero based, exclusive.
+  repeat
+    local i = floor_div(lower_bound + upper_bound, 2)
+    if ranges[i + 1] <= position then
       lower_bound = i + 1 -- It's inclusive, so +1 to make it not check this index twice.
     else
       upper_bound = i -- It's exclusive, it won't check this index twice.
     end
-    if lower_bound == upper_bound then break end
-    i = floor_div(lower_bound + upper_bound, 2)
-  end
+  until lower_bound == upper_bound
   return lower_bound - 1
 end
 
@@ -225,12 +221,7 @@ end
 ---@param flag PluginDisableFlags
 ---@return boolean
 local function is_disabled(position, flag)
-  local lower_bound = ranges_current_lower_bound -- Zero based, inclusive.
-  local upper_bound = ranges_count -- Zero based, exclusive.
-  local start_index = floor_div(lower_bound + upper_bound, 2) -- Zero based.
-  -- Try close to the lower bound first, since text is processed front to back.
-  start_index = math.min(start_index, lower_bound + 8) -- TODO: check if this number requires tweaking.
-  local index = binary_search(position, lower_bound, upper_bound, start_index)
+  local index = binary_search_ranges(position)
   ranges_current_lower_bound = index
   local flags = ranges_flags[index + 1] -- + 1 to go from zero to one based.
   return band(flags, flag) ~= 0
@@ -317,7 +308,7 @@ local function combine_flags_for_range(start_position, stop_position, flags_to_c
   end
 
   -- +1 to make it 1 based.
-  local index = binary_search(start_position, ranges_current_lower_bound, ranges_count) + 1
+  local index = binary_search_ranges(start_position) + 1
   local original_flags = ranges_flags[index] -- The flags to restore at `stop_position`.
   index = set_flags_at(index, start_position, binary_op(original_flags, flags_to_combine)) or index
 
@@ -598,7 +589,7 @@ do
         if line_start >= ranges[ranges_count] then
           ranges_current_lower_bound = ranges_count
         else -- There are already ranges on this next line, find the index for the start of the line.
-          ranges_current_lower_bound = binary_search(line_start, ranges_current_lower_bound, ranges_count)
+          ranges_current_lower_bound = binary_search_ranges(line_start)
         end
       else
         error("Impossible current_char '"..tostring(current_char).."'.")
