@@ -379,7 +379,7 @@ do
   local function take(pattern)
     local _, stop = string.find(source, pattern, cursor)
     if not stop then return false end
-    cursor = stop
+    cursor = stop + 1
     return true
   end
 
