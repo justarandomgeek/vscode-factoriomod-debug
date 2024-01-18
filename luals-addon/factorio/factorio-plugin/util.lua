@@ -373,22 +373,13 @@ do
   local line_start
 
   ---`cursor` must not be `nil`.\
-  ---check if the next character(s) are equal to the given string
-  ---@param query string
-  ---@return boolean
-  local function peek(query)
-    ---@cast cursor -nil
-    if cursor + #query > #source then return false end
-    return source:sub(cursor, cursor + #query - 1) == query
-  end
-
-  ---`cursor` must not be `nil`.
-  ---@param query string
-  ---@return boolean
-  local function take(query)
-    ---@cast cursor -nil
-    if not peek(query) then return false end
-    cursor = cursor + #query
+  ---Tries matching the given pattern at the current cursor and advances the cursor if successful.
+  ---@param pattern string
+  ---@return boolean @ Did it match?
+  local function take(pattern)
+    local _, stop = string.find(source, pattern, cursor)
+    if not stop then return false end
+    cursor = stop
     return true
   end
 
@@ -411,7 +402,7 @@ do
     while cursor do
       cursor = string.match(source, pattern, cursor)
       if not cursor then return end
-      if not take("\\") then
+      if not take("^\\") then
         cursor = cursor + 1 -- Consume quote or newline (Don't care about 2 char wide newlines).
         add_flags_to_range(start_position, cursor, module_flags.all)
         return
@@ -448,7 +439,7 @@ do
     local flags = module_flags.none
     repeat
       local s_module_name, module_name, f_module_name, p_comma
-      local start_pos = cursor
+      local start_pos = cursor--[[@as integer]]
       ---@type integer, string, integer, integer, integer
       s_module_name, module_name, f_module_name, p_comma, cursor
         = string.match(source, "^[^%S\r\n]*()([%a_]*)()[^%S\r\n]*(),?()", cursor)
@@ -537,9 +528,9 @@ do
 
   ---@param start_position integer
   local function parse_short_comment(start_position)
-    if take("-") then
+    if take("^%-") then
       cursor = string.match(source, "^[^%S\r\n]*()", cursor)
-      if take("@plugin") then
+      if take("^@plugin") then
         parse_plugin_annotation()
       end
     end
@@ -559,8 +550,8 @@ do
       local anchor = cursor - 1 -- -1 because `cursor` already advanced past `current_char`.
 
       if current_char == "-" then
-        if not take("-") then goto continue end
-        if not take("[") then
+        if not take("^%-") then goto continue end
+        if not take("^%[") then
           parse_short_comment(anchor)
           goto continue
         end
