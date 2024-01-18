@@ -565,7 +565,7 @@ do
       -- rapid advance to the next interesting character
       current_char, cursor = string.match(source, "([-[\"'\r\n])()", cursor)
       if not cursor then break end
-      local anchor = cursor
+      local anchor = cursor - 1 -- -1 because `cursor` already advanced past `current_char`.
 
       if current_char == "-" then
         if not take("-") then goto continue end
