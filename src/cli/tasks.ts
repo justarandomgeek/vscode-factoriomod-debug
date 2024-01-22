@@ -281,8 +281,11 @@ export async function editModDetails(name:string, details:ModPortalDetailsEdit) 
 	details.description !== undefined && form.append("description", details.description);
 	details.faq !== undefined && form.append("faq", details.faq);
 
-	await post_form(form, "https://mods.factorio.com/api/v2/mods/edit_details") as {success:true};
-	return;
+	await post_form(form, "https://mods.factorio.com/api/v2/mods/edit_details").then(()=>{
+		console.log(`Details updated`);
+	}).catch((x)=>{
+		console.log(`Details update failed: ${x}`);
+	});
 }
 
 async function addGalleryImage(
@@ -319,6 +322,7 @@ async function processMarkdown(
 	usedImageIDs:Set<string>,
 	options:(ModInfo["package"]&{})["markdown"]
 ):Promise<string|undefined> {
+	const process_date = new Date().toISOString();
 	const file = await fsp.readFile(filename, "utf8").catch(()=>undefined);
 	if (!file) { return; }
 
@@ -371,6 +375,12 @@ async function processMarkdown(
 			if (base_url) {
 				visit(tree, "link", (node:Link)=>{
 					if (node.url.match(url_match)) { return; }
+
+					// special tag to force new text every time for testing
+					if (node.url === "$process_date") {
+						node.url = process_date;
+						return;
+					}
 					node.url = base_url+node.url;
 				});
 			}

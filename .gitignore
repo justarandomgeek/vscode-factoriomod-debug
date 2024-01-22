@@ -10,3 +10,4 @@ mod/info.json
 test/mod/info.json
 test/factorio/**
 !test/factorio/keep
+test/.env

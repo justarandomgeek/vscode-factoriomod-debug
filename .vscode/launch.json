@@ -99,6 +99,8 @@
 			"args": [
 				"publish"
 			],
+			// env file with FACTORIO_UPLOAD_API_KEY for uploads
+			"envFile": "${workspaceFolder}/test/.env",
 			"cwd": "${env:APPDATA}/factorio/mods/jargtestmod",
 			"console": "integratedTerminal",
 			"skipFiles": [
