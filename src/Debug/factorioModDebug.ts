@@ -732,7 +732,9 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			bp.line = this.convertClientLineToDebugger(bp.line);
 			const oldbp = oldbps.find(old=>bp.line===old.line && bp.column===old.column);
 			if (oldbp) {
-
+				oldbp.condition = bp.condition;
+				oldbp.hitCondition = bp.hitCondition;
+				oldbp.logMessage = bp.logMessage;
 				return oldbp;
 			}
 			let verified = false;

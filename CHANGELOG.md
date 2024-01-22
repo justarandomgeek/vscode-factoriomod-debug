@@ -7,6 +7,8 @@
   * Generate even if some doc links are broken
   * Correctly mark Attributes as optional
   * set Lua.workspace.checkThirdParty=ApplyInMemory to work around LuaLS's broken defaults
+* Debugger:
+  * Correctly update breakpoints when edited (conditions, log message)
 
 ## 1.1.39
 * VSCode:
