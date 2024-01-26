@@ -9,6 +9,7 @@
   * Set Lua.workspace.checkThirdParty=ApplyInMemory to work around LuaLS's broken defaults
   * Improved plugin's string and comment matching correctness and performance (#113)
   * Added ---@plugin annotation to selectively disable parts of the plugin. Very similar to how ---@diagnostic works
+  * Correct type for `data:extend`'s argument (using `AnyPrototype` instead of `PrototypeBase`)
 * Debugger:
   * Correctly update breakpoints when edited (conditions, log message)
 
