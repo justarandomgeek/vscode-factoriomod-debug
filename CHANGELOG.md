@@ -6,7 +6,9 @@
 * Sumneko library package:
   * Generate even if some doc links are broken
   * Correctly mark Attributes as optional
-  * set Lua.workspace.checkThirdParty=ApplyInMemory to work around LuaLS's broken defaults
+  * Set Lua.workspace.checkThirdParty=ApplyInMemory to work around LuaLS's broken defaults
+  * Improved plugin's string and comment matching correctness and performance (#113)
+  * Added ---@plugin annotation to selectively disable parts of the plugin. Very similar to how ---@diagnostic works
 * Debugger:
   * Correctly update breakpoints when edited (conditions, log message)
 
