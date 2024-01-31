@@ -12,6 +12,7 @@
   * Correct type for `data:extend`'s argument (using `AnyPrototype` instead of `PrototypeBase`)
 * Debugger:
   * Correctly update breakpoints when edited (conditions, log message)
+  * Fixed that `__DebugAdapter.print()` and `log`, and logpoints would print messages with no trailing newline
 
 ## 1.1.39
 * VSCode:

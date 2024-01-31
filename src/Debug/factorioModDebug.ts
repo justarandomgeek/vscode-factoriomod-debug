@@ -596,8 +596,14 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 							this.sendEvent(new InitializedEvent());
 							return;
 						case "output":
-							this.sendEvent(json as OutputEvent);
+						{
+							const output = json as OutputEvent;
+							if (!output.body.output.endsWith("\n")) {
+								output.body.output += "\n";
+							}
+							this.sendEvent(output);
 							return;
+						}
 						default:
 							return;
 					}
