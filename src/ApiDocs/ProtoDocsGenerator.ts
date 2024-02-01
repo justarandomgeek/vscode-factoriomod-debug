@@ -127,9 +127,10 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 		const data = new LuaLSClass("data");
 		data.add(new LuaLSField("raw", new LuaLSTypeName("data.raw")));
 		data.add(new LuaLSField("is_demo", new LuaLSTypeName("boolean")));
+		const ptypename = this.concepts.has("AnyPrototype") ? "data.AnyPrototype" : "data.PrototypeBase";
 		const extend = new LuaLSFunction("extend", [
 			new LuaLSParam("self", new LuaLSTypeName("data")),
-			new LuaLSParam("otherdata", new LuaLSArray(new LuaLSTypeName("data.AnyPrototype"))),
+			new LuaLSParam("otherdata", new LuaLSArray(new LuaLSTypeName(ptypename))),
 		]);
 		data.add(extend);
 		data.global_name = "data";
