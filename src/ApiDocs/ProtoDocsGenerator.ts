@@ -105,7 +105,17 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 			}
 
 			if (!simple) {
-				file.add(new LuaLSAlias(this.type_prefix+concept.name, this.lua_proto_type(concept.type, concept), concept.description));
+				let ptype = concept.type;
+				if (concept.name ==="AnyPrototype" && typeof ptype === "object" && ptype.complex_type === "union") {
+					const options = ptype.options.filter(o=>{
+						return typeof o === "object" ? !(o.complex_type === "type" && o.value==="MapGenPresets") : o !== "MapGenPresets";
+					});
+					ptype = {
+						complex_type: "union",
+						options,
+					};
+				}
+				file.add(new LuaLSAlias(this.type_prefix+concept.name, this.lua_proto_type(ptype, concept), concept.description));
 			}
 		}
 

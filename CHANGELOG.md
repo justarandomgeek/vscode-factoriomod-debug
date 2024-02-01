@@ -5,6 +5,7 @@
 ## 1.1.41
 * Sumneko library package:
   * correctly resolve `data-lifecycle` link in docs
+  * Omit `MapGenPresets` from `AnyPrototype`, to reduce incorrect type deduction on data:extend's argument
 
 ## 1.1.40
 * Sumneko library package:
