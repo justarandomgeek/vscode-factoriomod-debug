@@ -45,7 +45,7 @@ end
 stepIgnore(DAstep.isStepIgnore)
 
 -- capture the raw object
-local remote = remote and (type(remote)=="table" and rawget(remote,"__raw")) or remote
+local remote = (type(remote)=="table" and rawget(remote,"__raw")) or remote
 
 local debug = debug
 local string = string
@@ -111,6 +111,33 @@ do
   local getinfo = debug.getinfo
   local debugprompt = debug.debug
 
+  --- report a new `Source` event on entry to a main chunk
+  ---@param info debuginfo
+  local function sourceEvent(info)
+    local s = normalizeLuaSource(info.source)
+    local dasource = { name = s, path = s }
+    --[=[if s == "=(dostring)" then
+      local sourceref = variables.sourceRef(info.source)
+      if sourceref then
+        dasource = sourceref
+      end
+      print("\xEF\xB7\x91"..json_encode{ event="source", body={
+        source = dasource,
+        dump = enc(string.dump(info.func))
+      }})
+      debugprompt()
+    else]=]
+    if s:sub(1,1) == "@" then
+      local dump
+      if not isDumpIgnore[s] then
+        dump = "\xEF\xB7\x95" .. variables.buffer(string.dump(info.func))
+      end
+      print("\xEF\xB7\x91"..json_encode{event="source", body={ source = dasource, dump = dump }})
+      debugprompt()
+    end
+  end
+
+
   ---debug hook function
   ---@param event string
   function hook(event)
@@ -123,12 +150,17 @@ do
       local s = normalizeLuaSource(rawsource)
       if stepdepth and stepdepth<=0 then
         stepdepth = nil
-        print("\xEF\xB7\x90\xEE\x80\x8D")
+        print("\xEF\xB7\x91"..json_encode{event="stopped", body={
+          reason = "step",
+          threadId = __DebugAdapter.this_thread,
+          }})
         debugprompt()
         -- cleanup variablesReferences
         variables.clear()
       elseif runningBreak() then
-        print("\xEF\xB7\x90\xEE\x80\x8B")
+        print("\xEF\xB7\x91"..json_encode{event="running", body={
+          threadId = __DebugAdapter.this_thread,
+          }})
         debugprompt()
         variables.clear()
       else
@@ -180,7 +212,10 @@ do
                   {source=s, currentline=line})
               else
                 stepdepth = nil
-                print("\xEF\xB7\x90\xEE\x80\x8E")
+                print("\xEF\xB7\x91"..json_encode{event="stopped", body={
+                  reason = "breakpoint",
+                  threadId = __DebugAdapter.this_thread,
+                  }})
                 debugprompt()
                 -- cleanup variablesReferences
                 variables.clear()
@@ -195,45 +230,19 @@ do
     elseif event == "call" then
       local info = getinfo(2,"Slf")
       if info.what == "main" then
-        local s = normalizeLuaSource(info.source)
-        local dasource = { name = s, path = s }
-        --[=[if s == "=(dostring)" then
-          local sourceref = variables.sourceRef(info.source)
-          if sourceref then
-            dasource = sourceref
-          end
-          print("\xEF\xB7\x91"..json_encode{ event="source", body={
-            source = dasource,
-            dump = enc(string.dump(info.func))
-          }})
-          debugprompt()
-        else]=]
-        if s:sub(1,1) == "@" then
-          local dump
-          if not isDumpIgnore[s] then
-            dump = "\xEF\xB7\x95" .. variables.buffer(string.dump(info.func))
-          end
-          print("\xEF\xB7\x91"..json_encode{event="source", body={ source = dasource, dump = dump }})
-          debugprompt()
-        end
+        sourceEvent(info)
       end
 
       local success,classname,member,v = luaObjectInfo.check_eventlike(3,event)
-      local parent =  getinfo(3,"f")
+      local parent = getinfo(3,"f")
       if success then
         if stepdepth and stepdepth >= 0 then
           stepdepth = stepdepth + 1
         end
         -- if current is eventlike do outer stack/stepping pass out
-        local label = classname.."::"..member..(v and ("="..__DebugAdapter.describe(v,true)) or "()")
-        __DebugAdapter.pushStack({
-            source = "api",
-            extra = label,
-            mod_name = script.mod_name,
-            stack = __DebugAdapter.stackTrace(-1, true),
-          }, __DebugAdapter.currentStep())
-          __DebugAdapter.step(nil)
-          pending[info.func] = (pending[info.func] or 0) + 1
+        __DebugAdapter.pushStack(__DebugAdapter.currentStep())
+        __DebugAdapter.step(nil)
+        pending[info.func] = (pending[info.func] or 0) + 1
       elseif (not parent) or pending[parent.func] then
         -- if parent is nil or eventlike do inner stepping pass in
         __DebugAdapter.step(__DebugAdapter.peekStepping())
@@ -292,7 +301,9 @@ do
       if not parent then -- top of stack
         if info.what == "main" or info.what == "Lua" then
           if info.what == "main" and not info.source:match("^@__debugadapter__") then
-            print("\xEF\xB7\x90\xEE\x80\x8B")
+            print("\xEF\xB7\x91"..json_encode{event="leaving", body={
+              threadId = __DebugAdapter.this_thread,
+              }})
             debugprompt()
           end
           variables.clear()

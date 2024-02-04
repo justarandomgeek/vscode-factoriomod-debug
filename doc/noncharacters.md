@@ -48,12 +48,12 @@ EE 80 87  E007  on_data
 EE 80 88  E008  on_parse
 EE 80 89  E009  on_init
 EE 80 8A  E00A  on_load
-EE 80 8B  E00B  leaving/running
+EE 80 8B  E00B  ~~leaving/running~~
 EE 80 8C  E00C  terminate
-EE 80 8D  E00D  step
-EE 80 8E  E00E  breakpoint
-EE 80 8F  E00F  exception
-	type\x01error
+EE 80 8D  E00D  ~~step~~
+EE 80 8E  E00E  ~~breakpoint~~
+EE 80 8F  E00F  ~~exception~~
+	~~type\x01error~~
 
 after FDD7 in buffer:
 U+F800-F8FF as escaped bytes

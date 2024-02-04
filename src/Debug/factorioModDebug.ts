@@ -2,7 +2,7 @@ import {
 	Logger, logger,
 	LoggingDebugSession,
 	StoppedEvent, OutputEvent,
-	Thread, Source, Module, ModuleEvent, InitializedEvent, Event, TerminatedEvent, LoadedSourceEvent, BreakpointEvent,
+	Source, Module, ModuleEvent, InitializedEvent, Event, TerminatedEvent, LoadedSourceEvent, BreakpointEvent,
 } from '@vscode/debugadapter';
 import type { DebugProtocol } from '@vscode/debugprotocol';
 import * as path from 'path';
@@ -70,10 +70,17 @@ export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArgum
 	trace?: boolean
 }
 
-export class FactorioModDebugSession extends LoggingDebugSession {
-	// we don't support multiple threads, so we can use a hardcoded ID for the default thread
-	private static THREAD_ID = 1;
+class AllThreadsStoppedEvent extends StoppedEvent implements DebugProtocol.StoppedEvent {
+	//@ts-expect-error
+	body: DebugProtocol.StoppedEvent["body"];
+	constructor(reason: string, threadId?: number, exceptionText?: string) {
+		super(reason, threadId, exceptionText);
+		//@ts-expect-error
+		this.body.allThreadsStopped = true;
+	}
+}
 
+export class FactorioModDebugSession extends LoggingDebugSession {
 	private _configurationDone?: resolver<void>;
 	private configDone: Promise<void>;
 
@@ -521,59 +528,50 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 							await this.runQueuedStdin();
 							this.continue(true);
 							return;
-						case 0xE00B: // leaving/running
-							await this.runQueuedStdin();
-							if (this.pauseRequested) {
-								this.pauseRequested = false;
-								if (this.breakPointsChanged.size !== 0) {
-									this.updateBreakpoints();
-								}
-								this.sendEvent(new StoppedEvent('pause', FactorioModDebugSession.THREAD_ID));
-							} else {
-								this.continue();
-								this.inPrompt = wasInPrompt;
-							}
-							return;
 						case 0xE00C: // terminate
 							await this.terminate();
 							return;
-						case 0xE00D: // step
-							await this.runQueuedStdin();
-							if (this.breakPointsChanged.size !== 0) {
-								this.updateBreakpoints();
-							}
-							this.sendEvent(new StoppedEvent('step', FactorioModDebugSession.THREAD_ID));
-							return;
-						case 0xE00E: // breakpoint
-							await this.runQueuedStdin();
-							if (this.breakPointsChanged.size !== 0) {
-								this.updateBreakpoints();
-							}
-							this.sendEvent(new StoppedEvent('breakpoint', FactorioModDebugSession.THREAD_ID));
-							return;
-						case 0xE00F: { // exception
-							await this.runQueuedStdin();
-							const split = mesg.indexOf("\x01");
-							const filter = mesg.slice(2, split);
-							const err = mesg.slice(split+1);
-							if (filter === "manual" || this.exceptionFilters.has(filter)) {
-								this.sendEvent(new StoppedEvent('exception', FactorioModDebugSession.THREAD_ID, err));
-							} else {
-								this.continue();
-							}
-							return;
-						}
 						default:
 							return;
 					}
 				}
 				case 0xFDD1: {
+					const wasInPrompt = this.inPrompt;
 					this.inPrompt = true;
 					const json = JSON.parse(mesg.slice(1), daprevive) as {event:string; body:any};
 					switch (json.event) {
 						case "source":
 							await this.loadedSourceEvent(json.body);
 							this.continue();
+							return;
+						case "running":
+						case "leaving":
+							await this.runQueuedStdin();
+							if (this.pauseRequested) {
+								this.pauseRequested = false;
+								if (this.breakPointsChanged.size !== 0) {
+									this.updateBreakpoints();
+								}
+								this.sendEvent(new AllThreadsStoppedEvent('pause', json.body.threadId));
+							} else {
+								this.continue();
+								this.inPrompt = wasInPrompt;
+							}
+							return;
+						case "exception":
+							await this.runQueuedStdin();
+							if (json.body.filter === "manual" || this.exceptionFilters.has(json.body.filter)) {
+								this.sendEvent(new AllThreadsStoppedEvent('exception', json.body.threadId, json.body.mesg));
+							} else {
+								this.continue();
+							}
+							return;
+						case "stopped":
+							await this.runQueuedStdin();
+							if (this.breakPointsChanged.size !== 0) {
+								this.updateBreakpoints();
+							}
+							this.sendEvent(new AllThreadsStoppedEvent(json.body.reason, json.body.threadId));
 							return;
 						default:
 							return;
@@ -804,15 +802,18 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		}
 	}
 
-	protected threadsRequest(response: DebugProtocol.ThreadsResponse): void {
+	protected async threadsRequest(response: DebugProtocol.ThreadsResponse) {
 
-		// runtime supports no threads so just return a default thread.
-		response.body = {
-			threads: [
-				new Thread(FactorioModDebugSession.THREAD_ID, "thread 1"),
-			],
-		};
-		this.sendResponse(response);
+		if (this.inPrompt) {
+			response.body = await new Promise<{threads:DebugProtocol.Thread[]}>((resolve)=>{
+				this._responses.set(response.request_seq, resolve);
+				this.writeStdin(`__DebugAdapter.threads(${response.request_seq})\n`);
+			});
+			this.sendResponse(response);
+		} else {
+			// sometimes vscode tries to ask too early?
+			this.sendErrorResponse(response, {format: "threads not ready now", id: 817});
+		}
 	}
 
 	protected async stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments) {
@@ -821,7 +822,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 		const stack = await new Promise<DebugProtocol.StackFrame[]>((resolve)=>{
 			this._responses.set(response.request_seq, resolve);
-			this.writeStdin(`__DebugAdapter.stackTrace(${startFrame},false,${response.request_seq})\n`);
+			this.writeStdin(`__DebugAdapter.stackTrace(${args.threadId},${startFrame},${response.request_seq})\n`);
 		});
 
 		response.body = { stackFrames: (stack as (DebugProtocol.StackFrame&{linedefined:number; currentpc:number})[]).map(

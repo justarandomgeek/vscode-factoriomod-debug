@@ -11,19 +11,27 @@ local localised_print = localised_print
 local __DebugAdapter = __DebugAdapter
 local setmetatable = setmetatable
 local nextuple = require("__debugadapter__/iterutil.lua").nextuple
+local json = require("__debugadapter__/json.lua")
+local variables = require("__debugadapter__/variables.lua") -- uses pcall
 
 ---@class DebugAdapter.Entrypoints
 local DAEntrypoints = {}
 
 ---Print an exception to the editor
----@param type string
+---@param etype string
 ---@param mesg string|LocalisedString|nil
-local function print_exception(type,mesg)
+local function print_exception(etype,mesg)
   if mesg == nil then mesg = "<nil>" end
-  localised_print({"",
-  "\xEF\xB7\xAE\xEF\xB7\x90\xEE\x80\x8F", type, "\x01",
-  mesg,"\xEF\xB7\xAF"
-  })
+
+  if variables.translate and type(mesg) == "table" and not getmetatable(mesg) and #mesg>=1 and type(mesg[1])=="string" then
+    mesg = "\xEF\xB7\x94"..variables.translate(mesg)
+  end
+
+  print("\xEF\xB7\x91"..json.encode{event="exception", body={
+    threadId = __DebugAdapter.this_thread,
+    filter = etype,
+    mesg = mesg,
+    }})
 end
 DAEntrypoints.print_exception = print_exception
 
@@ -113,6 +121,19 @@ end
 
 ---@type {[string]:{[string]:function}}
 local myRemotes = {}
+
+-- possible entry points (in control stage):
+--   main chunks (identified above as "(main chunk)")
+--     control.lua init and any files it requires
+--     migrations
+--     /c __modname__ command
+--     simulation scripts (as commands)
+--   remote.call
+--   event handlers
+--     if called by raise_event, has event.mod_name
+--   /command handlers
+--   special events:
+--     on_init, on_load, on_configuration_changed, on_nth_tick
 
 ---Look up the label for an entrypoint function
 ---@param func function

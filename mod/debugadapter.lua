@@ -106,31 +106,6 @@ function __DebugAdapter.source(id, seq, internal)
   return false
 end
 
----@param frameId integer
----@prints DebugProtocol.Scope[]
-function __DebugAdapter.scopes(frameId, seq)
-  if debug.getinfo(frameId,"f") then
-    ---@type DebugProtocol.Scope[]
-    local scopes = {}
-    -- Locals
-    scopes[#scopes+1] = { name = "Locals", variablesReference = variables.scopeRef(frameId,"Locals"), expensive=false }
-    -- Upvalues
-    scopes[#scopes+1] = { name = "Upvalues", variablesReference = variables.scopeRef(frameId,"Upvalues"), expensive=false }
-    -- Factorio `global`
-    if global then
-      scopes[#scopes+1] = { name = "Factorio global", variablesReference = variables.tableRef(global), expensive=false }
-    end
-    -- Lua Globals
-    scopes[#scopes+1] = { name = "Lua Globals", variablesReference = variables.tableRef(_ENV), expensive=false }
-
-    print("\xEF\xB7\x96" .. json.encode({seq=seq, body=scopes}))
-  else
-    print("\xEF\xB7\x96" .. json.encode({seq=seq, body={
-      { name = "[Variables Currently Unavailable]", variablesReference = 0, expensive=false }
-    }}))
-  end
-end
-
 __DebugAdapter.stepIgnore(__DebugAdapter)
 do
   local ininstrument = ""
@@ -153,6 +128,7 @@ do
     remote.add_interface("__debugadapter_" .. script.mod_name ,{
       setBreakpoints = __DebugAdapter.setBreakpoints,
       longVariables = __DebugAdapter.variables,
+      stackTrace = __DebugAdapter.stackTrace,
       evaluate = __DebugAdapter.evaluate,
       source = __DebugAdapter.source,
       raise_event = __DebugAdapter.raise_event,

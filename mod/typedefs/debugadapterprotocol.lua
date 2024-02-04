@@ -19,6 +19,10 @@
 ---@field public path? string
 ---@field public sourceReference? integer
 
+---@class DebugProtocol.Thread
+---@field public id number Unique identifier for the thread.
+---@field public name string The name of the thread.
+
 ---@class DebugProtocol.StackFrame
 ---@field public id integer
 ---@field public name string

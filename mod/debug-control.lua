@@ -78,6 +78,7 @@ if __DebugAdapter.nohook then
     evaluate = __DebugAdapter.evaluate,
     dump = function() end,
     source = function() end,
+    stackTrace = __DebugAdapter.stackTrace,
   })
 end
 
@@ -109,7 +110,6 @@ remote.add_interface("debugadapter",__DebugAdapter.stepIgnore{
 
   pushStack = __DebugAdapter.pushStack,
   popStack = __DebugAdapter.popStack,
-  peekStacks = __DebugAdapter.peekStacks,
   crossStepping = __DebugAdapter.crossStepping,
   peekStepping = __DebugAdapter.peekStepping,
 })

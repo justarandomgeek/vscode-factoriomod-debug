@@ -11,6 +11,7 @@ local table_size = table_size
 local __DebugAdapter = __DebugAdapter
 
 ---@class DebugAdapter.Stacks
+---@field this_thread integer
 local DAStacks = {}
 
 local sourcelabel = {
@@ -25,17 +26,74 @@ local function labelframe(i,sourcename,mod_name,extra)
   }
 end
 
+---@type DebugProtocol.Thread[]
+local threads
+do
+  if not script then
+    threads = {
+      { id = 1, name = "data", },
+    }
+    DAStacks.this_thread = 1
+  elseif script.level.is_simulation then
+    threads = {
+      { id = 1, name = "simulation", },
+    }
+    DAStacks.this_thread = 1
+  else
+    threads = {
+      { id = 1, name = "level", },
+    }
+    if script.mod_name == "level" then
+      DAStacks.this_thread = 1
+    end
+    for name in pairs(script.active_mods) do
+      local i = #threads + 1
+      threads[i] = { id = i, name = name, }
+      if name == script.mod_name then
+        DAStacks.this_thread = i
+      end
+    end
+  end
+end
+
+---@param seq number
+function DAStacks.threads(seq)
+  print("\xEF\xB7\x96" .. json.encode{body={threads=threads},seq=seq})
+end
+
+---@param threadid integer
 ---@param startFrame integer | nil
----@param forRemote boolean | nil
----@return DebugProtocol.StackFrame[]
-function DAStacks.stackTrace(startFrame, forRemote, seq)
+---@param seq integer
+function DAStacks.stackTrace(threadid, startFrame, seq)
+  local thread = threads[threadid]
+  if thread.name ~= script.mod_name then
+    if __DebugAdapter.canRemoteCall() and remote.interfaces["__debugadapter_"..thread.name] then
+      -- redirect...
+      remote.call("__debugadapter_"..thread.name, "stackTrace", threadid, startFrame, seq)
+    else
+      -- return empty if can't remote...
+      print("\xEF\xB7\x96" .. json.encode{body={},seq=seq})
+    end
+    return
+  end
+
   local offset = 5 -- 0 getinfo, 1 stackTrace, 2 debug command, 3 debug.debug,
   -- in normal stepping:                       4 sethook callback, 5 at breakpoint
   -- in exception (instrument only)            4 on_error callback, 5 pCallWithStackTraceMessageHandler, 6 at exception
-  if __DebugAdapter.instrument and not forRemote and
-    debug.getinfo(4,"f").func == __DebugAdapter.on_exception then
-    offset = offset + 1
+  -- in remote-redirected call:                2 at stack
+  do
+    local atprompt = debug.getinfo(3,"f")
+    if atprompt and atprompt.func == debug.debug then
+      local on_ex_info = debug.getinfo(4,"f")
+      if __DebugAdapter.instrument and on_ex_info and on_ex_info.func == __DebugAdapter.on_exception then
+        offset = offset + 1
+      end
+    else
+      offset = 2 -- redirected call
+    end
   end
+
+
   local i = (startFrame or 0) + offset
   ---@type DebugProtocol.StackFrame[]
   local stackFrames = {}
@@ -60,12 +118,14 @@ function DAStacks.stackTrace(startFrame, forRemote, seq)
           framename = ("__index(%s,%s)"):format(t,k)
         end
       end
+    elseif script and framename == "(name unavailable)" then
+      local entrypoint = __DebugAdapter.getEntryLabel(info.func)
+      if entrypoint then
+        framename = entrypoint
+      end
     end
     if info.istailcall then
       framename = ("[tail calls...] %s"):format(framename)
-    end
-    if forRemote then
-      framename = ("[%s] %s"):format(script.mod_name, framename)
     end
     local source = normalizeLuaSource(info.source)
     local sourceIsCode = source == "=(dostring)"
@@ -73,12 +133,11 @@ function DAStacks.stackTrace(startFrame, forRemote, seq)
     local noSource = isC or noLuaSource
     ---@type DebugProtocol.StackFrame
     local stackFrame = {
-      id = i,
+      id = threadid*1024 + i*4,
       name = framename,
       line = noSource and 0 or info.currentline,
       column = noSource and 0 or 1,
-      moduleId = forRemote and script.mod_name or nil,
-      presentationHint = forRemote and "subtle" or nil,
+      moduleId = script.mod_name,
     }
     if not isC then
       local dasource = {
@@ -106,98 +165,62 @@ function DAStacks.stackTrace(startFrame, forRemote, seq)
     i = i + 1
   end
 
-  if script then
-    -- Don't bother with any of this in data stage: it's all main chunks!
-    -- possible entry points (in control stage):
-    --   main chunks (identified above as "(main chunk)")
-    --     control.lua init and any files it requires
-    --     migrations
-    --     /c __modname__ command
-    --     simulation scripts (as commands)
-    --   remote.call
-    --   event handlers
-    --     if called by raise_event, has event.mod_name
-    --   /command handlers
-    --   special events:
-    --     on_init, on_load, on_configuration_changed, on_nth_tick
-
-    -- but first, drop frames from same-stack api calls that raise events
-    local stacks = __DebugAdapter.peekStacks()
-    do
-      local dropcount = 0
-      for istack = #stacks,1,-1 do
-        local stack = stacks[istack]
-        if stack.mod_name == script.mod_name then
-          -- drop the listed frames plus the __newindex or api closure
-          dropcount = dropcount + table_size(stack.stack) + 1
-        end
-      end
-      if dropcount > 0 then
-        for drop = 1,dropcount,1 do
-          stackFrames[#stackFrames] = nil
-        end
-      end
-    end
-
-    -- try to improve the label on the entrypoint
-    do
-      local lastframe = stackFrames[#stackFrames]
-      if lastframe then
-        local info = debug.getinfo(lastframe.id,"f")
-        local entrypoint = __DebugAdapter.getEntryLabel(info.func)
-        if entrypoint then
-          local framename = entrypoint
-          if forRemote then
-            framename = ("[%s] %s"):format(script.mod_name, framename)
-          end
-          lastframe.name = framename
-        end
-      end
-    end
-
-    -- list any eventlike api calls stacked up...
-    if not forRemote and stacks then
-      local nstacks = #stacks
-      for istack = nstacks,1,-1 do
-        local stack = stacks[istack]
-        --print("stack",istack,nstacks,stack.mod_name,script.mod_name)
-        stackFrames[#stackFrames+1] = labelframe(i,stack.source,stack.mod_name,stack.extra)
-        i = i + 1
-        for _,frame in pairs(stack.stack) do
-          frame.id = i
-          stackFrames[#stackFrames+1] = frame
-          i = i + 1
-        end
-      end
-    end
-  end
-  if not forRemote then
-    print("\xEF\xB7\x96" .. json.encode{body=stackFrames,seq=seq})
-  end
-  return stackFrames
+  print("\xEF\xB7\x96" .. json.encode{body=stackFrames,seq=seq})
 end
 
----@class cross_stack
----@field source string What caused this stack to be recorded
----@field extra any An extra label frame to add when printing stack traces
----@field mod_name string The mod name this stack came from
----@field stack DebugProtocol.StackFrame[] pre-prepared stack frames
+---@param frameId integer
+---@prints DebugProtocol.Scope[]
+function DAStacks.scopes(frameId, seq)
+  local threadid = math.floor(frameId/1024)
+  local thread = threads[threadid]
+  if thread.name ~= script.mod_name then
+    if __DebugAdapter.canRemoteCall() and remote.interfaces["__debugadapter_"..thread.name] then
+      -- redirect...
+      remote.call("__debugadapter_"..thread.name, "scopes", frameId, seq)
+    else
+      -- return empty if can't remote...
+      print("\xEF\xB7\x96" .. json.encode{body={
+        { name = "[Thread Unreachable]", variablesReference = 0, expensive=false }
+      },seq=seq})
+    end
+    return
+  end
 
----@type cross_stack[]
-local stacks = {}
+
+  local i = math.floor((frameId % 1024) / 4)
+  if debug.getinfo(i,"f") then
+    ---@type DebugProtocol.Scope[]
+    local scopes = {}
+    -- Locals
+    scopes[#scopes+1] = { name = "Locals", variablesReference = variables.scopeRef(i,"Locals"), expensive=false }
+    -- Upvalues
+    scopes[#scopes+1] = { name = "Upvalues", variablesReference = variables.scopeRef(i,"Upvalues"), expensive=false }
+    -- Factorio `global`
+    if global then
+      scopes[#scopes+1] = { name = "Factorio global", variablesReference = variables.tableRef(global), expensive=false }
+    end
+    -- Lua Globals
+    scopes[#scopes+1] = { name = "Lua Globals", variablesReference = variables.tableRef(_ENV), expensive=false }
+
+    print("\xEF\xB7\x96" .. json.encode({seq=seq, body=scopes}))
+  else
+    print("\xEF\xB7\x96" .. json.encode({seq=seq, body={
+      { name = "[No Frame]", variablesReference = 0, expensive=false }
+    }}))
+  end
+end
+
 ---@type number?
 local cross_stepping
 ---@type boolean?
 local cross_step_instr
 
----@param stack cross_stack
 ---@param stepping? number
 ---@param step_instr? boolean
-function DAStacks.pushStack(stack,stepping,step_instr)
+function DAStacks.pushStack(stepping,step_instr)
   if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
-    remote.call("debugadapter", "pushStack", stack,stepping,step_instr)
+    remote.call("debugadapter", "pushStack",stepping,step_instr)
   else
-    stacks[#stacks+1] = stack
     cross_stepping = stepping
     cross_step_instr = step_instr
   end
@@ -209,7 +232,6 @@ function DAStacks.popStack()
   if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
     return remote.call--[[@as fun(string,string):number?,boolean?]]("debugadapter", "popStack")
   else
-    stacks[#stacks] = nil
     local stepping,step_instr = cross_stepping, cross_step_instr
     cross_stepping,cross_step_instr = nil,nil
 
@@ -217,14 +239,6 @@ function DAStacks.popStack()
   end
 end
 
----@return cross_stack[]
-function DAStacks.peekStacks()
-  if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
-    return remote.call("debugadapter", "peekStacks") --[[@as (cross_stack[])]]
-  else
-    return stacks
-  end
-end
 
 ---@param stepping? number
 ---@param step_instr? boolean
