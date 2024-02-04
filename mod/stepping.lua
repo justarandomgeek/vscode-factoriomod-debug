@@ -240,7 +240,7 @@ do
           stepdepth = stepdepth + 1
         end
         -- if current is eventlike do outer stack/stepping pass out
-        __DebugAdapter.pushStack(__DebugAdapter.currentStep())
+        __DebugAdapter.crossStepping(__DebugAdapter.currentStep())
         __DebugAdapter.step(nil)
         pending[info.func] = (pending[info.func] or 0) + 1
       elseif (not parent) or pending[parent.func] then
@@ -275,7 +275,7 @@ do
       local p = pending[info.func]
       if p then
         -- if current is eventlike pop stack, do outer stepping pass in
-        __DebugAdapter.step(__DebugAdapter.popStack())
+        __DebugAdapter.step(__DebugAdapter.takeStepping())
         if stepdepth and stepdepth >= 0 then
           stepdepth = stepdepth - 1
         end
@@ -334,7 +334,7 @@ if __DebugAdapter.instrument then
   function on_exception (mesg)
     debug.sethook()
     if not stack_has_location() then
-      __DebugAdapter.popStack()
+      __DebugAdapter.takeStepping()
       debug.sethook(hook,hook_rate())
       return
     end
@@ -344,7 +344,7 @@ if __DebugAdapter.instrument then
         mesg:match("^Error when running interface function") or
         mesg:match("^The mod [a-zA-Z0-9 _-]+ %([0-9.]+%) caused a non%-recoverable error")
         )then
-      __DebugAdapter.popStack()
+      __DebugAdapter.takeStepping()
       debug.sethook(hook,hook_rate())
       return
     end
@@ -356,14 +356,14 @@ if __DebugAdapter.instrument then
     local info = debug.getinfo(3,"f")
     local p = pending[info.func]
     if p then
-      __DebugAdapter.popStack()
+      __DebugAdapter.takeStepping()
       popped = true
     end
 
     __DebugAdapter.print_exception("unhandled",mesg)
     debug.debug()
     if not popped then
-      __DebugAdapter.popStack()
+      __DebugAdapter.takeStepping()
     end
     debug.sethook(hook,hook_rate())
   end

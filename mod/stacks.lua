@@ -215,22 +215,11 @@ local cross_stepping
 ---@type boolean?
 local cross_step_instr
 
----@param stepping? number
----@param step_instr? boolean
-function DAStacks.pushStack(stepping,step_instr)
-  if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
-    remote.call("debugadapter", "pushStack",stepping,step_instr)
-  else
-    cross_stepping = stepping
-    cross_step_instr = step_instr
-  end
-end
-
 ---@return number? stepping
 ---@return boolean? step_instr
-function DAStacks.popStack()
+function DAStacks.takeStepping()
   if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
-    return remote.call--[[@as fun(string,string):number?,boolean?]]("debugadapter", "popStack")
+    return remote.call--[[@as fun(string,string):number?,boolean?]]("debugadapter", "takeStepping")
   else
     local stepping,step_instr = cross_stepping, cross_step_instr
     cross_stepping,cross_step_instr = nil,nil

@@ -108,8 +108,7 @@ end))
 remote.add_interface("debugadapter",__DebugAdapter.stepIgnore{
   updateBreakpoints = updateBreakpoints,
 
-  pushStack = __DebugAdapter.pushStack,
-  popStack = __DebugAdapter.popStack,
+  takeStepping = __DebugAdapter.takeStepping,
   crossStepping = __DebugAdapter.crossStepping,
   peekStepping = __DebugAdapter.peekStepping,
 })
