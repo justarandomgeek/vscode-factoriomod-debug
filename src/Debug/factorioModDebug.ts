@@ -929,11 +929,23 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		let consume:resolver<void>;
 		const consumed = new Promise<void>((resolve)=>consume=resolve);
 		const ac = new AbortController();
+		//TODO: proper matching against active mod names?
+		const matches = args.expression.match(/^__(.+?)__ (.*)$/);
+		let modname: string | undefined;
+		if (matches) {
+			modname = matches[1];
+			args.expression = matches[2];
+		}
+
+		const target = modname ? luaBlockQuote(Buffer.from(modname)) :
+			args.frameId ? args.frameId :
+			"nil";
+		const expr = luaBlockQuote(Buffer.from(args.expression.replace(/\n/g, " ")));
 		const body = await Promise.race([
 			new Promise<EvaluateResponseBody>(async (resolve)=>{
 				this._responses.set(response.request_seq, resolve);
 				if (!await this.writeOrQueueStdin(
-					`__DebugAdapter.evaluate(${args.frameId??"nil"},"${args.context}",${luaBlockQuote(Buffer.from(args.expression.replace(/\n/g, " ")))},${response.request_seq})\n`,
+					`__DebugAdapter.evaluate(${target},"${args.context}",${expr},${response.request_seq})\n`,
 					consumed,
 					ac.signal)) {
 					this._responses.delete(response.request_seq);

@@ -169,10 +169,21 @@ function DAStacks.stackTrace(threadid, startFrame, seq)
 end
 
 ---@param frameId integer
----@prints DebugProtocol.Scope[]
-function DAStacks.scopes(frameId, seq)
+---@return DebugProtocol.Thread thread
+---@return integer frameId
+---@return integer tag
+function DAStacks.splitFrameId(frameId)
   local threadid = math.floor(frameId/1024)
   local thread = threads[threadid]
+  local i = math.floor((frameId % 1024) / 4)
+  local tag = frameId % 4
+  return thread,i,tag
+end
+
+---@param frameId integer
+---@prints DebugProtocol.Scope[]
+function DAStacks.scopes(frameId, seq)
+  local thread,i,tag = DAStacks.splitFrameId(frameId)
   if thread.name ~= script.mod_name then
     if __DebugAdapter.canRemoteCall() and remote.interfaces["__debugadapter_"..thread.name] then
       -- redirect...
@@ -186,8 +197,7 @@ function DAStacks.scopes(frameId, seq)
     return
   end
 
-
-  local i = math.floor((frameId % 1024) / 4)
+  --TODO: deal with `tag` for label frames?
   if debug.getinfo(i,"f") then
     ---@type DebugProtocol.Scope[]
     local scopes = {}

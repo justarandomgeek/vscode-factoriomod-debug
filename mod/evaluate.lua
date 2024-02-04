@@ -414,37 +414,35 @@ local evalresultmeta = {
   end,
 }
 
----@param frameId? integer
+---@param target? string|integer modname or frameId
 ---@param context? string
 ---@param expression string
 ---@param seq integer
-function DAEval.evaluate(frameId,context,expression,seq,formod)
-  -- if you manage to do one of these fast enough for data, go for it...
-  if not data and formod~=script.mod_name then
-    local modname,rest = expression:match("^__(.-)__ (.+)$")
-    if modname then
-      expression = rest
-      frameId = nil
+function DAEval.evaluate(target,context,expression,seq)
+  --TODO: what to skip for data?
+  local ttarget = type(target)
+  local modname, frameId, tag
+  if ttarget == "number" then
+    local thread
+    thread,frameId,tag = __DebugAdapter.splitFrameId(target)
+    modname = thread.name
+  elseif ttarget == "string"then
+    modname = target
+  elseif ttarget == "nil" then
+    modname = "level"
+  end
+  if modname and script and modname~=script.mod_name then
+    if __DebugAdapter.canRemoteCall() and remote.interfaces["__debugadapter_"..modname] then
+      return remote.call("__debugadapter_"..modname,"evaluate",target,context,expression,seq)
     else
-      if not frameId then
-        modname = "level"
-      end
-    end
-    if modname and modname~=script.mod_name then
-      -- remote to named state if possible, else just error
-      if __DebugAdapter.canRemoteCall() and remote.interfaces["__debugadapter_"..modname] then
-        return remote.call("__debugadapter_"..modname,"evaluate",frameId,context,expression,seq,modname)
-      else
-        print("\xEF\xB7\x96" .. json_encode({seq=seq, body={result = "`"..modname.."` not available for eval", type="error", variablesReference=0}}))
-        return
-      end
+      print("\xEF\xB7\x96" .. json_encode({seq=seq, body={result = "`"..modname.."` not available for eval", type="error", variablesReference=0}}))
+      return
     end
   end
-  local info = not frameId or debug.getinfo(frameId,"f")
 
   ---@type DebugProtocol.EvaluateResponseBody
   local evalresult
-  if info then
+  if not frameId or debug.getinfo(frameId,"f") then
     local timer,success,result
     if context == "repl" then
       timer,success,result = DAEval.evaluateInternal(frameId and frameId+1,nil,context,expression,true)
@@ -497,7 +495,7 @@ function DAEval.evaluate(frameId,context,expression,seq,formod)
       evalresult.timer = variables.translate(timer)
     end
   else
-    evalresult = {result = "Cannot Evaluate in Remote Frame", type="error", variablesReference=0}
+    evalresult = {result = "Invalid Frame in Evaluate", type="error", variablesReference=0}
   end
   print("\xEF\xB7\x96" .. json_encode({seq=seq, body=evalresult}))
 end
