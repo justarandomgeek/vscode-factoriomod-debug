@@ -1,5 +1,5 @@
 local require = require
--- force canonical name require to ensure only one instance of variables.refs
+-- force canonical name require to ensure only one instance of `refs`, `collectables`
 if ... ~= "__debugadapter__/variables.lua" then
   return require("__debugadapter__/variables.lua")
 end
@@ -44,16 +44,56 @@ local refsmeta = {
   __debugcontents = false,
 }
 
+---@type {[integer]:DAvarslib.Ref}
+local refs = setmetatable({},refsmeta)
+
+local collectable
+do
+  ---@type metatable
+  local colsmeta = {
+    __mode = 'kv'
+  }
+
+  local collectables = setmetatable({},colsmeta)
+
+  ---@type metatable
+  local colmeta = {
+    __gc = function (self)
+      for k in pairs(self) do
+        print("collecting "..k)
+        refs[k] = nil
+      end
+    end,
+    __call = function (self)
+      return collectables[self]
+    end,
+  }
+
+  ---@alias DAvarslib.Collectable<T> {[integer]:true}|fun():T
+
+  ---create a new collectable ref to `obj` for varref `id`, or add `id` to an existing one
+  ---@param obj any
+  ---@param id integer
+  ---@return DAvarslib.Collectable
+  function collectable(obj, id)
+    for k,v in pairs(collectables) do
+      if v == obj then
+        k[id] = true
+        return k
+      end
+    end
+    local k = setmetatable({[id]=true}, colmeta)
+    collectables[k] = obj
+    return k
+  end
+end
+
 ---@class DebugAdapter.Variables
 local DAvars = {}
 
 --- Debug Adapter variables module
 ---@class DAvarslib
 local variables = {
-  -- normal refs are cleared after every continue
-  ---@private
-  ---@type {[integer]:DAvarslib.Ref}
-  refs = setmetatable({},refsmeta),
   -- objects to pass up to the parent __DebugAdapter
   __ = DAvars,
 }
@@ -199,14 +239,14 @@ end
 ---@overload fun(frameId:integer, name:"Upvalues"):integer
 ---@overload fun(frameId:integer, name:"Locals", mode?:"temps"|"varargs"):integer
 function variables.scopeRef(frameId,name,mode)
-  for id,varRef in pairs(variables.refs) do
+  for id,varRef in pairs(refs) do
     if varRef.type == name and ---@cast varRef DAvarslib.ScopeRef
       varRef.frameId == frameId and varRef.mode == mode then
       return id
     end
   end
   local id = nextID()
-  variables.refs[id] = {
+  refs[id] = {
     type = name,
     frameId = frameId,
     mode = mode,
@@ -217,8 +257,8 @@ end
 ---@class DAvarslib.KVRef : DAvarslib.Ref
 ---@field public type "kvPair"
 ---@field public name string
----@field public key Any
----@field public value Any
+---@field public key DAvarslib.Collectable<Any>
+---@field public value DAvarslib.Collectable<Any>
 
 --- Generate a variablesReference for a key-value-pair for complex keys object
 ---@param key table|function
@@ -226,11 +266,9 @@ end
 ---@return integer variablesReference
 ---@return string keyName
 function variables.kvRef(key,value)
-  local refs = variables.refs
-
   for id,varRef in pairs(refs) do
     if varRef.type == "kvPair" and ---@cast varRef DAvarslib.KVRef
-      varRef.key == key and varRef.value == value then
+      varRef.key() == key and varRef.value() == value then
       return id,varRef.name
     end
   end
@@ -246,8 +284,8 @@ function variables.kvRef(key,value)
 
   refs[id] = {
     type = "kvPair",
-    key = key,
-    value = value,
+    key = collectable(key, id),
+    value = collectable(value, id),
     name = name,
   }
   return id,name
@@ -262,8 +300,6 @@ end
 ---@param checkonly? boolean
 ---@return DebugProtocol.Source?
 function variables.sourceRef(source,checkonly)
-  local refs = variables.refs
-
   for id,varRef in pairs(refs) do
     if varRef.type == "Source" and
       varRef--[[@as DAvarslib.SourceRef]].source == source then
@@ -289,55 +325,51 @@ end
 
 ---@class DAvarslib.FuncRef : DAvarslib.Ref
 ---@field public type "Function"
----@field public func function
+---@field public func DAvarslib.Collectable<function>
 
 --- Generate a variablesReference for a function
 ---@param func function
 ---@return integer variablesReference
 function variables.funcRef(func)
-  local refs = variables.refs
-
   for id,varRef in pairs(refs) do
     if varRef.type == "Function" and ---@cast varRef DAvarslib.FuncRef
-      varRef.func == func then
+      varRef.func() == func then
       return id
     end
   end
   local id = nextID()
   refs[id] = {
     type = "Function",
-    func = func,
+    func = collectable(func, id),
   }
   return id
 end
 
 ---@class DAvarslib.FetchRef : DAvarslib.Ref
 ---@field public type "Fetch"
----@field public func function
+---@field public func DAvarslib.Collectable<function>
 
 --- Generate a variablesReference for a fetchable property
 ---@param func function
 ---@return integer variablesReference
 function variables.fetchRef(func)
-  local refs = variables.refs
-
   for id,varRef in pairs(refs) do
     if varRef.type == "Fetch" and ---@cast varRef DAvarslib.FetchRef
-      varRef.func == func then
+      varRef.func() == func then
       return id
     end
   end
   local id = nextID()
   refs[id] = {
     type = "Fetch",
-    func = func,
+    func = collectable(func, id),
   }
   return id
 end
 
 ---@class DAvarslib.TableRef : DAvarslib.Ref
 ---@field public type "Table"
----@field public table table
+---@field public table DAvarslib.Collectable<table>
 ---@field public mode "pairs"|"ipairs"|"count"
 ---@field public showMeta boolean
 ---@field public extra any
@@ -352,10 +384,9 @@ end
 ---@return integer variablesReference
 function variables.tableRef(table, mode, showMeta, extra, evalName)
   mode = mode or "pairs"
-  local refs = variables.refs
   for id,varRef in pairs(refs) do
     if varRef.type == "Table" and ---@cast varRef DAvarslib.TableRef
-      varRef.table == table and varRef.mode == mode and
+      varRef.table() == table and varRef.mode == mode and
       varRef.showMeta == showMeta and varRef.extra == extra then
       return id
     end
@@ -363,7 +394,7 @@ function variables.tableRef(table, mode, showMeta, extra, evalName)
   local id = nextID()
   refs[id] = {
     type = "Table",
-    table = table,
+    table = collectable(table, id),
     mode = mode,
     showMeta = showMeta,
     extra = extra,
@@ -375,7 +406,7 @@ end
 
 ---@class DAvarslib.LuaObjectRef : DAvarslib.Ref
 ---@field public type "LuaObject"
----@field public object LuaObject
+---@field public object DAvarslib.Collectable<LuaObject>
 ---@field public classname string
 ---@field public evalName string
 
@@ -386,17 +417,16 @@ end
 ---@return number variablesReference
 function variables.luaObjectRef(luaObject,classname,evalName)
   if not luaObjectInfo.expandKeys[classname] then return 0 end
-  local refs = variables.refs
   for id,varRef in pairs(refs) do
     if varRef.type == "LuaObject" and ---@cast varRef DAvarslib.LuaObjectRef
-      varRef.object == luaObject then
+      varRef.object() == luaObject then
       return id
     end
   end
   local id = nextID()
   refs[id] = {
     type = "LuaObject",
-    object = luaObject,
+    object = collectable(luaObject, id),
     classname = classname,
     evalName = evalName
   }
@@ -641,16 +671,14 @@ local itermode = {
 ---@return boolean?
 ---@prints Variable[]
 function DAvars.variables(variablesReference,seq,filter,start,count,inner)
-  print("vars "..(script and script.mod_name or "data").." ref "..variablesReference.." inner "..tostring(inner))
   ---@type DAvarslib.Ref
-  local varRef = variables.refs[variablesReference]
+  local varRef = refs[variablesReference]
   -- or remote lookup to find a long ref in another lua...
   if not varRef and not inner and __DebugAdapter.canRemoteCall() then
     local call = remote.call
     for remotename,_ in pairs(remote.interfaces) do
       local modname = remotename:match("^__debugadapter_(.+)$")
       if modname then
-        print("vars calling "..remotename)
         if call(remotename,"longVariables",variablesReference,seq,filter,start,count,true) then
           return true
         end
@@ -734,8 +762,9 @@ function DAvars.variables(variablesReference,seq,filter,start,count,inner)
       end
     elseif varRef.type == "Table" then
       ---@cast varRef DAvarslib.TableRef
+      local tabref = varRef.table()
       -- use debug.getmetatable insead of getmetatable to get raw meta instead of __metatable result
-      local mt = debug.getmetatable(varRef.table)
+      local mt = debug.getmetatable(tabref)
       if varRef.mode == "count" then
         --don't show meta on these by default as they're mostly LuaObjects providing count iteration anyway
         if varRef.showMeta == true and mt then
@@ -753,7 +782,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,inner)
             presentationHint = {kind="virtual"},
           }
         end
-        local stop = #varRef.table
+        local stop = #tabref
         if filter == "indexed" then
           if not start or start == 0 then
             start = 1
@@ -772,13 +801,13 @@ function DAvars.variables(variablesReference,seq,filter,start,count,inner)
           if varRef.evalName then
             evalName = varRef.evalName .. "[" .. tostring(i) .. "]"
           end
-          vars[#vars + 1] = variables.create(tostring(i),varRef.table[i], evalName)
+          vars[#vars + 1] = variables.create(tostring(i),tabref[i], evalName)
         end
       else
         if mt and type(mt.__debugcontents) == "function" then
           ---@type DebugAdapter.DebugContents<any,any,any>
           local __debugcontents = mt.__debugcontents
-          local success, __debugnext, t, firstk = pcall(__debugcontents,varRef.table,varRef.extra)
+          local success, __debugnext, t, firstk = pcall(__debugcontents,tabref,varRef.extra)
           if success then
             ---@cast __debugnext DebugAdapter.DebugNext<any,any>
             while true do
@@ -863,9 +892,9 @@ function DAvars.variables(variablesReference,seq,filter,start,count,inner)
 
           -- rough heuristic for matching LocalisedStrings
           -- tables with no meta, and [1] that is string
-          if filter == "named" and not mt and #varRef.table >= 1 and type(varRef.table[1]) == "string" then
+          if filter == "named" and not mt and #tabref >= 1 and type(tabref[1]) == "string" then
             -- print a translation for this with unique id
-            local i,mesg = variables.translate(varRef.table)
+            local i,mesg = variables.translate(tabref)
             vars[#vars + 1] = {
               name = "<translated>",
               value = i and ("\xEF\xB7\x94"..i) or ("<"..mesg..">"),
@@ -879,18 +908,18 @@ function DAvars.variables(variablesReference,seq,filter,start,count,inner)
           ---@type fun(t:table):nextfn,table,any
           local debugpairs = itermode[varRef.mode]
           if debugpairs then
-            local success,f,t,firstk = pcall(debugpairs,varRef.table)
+            local success,f,t,firstk = pcall(debugpairs,tabref)
             if success then
               ---@type fun(t:table):number
               local len = mt and mt.__len
               if len then
-                if not luaObjectInfo.try_object_name(varRef.table) then
+                if not luaObjectInfo.try_object_name(tabref) then
                   len = rawlen
                 end
               else
                 len = rawlen
               end
-              local maxindex = len(varRef.table)
+              local maxindex = len(tabref)
               if filter == "indexed" then
                 if not start or start == 0 then
                   start = 1
@@ -962,7 +991,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,inner)
       end
     elseif varRef.type == "LuaObject" then
       ---@cast varRef DAvarslib.LuaObjectRef
-      local object = varRef.object
+      local object = varRef.object()
       if luaObjectInfo.alwaysValid[varRef.classname:match("^([^.]+).?")] or object.valid then
         if varRef.classname == "LuaItemStack" and --[[@cast object LuaItemStack]]
           not object.valid_for_read then
@@ -1065,11 +1094,11 @@ function DAvars.variables(variablesReference,seq,filter,start,count,inner)
       end
     elseif varRef.type == "kvPair" then
       ---@cast varRef DAvarslib.KVRef
-      vars[#vars + 1] = variables.create("<key>",varRef.key)
-      vars[#vars + 1] = variables.create("<value>",varRef.value)
+      vars[#vars + 1] = variables.create("<key>",varRef.key())
+      vars[#vars + 1] = variables.create("<value>",varRef.value())
     elseif varRef.type == "Function" then
       ---@cast varRef DAvarslib.FuncRef
-      local func = varRef.func
+      local func = varRef.func()
       local i = 1
       while true do
         local name,value = debug.getupvalue(func,i)
@@ -1080,7 +1109,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,inner)
       end
     elseif varRef.type == "Fetch" then
       ---@cast varRef DAvarslib.FetchRef
-      local func = varRef.func
+      local func = varRef.func()
       local success,result = pcall(func)
       if success then
         vars[#vars + 1] = variables.create("<Fetch Result>",result)
@@ -1127,7 +1156,7 @@ end
 ---@param value string
 ---@param seq number
 function DAvars.setVariable(variablesReference, name, value, seq)
-  local varRef = variables.refs[variablesReference]
+  local varRef = refs[variablesReference]
   if varRef then
     if varRef.type == "Locals" then
       ---@cast varRef DAvarslib.ScopeRef
@@ -1224,10 +1253,10 @@ function DAvars.setVariable(variablesReference, name, value, seq)
         local alsoLookIn ---@type table|LuaObject
         if varRef.type == "Table" then
           ---@cast varRef DAvarslib.TableRef
-          alsoLookIn = varRef.table
+          alsoLookIn = varRef.table()
         elseif varRef.type == "LuaObject" then
           ---@cast varRef DAvarslib.LuaObjectRef
-          alsoLookIn = varRef.object
+          alsoLookIn = varRef.object()
         end
         local goodvalue,newvalue = __DebugAdapter.evaluateInternal(nil,alsoLookIn,"setvar",value)
         if not goodvalue then
