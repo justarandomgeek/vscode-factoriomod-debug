@@ -197,8 +197,7 @@ function DAStacks.scopes(frameId, seq)
     return
   end
 
-  --TODO: deal with `tag` for label frames?
-  if debug.getinfo(i,"f") then
+  if tag == 0 and debug.getinfo(i,"f") then
     ---@type DebugProtocol.Scope[]
     local scopes = {}
     -- Locals

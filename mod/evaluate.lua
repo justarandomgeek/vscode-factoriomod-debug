@@ -419,7 +419,6 @@ local evalresultmeta = {
 ---@param expression string
 ---@param seq integer
 function DAEval.evaluate(target,context,expression,seq)
-  --TODO: what to skip for data?
   local ttarget = type(target)
   local modname, frameId, tag
   if ttarget == "number" then
@@ -442,6 +441,9 @@ function DAEval.evaluate(target,context,expression,seq)
 
   ---@type DebugProtocol.EvaluateResponseBody
   local evalresult
+  if tag and tag ~= 0 then
+    frameId = nil
+  end
   if not frameId or debug.getinfo(frameId,"f") then
     local timer,success,result
     if context == "repl" then
