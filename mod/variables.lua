@@ -47,46 +47,56 @@ local refs = setmetatable({},{
 local collectable
 do
   local collectables = setmetatable({},{
-    __debugline = "<Debug Adapter Collectable References [{table_size(self)}]>",
-    __debugtype = "DebugAdapter.Collectables",
-    __debugcontents = false,
-    __mode = 'kv'
+    __mode = 'v'
   })
 
   ---@type metatable
   local colmeta = {
-    __debugline = "<Debug Adapter Collectable Reference {self()}>",
-    __debugtype = "DebugAdapter.Collectable",
     __gc = function(self)
-      print("__gc")
       for k in pairs(self) do
-        print("collecting "..k)
         refs[k] = nil
       end
     end,
+  }
+
+  ---@type metatable
+  local wrapmeta = {
+    __debugtype = "DebugAdapter.Collectable",
+    __mode = "v",
     __call = __DebugAdapter.stepIgnore(function(self)
-      return collectables[self]
+      return collectables[self.__weak]
     end),
   }
 
   ---@alias DAvarslib.Collectable<T> fun():T
 
+  local plain = {
+    ["nil"]=true,
+    ["string"]=true,
+    ["boolean"]=true,
+    ["number"]=true,
+  }
+
   ---create a new collectable ref to `obj` for varref `id`, or add `id` to an existing one
   ---@generic T
   ---@param obj T
   ---@param id integer
-  ---@return DAvarslib.Collectable<T>
+  ---@return DAvarslib.Collectable<T?>
   function collectable(obj, id)
+    local tobj = type(obj)
+    -- for non-collectable values, just box them (possibly the value in kvPair)
+    if plain[tobj] then
+      return function() return obj end
+    end
     for k,v in pairs(collectables) do
       if v == obj then
         k[id] = true
-        return k
+        return setmetatable({__weak=k}, wrapmeta) --[[@as DAvarslib.Collectable]]
       end
     end
-    ---@type DAvarslib.Collectable
     local k = setmetatable({[id]=true}, colmeta)
     collectables[k] = obj
-    return k
+    return setmetatable({__weak=k}, wrapmeta) --[[@as DAvarslib.Collectable]]
   end
   __DebugAdapter.stepIgnore(collectable)
 end
@@ -766,6 +776,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,inner)
     elseif varRef.type == "Table" then
       ---@cast varRef DAvarslib.TableRef
       local tabref = varRef.table()
+      if not tabref then goto collected end
       -- use debug.getmetatable insead of getmetatable to get raw meta instead of __metatable result
       local mt = debug.getmetatable(tabref)
       if varRef.mode == "count" then
@@ -995,6 +1006,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,inner)
     elseif varRef.type == "LuaObject" then
       ---@cast varRef DAvarslib.LuaObjectRef
       local object = varRef.object()
+      if not object then goto collected end
       if luaObjectInfo.alwaysValid[varRef.classname:match("^([^.]+).?")] or object.valid then
         if varRef.classname == "LuaItemStack" and --[[@cast object LuaItemStack]]
           not object.valid_for_read then
@@ -1097,11 +1109,15 @@ function DAvars.variables(variablesReference,seq,filter,start,count,inner)
       end
     elseif varRef.type == "kvPair" then
       ---@cast varRef DAvarslib.KVRef
-      vars[#vars + 1] = variables.create("<key>",varRef.key())
-      vars[#vars + 1] = variables.create("<value>",varRef.value())
+      local key = varRef.key()
+      local value = varRef.value()
+      if key==nil or value==nil then goto collected end
+      vars[#vars + 1] = variables.create("<key>",key)
+      vars[#vars + 1] = variables.create("<value>",value)
     elseif varRef.type == "Function" then
       ---@cast varRef DAvarslib.FuncRef
       local func = varRef.func()
+      if not func then goto collected end
       local i = 1
       while true do
         local name,value = debug.getupvalue(func,i)
@@ -1113,6 +1129,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,inner)
     elseif varRef.type == "Fetch" then
       ---@cast varRef DAvarslib.FetchRef
       local func = varRef.func()
+      if not func then goto collected end
       local success,result = pcall(func)
       if success then
         vars[#vars + 1] = variables.create("<Fetch Result>",result)
@@ -1148,7 +1165,17 @@ function DAvars.variables(variablesReference,seq,filter,start,count,inner)
       }
     end
   end
-
+  goto done
+  ::collected::
+  -- this ref is holding Collectables that got collected, it shouldn't have even been still-linked...
+  refs[variablesReference] = nil
+  vars[1] = {
+    name= "GCed variablesReference",
+    value= "GCed variablesReference ref="..variablesReference.." seq="..seq,
+    variablesReference= 0,
+    presentationHint = {kind="virtual"},
+  }
+  ::done::
   print("\xEF\xB7\x96" .. json_encode({seq = seq, body = vars}))
   return true
 end
@@ -1283,6 +1310,9 @@ function DAvars.setVariable(variablesReference, name, value, seq)
         print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value="invalid property name"}}))
         return
       end
+    else
+      print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value="cannot set on this ref type"}}))
+      return
     end
   end
 end
