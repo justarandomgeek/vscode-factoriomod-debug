@@ -45,6 +45,7 @@
 ---@field public value string
 ---@field public type? string
 ---@field public presentationHint? DebugProtocol.VariablePresentationHint
+---@field public evaluateName? string
 ---@field public variablesReference integer
 ---@field public namedVariables? integer
 ---@field public indexedVariables? integer
