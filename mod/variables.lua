@@ -34,47 +34,48 @@ local pcall = pcall -- capture pcall early before entrypoints wraps it
 local type = type
 local string = string
 local schar = string.char
-
+local smatch = string.match
 local remote = remote and (type(remote)=="table" and rawget(remote,"__raw")) or remote
 
--- Trying to expand the refs table causes some problems, so just hide it...
-local refsmeta = {
+---@type {[integer]:DAvarslib.Ref}
+local refs = setmetatable({},{
   __debugline = "<Debug Adapter Variable ID Cache [{table_size(self)}]>",
   __debugtype = "DebugAdapter.VariableRefs",
   __debugcontents = false,
-}
-
----@type {[integer]:DAvarslib.Ref}
-local refs = setmetatable({},refsmeta)
+})
 
 local collectable
 do
-  ---@type metatable
-  local colsmeta = {
+  local collectables = setmetatable({},{
+    __debugline = "<Debug Adapter Collectable References [{table_size(self)}]>",
+    __debugtype = "DebugAdapter.Collectables",
+    __debugcontents = false,
     __mode = 'kv'
-  }
-
-  local collectables = setmetatable({},colsmeta)
+  })
 
   ---@type metatable
   local colmeta = {
-    __gc = function (self)
+    __debugline = "<Debug Adapter Collectable Reference {self()}>",
+    __debugtype = "DebugAdapter.Collectable",
+    __gc = function(self)
+      print("__gc")
       for k in pairs(self) do
         print("collecting "..k)
         refs[k] = nil
       end
     end,
-    __call = function (self)
+    __call = __DebugAdapter.stepIgnore(function(self)
       return collectables[self]
-    end,
+    end),
   }
 
-  ---@alias DAvarslib.Collectable<T> {[integer]:true}|fun():T
+  ---@alias DAvarslib.Collectable<T> fun():T
 
   ---create a new collectable ref to `obj` for varref `id`, or add `id` to an existing one
-  ---@param obj any
+  ---@generic T
+  ---@param obj T
   ---@param id integer
-  ---@return DAvarslib.Collectable
+  ---@return DAvarslib.Collectable<T>
   function collectable(obj, id)
     for k,v in pairs(collectables) do
       if v == obj then
@@ -82,10 +83,12 @@ do
         return k
       end
     end
+    ---@type DAvarslib.Collectable
     local k = setmetatable({[id]=true}, colmeta)
     collectables[k] = obj
     return k
   end
+  __DebugAdapter.stepIgnore(collectable)
 end
 
 ---@class DebugAdapter.Variables
@@ -1282,6 +1285,36 @@ function DAvars.setVariable(variablesReference, name, value, seq)
       end
     end
   end
+end
+
+---Called by VSCode to retreive source for a function
+---@param id number
+---@param seq number request sequence number
+---@param internal boolean Don't look in other LuaStates
+---@return boolean
+function DAvars.source(id, seq, internal)
+
+  local ref = refs[id]
+  if ref and ref.type == "Source" then ---@cast ref DAvarslib.SourceRef
+    print("\xEF\xB7\x96" .. json_encode{seq=seq, body=ref.source})
+    return true
+  end
+  if internal then return false end
+  -- or remote lookup to find a long ref in another lua...
+  if __DebugAdapter.canRemoteCall() then
+    local call = remote.call
+    for remotename,_ in pairs(remote.interfaces) do
+      local modname = smatch(remotename, "^__debugadapter_(.+)$")
+      if modname then
+        if call(remotename,"source",id,seq,true) then
+          return true
+        end
+      end
+    end
+  end
+
+  print("\xEF\xB7\x96" .. json_encode{seq=seq, body=nil})
+  return false
 end
 
 if data then

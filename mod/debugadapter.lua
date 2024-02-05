@@ -73,38 +73,6 @@ require("__debugadapter__/test.lua")
 local script = script
 local debug = debug
 local print = print
-local pairs = pairs
-local match = string.match
-
----Called by VSCode to retreive source for a function
----@param id number
----@param seq number request sequence number
----@param internal boolean Don't look in other LuaStates
----@return boolean
-function __DebugAdapter.source(id, seq, internal)
-
-  local ref = variables.longrefs[id]
-  if ref and ref.type == "Source" then ---@cast ref DAvarslib.SourceRef
-    print("\xEF\xB7\x96" .. json.encode{seq=seq, body=ref.source})
-    return true
-  end
-  if internal then return false end
-  -- or remote lookup to find a long ref in another lua...
-  if __DebugAdapter.canRemoteCall() then
-    local call = remote.call
-    for remotename,_ in pairs(remote.interfaces) do
-      local modname = match(remotename, "^__debugadapter_(.+)$")
-      if modname then
-        if call(remotename,"source",id,seq,true) then
-          return true
-        end
-      end
-    end
-  end
-
-  print("\xEF\xB7\x96" .. json.encode{seq=seq, body=nil})
-  return false
-end
 
 ---Force the DA Client to refresh everything
 function __DebugAdapter.refresh()
