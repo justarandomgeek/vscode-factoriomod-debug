@@ -106,6 +106,11 @@ function __DebugAdapter.source(id, seq, internal)
   return false
 end
 
+---Force the DA Client to refresh everything
+function __DebugAdapter.refresh()
+  print("\xEF\xB7\x98")
+end
+
 __DebugAdapter.stepIgnore(__DebugAdapter)
 do
   local ininstrument = ""
@@ -129,6 +134,7 @@ do
       setBreakpoints = __DebugAdapter.setBreakpoints,
       longVariables = __DebugAdapter.variables,
       stackTrace = __DebugAdapter.stackTrace,
+      scopes = __DebugAdapter.scopes,
       evaluate = __DebugAdapter.evaluate,
       source = __DebugAdapter.source,
       raise_event = __DebugAdapter.raise_event,

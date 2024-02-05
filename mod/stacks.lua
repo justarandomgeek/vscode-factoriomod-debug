@@ -66,7 +66,7 @@ end
 ---@param seq integer
 function DAStacks.stackTrace(threadid, startFrame, seq)
   local thread = threads[threadid]
-  if thread.name ~= script.mod_name then
+  if script and thread.name ~= script.mod_name then
     if __DebugAdapter.canRemoteCall() and remote.interfaces["__debugadapter_"..thread.name] then
       -- redirect...
       remote.call("__debugadapter_"..thread.name, "stackTrace", threadid, startFrame, seq)
@@ -137,7 +137,7 @@ function DAStacks.stackTrace(threadid, startFrame, seq)
       name = framename,
       line = noSource and 0 or info.currentline,
       column = noSource and 0 or 1,
-      moduleId = script.mod_name,
+      moduleId = script and script.mod_name or nil,
     }
     if not isC then
       local dasource = {
@@ -184,7 +184,7 @@ end
 ---@prints DebugProtocol.Scope[]
 function DAStacks.scopes(frameId, seq)
   local thread,i,tag = DAStacks.splitFrameId(frameId)
-  if thread.name ~= script.mod_name then
+  if script and thread.name ~= script.mod_name then
     if __DebugAdapter.canRemoteCall() and remote.interfaces["__debugadapter_"..thread.name] then
       -- redirect...
       remote.call("__debugadapter_"..thread.name, "scopes", frameId, seq)
@@ -216,46 +216,6 @@ function DAStacks.scopes(frameId, seq)
     print("\xEF\xB7\x96" .. json.encode({seq=seq, body={
       { name = "[No Frame]", variablesReference = 0, expensive=false }
     }}))
-  end
-end
-
----@type number?
-local cross_stepping
----@type boolean?
-local cross_step_instr
-
----@return number? stepping
----@return boolean? step_instr
-function DAStacks.takeStepping()
-  if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
-    return remote.call--[[@as fun(string,string):number?,boolean?]]("debugadapter", "takeStepping")
-  else
-    local stepping,step_instr = cross_stepping, cross_step_instr
-    cross_stepping,cross_step_instr = nil,nil
-
-    return stepping,step_instr
-  end
-end
-
-
----@param stepping? number
----@param step_instr? boolean
-function DAStacks.crossStepping(stepping,step_instr)
-  if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
-    return remote.call("debugadapter", "crossStepping", stepping)
-  else
-    cross_stepping = stepping
-    cross_step_instr = step_instr
-  end
-end
-
----@return number? cross_stepping
----@return boolean? cross_step_instr
-function DAStacks.peekStepping()
-  if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
-    return remote.call--[[@as fun(string,string):number?,boolean?]]("debugadapter", "peekStepping")
-  else
-    return cross_stepping,cross_step_instr
   end
 end
 

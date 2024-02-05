@@ -24,7 +24,6 @@ local validLuaObjectTypes = {table=true,userdata=true}
 ---@class LuaObjectInfo
 local luaObjectInfo = {
   alwaysValid = {},
-  eventlike = {},
   expandKeys = {},
 }
 do
@@ -106,103 +105,10 @@ some API functions can raise events (or otherwise re-enter lua) before returning
 so we want to recognize them to record the stack somewhere and indicate that it
 needs to be requested if something stops in the lower stack.
 
-most of this information is loaded from the json now, but we have a few
-special cases to add...
 
 ]]
-local eventlike_members = {
-  -- userdata => {class="",member=""}
-}
-local eventlike = luaObjectInfo.eventlike or {}
-eventlike.__index = eventlike.__index or {}
--- not from json
-eventlike.__index.LuaBootstrap = eventlike.__index.LuaBootstrap or {}
-eventlike.__index.LuaBootstrap.raise_event = true
-
--- not from json, non-event re-entry to other lua
-eventlike.__index.LuaRemote = eventlike.__index.LuaRemote or {}
-eventlike.__index.LuaRemote.call = true
-
---just catch any write to a LuaCustomTable, to cover mod settings
---all LuaCustomTable::__newindex use the same pointer-to-member userdata
---so we can't differentiate them from here.
-eventlike.__newindex = eventlike.__newindex or {}
-eventlike.__newindex.LuaCustomTable = eventlike.__newindex.LuaCustomTable or {}
-eventlike.__newindex.LuaCustomTable = setmetatable({},{__index = function() return true end})
 
 
----Test if a hooked call/return represents an event-like api call
----@param level integer the stack level of the code interrupted by the hook
----@param hooktype string the debug hook type we're in while checking this
----@return boolean? is_eventlike
----@return string? classname
----@return string? method
----@return any? value if api access was a `__newindex` call
-local function check_eventlike(level,hooktype)
-  if not script then return end
-
-  local info = dgetinfo(level,"nSf")
-  if not info then return end
-
-  if info.what ~= "C" then return end
-
-  local fname = info.name
-  local classes = eventlike[fname]
-  if classes then -- __index or __newindex
-
-    local _,t = dgetlocal(level,1)
-    if (not validLuaObjectTypes[type(t)]) or getmetatable(t) ~= "private" then return end
-
-    ---@type string
-    local tname = t.object_name
-    if not tname then return end
-
-    local class = classes[tname]
-    if not class then return end
-
-    local _,k = dgetlocal(level,2)
-    local member = class[k]
-    if member then
-      if fname == "__index" then
-        if hooktype == "call" or hooktype == "tail call" then
-          -- there's no good way to get return values, so fetch it myself once in call instead
-          -- and get the userdata so we can compare things...
-          -- pcall in case it's a bad lookup
-          local success,func = pcall(function () return t[k] end)
-          if success and type(func)=="function" then
-            local _,memberptr = dgetupvalue(func,2)
-            eventlike_members[memberptr] = {class=tname,member=k}
-            -- only need to do this once, so unhook it once we get one!
-            class[k] = nil
-            if not next(class) then
-              classes[tname] = nil
-            end
-          end
-        end
-        -- this call is not eventlike itself, but the returned func will be
-        return --false,tname,k
-
-      else -- __newindex
-        -- do the thing
-        return true,tname,k,(select(2,dgetlocal(level,3)))
-      end
-    end
-
-  else -- other cfunctions, not __index or __newindex
-
-    local f = info.func
-    local _,memberptr = dgetupvalue(f,2)
-    if memberptr then
-      local member = eventlike_members[memberptr]
-      if member then
-        -- do the thing
-        return true,member.class,member.member
-      end
-    end
-  end
-  return
-end
-luaObjectInfo.check_eventlike = check_eventlike
 
 ---Check if a value is a LuaObject or LuaBindableObject
 ---@param obj any

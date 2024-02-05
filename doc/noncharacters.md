@@ -13,6 +13,7 @@ EF B7 94  FDD4  translation result
 EF B7 95  FDD5  json event
 EF B7 96  FDD6  json response
 EF B7 97  FDD7  raw buffer
+EF B7 98  FDD8  invalidated event
 
 profile events
 EF B7 A0  FDE0  profile line

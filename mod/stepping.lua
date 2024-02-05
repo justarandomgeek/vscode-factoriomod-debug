@@ -105,8 +105,6 @@ function DAstep.dumpIgnore(source)
 end
 
 local hook
----@type {[function]:number}
-local pending = {}
 do
   local getinfo = debug.getinfo
   local debugprompt = debug.debug
@@ -137,6 +135,27 @@ do
     end
   end
 
+--[[
+  event        | pass stepinfo | check bp hook
+  call:        |               |
+  none -> lua  | in            | check
+  none -> C    |               |
+  C -> lua     | in            | check
+  C -> C       |               |
+  lua -> C     | out           | off
+  lua -> lua   |               | check
+
+  tail call:   |               |
+  lua -> lua   |               | check
+
+  return:      |               |
+  none <- lua  | out           | off
+  none <- C    |               |
+  C <- lua     | out           | off
+  C <- C       |               |
+  lua <- C     | in            | check
+  lua <- lua   |               | check
+]]
 
   ---debug hook function
   ---@param event string
@@ -155,14 +174,11 @@ do
           threadId = __DebugAdapter.this_thread,
           }})
         debugprompt()
-        -- cleanup variablesReferences
-        variables.clear()
       elseif runningBreak() then
         print("\xEF\xB7\x91"..json_encode{event="running", body={
           threadId = __DebugAdapter.this_thread,
           }})
         debugprompt()
-        variables.clear()
       else
         local filebreaks = breakpoints[s]
         if not filebreaks then
@@ -217,8 +233,6 @@ do
                   threadId = __DebugAdapter.this_thread,
                   }})
                 debugprompt()
-                -- cleanup variablesReferences
-                variables.clear()
               end
               b.hits = nil
             end
@@ -228,32 +242,24 @@ do
 
     --ignore "tail call" since it's just one of each
     elseif event == "call" then
+
       local info = getinfo(2,"Slf")
       if info.what == "main" then
         sourceEvent(info)
       end
 
-      local success,classname,member,v = luaObjectInfo.check_eventlike(3,event)
-      local parent = getinfo(3,"f")
-      if success then
-        if stepdepth and stepdepth >= 0 then
-          stepdepth = stepdepth + 1
-        end
-        -- if current is eventlike do outer stack/stepping pass out
-        __DebugAdapter.crossStepping(__DebugAdapter.currentStep())
-        __DebugAdapter.step(nil)
-        pending[info.func] = (pending[info.func] or 0) + 1
-      elseif (not parent) or pending[parent.func] then
-        -- if parent is nil or eventlike do inner stepping pass in
-        __DebugAdapter.step(__DebugAdapter.peekStepping())
-        if stepdepth and stepdepth >= 0 then
-          stepdepth = stepdepth + 1
-        end
-      else
-        if stepdepth and stepdepth >= 0 then
-          stepdepth = stepdepth + 1
-        end
+      if stepdepth and stepdepth >= 0 then
+        stepdepth = stepdepth + 1
       end
+
+      local parent = getinfo(3,"S")
+      if parent and (parent.what == "Lua" or parent.what == "main") and info.what == "C" then
+        __DebugAdapter.setStepping(stepdepth, step_instr)
+        __DebugAdapter.step(nil)
+      elseif (not parent or parent.what =="C") and (info.what == "Lua" or info.what == "main") then
+        __DebugAdapter.step(__DebugAdapter.getStepping())
+      end
+
     elseif event == "return" then
       local info = getinfo(2,"Slf")
       local s = info.source
@@ -271,31 +277,16 @@ do
           __DebugAdapter.print("failed to install noise expression hook", nil, nil, "console")
         end
       end
-      local parent = getinfo(3,"f")
-      local p = pending[info.func]
-      if p then
-        -- if current is eventlike pop stack, do outer stepping pass in
-        __DebugAdapter.step(__DebugAdapter.takeStepping())
-        if stepdepth and stepdepth >= 0 then
-          stepdepth = stepdepth - 1
-        end
-        p = p - 1
-        if p == 0 then
-          pending[info.func] = nil
-        else
-          pending[info.func] = p
-        end
-      elseif  (not parent) or pending[parent.func] then
-        -- if parent is nil or eventlike do inner stepping pass out
-        if stepdepth and stepdepth >= 0 then
-          stepdepth = stepdepth - 1
-        end
-        __DebugAdapter.crossStepping(__DebugAdapter.currentStep())
+      local parent = getinfo(3,"S")
+      if parent and (parent.what == "Lua" or parent.what == "main") and info.what == "C" then
+        __DebugAdapter.step(__DebugAdapter.getStepping())
+      elseif (not parent or parent.what =="C") and (info.what == "Lua" or info.what == "main") then
+        __DebugAdapter.setStepping(stepdepth, step_instr)
         __DebugAdapter.step(nil)
-      else
-        if stepdepth and stepdepth >= 0 then
-          stepdepth = stepdepth - 1
-        end
+      end
+
+      if stepdepth and stepdepth >= 0 then
+        stepdepth = stepdepth - 1
       end
 
       if not parent then -- top of stack
@@ -306,7 +297,6 @@ do
               }})
             debugprompt()
           end
-          variables.clear()
         end
       end
     end
@@ -334,7 +324,7 @@ if __DebugAdapter.instrument then
   function on_exception (mesg)
     debug.sethook()
     if not stack_has_location() then
-      __DebugAdapter.takeStepping()
+      __DebugAdapter.getStepping()
       debug.sethook(hook,hook_rate())
       return
     end
@@ -344,27 +334,15 @@ if __DebugAdapter.instrument then
         mesg:match("^Error when running interface function") or
         mesg:match("^The mod [a-zA-Z0-9 _-]+ %([0-9.]+%) caused a non%-recoverable error")
         )then
-      __DebugAdapter.takeStepping()
+      __DebugAdapter.getStepping()
       debug.sethook(hook,hook_rate())
       return
     end
 
-    -- if an api was called that threw directly when i expected a re-entrant stack, clean it up...
-    -- 0 = get_info, 1 = check_eventlike, 2 = on_exception,
-    -- 3 = pCallWithStackTraceMessageHandler, 4 = at execption
-    local popped
-    local info = debug.getinfo(3,"f")
-    local p = pending[info.func]
-    if p then
-      __DebugAdapter.takeStepping()
-      popped = true
-    end
-
     __DebugAdapter.print_exception("unhandled",mesg)
     debug.debug()
-    if not popped then
-      __DebugAdapter.takeStepping()
-    end
+
+    __DebugAdapter.getStepping()
     debug.sethook(hook,hook_rate())
   end
   -- shared for stack trace to know to skip one extra
@@ -457,10 +435,40 @@ function DAstep.step(depth,instruction)
   end
 end
 
----@return number? stepdepth
----@return boolean? step_instr
-function DAstep.currentStep()
-  return stepdepth, step_instr
+do
+  -- functions for passing stepping state across context-switches by handing it to main DA vm
+
+  ---@type number?
+  local cross_stepping
+  ---@type boolean?
+  local cross_step_instr
+
+  ---@param clear? boolean default true
+  ---@return number? stepping
+  ---@return boolean? step_instr
+  function DAstep.getStepping(clear)
+    if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
+      return remote.call--[[@as fun(string,string,boolean?):number?,boolean?]]("debugadapter", "getStepping", clear)
+    else
+      local stepping,step_instr = cross_stepping, cross_step_instr
+      if clear ~= false then
+        cross_stepping,cross_step_instr = nil,nil
+      end
+
+      return stepping,step_instr
+    end
+  end
+
+  ---@param stepping? number
+  ---@param step_instr? boolean
+  function DAstep.setStepping(stepping, step_instr)
+    if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
+      return remote.call("debugadapter", "setStepping", stepping, step_instr)
+    else
+      cross_stepping = stepping
+      cross_step_instr = step_instr
+    end
+  end
 end
 
 local vmeta = {

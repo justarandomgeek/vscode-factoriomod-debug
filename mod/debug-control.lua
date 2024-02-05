@@ -1,14 +1,6 @@
 __DebugAdapter = __DebugAdapter or {
 
   nohook = true,
-  ---@param f function
-  ---@return function
-  stepIgnore = function(f) return f end,
-  ---@param t table
-  ---@return table
-  stepIgnoreAll = function(t) return t end,
-  -- evaluate needs this, but without hooks we can only end up in this lua state when remote.call is legal
-  canRemoteCall = function() return true end,
 }
 
 ---@param t table<string,any>
@@ -29,7 +21,9 @@ local pairs = pairs
 local match = string.match
 
 if __DebugAdapter.nohook then
-  DAMerge(require("__debugadapter__/stacks.lua")) -- might have already been run, but load it now if not
+  -- might have already been run, but load it now if not
+  DAMerge(require("__debugadapter__/stepping.lua"))
+  DAMerge(require("__debugadapter__/stacks.lua"))
 end
 
 --- call a remote function in all registered mods
@@ -86,14 +80,12 @@ local sharedevents = {}
 script.on_init(__DebugAdapter.stepIgnore(function()
   print("\xEF\xB7\x90\xEE\x80\x89")
   debug.debug()
-  variables.clear()
   if sharedevents.on_init then return sharedevents.on_init() end
 end))
 
 script.on_load(__DebugAdapter.stepIgnore(function()
   print("\xEF\xB7\x90\xEE\x80\x8A")
   debug.debug()
-  variables.clear()
   if sharedevents.on_load then return sharedevents.on_load() end
 end))
 
@@ -101,16 +93,14 @@ end))
 script.on_event(defines.events.on_tick,__DebugAdapter.stepIgnore(function(e)
   print("\xEF\xB7\x90\xEE\x80\x86")
   debug.debug()
-  variables.clear()
   if sharedevents.on_tick then return sharedevents.on_tick(e) end
 end))
 
 remote.add_interface("debugadapter",__DebugAdapter.stepIgnore{
   updateBreakpoints = updateBreakpoints,
 
-  takeStepping = __DebugAdapter.takeStepping,
-  crossStepping = __DebugAdapter.crossStepping,
-  peekStepping = __DebugAdapter.peekStepping,
+  getStepping = __DebugAdapter.getStepping,
+  setStepping = __DebugAdapter.setStepping,
 })
 
 return sharedevents

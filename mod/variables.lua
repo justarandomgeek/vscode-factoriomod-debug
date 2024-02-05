@@ -44,12 +44,6 @@ local refsmeta = {
   __debugcontents = false,
 }
 
-local longrefsmeta = {
-  __debugline = "<Debug Adapter Long-lived Variable ID Cache [{table_size(self)}]>",
-  __debugtype = "DebugAdapter.VariableLongRefs",
-  __debugcontents = false,
-}
-
 ---@class DebugAdapter.Variables
 local DAvars = {}
 
@@ -60,10 +54,6 @@ local variables = {
   ---@private
   ---@type {[integer]:DAvarslib.Ref}
   refs = setmetatable({},refsmeta),
-  -- long refs live forever, except objects that must not be kept for saving
-  ---@private
-  ---@type {[integer]:DAvarslib.Ref}
-  longrefs = setmetatable({},longrefsmeta),
   -- objects to pass up to the parent __DebugAdapter
   __ = DAvars,
 }
@@ -169,11 +159,6 @@ do
       return success,result
     end
   end
-
-  --- Clear all references for short-lived things (scopes, stacks)
-  function variables.clear()
-    variables.refs = setmetatable({},refsmeta)
-  end
 end
 
 do
@@ -236,12 +221,12 @@ end
 ---@field public value Any
 
 --- Generate a variablesReference for a key-value-pair for complex keys object
----@param key table
+---@param key table|function
 ---@param value any
 ---@return integer variablesReference
 ---@return string keyName
 function variables.kvRef(key,value)
-  local refs = variables.longrefs
+  local refs = variables.refs
 
   for id,varRef in pairs(refs) do
     if varRef.type == "kvPair" and ---@cast varRef DAvarslib.KVRef
@@ -277,7 +262,7 @@ end
 ---@param checkonly? boolean
 ---@return DebugProtocol.Source?
 function variables.sourceRef(source,checkonly)
-  local refs = variables.longrefs
+  local refs = variables.refs
 
   for id,varRef in pairs(refs) do
     if varRef.type == "Source" and
@@ -310,7 +295,7 @@ end
 ---@param func function
 ---@return integer variablesReference
 function variables.funcRef(func)
-  local refs = variables.longrefs
+  local refs = variables.refs
 
   for id,varRef in pairs(refs) do
     if varRef.type == "Function" and ---@cast varRef DAvarslib.FuncRef
@@ -334,7 +319,7 @@ end
 ---@param func function
 ---@return integer variablesReference
 function variables.fetchRef(func)
-  local refs = variables.longrefs
+  local refs = variables.refs
 
   for id,varRef in pairs(refs) do
     if varRef.type == "Fetch" and ---@cast varRef DAvarslib.FetchRef
@@ -367,7 +352,7 @@ end
 ---@return integer variablesReference
 function variables.tableRef(table, mode, showMeta, extra, evalName)
   mode = mode or "pairs"
-  local refs = variables.longrefs
+  local refs = variables.refs
   for id,varRef in pairs(refs) do
     if varRef.type == "Table" and ---@cast varRef DAvarslib.TableRef
       varRef.table == table and varRef.mode == mode and
@@ -401,7 +386,7 @@ end
 ---@return number variablesReference
 function variables.luaObjectRef(luaObject,classname,evalName)
   if not luaObjectInfo.expandKeys[classname] then return 0 end
-  local refs = variables.longrefs
+  local refs = variables.refs
   for id,varRef in pairs(refs) do
     if varRef.type == "LuaObject" and ---@cast varRef DAvarslib.LuaObjectRef
       varRef.object == luaObject then
@@ -652,25 +637,22 @@ local itermode = {
 ---@param filter nil | 'indexed' | 'named'
 ---@param start nil | integer
 ---@param count nil | integer
----@param longonly nil | boolean
+---@param inner? boolean
 ---@return boolean?
 ---@prints Variable[]
-function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
+function DAvars.variables(variablesReference,seq,filter,start,count,inner)
+  print("vars "..(script and script.mod_name or "data").." ref "..variablesReference.." inner "..tostring(inner))
   ---@type DAvarslib.Ref
-  local varRef
-  if longonly then
-    varRef = variables.longrefs[variablesReference]
-  else
-    varRef = variables.refs[variablesReference] or variables.longrefs[variablesReference]
-    -- or remote lookup to find a long ref in another lua...
-    if not varRef and __DebugAdapter.canRemoteCall() then
-      local call = remote.call
-      for remotename,_ in pairs(remote.interfaces) do
-        local modname = remotename:match("^__debugadapter_(.+)$")
-        if modname then
-          if call(remotename,"longVariables",variablesReference,seq,filter,start,count,true) then
-            return true
-          end
+  local varRef = variables.refs[variablesReference]
+  -- or remote lookup to find a long ref in another lua...
+  if not varRef and not inner and __DebugAdapter.canRemoteCall() then
+    local call = remote.call
+    for remotename,_ in pairs(remote.interfaces) do
+      local modname = remotename:match("^__debugadapter_(.+)$")
+      if modname then
+        print("vars calling "..remotename)
+        if call(remotename,"longVariables",variablesReference,seq,filter,start,count,true) then
+          return true
         end
       end
     end
@@ -1122,20 +1104,21 @@ function DAvars.variables(variablesReference,seq,filter,start,count,longonly)
         presentationHint = { kind = "virtual", attributes = { "readOnly" } },
       }
     end
-  elseif not longonly then
-    vars[1] = {
-      name= "Expired variablesReference",
-      value= "Expired variablesReference ref="..variablesReference.." seq="..seq,
-      variablesReference= 0,
-      presentationHint = {kind="virtual"},
-    }
+  else
+    if inner then
+      return false
+    else
+      vars[1] = {
+        name= "Expired variablesReference",
+        value= "Expired variablesReference ref="..variablesReference.." seq="..seq,
+        variablesReference= 0,
+        presentationHint = {kind="virtual"},
+      }
+    end
   end
 
-  if varRef or (not longonly) then
-    print("\xEF\xB7\x96" .. json_encode({seq = seq, body = vars}))
-    return true
-  end
-  return
+  print("\xEF\xB7\x96" .. json_encode({seq = seq, body = vars}))
+  return true
 end
 
 --- DebugAdapter SetVariablesRequest

@@ -2,7 +2,7 @@ import {
 	Logger, logger,
 	LoggingDebugSession,
 	StoppedEvent, OutputEvent,
-	Source, Module, ModuleEvent, InitializedEvent, Event, TerminatedEvent, LoadedSourceEvent, BreakpointEvent,
+	Source, Module, ModuleEvent, InitializedEvent, Event, TerminatedEvent, LoadedSourceEvent, BreakpointEvent, InvalidatedEvent,
 } from '@vscode/debugadapter';
 import type { DebugProtocol } from '@vscode/debugprotocol';
 import * as path from 'path';
@@ -612,6 +612,10 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					this._responses.delete(json.seq);
 					return;
 				}
+				case 0xFDD8: { // invalidated event
+					this.sendEvent(new InvalidatedEvent());
+					return;
+				}
 			}
 		});
 
@@ -635,6 +639,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					case 0x95: //0xFDD5:
 					case 0x96: //0xFDD6:
 					case 0x97: //0xFDD7:
+					case 0x98: //0xFDD8:
 						dapmsg.write(mesg);
 						return;
 					case 0xA0: //0xFDE0: // profile line

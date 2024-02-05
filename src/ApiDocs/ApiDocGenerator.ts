@@ -117,10 +117,6 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 	public generate_debuginfo() {
 		const debuginfo = {
-			eventlike: {
-				__index: {} as {[classname:string]:{[methodname:string]:true}},
-				__newindex: {} as {[classname:string]:{[propname:string]:true}},
-			},
 			alwaysValid: {} as {[classname:string]:true},
 			expandKeys: {
 			} as {[classname:string]:{[propname:string]:{
@@ -157,11 +153,6 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 							cc[attribute.name].enumFrom = type;
 						}
 					}
-
-					if ("raises" in attribute && attribute?.raises?.find(r=>r.timeframe==="instantly")) {
-						debuginfo.eventlike.__newindex[c.name] = debuginfo.eventlike.__newindex[c.name] ?? {};
-						debuginfo.eventlike.__newindex[c.name][attribute.name] = true;
-					}
 				}
 			}
 
@@ -186,11 +177,6 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			}
 
 			for (const method of this.with_base_classes(c, (c)=>c.methods)) {
-				if ("raises" in method && method.raises?.find(r=>r.timeframe==="instantly")) {
-					debuginfo.eventlike.__index[c.name] = debuginfo.eventlike.__index[c.name] ?? {};
-					debuginfo.eventlike.__index[c.name][method.name] = true;
-				}
-
 				if (["help", 'generate_event_name'].includes(method.name)) { continue; }
 				if (method.parameters.length > 0) { continue; }
 				if (method.return_values.length === 0) { continue; }
