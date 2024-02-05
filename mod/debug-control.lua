@@ -68,7 +68,8 @@ if __DebugAdapter.nohook then
   -- and a minimal version of the __da_da remote so other lua can print vars
   remote.add_interface("__debugadapter_" .. script.mod_name ,{
     setBreakpoints = function() end,
-    longVariables = __DebugAdapter.variables,
+    variables = __DebugAdapter.variables,
+    setVariable = __DebugAdapter.setVariable,
     evaluate = __DebugAdapter.evaluate,
     dump = function() end,
     source = function() end,

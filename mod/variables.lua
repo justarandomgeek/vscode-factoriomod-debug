@@ -692,7 +692,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,inner)
     for remotename,_ in pairs(remote.interfaces) do
       local modname = remotename:match("^__debugadapter_(.+)$")
       if modname then
-        if call(remotename,"longVariables",variablesReference,seq,filter,start,count,true) then
+        if call(remotename,"variables",variablesReference,seq,filter,start,count,true) then
           return true
         end
       end
@@ -1185,135 +1185,153 @@ end
 ---@param name string
 ---@param value string
 ---@param seq number
-function DAvars.setVariable(variablesReference, name, value, seq)
+---@param inner? boolean
+---@return boolean?
+function DAvars.setVariable(variablesReference, name, value, seq, inner)
   local varRef = refs[variablesReference]
-  if varRef then
-    if varRef.type == "Locals" then
-      ---@cast varRef DAvarslib.ScopeRef
-      if varRef.mode ~= "varargs" then
-        local i = 1
-        local localindex
-        local matchname,matchidx = name:match("^([_%a][_%w]*)@(%d+)$")
-        if matchname then
-          local lname = debug.getlocal(varRef.frameId,matchidx)
-          if lname == matchname then
-            localindex = matchidx
-          else
-            print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {
-              type="error",
-              value="name mismatch at register "..matchidx.." expected `"..matchname.."` got `"..lname.."`"
-            }}))
-            return
-          end
-        else
-          while true do
-            local lname = debug.getlocal(varRef.frameId,i)
-            if not lname then break end
-            if lname:sub(1,1) == "(" then
-              lname = ("%s %d)"):format(lname:sub(1,-2),i)
-            end
-            if lname == name then
-              localindex = i
-            end
-            i = i + 1
-          end
-        end
-        if localindex then
-          local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
-          if goodvalue then
-            debug.setlocal(varRef.frameId,localindex,newvalue)
-            print("\xEF\xB7\x96" .. json_encode({seq = seq, body = variables.create(nil,newvalue)}))
-            return
-          else
-            print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value=newvalue}}))
-            return
-          end
-        else
-          print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value="named var not present"}}))
-          return
-        end
-      else
-        local i = -1
-        while true do
-          local vaname = debug.getlocal(varRef.frameId,i)
-          if not vaname then break end
-          vaname = ("(*vararg %d)"):format(-i)
-          if vaname == name then
-            local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
-            if goodvalue then
-              debug.setlocal(varRef.frameId,i,newvalue)
-              print("\xEF\xB7\x96" .. json_encode({seq = seq, body = variables.create(nil,newvalue)}))
-              return
-            else
-              print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value=newvalue}}))
-              return
-            end
-          end
-          i = i - 1
+  if not varRef and not inner and __DebugAdapter.canRemoteCall() then
+    local call = remote.call
+    for remotename,_ in pairs(remote.interfaces) do
+      local modname = remotename:match("^__debugadapter_(.+)$")
+      if modname then
+        if call(remotename, "setVariable", variablesReference, name, value, seq, true) then
+          return true
         end
       end
-      print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value="invalid local name"}}))
-      return
-    elseif varRef.type == "Upvalues" then
-      ---@cast varRef DAvarslib.ScopeRef
-      local func = debug.getinfo(varRef.frameId,"f").func
-      local i = 1
-      while true do
-        local upname = debug.getupvalue(func,i)
-        if not upname then break end
-        if upname == name then
-          local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
-          if goodvalue then
-            debug.setupvalue(func,i,newvalue)
-            print("\xEF\xB7\x96" .. json_encode({seq = seq, body = variables.create(nil,newvalue)}))
-            return
-          else
-            print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value=newvalue}}))
-            return
-          end
-        end
-        i = i + 1
-      end
-      print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value="invalid upval name"}}))
-      return
-    elseif varRef.type == "Table" or varRef.type == "LuaObject" then
-      -- special names "[]" and others aren't valid lua so it won't parse anyway
-      local goodname,newname = __DebugAdapter.evaluateInternal(nil,nil,"setvar",name)
-      if goodname then
-        local alsoLookIn ---@type table|LuaObject
-        if varRef.type == "Table" then
-          ---@cast varRef DAvarslib.TableRef
-          alsoLookIn = varRef.table()
-        elseif varRef.type == "LuaObject" then
-          ---@cast varRef DAvarslib.LuaObjectRef
-          alsoLookIn = varRef.object()
-        end
-        local goodvalue,newvalue = __DebugAdapter.evaluateInternal(nil,alsoLookIn,"setvar",value)
-        if not goodvalue then
-          print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value=newvalue}}))
-          return
-        end
-        -- this could fail if table has __newindex or LuaObject property is read only or wrong type, etc
-        local goodassign,mesg = pnewindex(alsoLookIn,newname,newvalue)
-        if not goodassign then
-          print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value=mesg}}))
-          return
-        end
+    end
+  end
+  if not varRef then
+    if not inner then
+      print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value="no such ref"}}))
+    end
+    return false
+  end
 
-        -- it could even fail silently, or coerce the value to another type,
-        -- so fetch the value back instead of assuming it set...
-        -- also, refresh the value even if we didn't update it
-        local _,resultvalue = pindex(alsoLookIn,newname)
-        print("\xEF\xB7\x96" .. json_encode({seq = seq, body = variables.create(nil,resultvalue)}))
-        return
+  if varRef.type == "Locals" then
+    ---@cast varRef DAvarslib.ScopeRef
+    if varRef.mode ~= "varargs" then
+      local i = 1
+      local localindex
+      local matchname,matchidx = name:match("^([_%a][_%w]*)@(%d+)$")
+      if matchname then
+        local lname = debug.getlocal(varRef.frameId,matchidx)
+        if lname == matchname then
+          localindex = matchidx
+        else
+          print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {
+            type="error",
+            value="name mismatch at register "..matchidx.." expected `"..matchname.."` got `"..lname.."`"
+          }}))
+          return true
+        end
       else
-        print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value="invalid property name"}}))
-        return
+        while true do
+          local lname = debug.getlocal(varRef.frameId,i)
+          if not lname then break end
+          if lname:sub(1,1) == "(" then
+            lname = ("%s %d)"):format(lname:sub(1,-2),i)
+          end
+          if lname == name then
+            localindex = i
+          end
+          i = i + 1
+        end
+      end
+      if localindex then
+        local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
+        if goodvalue then
+          debug.setlocal(varRef.frameId,localindex,newvalue)
+          print("\xEF\xB7\x96" .. json_encode({seq = seq, body = variables.create(nil,newvalue)}))
+          return true
+        else
+          print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value=newvalue}}))
+          return true
+        end
+      else
+        print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value="named var not present"}}))
+        return true
       end
     else
-      print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value="cannot set on this ref type"}}))
-      return
+      local i = -1
+      while true do
+        local vaname = debug.getlocal(varRef.frameId,i)
+        if not vaname then break end
+        vaname = ("(*vararg %d)"):format(-i)
+        if vaname == name then
+          local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
+          if goodvalue then
+            debug.setlocal(varRef.frameId,i,newvalue)
+            print("\xEF\xB7\x96" .. json_encode({seq = seq, body = variables.create(nil,newvalue)}))
+            return true
+          else
+            print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value=newvalue}}))
+            return true
+          end
+        end
+        i = i - 1
+      end
     end
+    print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value="invalid local name"}}))
+    return true
+  elseif varRef.type == "Upvalues" then
+    ---@cast varRef DAvarslib.ScopeRef
+    local func = debug.getinfo(varRef.frameId,"f").func
+    local i = 1
+    while true do
+      local upname = debug.getupvalue(func,i)
+      if not upname then break end
+      if upname == name then
+        local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
+        if goodvalue then
+          debug.setupvalue(func,i,newvalue)
+          print("\xEF\xB7\x96" .. json_encode({seq = seq, body = variables.create(nil,newvalue)}))
+          return true
+        else
+          print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value=newvalue}}))
+          return true
+        end
+      end
+      i = i + 1
+    end
+    print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value="invalid upval name"}}))
+    return true
+  elseif varRef.type == "Table" or varRef.type == "LuaObject" then
+    -- special names "[]" and others aren't valid lua so it won't parse anyway
+    local goodname,newname = __DebugAdapter.evaluateInternal(nil,nil,"setvar",name)
+    if goodname then
+      local alsoLookIn ---@type table|LuaObject
+      if varRef.type == "Table" then
+        ---@cast varRef DAvarslib.TableRef
+        alsoLookIn = varRef.table()
+      elseif varRef.type == "LuaObject" then
+        ---@cast varRef DAvarslib.LuaObjectRef
+        alsoLookIn = varRef.object()
+      end
+      local goodvalue,newvalue = __DebugAdapter.evaluateInternal(nil,alsoLookIn,"setvar",value)
+      if not goodvalue then
+        print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value=newvalue}}))
+        return true
+      end
+      -- this could fail if table has __newindex or LuaObject property is read only or wrong type, etc
+      local goodassign,mesg = pnewindex(alsoLookIn,newname,newvalue)
+      if not goodassign then
+        print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value=mesg}}))
+        return true
+      end
+
+      -- it could even fail silently, or coerce the value to another type,
+      -- so fetch the value back instead of assuming it set...
+      -- also, refresh the value even if we didn't update it
+      local _,resultvalue = pindex(alsoLookIn,newname)
+      print("\xEF\xB7\x96" .. json_encode({seq = seq, body = variables.create(nil,resultvalue)}))
+      return true
+    else
+      print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value="invalid property name"}}))
+      return true
+    end
+  else
+    print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value="cannot set on this ref type"}}))
+    return true
   end
 end
 

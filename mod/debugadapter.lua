@@ -100,7 +100,8 @@ do
     __DebugAdapter.print("debugadapter registered for " .. script.mod_name .. ininstrument, nil, nil, "console")
     remote.add_interface("__debugadapter_" .. script.mod_name ,{
       setBreakpoints = __DebugAdapter.setBreakpoints,
-      longVariables = __DebugAdapter.variables,
+      variables = __DebugAdapter.variables,
+      setVariable = __DebugAdapter.setVariable,
       stackTrace = __DebugAdapter.stackTrace,
       scopes = __DebugAdapter.scopes,
       evaluate = __DebugAdapter.evaluate,
