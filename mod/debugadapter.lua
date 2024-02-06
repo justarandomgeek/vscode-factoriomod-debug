@@ -60,7 +60,6 @@ local variables = require("__debugadapter__/variables.lua") -- uses pcall
 DAMerge(variables.__)
 require("__debugadapter__/normalizeLuaSource.lua") -- uses pcall, not used here but do it now for load order
 DAMerge(require("__debugadapter__/evaluate.lua")) -- uses pcall
-local json = require('__debugadapter__/json.lua')
 if __DebugAdapter.hooklog ~= false then
   require("__debugadapter__/log.lua") -- uses pcall
 end

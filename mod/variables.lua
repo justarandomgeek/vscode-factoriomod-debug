@@ -44,6 +44,13 @@ local refs = setmetatable({},{
   __debugcontents = false,
 })
 
+---@type {[integer|string]:DAvarslib.SourceRef}
+local sourcerefs = setmetatable({},{
+  __debugline = "<Debug Adapter Source ID Cache [{table_size(self)}]>",
+  __debugtype = "DebugAdapter.SourceRefs",
+  __debugcontents = false,
+})
+
 local collectable
 do
   local collectables = setmetatable({},{
@@ -304,8 +311,9 @@ function variables.kvRef(key,value)
   return id,name
 end
 
----@class DAvarslib.SourceRef : DAvarslib.Ref
+---@class DAvarslib.SourceRef
 ---@field public type "Source"
+---@field public id integer
 ---@field public source string
 
 --- Generate a variablesReference for a source string and prepare a Source
@@ -313,22 +321,24 @@ end
 ---@param checkonly? boolean
 ---@return DebugProtocol.Source?
 function variables.sourceRef(source,checkonly)
-  for id,varRef in pairs(refs) do
-    if varRef.type == "Source" and
-      varRef--[[@as DAvarslib.SourceRef]].source == source then
-      return {
-        name = "=(dostring) "..id..".lua",
-        sourceReference = id,
-        origin = "dostring",
-      }
-    end
+  local sref = sourcerefs[source]
+  if sref then
+    local id = sref.id
+    return {
+      name = "=(dostring) "..id..".lua",
+      sourceReference = id,
+      origin = "dostring",
+    }
   end
   if checkonly then return end
   local id = nextID()
-  refs[id] = {
+  sref = {
     type = "Source",
     source = source,
+    id = id,
   }
+  sourcerefs[id] = sref
+  sourcerefs[source] = sref
   return {
     name = "=(dostring) "..id..".lua",
     sourceReference = id,
@@ -1342,8 +1352,8 @@ end
 ---@return boolean
 function DAvars.source(id, seq, internal)
 
-  local ref = refs[id]
-  if ref and ref.type == "Source" then ---@cast ref DAvarslib.SourceRef
+  local ref = sourcerefs[id]
+  if ref then
     print("\xEF\xB7\x96" .. json_encode{seq=seq, body=ref.source})
     return true
   end

@@ -545,7 +545,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 							this.continue();
 							return;
 						case "running":
-						case "leaving":
 							await this.runQueuedStdin();
 							if (this.pauseRequested) {
 								this.pauseRequested = false;

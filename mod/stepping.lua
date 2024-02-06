@@ -46,6 +46,7 @@ stepIgnore(DAstep.isStepIgnore)
 
 -- capture the raw object
 local remote = (type(remote)=="table" and rawget(remote,"__raw")) or remote
+local script = (type(script)=="table" and rawget(script,"__raw")) or script
 
 local debug = debug
 local string = string
@@ -53,7 +54,6 @@ local setmetatable = setmetatable
 local print = print
 
 local variables = require("__debugadapter__/variables.lua")
-local luaObjectInfo = require("__debugadapter__/luaobjectinfo.lua")
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local json_encode = require("__debugadapter__/json.lua").encode
 local datastring = require("__debugadapter__/datastring.lua")
@@ -80,12 +80,34 @@ end
 
 ---@type boolean?
 local step_instr
-local function hook_rate()
-  if step_instr then
-    return "cr", 1
-  else
-    return "clr"
+
+---@param source string
+---@return table<number,DebugProtocol.SourceBreakpoint>?
+local function filebreaks(source)
+  ---@type string?
+  local nsource = normalizeLuaSource(source)
+  if nsource == "=(dostring)" then
+    local sourceref = variables.sourceRef(source,true)
+    if sourceref then
+      nsource = "&ref "..sourceref.sourceReference
+    else
+      return nil
+    end
   end
+
+  return breakpoints[nsource]
+end
+
+---@param source? string
+local function hook_rate(source)
+  if not source or stepdepth or filebreaks(source) then
+    if step_instr then
+      return "cr", 1
+    else
+      return "clr"
+    end
+  end
+  return "cr"
 end
 
 ---@type table<string,true>
@@ -142,31 +164,38 @@ do
   none -> C    |               |
   C -> lua     | in            | check
   C -> C       |               |
-  lua -> C     | out           | off
+  lua -> C     | out           |
   lua -> lua   |               | check
 
   tail call:   |               |
-  lua -> lua   |               | check
+  (lua) -> lua |               | check
 
   return:      |               |
-  none <- lua  | out           | off
+  none <- lua  | out           |
   none <- C    |               |
-  C <- lua     | out           | off
+  C <- lua     | out           |
   C <- C       |               |
   lua <- C     | in            | check
   lua <- lua   |               | check
 ]]
 
+  ---@param source string
+  local function bp_hook(source)
+    debug.sethook(hook,hook_rate(source))
+  end
+
+  DAstep.hookstats = { line = 0, tail = 0, call = 0, ret = 0, }
+
   ---debug hook function
   ---@param event string
   function hook(event)
     if event == "line" or event == "count" then
-      local info = getinfo(2,"Slfp")
+      DAstep.hookstats.line = DAstep.hookstats.line +1
+      local info = getinfo(2,"Slf")
       local ignored = stepIgnoreFuncs[info.func]
       if ignored then return end
-      local rawsource = info.source
+      local fb = filebreaks(info.source)
       local line = info.currentline
-      local s = normalizeLuaSource(rawsource)
       if stepdepth and stepdepth<=0 then
         stepdepth = nil
         print("\xEF\xB7\x91"..json_encode{event="stopped", body={
@@ -180,18 +209,9 @@ do
           }})
         debugprompt()
       else
-        local filebreaks = breakpoints[s]
-        if not filebreaks then
-          if s == "=(dostring)" then
-            local sourceref = variables.sourceRef(rawsource,true)
-            if sourceref then
-              filebreaks = breakpoints["&ref "..sourceref.sourceReference]
-            end
-          end
-        end
-        if filebreaks then
+        if fb then
           ---@type DebugProtocol.SourceBreakpoint
-          local b = filebreaks[line]
+          local b = fb[line]
           if b then
             -- 0 is getinfo, 1 is sethook callback, 2 is at breakpoint
             local frameId = 3
@@ -225,7 +245,7 @@ do
                 local varresult = variables.create(nil,{exprs}, nil)
                 __DebugAdapter.outputEvent(
                   {output=result, variablesReference=varresult.variablesReference},
-                  {source=s, currentline=line})
+                  {source=normalizeLuaSource(info.source), currentline=line})
               else
                 stepdepth = nil
                 print("\xEF\xB7\x91"..json_encode{event="stopped", body={
@@ -239,11 +259,18 @@ do
           end
         end
       end
+      bp_hook(info.source)
+    elseif event == "tail call" then
+      DAstep.hookstats.tail = DAstep.hookstats.tail +1
+      local info = getinfo(2,"Sf")
+      if info.what == "main" then
+        sourceEvent(info)
+      end
+      bp_hook(info.source)
 
-    --ignore "tail call" since it's just one of each
     elseif event == "call" then
-
-      local info = getinfo(2,"Slf")
+      DAstep.hookstats.call = DAstep.hookstats.call +1
+      local info = getinfo(2,"Sf")
       if info.what == "main" then
         sourceEvent(info)
       end
@@ -253,17 +280,31 @@ do
       end
 
       local parent = getinfo(3,"S")
-      if parent and (parent.what == "Lua" or parent.what == "main") and info.what == "C" then
-        __DebugAdapter.setStepping(stepdepth, step_instr)
-        __DebugAdapter.step(nil)
-      elseif (not parent or parent.what =="C") and (info.what == "Lua" or info.what == "main") then
-        __DebugAdapter.step(__DebugAdapter.getStepping())
+      local info_is_lua = info.what == "Lua" or info.what == "main"
+      if script then
+        local parent_is_lua = parent and (parent.what == "Lua" or parent.what == "main")
+        if parent_is_lua and not info_is_lua then
+          __DebugAdapter.setStepping(stepdepth, step_instr)
+          __DebugAdapter.step(nil)
+        elseif not parent_is_lua and info_is_lua then
+          __DebugAdapter.step(__DebugAdapter.getStepping())
+        end
+      end
+
+      if not parent then
+        print("\xEF\xB7\x91"..json_encode{event="running", body={
+          threadId = __DebugAdapter.this_thread,
+          }})
+        debugprompt()
+        bp_hook(info.source)
+      elseif info_is_lua then
+        bp_hook(info.source)
       end
 
     elseif event == "return" then
-      local info = getinfo(2,"Slf")
-      local s = info.source
-      if info.what == "main" and s == "@__core__/lualib/noise.lua" then
+      DAstep.hookstats.ret = DAstep.hookstats.ret +1
+      local info = getinfo(2,"S")
+      if info.what == "main" and info.source == "@__core__/lualib/noise.lua" then
         local i,k,v
         i = 0
         repeat
@@ -277,27 +318,29 @@ do
           __DebugAdapter.print("failed to install noise expression hook", nil, nil, "console")
         end
       end
+
       local parent = getinfo(3,"S")
-      if parent and (parent.what == "Lua" or parent.what == "main") and info.what == "C" then
-        __DebugAdapter.step(__DebugAdapter.getStepping())
-      elseif (not parent or parent.what =="C") and (info.what == "Lua" or info.what == "main") then
-        __DebugAdapter.setStepping(stepdepth, step_instr)
-        __DebugAdapter.step(nil)
+      local parent_is_lua = parent and (parent.what == "Lua" or parent.what == "main")
+      if script then
+        local info_is_lua = info.what == "Lua" or info.what == "main"
+        if parent_is_lua and not info_is_lua then
+          __DebugAdapter.step(__DebugAdapter.getStepping())
+        elseif not parent_is_lua and info_is_lua then
+          __DebugAdapter.setStepping(stepdepth, step_instr)
+          __DebugAdapter.step(nil)
+        end
       end
 
       if stepdepth and stepdepth >= 0 then
         stepdepth = stepdepth - 1
       end
 
-      if not parent then -- top of stack
-        if info.what == "main" or info.what == "Lua" then
-          if info.what == "main" and not info.source:match("^@__debugadapter__") then
-            print("\xEF\xB7\x91"..json_encode{event="leaving", body={
-              threadId = __DebugAdapter.this_thread,
-              }})
-            debugprompt()
-          end
-        end
+      if parent_is_lua then
+        bp_hook(parent.source)
+      end
+      if not parent then
+        print(serpent.line(DAstep.hookstats))
+        DAstep.hookstats = { line = 0, tail = 0, call = 0, ret = 0, }
       end
     end
   end
