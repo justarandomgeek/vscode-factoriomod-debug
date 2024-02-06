@@ -42,7 +42,10 @@ function DAEntrypoints.breakpoint(mesg)
   if mesg then
     print_exception("manual",mesg)
   else
-    print("\xEF\xB7\x90\xEE\x80\x8E")
+    print("\xEF\xB7\x91"..json.encode{event="stopped", body={
+      reason = "breakpoint",
+      threadId = __DebugAdapter.this_thread,
+      }})
   end
   debug.debug()
   return __DebugAdapter.attach()

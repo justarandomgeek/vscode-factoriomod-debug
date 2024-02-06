@@ -4,6 +4,7 @@ import { DebugClient } from "@vscode/debugadapter-testsupport";
 import type { LaunchRequestArguments } from "../src/Debug/factorioModDebug";
 import chai, { expect } from "chai";
 import chaiAsPromised from "chai-as-promised";
+import type { DebugProtocol } from '@vscode/debugprotocol';
 chai.use(chaiAsPromised);
 
 suite('Debug Adapter', ()=>{
@@ -91,20 +92,26 @@ suite('Debug Adapter', ()=>{
 		});
 		expect(bps.success);
 		await dc.configurationDoneRequest();
-		await dc.waitForEvent('stopped');
-		const stack1 = await dc.stackTraceRequest({threadId: 1});
+		let stopped = (await dc.waitForEvent('stopped')) as DebugProtocol.StoppedEvent;
+		expect(stopped.body).has.property("threadId").that.is.a('number');
+		let threadId = stopped.body.threadId!;
+		const stack1 = await dc.stackTraceRequest({threadId});
 		expect(stack1.success);
 		expect(stack1.body.stackFrames[0].source?.path).equals(scriptpath);
 		expect(stack1.body.stackFrames[0].line).equals(2);
-		await dc.stepInRequest({threadId: 1});
-		await dc.waitForEvent('stopped');
-		const stack2 = await dc.stackTraceRequest({threadId: 1});
+		await dc.stepInRequest({threadId});
+		stopped = (await dc.waitForEvent('stopped')) as DebugProtocol.StoppedEvent;
+		expect(stopped.body).has.property("threadId").that.is.a('number');
+		threadId = stopped.body.threadId!;
+		const stack2 = await dc.stackTraceRequest({threadId});
 		expect(stack2.success);
 		expect(stack2.body.stackFrames[0].source?.path).equals(scriptpath);
 		expect(stack2.body.stackFrames[0].line).equals(3);
-		await dc.continueRequest({threadId: 1});
-		await dc.waitForEvent('stopped');
-		const stack3 = await dc.stackTraceRequest({threadId: 1});
+		await dc.continueRequest({threadId});
+		stopped = (await dc.waitForEvent('stopped')) as DebugProtocol.StoppedEvent;
+		expect(stopped.body).has.property("threadId").that.is.a('number');
+		threadId = stopped.body.threadId!;
+		const stack3 = await dc.stackTraceRequest({threadId});
 		expect(stack3.success);
 		expect(stack3.body.stackFrames[0].source?.path).equals(scriptpath);
 		expect(stack3.body.stackFrames[0].line).equals(2);
@@ -128,8 +135,10 @@ suite('Debug Adapter', ()=>{
 		});
 		expect(bps.success);
 		await dc.configurationDoneRequest();
-		await dc.waitForEvent('stopped');
-		const stack1 = await dc.stackTraceRequest({threadId: 1});
+		const stopped = (await dc.waitForEvent('stopped')) as DebugProtocol.StoppedEvent;
+		expect(stopped.body).has.property("threadId").that.is.a('number');
+		const threadId = stopped.body.threadId!;
+		const stack1 = await dc.stackTraceRequest({threadId});
 		expect(stack1.success);
 		expect(stack1.body.stackFrames[0].source?.path).equals(scriptpath);
 		expect(stack1.body.stackFrames[0].line).lessThanOrEqual(17);
@@ -154,7 +163,8 @@ suite('Debug Adapter', ()=>{
 		});
 		expect(bps.success);
 		await dc.configurationDoneRequest();
-		await dc.waitForEvent('stopped');
+		const stopped = (await dc.waitForEvent('stopped')) as DebugProtocol.StoppedEvent;
+		expect(stopped.body).has.property("threadId", 1);
 		const stack1 = await dc.stackTraceRequest({threadId: 1});
 		expect(stack1.success);
 		expect(stack1.body.stackFrames[0].source?.path).equals(scriptpath);
@@ -197,7 +207,8 @@ suite('Debug Adapter', ()=>{
 		});
 		expect(bps.success);
 		await dc.configurationDoneRequest();
-		await dc.waitForEvent('stopped');
+		const stopped = (await dc.waitForEvent('stopped')) as DebugProtocol.StoppedEvent;
+		expect(stopped.body).has.property("threadId", 1);
 		const stack1 = await dc.stackTraceRequest({threadId: 1});
 		expect(stack1.success);
 		expect(stack1.body.stackFrames[0].source?.path).equals(scriptpath);
@@ -222,7 +233,8 @@ suite('Debug Adapter', ()=>{
 		});
 		expect(bps.success);
 		await dc.configurationDoneRequest();
-		await dc.waitForEvent('stopped');
+		const stopped = (await dc.waitForEvent('stopped')) as DebugProtocol.StoppedEvent;
+		expect(stopped.body).has.property("threadId", 1);
 		const stack1 = await dc.stackTraceRequest({threadId: 1});
 		expect(stack1.success);
 		expect(stack1.body.stackFrames[0].source?.path).equals(scriptpath);
@@ -312,14 +324,16 @@ suite('Debug Adapter', ()=>{
 		await dc.configurationDoneRequest();
 
 		async function waitFor(match:RegExp) {
-			await expect(dc.waitForEvent('stopped')).eventually.has.property('body')
-				.that.contain({
-					reason: 'exception',
-				}).and.has.property('text').that.matches(match);
+			const stopped = (await dc.waitForEvent('stopped')) as DebugProtocol.StoppedEvent;
+			expect(stopped).has.property('body');
+			expect(stopped.body).has.property("reason", "exception");
+			expect(stopped.body).has.property('text').that.matches(match);
+			expect(stopped.body).has.property("threadId").that.is.a('number');
+			const threadId = stopped.body.threadId!;
 
 			// don't actually care to inspect the stack now, just make sure it
 			// really delivers one without throwing...
-			await dc.stackTraceRequest({threadId: 1});
+			await dc.stackTraceRequest({threadId});
 		};
 
 		await waitFor(/^Unknown interface: test-missing$/);
@@ -359,10 +373,11 @@ suite('Debug Adapter', ()=>{
 		await dc.configurationDoneRequest();
 
 		async function waitFor(match:RegExp) {
-			await expect(dc.waitForEvent('stopped')).eventually.has.property('body')
-				.that.contain({
-					reason: 'exception',
-				}).and.has.property('text').that.matches(match);
+			const stopped = (await dc.waitForEvent('stopped')) as DebugProtocol.StoppedEvent;
+			expect(stopped).has.property('body');
+			expect(stopped.body).has.property("reason", "exception");
+			expect(stopped.body).has.property('text').that.matches(match);
+			expect(stopped.body).has.property("threadId", 1);
 
 			// don't actually care to inspect the stack now, just make sure it
 			// really delivers one without throwing...
@@ -420,13 +435,15 @@ suite('Debug Adapter', ()=>{
 		});
 		expect(bps.success);
 		await dc.configurationDoneRequest();
-		await dc.waitForEvent('stopped');
+		const stopped = (await dc.waitForEvent('stopped')) as DebugProtocol.StoppedEvent;
+		expect(stopped.body).has.property("threadId").that.is.a('number');
+		const threadId = stopped.body.threadId!;
 		const threads = await dc.threadsRequest();
-		expect(threads.body.threads).length(1);
-		expect(threads.body.threads[0]).contains({id: 1, name: "thread 1"});
+		expect(threads.body.threads).is.an("array");
+		expect(threads.body.threads).deep.contains({id: threadId, name: "level"});
 
 
-		const stack = await dc.stackTraceRequest({threadId: 1, levels: 1});
+		const stack = await dc.stackTraceRequest({threadId, levels: 1});
 		expect(stack.success);
 		expect(stack.body.stackFrames[0].source?.path).equals(scriptpath);
 		expect(stack.body.stackFrames[0].line).equals(3);
@@ -478,7 +495,7 @@ suite('Debug Adapter', ()=>{
 		await dc.waitForEvent('stopped');
 		const threads = await dc.threadsRequest();
 		expect(threads.body.threads).length(1);
-		expect(threads.body.threads[0]).contains({id: 1, name: "thread 1"});
+		expect(threads.body.threads[0]).contains({id: 1, name: "data"});
 
 
 		const stack = await dc.stackTraceRequest({threadId: 1, levels: 1});
@@ -535,9 +552,10 @@ suite('Debug Adapter', ()=>{
 			breakpoints: [{ line: 3 }],
 		})).eventually.contain({ success: true });
 		await dc.configurationDoneRequest();
-		await dc.waitForEvent('stopped');
-
-		const stack = await dc.stackTraceRequest({threadId: 1, levels: 1});
+		const stopped = (await dc.waitForEvent('stopped')) as DebugProtocol.StoppedEvent;
+		expect(stopped.body).has.property("threadId").that.is.a('number');
+		const threadId = stopped.body.threadId!;
+		const stack = await dc.stackTraceRequest({threadId, levels: 1});
 		const frameId = stack.body.stackFrames[0].id;
 
 		await Promise.all([
