@@ -31,6 +31,8 @@
 ---@field public column integer
 ---@field public moduleId? integer | string
 ---@field public presentationHint? "normal" | "label" | "subtle"
+---@field currentpc? integer
+---@field linedefined? integer
 
 ---@class DebugProtocol.Scope
 ---@field public name string

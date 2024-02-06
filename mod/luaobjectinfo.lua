@@ -34,7 +34,7 @@ do
   ---Called with no arguments after final chunk.
   ---@param chunk string
   ---@overload fun()
-  function __DebugAdapter.loadObjectInfo(chunk)
+  function __DebugAdapter.loadObjectInfo(chunk) ---@diagnostic disable-line inject-field
     if chunk then
       objectChunks[#objectChunks+1] = chunk
     else
@@ -43,7 +43,7 @@ do
   end
   print("\xEF\xB7\x90\xEE\x80\x84")
   debug.debug()
-  __DebugAdapter.loadObjectInfo = nil
+  __DebugAdapter.loadObjectInfo = nil ---@diagnostic disable-line inject-field
 end
 
 ---@type {[string]:string|fun(obj:LuaObject,short?:boolean):string}
