@@ -1054,7 +1054,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		if (loaded.dump) {
 			const dumpid = source.sourceReference ?? source.name;
 			let dump:LuaFunction;
-			dump = new LuaFunction(new BufferStream(loaded.dump), true);
+			dump = new LuaFunction(loaded.dump);
 
 			this.nextdump = dump.rebase(this.nextdump);
 

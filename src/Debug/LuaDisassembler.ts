@@ -1,5 +1,4 @@
 import type { DebugProtocol } from '@vscode/debugprotocol';
-import { BufferStream } from "../Util/BufferStream";
 
 /* eslint-disable no-bitwise */
 export enum LuaOpcode {
@@ -75,13 +74,16 @@ const lua_header = Buffer.from([
 	0x19, 0x93, 0x0d, 0x0a, 0x1a, 0x0a, // magic
 ]);
 
-function readLuaStringBuffer(b:BufferStream):Buffer {
-	const size = b.readBigUInt64LE();
-	const bb = (size > 1) ? b.read(Number(size)-1) : Buffer.alloc(0, 0);
+function readLuaStringBuffer(b:Buffer, i:number):[Buffer, number] {
+	const size = b.readBigUInt64LE(i); i+=8;
+	let bb:Buffer;
 	if (size > 0) {
-		b.readUInt8();
+		bb = b.subarray(i, i+Number(size)-1);
+		i+=Number(size);
+	} else {
+		bb = Buffer.alloc(0, 0);
 	}
-	return bb;
+	return [bb, i];
 }
 
 /*
@@ -122,9 +124,9 @@ class LuaUpval {
 	readonly instack:boolean;
 	readonly idx:number;
 
-	constructor(b:BufferStream) {
-		this.instack = b.readUInt8() !== 0;
-		this.idx = b.readUInt8();
+	constructor(b:Buffer, i:number) {
+		this.instack = b.readUInt8(i) !== 0;
+		this.idx = b.readUInt8(i+1);
 	}
 }
 
@@ -133,10 +135,15 @@ export class LuaLocal {
 	readonly start:number;
 	readonly end:number;
 
-	constructor(b:BufferStream) {
-		this.name = readLuaStringBuffer(b).toString("utf8");
-		this.start = b.readUInt32LE();
-		this.end = b.readUInt32LE();
+	readonly dumpsize:number;
+
+	constructor(b:Buffer, i:number) {
+		let bb:Buffer;
+		[bb, i] = readLuaStringBuffer(b, i);
+		this.name = bb.toString("utf8");
+		this.start = b.readUInt32LE(i); i+=4;
+		this.end = b.readUInt32LE(i); i+=4;
+		this.dumpsize = (bb.length===0 ? 8 : 8+bb.length+1 ) + 8;
 	}
 }
 
@@ -199,65 +206,86 @@ export class LuaFunction {
 	readonly firstline:number;
 	readonly lastline:number;
 
-	constructor(b:BufferStream, withheader?:boolean) {
-		if (withheader && !b.read(lua_header.length).equals(lua_header)) {
-			throw new Error(`Invalid Header`);
+	private readonly nextbyte:number;
+
+	constructor(b:Buffer, i?:number) {
+		if (i===undefined) {
+			if (!b.subarray(0, lua_header.length).equals(lua_header)) {
+				throw new Error(`Invalid Header`);
+			}
+			i = lua_header.length;
 		}
-		this.firstline = b.readUInt32LE();
-		this.lastline = b.readUInt32LE();
-		this.nparam = b.readUInt8();
-		this.is_vararg = b.readUInt8() !== 0;
-		this.maxstack = b.readUInt8();
 
-		this.instruction_count = b.readUInt32LE();
-		this._instraw = b.read(this.instruction_count * 4);
+		this.firstline = b.readUInt32LE(i); i+=4;
+		this.lastline = b.readUInt32LE(i); i+=4;
+		this.nparam = b[i++];
+		this.is_vararg = b[i++] !== 0;
+		this.maxstack = b[i++];
 
-		const num_const = b.readUInt32LE();
-		for (let i = 0; i < num_const; i++) {
-			const type:LuaConstType = b.readUInt8();
+		this.instruction_count = b.readUInt32LE(i); i+=4;
+		this._instraw = b.subarray(i, i + this.instruction_count * 4);
+		i += this.instruction_count * 4;
+
+		const num_const = b.readUInt32LE(i); i+=4;
+		for (let j = 0; j < num_const; j++) {
+			const type:LuaConstType = b[i++];
 			switch (type) {
 				case LuaConstType.Nil:
 					this.constants.push(new LuaConstant(LuaConstType.Nil));
 					break;
 				case LuaConstType.Boolean:
-					this.constants.push(new LuaConstant(LuaConstType.Boolean, b.readUInt8()!==0));
+					this.constants.push(new LuaConstant(LuaConstType.Boolean, b[i++]!==0));
 					break;
 				case LuaConstType.Number:
-					this.constants.push(new LuaConstant(LuaConstType.Number, b.readDoubleLE()));
+					this.constants.push(new LuaConstant(LuaConstType.Number, b.readDoubleLE(i))); i+=8;
 					break;
 				case LuaConstType.String:
-					this.constants.push(new LuaConstant(LuaConstType.String, readLuaStringBuffer(b)));
+					let bb:Buffer;
+					[bb, i] = readLuaStringBuffer(b, i);
+					this.constants.push(new LuaConstant(LuaConstType.String, bb));
 					break;
 				default:
 					throw new Error(`Invalid Lua Constant Type: ${type}`);
 			}
 		}
 
-		const num_protos = b.readUInt32LE();
-		for (let i = 0; i < num_protos; i++) {
-			this.inner_functions.push(new LuaFunction(b));
+		const num_protos = b.readUInt32LE(i); i+=4;
+		for (let j = 0; j < num_protos; j++) {
+			const f:LuaFunction = new LuaFunction(b, i);
+			i = f.nextbyte;
+			this.inner_functions.push(f);
 		}
 
-		const num_upvals = b.readUInt32LE();
-		for (let i = 0; i < num_upvals; i++) {
-			this.upvals.push(new LuaUpval(b));
+		const num_upvals = b.readUInt32LE(i); i+=4;
+		for (let j = 0; j < num_upvals; j++) {
+			this.upvals.push(new LuaUpval(b, i)); i+=2;
 		}
 
-		this.source = readLuaStringBuffer(b).toString("utf8");
+		{
+			let bb:Buffer;
+			[bb, i] = readLuaStringBuffer(b, i);
+			this.source = bb.toString("utf8");
+		}
 
-		const num_lineinfo = b.readUInt32LE();
+		const num_lineinfo = b.readUInt32LE(i); i+=4;
 		if (num_lineinfo !== this.instruction_count) { throw new Error("line info count mismatch"); }
-		this._instlines = b.read(this.instruction_count * 4);
+		this._instlines = b.subarray(i, i + this.instruction_count * 4);
+		i += this.instruction_count * 4;
 
-		const num_locals = b.readUInt32LE();
-		for (let i = 0; i <  num_locals; i++) {
-			this.locals.push(new LuaLocal(b));
+		const num_locals = b.readUInt32LE(i); i+=4;
+		for (let j = 0; j <  num_locals; j++) {
+			const l = new LuaLocal(b, i);
+			i += l.dumpsize;
+			this.locals.push(l);
 		}
 
-		const num_upval_names = b.readUInt32LE();
-		for (let i = 0; i < num_upval_names; i++) {
-			this.upvals[i].name = readLuaStringBuffer(b).toString("utf8");
+		const num_upval_names = b.readUInt32LE(i); i+=4;
+		for (let j = 0; j < num_upval_names; j++) {
+			let bb:Buffer;
+			[bb, i] = readLuaStringBuffer(b, i);
+			this.upvals[j].name = bb.toString("utf8");
 		}
+		this.nextbyte = i;
 	}
 
 	private _baseAddr?:number;
