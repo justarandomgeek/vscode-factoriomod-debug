@@ -35,6 +35,7 @@ local type = type
 local string = string
 local schar = string.char
 local smatch = string.match
+local sgsub = string.gsub
 local remote = remote and (type(remote)=="table" and rawget(remote,"__raw")) or remote
 
 ---@type {[integer]:DAvarslib.Ref}
@@ -238,7 +239,7 @@ do
   ---@return integer @Buffer ID
   function variables.buffer(buff)
     local bufferID = nextID()
-    print("\xEF\xB7\xAE\xEF\xB7\x97"..bufferID.."\x01"..buff:gsub('[\n\xEF"]', escape_char_map).."\xEF\xB7\xAF")
+    print("\xEF\xB7\xAE\xEF\xB7\x97"..bufferID.."\x01"..sgsub(buff, '[\n\xEF"]', escape_char_map).."\xEF\xB7\xAF")
     return bufferID
   end
 end
