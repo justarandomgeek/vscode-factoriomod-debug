@@ -184,7 +184,7 @@ do
     debug.sethook(hook,hook_rate(source))
   end
 
-  DAstep.hookstats = { line = 0, tail = 0, call = 0, ret = 0, }
+  DAstep.hookstats = { line = 0, tail = 0, call = 0, main = 0, ret = 0, }
 
   ---debug hook function
   ---@param event string
@@ -264,6 +264,7 @@ do
       DAstep.hookstats.tail = DAstep.hookstats.tail +1
       local info = getinfo(2,"Sf")
       if info.what == "main" then
+        DAstep.hookstats.main = DAstep.hookstats.main +1
         sourceEvent(info)
       end
       bp_hook(info.source)
@@ -272,6 +273,7 @@ do
       DAstep.hookstats.call = DAstep.hookstats.call +1
       local info = getinfo(2,"Sf")
       if info.what == "main" then
+        DAstep.hookstats.main = DAstep.hookstats.main +1
         sourceEvent(info)
       end
 
@@ -340,7 +342,7 @@ do
       end
       if not parent then
         print(serpent.line(DAstep.hookstats))
-        DAstep.hookstats = { line = 0, tail = 0, call = 0, ret = 0, }
+        DAstep.hookstats = { line = 0, tail = 0, call = 0, main = 0, ret = 0, }
       end
     end
   end
