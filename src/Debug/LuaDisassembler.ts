@@ -68,27 +68,12 @@ export enum LuaConstType {
 	String = 4,
 }
 
-const lua_header = [
+const lua_header = Buffer.from([
 	0x1b, 0x4c, 0x75, 0x61, // LUA_SIGNATURE "\x1bLua"
 	0x52, 0x00, // lua version
 	0x01, 0x04, 0x08, 0x04, 0x08, 0x00, // lua config parameters: LE, 4 byte int, 8 byte size_t, 4 byte instruction, 8 byte LuaNumber, number is double
 	0x19, 0x93, 0x0d, 0x0a, 0x1a, 0x0a, // magic
-];
-
-const phobos_header = [
-	0x1b, 0x50, 0x68, 0x6f, // "\x1bPho"
-	0x10, 0x42, 0xf5, // magic
-	0x00, // version
-];
-
-function readHeader(b:BufferStream, header:number[]) {
-	for (let i = 0; i < header.length; i++) {
-		const n = b.readUInt8();
-		if (n !== header[i]) {
-			throw new Error(`Invalid Header at offset ${i}, expected ${header[i]} got ${n}`);
-		}
-	}
-}
+]);
 
 function readLuaStringBuffer(b:BufferStream):Buffer {
 	const size = b.readBigUInt64LE();
@@ -105,7 +90,7 @@ function readLuaStringBuffer(b:BufferStream):Buffer {
 |           Ax          |   Op   |
 */
 export class LuaInstruction {
-	constructor(readonly raw:number) {}
+	constructor(readonly raw:number, readonly line:number) {}
 
 	public get Op() : LuaOpcode {
 		return this.raw & 0x3f;
@@ -129,43 +114,6 @@ export class LuaInstruction {
 
 	public get sBx() {
 		return this.Bx - 0x1ffff;
-	}
-
-	private _line?:number;
-	private _column?:number;
-	private _source_idx?:number;
-
-	public get line() {
-		return this._line ?? 1;
-	}
-	public set line(value:number) {
-		if (this._line === undefined) {
-			this._line = value;
-		} else {
-			throw new Error("LuaInstruction.line can only be set once");
-		}
-	}
-
-	public get column() {
-		return this._column ?? 0;
-	}
-	public set column(value:number) {
-		if (this._column === undefined) {
-			this._column = value;
-		} else {
-			throw new Error("LuaInstruction.column can only be set once");
-		}
-	}
-
-	public get source_idx() {
-		return this._source_idx ?? 0;
-	}
-	public set source_idx(value:number) {
-		if (this._source_idx === undefined) {
-			this._source_idx = value;
-		} else {
-			throw new Error("LuaInstruction.source_idx can only be set once");
-		}
 	}
 }
 
@@ -237,25 +185,23 @@ export class LuaConstant {
 }
 
 export class LuaFunction {
-	readonly sources:string[];
+	readonly source:string;
 	readonly nparam:number;
 	readonly is_vararg:boolean;
 	readonly maxstack:number;
 	readonly locals:LuaLocal[]=[];
 	readonly upvals:LuaUpval[]=[];
-	readonly instructions:LuaInstruction[]=[];
+	readonly instruction_count:number;
+	private readonly _instraw:Buffer;
+	private readonly _instlines:Buffer;
 	readonly constants:LuaConstant[]=[];
 	readonly inner_functions:LuaFunction[]=[];
 	readonly firstline:number;
 	readonly lastline:number;
 
-	//phobos debug symbol extensions
-	readonly firstcolumn?:number;
-	readonly lastcolumn?:number;
-
 	constructor(b:BufferStream, withheader?:boolean) {
-		if (withheader) {
-			readHeader(b, lua_header);
+		if (withheader && !b.read(lua_header.length).equals(lua_header)) {
+			throw new Error(`Invalid Header`);
 		}
 		this.firstline = b.readUInt32LE();
 		this.lastline = b.readUInt32LE();
@@ -263,12 +209,8 @@ export class LuaFunction {
 		this.is_vararg = b.readUInt8() !== 0;
 		this.maxstack = b.readUInt8();
 
-		const num_insts = b.readUInt32LE();
-		for (let i = 0; i < num_insts; i++) {
-			const inst = b.readUInt32LE();
-			this.instructions.push(new LuaInstruction(inst));
-
-		}
+		this.instruction_count = b.readUInt32LE();
+		this._instraw = b.read(this.instruction_count * 4);
 
 		const num_const = b.readUInt32LE();
 		for (let i = 0; i < num_const; i++) {
@@ -301,12 +243,11 @@ export class LuaFunction {
 			this.upvals.push(new LuaUpval(b));
 		}
 
-		this.sources = [readLuaStringBuffer(b).toString("utf8")];
+		this.source = readLuaStringBuffer(b).toString("utf8");
 
 		const num_lineinfo = b.readUInt32LE();
-		for (let i = 0; i < num_lineinfo; i++) {
-			this.instructions[i].line = b.readUInt32LE();
-		}
+		if (num_lineinfo !== this.instruction_count) { throw new Error("line info count mismatch"); }
+		this._instlines = b.read(this.instruction_count * 4);
 
 		const num_locals = b.readUInt32LE();
 		for (let i = 0; i <  num_locals; i++) {
@@ -317,57 +258,6 @@ export class LuaFunction {
 		for (let i = 0; i < num_upval_names; i++) {
 			this.upvals[i].name = readLuaStringBuffer(b).toString("utf8");
 		}
-
-		// Check for Phobos extended debug info in last const
-		if (this.constants.length > 1) {
-			try {
-				const phoconst = this.constants[this.constants.length-1];
-				if (phoconst.type === LuaConstType.String) {
-					const phobuff = new BufferStream(<Buffer>phoconst.value);
-					readHeader(phobuff, phobos_header);
-					const firstcolumn = phobuff.readUInt32LE();
-					const lastcolumn = phobuff.readUInt32LE();
-
-					const num_cols = phobuff.readUInt32LE();
-					const columns = [];
-					for (let i = 0; i < num_cols; i++) {
-						columns[i] = b.readUInt32LE();
-					}
-
-					const num_extra_sources = phobuff.readUInt32LE();
-					const extra_sources = [];
-					for (let i = 0; i < num_extra_sources; i++) {
-						extra_sources.push(readLuaStringBuffer(phobuff).toString("utf8"));
-					}
-
-					const num_sections = phobuff.readUInt32LE();
-					let active_source_idx = 0;
-					let inst_idx = 0;
-					for (let i = 0; i < num_sections; i++) {
-						const start = phobuff.readUInt32LE();
-						for (; inst_idx < start; inst_idx++) {
-							this.instructions[inst_idx].source_idx = active_source_idx;
-						}
-						active_source_idx = phobuff.readUInt32LE();
-					}
-
-					for (; inst_idx < this.instructions.length; inst_idx++) {
-						this.instructions[inst_idx].source_idx = active_source_idx;
-					}
-
-					// all read okay, save it for use later
-					this.firstcolumn = firstcolumn;
-					this.lastcolumn = lastcolumn;
-					for (let i = 0; i < num_cols; i++) {
-						this.instructions[i].column = columns[i];
-					}
-					this.sources.push(...extra_sources);
-
-				}
-			} catch (error) {
-
-			}
-		}
 	}
 
 	private _baseAddr?:number;
@@ -377,11 +267,35 @@ export class LuaFunction {
 	public rebase(base:number) : number {
 		let nextbase = base;
 		this._baseAddr = nextbase;
-		nextbase += this.instructions.length;
+		nextbase += this.instruction_count;
 		this.inner_functions.forEach(f=>{
 			nextbase = f.rebase(nextbase);
 		});
 		return nextbase;
+	}
+
+	private readonly _instructions:(LuaInstruction|undefined)[]=[];
+	public instruction(pc:number) {
+		if (pc > this.instruction_count-1) {
+			return undefined;
+		}
+		let i = this._instructions[pc];
+		if (i===undefined) {
+			i = new LuaInstruction(
+				this._instraw.readUint32LE(pc*4),
+				this._instlines.readUint32LE(pc*4),
+			);
+			this._instructions[pc] = i;
+		}
+		return i;
+	}
+
+	public get lines() {
+		const l = [];
+		for (let i = 0; i < this.instruction_count; i++) {
+			l[i] = this._instlines.readUInt32LE(i*4);
+		}
+		return l;
 	}
 
 	public walk_functions(fn:(f:LuaFunction)=>void) {
@@ -389,7 +303,7 @@ export class LuaFunction {
 		this.inner_functions.forEach(lf=>lf.walk_functions(fn));
 	}
 
-	public getFunctionAtStartLine(startline:number) : LuaFunction|undefined {
+	private getFunctionAtStartLine(startline:number) : LuaFunction|undefined {
 		if (this.firstline === startline) {
 			return this;
 		}
@@ -408,19 +322,20 @@ export class LuaFunction {
 
 	public getInstructionsAtBase(base:number, count:number) : DebugProtocol.DisassembledInstruction[]|undefined {
 		if (count===0  || !this._baseAddr) { return; }
-		if (this._baseAddr <= base && this._baseAddr+this.instructions.length > base) {
+		if (this._baseAddr <= base && this._baseAddr+this.instruction_count > base) {
 			const offset = base - this._baseAddr;
 			const instrs:DebugProtocol.DisassembledInstruction[] = [];
-			if (offset + count > this.instructions.length) {
-				count = this.instructions.length - offset;
+			if (offset + count > this.instruction_count) {
+				count = this.instruction_count - offset;
 			}
 			for (let i = 0; i < count; i++) {
+				const inst = this.instruction(i+offset)!;
 				instrs.push({
 					address: "0x"+(this._baseAddr+offset+i).toString(16),
 					instruction: this.getInstructionLabel(i+offset),
-					line: this.instructions[i+offset].line,
-					instructionBytes: this.instructions[i+offset].raw.toString(16).padStart(8, "0"),
-					symbol: i+offset===0 ? this.sources[this.instructions[i+offset].source_idx??0] +":"+this.firstline : undefined,
+					line: inst.line,
+					instructionBytes: inst.raw.toString(16).padStart(8, "0"),
+					symbol: i+offset===0 ? this.source+":"+this.firstline : undefined,
 				});
 			}
 			return instrs;
@@ -428,23 +343,16 @@ export class LuaFunction {
 		return;
 	}
 
-	getDisassembledSingleFunction():string {
-		const instructions = this.instructions.map((i, pc)=>this.getInstructionLabel(pc));
-		return [
-			`function at ${this.sources[0]}:${this.firstline}-${this.lastline}`,
-			`${this.is_vararg?"vararg":`${this.nparam} params`} ${this.upvals.length} upvals ${this.maxstack} maxstack`,
-			`${this.instructions.length} instructions ${this.constants.length} constants ${this.inner_functions.length} functions`,
-			...instructions,
-		].join("\n");
-	}
 
 	getInstructionLabel(pc:number) {
-		const current = this.instructions[pc];
-		const next = this.instructions[pc+1];
+		const current = this.instruction(pc);
+		if (!current) { throw new Error("Invalid PC"); }
+		const next = this.instruction(pc+1);
 		switch (current.Op) {
 			case LuaOpcode.OP_LOADK:
 				return `LOADK     ${this.getRegisterLabel(pc, current.A)} := ${this.constants[current.Bx].label}`;
 			case LuaOpcode.OP_LOADKX:
+				if (!next) { throw new Error("Invalid PC"); }
 				return `LOADKX    ${this.getRegisterLabel(pc, current.A)} := ${this.constants[next.Ax].label}`;
 			case LuaOpcode.OP_LOADBOOL:
 				return `LOADBOOL  ${this.getRegisterLabel(pc, current.A)} := ${current.B!==0}${current.C!==0?" pc++":""}`;
@@ -535,13 +443,17 @@ export class LuaFunction {
 				return `TFORLOOP  if ${this.getRegisterLabel(pc, current.A+1)} ~= nil then { ${this.getRegisterLabel(pc, current.A)} := ${this.getRegisterLabel(pc, current.A+1)}; pc += ${current.sBx} }`;
 
 			case LuaOpcode.OP_SETLIST:
-				const C = (current.C ? current.C : next.Ax) - 1;
+				let C = current.C - 1;
+				if (!current.C) {
+					if (!next) { throw new Error("Invalid PC"); }
+					C = next.Ax - 1;
+				}
 				const FPF = 50;
 				return `SETLIST   ${this.getRegisterLabel(pc, current.A)}[${(C*FPF)+1}...${(current.B?(C*FPF)+current.B:"")}] := ${this.getRegisterLabel(pc, current.A+1)}...${current.B?this.getRegisterLabel(pc, current.A+current.B):"top"}`;
 
 			case LuaOpcode.OP_CLOSURE:
 				const func = this.inner_functions[current.Bx];
-				return `CLOSURE   ${this.getRegisterLabel(pc, current.A)} := closure(${func.sources[0]}:${func.firstline}-${func.lastline})`;
+				return `CLOSURE   ${this.getRegisterLabel(pc, current.A)} := closure(${func.source}:${func.firstline}-${func.lastline})`;
 
 			case LuaOpcode.OP_VARARG:
 				return `VARARG    ${this.getRegisterLabel(pc, current.A)}...${current.B?this.getRegisterLabel(pc, current.A+current.B-2):"top"}`;

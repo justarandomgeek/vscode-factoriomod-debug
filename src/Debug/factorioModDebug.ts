@@ -541,7 +541,11 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					const json = JSON.parse(mesg.slice(1), daprevive) as {event:string; body:any};
 					switch (json.event) {
 						case "source":
-							await this.loadedSourceEvent(json.body);
+							const lse = this.loadedSourceEvent(json.body);
+							const source = json.body.source;
+							if (this.breakPoints.has(source.sourceReference ?? source.name)) {
+								await lse;
+							}
 							this.continue();
 							return;
 						case "running":
@@ -1046,9 +1050,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	protected async loadedSourceEvent(loaded:{ source:Source&DebugProtocol.Source; dump?:Buffer }) {
 		const source = loaded.source;
-		if (source.path) {
-			source.path = this.convertDebuggerPathToClient(source.path);
-		}
 
 		if (loaded.dump) {
 			const dumpid = source.sourceReference ?? source.name;
@@ -1075,7 +1076,8 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 
 				by_line.set(lf.firstline, lf);
-				lf.instructions.forEach(i=>lines.add(i.line));
+
+				lf.lines.forEach(l=>lines.add(l));
 			});
 
 			this.dumps_by_source.set(dumpid, by_line);
@@ -1107,7 +1109,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		let idx = this.dumps_by_address.findIndex(
 			lf=>lf.baseAddr &&
 				lf.baseAddr<start &&
-				lf.baseAddr + lf.instructions.length >= start
+				lf.baseAddr + lf.instruction_count >= start
 		);
 		do {
 			const f = this.dumps_by_address[idx];

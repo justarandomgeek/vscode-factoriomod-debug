@@ -135,7 +135,7 @@ do
   ---@param info debuginfo
   local function sourceEvent(info)
     local s = normalizeLuaSource(info.source)
-    local dasource = { name = s, path = s }
+    local dasource = { name = s, path = "\xEF\xB7\x91"..s }
     --[=[if s == "=(dostring)" then
       local sourceref = variables.sourceRef(info.source)
       if sourceref then
@@ -150,7 +150,9 @@ do
     if s:sub(1,1) == "@" then
       local dump
       if not isDumpIgnore[s] then
-        dump = "\xEF\xB7\x95" .. variables.buffer(string.dump(info.func))
+        local rawdump = string.dump(info.func)
+        DAstep.hookstats.dump = DAstep.hookstats.dump + #rawdump
+        dump = "\xEF\xB7\x95" .. variables.buffer(rawdump)
       end
       print("\xEF\xB7\x91"..json_encode{event="source", body={ source = dasource, dump = dump }})
       debugprompt()
@@ -184,7 +186,7 @@ do
     debug.sethook(hook,hook_rate(source))
   end
 
-  DAstep.hookstats = { line = 0, tail = 0, call = 0, main = 0, ret = 0, }
+  DAstep.hookstats = { line = 0, tail = 0, call = 0, main = 0, ret = 0, dump = 0, }
 
   ---debug hook function
   ---@param event string
@@ -194,8 +196,6 @@ do
       local info = getinfo(2,"Slf")
       local ignored = stepIgnoreFuncs[info.func]
       if ignored then return end
-      local fb = filebreaks(info.source)
-      local line = info.currentline
       if stepdepth and stepdepth<=0 then
         stepdepth = nil
         print("\xEF\xB7\x91"..json_encode{event="stopped", body={
@@ -209,6 +209,8 @@ do
           }})
         debugprompt()
       else
+        local fb = filebreaks(info.source)
+        local line = info.currentline
         if fb then
           ---@type DebugProtocol.SourceBreakpoint
           local b = fb[line]
@@ -339,10 +341,9 @@ do
 
       if parent_is_lua then
         bp_hook(parent.source)
-      end
-      if not parent then
+      elseif not parent then
         print(serpent.line(DAstep.hookstats))
-        DAstep.hookstats = { line = 0, tail = 0, call = 0, main = 0, ret = 0, }
+        DAstep.hookstats = { line = 0, tail = 0, call = 0, main = 0, ret = 0, dump = 0, }
       end
     end
   end
