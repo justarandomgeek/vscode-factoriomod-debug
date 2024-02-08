@@ -19,7 +19,6 @@ import { ModSettings } from '../ModSettings/ModSettings';
 import { LuaFunction } from './LuaDisassembler';
 import { BufferStream } from '../Util/BufferStream';
 import type { ActiveFactorioVersion } from '../vscode/FactorioVersion';
-import { PassThrough } from 'stream';
 
 interface ModPaths{
 	uri: URI
@@ -420,32 +419,36 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			}
 			return value;
 		};
-		const dapmsg = new PassThrough({ objectMode: true });
-		dapmsg.on('data', async (buff:Buffer)=>{
+
+		const rawUnpack = (buff:Buffer)=>{
+			const split = buff.indexOf(1, 3);
+
+			const id = Number.parseInt(buff.subarray(3, split).toString().trim());
+			let buffer = buff.subarray(split+1);
+			let outbuffs = [];
+			let i = buffer.indexOf(0xef);
+			while (i>=0) {
+				if (buffer[i+1] >= 0xA0 && buffer[i+1] <= 0xa3 &&
+					buffer[i+2] >= 0x80 && buffer[i+2] <= 0xbf) {
+					let esc = buffer.subarray(i, i+4).toString("utf8").charCodeAt(0) - 0xf800;
+					outbuffs.push(buffer.subarray(0, i), Buffer.from([esc]));
+					buffer = buffer.subarray(i+3);
+				} else {
+					outbuffs.push(buffer.subarray(0, i+1));
+					buffer = buffer.subarray(i+1);
+				}
+
+				i = buffer.indexOf(0xef);
+			}
+			outbuffs.push(buffer);
+			const outbuff = Buffer.concat(outbuffs);
+			this.buffers.set(id, outbuff);
+		};
+
+		const dapmsg = async (buff:Buffer)=>{
 			if (buff[2] === 0x97) {
 				//0xFDD7 raw buffer
-				const split = buff.indexOf(1, 3);
-
-				const id = Number.parseInt(buff.subarray(3, split).toString().trim());
-				let buffer = buff.subarray(split+1);
-				let outbuffs = [];
-				let i = buffer.indexOf(0xef);
-				while (i>=0) {
-					if (buffer[i+1] >= 0xA0 && buffer[i+1] <= 0xa3 &&
-						buffer[i+2] >= 0x80 && buffer[i+2] <= 0xbf) {
-						let esc = buffer.subarray(i, i+4).toString("utf8").charCodeAt(0) - 0xf800;
-						outbuffs.push(buffer.subarray(0, i), Buffer.from([esc]));
-						buffer = buffer.subarray(i+3);
-					} else {
-						outbuffs.push(buffer.subarray(0, i+1));
-						buffer = buffer.subarray(i+1);
-					}
-
-					i = buffer.indexOf(0xef);
-				}
-				outbuffs.push(buffer);
-				const outbuff = Buffer.concat(outbuffs);
-				this.buffers.set(id, outbuff);
+				rawUnpack(buff);
 				return;
 			}
 
@@ -620,10 +623,10 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					return;
 				}
 			}
-		});
+		};
 
-		const profile = new PassThrough({ objectMode: true });
-		profile.on('data', (mesg:string)=>{
+		const profilemsg = (buff:Buffer)=>{
+			const mesg = buff.toString("utf8");
 			switch (mesg.charCodeAt(0)) {
 				case 0xFDE0: // profile line
 				case 0xFDE1: // profile call
@@ -631,9 +634,9 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				case 0xFDE3: // profile return
 					return;
 			}
-		});
+		};
 
-		this.factorio.on("stdout", (mesg:Buffer)=>{
+		this.factorio.on("stdout", async (mesg:Buffer)=>{
 			if (mesg[0] === 0xEF && mesg[1] === 0xB7) {
 				switch (mesg[2]) {
 					case 0x90: //0xFDD0:
@@ -643,13 +646,13 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					case 0x96: //0xFDD6:
 					case 0x97: //0xFDD7:
 					case 0x98: //0xFDD8:
-						dapmsg.write(mesg);
+						await dapmsg(mesg);
 						return;
 					case 0xA0: //0xFDE0: // profile line
 					case 0xA1: //0xFDE1: // profile call
 					case 0xA2: //0xFDE2: // profile tailcall
 					case 0xA3: //0xFDE3: // profile return
-						profile.write(mesg);
+						profilemsg(mesg);
 						return;
 					case 0xAD: //0xFDED: // v1 profile
 						this.sendEvent(new Event("x-Factorio-Profile", mesg.toString().slice(1)));
