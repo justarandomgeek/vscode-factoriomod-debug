@@ -74,6 +74,7 @@ if __DebugAdapter.nohook then
     dump = function() end,
     source = function() end,
     stackTrace = __DebugAdapter.stackTrace,
+    step_enabled = __DebugAdapter.step_enabled_inner,
   })
 end
 

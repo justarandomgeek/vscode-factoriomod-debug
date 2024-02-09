@@ -63,11 +63,17 @@ local ReadBreakpoints = datastring.ReadBreakpoints
 local breakpoints = {}
 ---@type number?
 local stepdepth = nil
+---@type boolean
+local step_enabled = false
 
 local runningBreak
 do
   local i = 0
   function runningBreak()
+    if step_enabled then
+      i = 0
+      return false
+    end
     if i < (__DebugAdapter.runningBreak or 5000) then
       i = i + 1
       return false
@@ -100,7 +106,7 @@ end
 
 ---@param source? string
 local function hook_rate(source)
-  if not source or stepdepth or filebreaks(source) then
+  if not source or step_enabled or filebreaks(source) then
     if step_instr then
       return "cr", 1
     else
@@ -160,25 +166,21 @@ do
   end
 
 --[[
-  event        | pass stepinfo | check bp hook
-  call:        |               |
-  none -> lua  | in            | check
-  none -> C    |               |
-  C -> lua     | in            | check
-  C -> C       |               |
-  lua -> C     | out           |
-  lua -> lua   |               | check
+  check bp hook
+  tail call (lua) -> lua
+  call * -> lua
+  return lua <- *
 
-  tail call:   |               |
-  (lua) -> lua |               | check
-
-  return:      |               |
-  none <- lua  | out           |
-  none <- C    |               |
-  C <- lua     | out           |
-  C <- C       |               |
-  lua <- C     | in            | check
-  lua <- lua   |               | check
+  pass stepinfo
+    isapi = C & upvals > 0
+    in
+      call none -> *
+      call isapi -> *
+      return * <- isapi
+    out
+      call * -> isapi
+      return none <- *
+      return isapi <- *
 ]]
 
   ---@param source string
@@ -273,7 +275,7 @@ do
 
     elseif event == "call" then
       DAstep.hookstats.call = DAstep.hookstats.call +1
-      local info = getinfo(2,"Sf")
+      local info = getinfo(2,"Sfu")
       if info.what == "main" then
         DAstep.hookstats.main = DAstep.hookstats.main +1
         sourceEvent(info)
@@ -283,31 +285,36 @@ do
         stepdepth = stepdepth + 1
       end
 
-      local parent = getinfo(3,"S")
-      local info_is_lua = info.what == "Lua" or info.what == "main"
-      if script then
-        local parent_is_lua = parent and (parent.what == "Lua" or parent.what == "main")
-        if parent_is_lua and not info_is_lua then
+
+      local parent = getinfo(3,"Su")
+      if script and step_enabled then
+        local info_is_api = info.what=="C" and info.nups > 0
+        local parent_is_none_or_api = not parent or (parent.what=="C" and parent.nups > 0)
+        if info_is_api then
+          print("call out "..script.mod_name)
           __DebugAdapter.setStepping(stepdepth, step_instr)
           __DebugAdapter.step(nil)
-        elseif not parent_is_lua and info_is_lua then
+        elseif parent_is_none_or_api then
+          print("call in "..script.mod_name)
           __DebugAdapter.step(__DebugAdapter.getStepping())
         end
       end
 
       if not parent then
-        print("\xEF\xB7\x91"..json_encode{event="running", body={
-          threadId = __DebugAdapter.this_thread,
-          }})
-        debugprompt()
+        if not step_enabled and not stepIgnoreFuncs[info.func] then
+          print("\xEF\xB7\x91"..json_encode{event="running", body={
+            threadId = __DebugAdapter.this_thread,
+            }})
+          debugprompt()
+        end
         bp_hook(info.source)
-      elseif info_is_lua then
+      elseif info.what ~= "C" then
         bp_hook(info.source)
       end
 
     elseif event == "return" then
       DAstep.hookstats.ret = DAstep.hookstats.ret +1
-      local info = getinfo(2,"S")
+      local info = getinfo(2,"Su")
       if info.what == "main" and info.source == "@__core__/lualib/noise.lua" then
         local i,k,v
         i = 0
@@ -323,13 +330,15 @@ do
         end
       end
 
-      local parent = getinfo(3,"S")
-      local parent_is_lua = parent and (parent.what == "Lua" or parent.what == "main")
-      if script then
-        local info_is_lua = info.what == "Lua" or info.what == "main"
-        if parent_is_lua and not info_is_lua then
+      local parent = getinfo(3,"Su")
+      if script and step_enabled then
+        local info_is_api = info.what=="C" and info.nups > 0
+        local parent_is_none_or_api = not parent or (parent.what=="C" and parent.nups > 0)
+        if info_is_api then
+          print("ret in "..script.mod_name)
           __DebugAdapter.step(__DebugAdapter.getStepping())
-        elseif not parent_is_lua and info_is_lua then
+        elseif parent_is_none_or_api then
+          print("ret out "..script.mod_name)
           __DebugAdapter.setStepping(stepdepth, step_instr)
           __DebugAdapter.step(nil)
         end
@@ -339,10 +348,12 @@ do
         stepdepth = stepdepth - 1
       end
 
-      if parent_is_lua then
+      if parent then
+        if parent.what ~= "C" then
         bp_hook(parent.source)
-      elseif not parent then
-        print(serpent.line(DAstep.hookstats))
+        end
+      else -- no parent
+        --print(serpent.line(DAstep.hookstats))
         DAstep.hookstats = { line = 0, tail = 0, call = 0, main = 0, ret = 0, dump = 0, }
       end
     end
@@ -470,16 +481,38 @@ end
 ---@param depth? number
 ---@param instruction? boolean
 function DAstep.step(depth,instruction)
+  if script then
+    print("step "..script.mod_name.." "..tostring(depth).." "..tostring(instruction))
+  end
   if depth and stepdepth then
     print(("step %d with existing depth! %d"):format(depth,stepdepth))
   end
-  local rehook = instruction~=step_instr
   stepdepth = depth
   step_instr = instruction
-  if rehook then
-    debug.sethook(hook,hook_rate())
+end
+
+function DAstep.step_enabled(state)
+  print("step_enabled="..tostring(state))
+  if step_enabled == state then return end
+  -- pass it around to everyone if possible, else just set it here...
+  if DAstep.canRemoteCall() then
+    local call = remote.call
+    for remotename,_ in pairs(remote.interfaces) do
+      local modname = remotename:match("^__debugadapter_(.+)$")
+      if modname then
+        call(remotename,"step_enabled",state)
+      end
+    end
+  else
+    print("local")
+    step_enabled = state
   end
 end
+
+function DAstep.step_enabled_inner(state)
+  step_enabled = state
+end
+
 
 do
   -- functions for passing stepping state across context-switches by handing it to main DA vm

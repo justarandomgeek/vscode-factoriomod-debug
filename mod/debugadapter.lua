@@ -106,6 +106,7 @@ do
       evaluate = __DebugAdapter.evaluate,
       source = __DebugAdapter.source,
       raise_event = __DebugAdapter.raise_event,
+      step_enabled = __DebugAdapter.step_enabled_inner,
     })
 
     __DebugAdapter.attach()

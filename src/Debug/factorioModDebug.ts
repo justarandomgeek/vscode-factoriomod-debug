@@ -100,11 +100,11 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	private nextRef = 1;
 
 	private factorio?: FactorioProcess;
-	private stdinQueue:{buffer:Buffer;resolve:resolver<boolean>;consumed?:Promise<void>;signal?:AbortSignal}[] = [];
+	private stdinQueue:{mesg:string|Buffer;resolve:resolver<boolean>;consumed?:Promise<void>;signal?:AbortSignal}[] = [];
 
 	private launchArgs?: LaunchRequestArguments;
 
-	private inPrompt:boolean = false;
+	private inPrompt:number = 0;
 	private pauseRequested:boolean = false;
 
 	private readonly workspaceModInfo:ModPaths[] = [];
@@ -455,8 +455,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			const mesg = buff.toString();
 			switch (mesg.charCodeAt(0)) {
 				case 0xFDD0: {
-					const wasInPrompt = this.inPrompt;
-					this.inPrompt = true;
+					this.inPrompt++;
 					switch (mesg.charCodeAt(1)) {
 						case 0xE000: // on_instrument_settings
 							await modulesReady;
@@ -510,12 +509,11 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 							// continue without trying to write breakpoints,
 							// we're not ready for them yet...
 							this.writeStdin("cont");
-							this.inPrompt = false;
+							this.inPrompt--;
 							return;
 						case 0xE005: // getref
 							this.allocateRefBlock();
 							this.continue();
-							this.inPrompt = wasInPrompt;
 							return;
 						//@ts-expect-error fallthrough
 						case 0xE007: // on_data
@@ -539,8 +537,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					}
 				}
 				case 0xFDD1: {
-					const wasInPrompt = this.inPrompt;
-					this.inPrompt = true;
+					this.inPrompt++;
 					const json = JSON.parse(mesg.slice(1), daprevive) as {event:string; body:any};
 					switch (json.event) {
 						case "source":
@@ -561,7 +558,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 								this.sendEvent(new AllThreadsStoppedEvent('pause', json.body.threadId));
 							} else {
 								this.continue();
-								this.inPrompt = wasInPrompt;
 							}
 							return;
 						case "exception":
@@ -815,7 +811,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	protected async threadsRequest(response: DebugProtocol.ThreadsResponse) {
 
-		if (this.inPrompt) {
+		if (this.inPrompt > 0) {
 			response.body = await new Promise<{threads:DebugProtocol.Thread[]}>((resolve)=>{
 				this._responses.set(response.request_seq, resolve);
 				this.writeStdin(`__DebugAdapter.threads(${response.request_seq})\n`);
@@ -996,6 +992,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
+		this.writeStdin(`__DebugAdapter.step_enabled(false)`);
 		this.continue();
 		this.sendResponse(response);
 	}
@@ -1014,8 +1011,10 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		if (this.breakPointsChanged.size !== 0) {
 			this.updateBreakpoints();
 		}
+		this.writeStdin(`__DebugAdapter.step_enabled(true)`);
 		this.writeStdin(`__DebugAdapter.step(${stepdepth[event]},${granularity==="instruction"})`);
 		this.writeStdin("cont");
+		this.inPrompt--;
 	}
 
 	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
@@ -1228,8 +1227,8 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.writeStdin("__DebugAdapter.loadObjectInfo()");
 	}
 
-	private writeStdin(s:string|Buffer, fromQueue?:boolean):void {
-		if (!this.inPrompt) {
+	private writeStdin(s:string|Buffer):void {
+		if (this.inPrompt <= 0) {
 			this.sendEvent(new OutputEvent(`!! Attempted to writeStdin "${s instanceof Buffer ? `Buffer[${s.length}]` : s}" while not in a prompt\n`, "console"));
 			return;
 		}
@@ -1238,13 +1237,12 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 
 	private async writeOrQueueStdin(s:string|Buffer, consumed?:Promise<void>, signal?:AbortSignal):Promise<boolean> {
-		const b = Buffer.concat([s instanceof Buffer ? s : Buffer.from(s), Buffer.from("\n")]);
-		if (this.inPrompt) {
-			this.factorio?.writeStdin(b);
+		if (this.inPrompt > 0) {
+			this.writeStdin(s);
 			if (consumed) { await consumed; }
 			return true;
 		} else {
-			const p = new Promise<boolean>((resolve)=>this.stdinQueue.push({buffer: b, resolve: resolve, consumed: consumed, signal: signal}));
+			const p = new Promise<boolean>((resolve)=>this.stdinQueue.push({mesg: s, resolve: resolve, consumed: consumed, signal: signal}));
 			return p;
 		}
 	}
@@ -1255,7 +1253,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				if (b.signal?.aborted) {
 					b.resolve(false);
 				} else {
-					this.writeStdin(b.buffer, true);
+					this.writeStdin(b.mesg);
 					b.resolve(true);
 					if (b.consumed) {
 						await b.consumed;
@@ -1277,7 +1275,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 
 	public continue(updateAllBreakpoints?:boolean) {
-		if (!this.inPrompt) {
+		if (this.inPrompt <= 0) {
 			this.sendEvent(new OutputEvent(`!! Attempted to continue while not in a prompt\n`, "console"));
 			return;
 		}
@@ -1287,11 +1285,11 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		}
 
 		this.writeStdin("cont");
-		this.inPrompt = false;
+		this.inPrompt--;
 	}
 
 	public continueRequire(shouldRequire:boolean, modname:string) {
-		if (!this.inPrompt) {
+		if (this.inPrompt <= 0) {
 			this.sendEvent(new OutputEvent(`!! Attempted to continueRequire while not in a prompt\n`, "console"));
 			return;
 		}
@@ -1311,11 +1309,11 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		}
 
 		this.writeStdin("cont");
-		this.inPrompt = false;
+		this.inPrompt--;
 	}
 
 	public continueProfile(shouldRequire:boolean, version?:number) {
-		if (!this.inPrompt) {
+		if (this.inPrompt <= 0) {
 			this.sendEvent(new OutputEvent(`!! Attempted to continueProfile while not in a prompt\n`, "console"));
 			return;
 		}
@@ -1341,7 +1339,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		}
 
 		this.writeStdin("cont");
-		this.inPrompt = false;
+		this.inPrompt--;
 	}
 
 	private async trydir(dir:URI, module:DebugProtocol.Module): Promise<boolean> {
