@@ -321,6 +321,9 @@ end
 ---@param source string
 ---@param checkonly? boolean
 ---@return DebugProtocol.Source?
+---@overload fun(source:string):DebugProtocol.Source
+---@overload fun(source:string, checkonly:false):DebugProtocol.Source
+---@overload fun(source:string, checkonly:true):DebugProtocol.Source?
 function variables.sourceRef(source,checkonly)
   local sref = sourcerefs[source]
   if sref then

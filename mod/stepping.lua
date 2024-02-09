@@ -141,19 +141,14 @@ do
   ---@param info debuginfo
   local function sourceEvent(info)
     local s = normalizeLuaSource(info.source)
-    local dasource = { name = s, path = "\xEF\xB7\x91"..s }
-    --[=[if s == "=(dostring)" then
-      local sourceref = variables.sourceRef(info.source)
-      if sourceref then
-        dasource = sourceref
-      end
-      print("\xEF\xB7\x91"..json_encode{ event="source", body={
-        source = dasource,
-        dump = enc(string.dump(info.func))
-      }})
-      debugprompt()
-    else]=]
-    if s:sub(1,1) == "@" then
+    local dasource
+    if s == "=(dostring)" then
+      dasource = variables.sourceRef(info.source)
+    elseif s:sub(1,1) == "@" then
+      dasource = { name = s, path = "\xEF\xB7\x91"..s }
+    end
+
+    if dasource then
       local dump
       if not isDumpIgnore[s] then
         local rawdump = string.dump(info.func)
