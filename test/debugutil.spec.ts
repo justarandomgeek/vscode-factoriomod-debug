@@ -56,7 +56,7 @@ suite('EncodingUtil', ()=>{
 
 test('BufferSplitter', async ()=>{
 	const ts = new TestStream();
-	const bs = new BufferSplitter(ts, [Buffer.from("\n"), {start: Buffer.from("**start**"), end: Buffer.from("**end**")}]);
+	const bs = new BufferSplitter(ts, [Buffer.from("\n"), Buffer.from("lua_debug> "), {start: Buffer.from("**start**"), end: Buffer.from("**end**")}]);
 	const result = new Promise((resolve)=>{
 		const segments:Buffer[] = [];
 		bs.on('segment', (b:Buffer)=>{
@@ -68,17 +68,26 @@ test('BufferSplitter', async ()=>{
 		});
 	});
 
-	ts.write("test1\n");
-	ts.write("test2**start**test3**end**");
+	ts.write("test1\nte");
+	ts.write("st2**start**test3**end**");
 	ts.write("test4");
 	ts.write("**start**");
 	ts.write("\ntest5\n");
 	ts.write("**end**");
 	ts.write("\n**start**\n**end**");
+	ts.write("\n**start**\n**start**");
+	ts.write("\n**end**");
+	ts.write("lua_de");
+	ts.write("bug> ");
+	ts.write("lua_debug> ");
+	ts.write("lua_debug> ");
+	ts.write("lua_debug> ");
+
+	ts.write("end\n");
 
 	ts.write("\ndone\n");
 	await expect(result).eventually.deep.equals([
 		Buffer.from("test1"), Buffer.from("test2"), Buffer.from("test3"), Buffer.from("test4"),
-		Buffer.from("\ntest5\n"), Buffer.from("\n"),
+		Buffer.from("\ntest5\n"), Buffer.from("\n"), Buffer.from("\n**start**\n"), Buffer.from("end"),
 	]);
 });
