@@ -70,10 +70,6 @@ local runningBreak
 do
   local i = 0
   function runningBreak()
-    if step_enabled then
-      i = 0
-      return false
-    end
     if i < (__DebugAdapter.runningBreak or 5000) then
       i = i + 1
       return false
@@ -110,10 +106,10 @@ local function hook_rate(source)
     if step_instr then
       return "cr", 1
     else
-      return "clr"
+      return "clr", (__DebugAdapter.runningBreak or 5000)
     end
   end
-  return "cr"
+  return "cr", (__DebugAdapter.runningBreak or 5000)
 end
 
 ---@type table<string,true>
@@ -152,7 +148,6 @@ do
       local dump
       if not isDumpIgnore[s] then
         local rawdump = string.dump(info.func)
-        DAstep.hookstats.dump = DAstep.hookstats.dump + #rawdump
         dump = "\xEF\xB7\x95" .. variables.buffer(rawdump)
       end
       print("\xEF\xB7\x91"..json_encode{event="source", body={ source = dasource, dump = dump }})
@@ -160,7 +155,20 @@ do
     end
   end
 
+  ---@param source string
+  local function bp_hook(source)
+    debug.sethook(hook,hook_rate(source))
+  end
+
+
 --[[
+  line:
+    step_enabled - stepping hook
+    bp in file?
+  count:
+    step_enabled - count=1, stepping hook + running_break
+    ~step_enabled - count=5000, always running_break
+
   check bp hook
   tail call (lua) -> lua
   call * -> lua
@@ -178,33 +186,22 @@ do
       return isapi <- *
 ]]
 
-  ---@param source string
-  local function bp_hook(source)
-    debug.sethook(hook,hook_rate(source))
-  end
-
-  DAstep.hookstats = { line = 0, tail = 0, call = 0, main = 0, ret = 0, dump = 0, }
-
   ---debug hook function
   ---@param event string
   function hook(event)
     if event == "line" or event == "count" then
-      DAstep.hookstats.line = DAstep.hookstats.line +1
+    if event == "line" then
       local info = getinfo(2,"Slf")
       local ignored = stepIgnoreFuncs[info.func]
       if ignored then return end
-      if stepdepth and stepdepth<=0 then
+      if step_enabled and stepdepth and stepdepth<=0 then
         stepdepth = nil
         print("\xEF\xB7\x91"..json_encode{event="stopped", body={
           reason = "step",
           threadId = __DebugAdapter.this_thread,
           }})
         debugprompt()
-      elseif runningBreak() then
-        print("\xEF\xB7\x91"..json_encode{event="running", body={
-          threadId = __DebugAdapter.this_thread,
-          }})
-        debugprompt()
+        bp_hook(info.source)
       else
         local fb = filebreaks(info.source)
         local line = info.currentline
@@ -252,27 +249,48 @@ do
                   threadId = __DebugAdapter.this_thread,
                   }})
                 debugprompt()
+                bp_hook(info.source)
               end
               b.hits = nil
             end
           end
         end
       end
-      bp_hook(info.source)
+    elseif event == "count" then
+      local info = getinfo(2,"Slf")
+      if step_instr then
+        if stepdepth and stepdepth<=0 then
+          stepdepth = nil
+          print("\xEF\xB7\x91"..json_encode{event="stopped", body={
+            reason = "step",
+            threadId = __DebugAdapter.this_thread,
+            }})
+          debugprompt()
+          bp_hook(info.source)
+        elseif runningBreak() then
+          print("\xEF\xB7\x91"..json_encode{event="running", body={
+            threadId = __DebugAdapter.this_thread,
+            }})
+          debugprompt()
+          bp_hook(info.source)
+        end
+      else
+        print("\xEF\xB7\x91"..json_encode{event="running", body={
+          threadId = __DebugAdapter.this_thread,
+          }})
+        debugprompt()
+        bp_hook(info.source)
+      end
     elseif event == "tail call" then
-      DAstep.hookstats.tail = DAstep.hookstats.tail +1
       local info = getinfo(2,"Sf")
       if info.what == "main" then
-        DAstep.hookstats.main = DAstep.hookstats.main +1
         sourceEvent(info)
       end
       bp_hook(info.source)
 
     elseif event == "call" then
-      DAstep.hookstats.call = DAstep.hookstats.call +1
       local info = getinfo(2,"Sfu")
       if info.what == "main" then
-        DAstep.hookstats.main = DAstep.hookstats.main +1
         sourceEvent(info)
       end
 
@@ -308,7 +326,6 @@ do
       end
 
     elseif event == "return" then
-      DAstep.hookstats.ret = DAstep.hookstats.ret +1
       local info = getinfo(2,"Su")
       if info.what == "main" and info.source == "@__core__/lualib/noise.lua" then
         local i,k,v
@@ -347,9 +364,6 @@ do
         if parent.what ~= "C" then
         bp_hook(parent.source)
         end
-      else -- no parent
-        --print(serpent.line(DAstep.hookstats))
-        DAstep.hookstats = { line = 0, tail = 0, call = 0, main = 0, ret = 0, dump = 0, }
       end
     end
   end
