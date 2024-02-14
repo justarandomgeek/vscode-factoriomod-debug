@@ -56,6 +56,7 @@ local print = print
 local dispatch = require("__debugadapter__/dispatch.lua")
 local threads = require("__debugadapter__/threads.lua")
 local variables = require("__debugadapter__/variables.lua")
+local DAprint = require("__debugadapter__/print.lua")
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local json_event_prompt = require("__debugadapter__/json.lua").event_prompt
 local datastring = require("__debugadapter__/datastring.lua")
@@ -261,7 +262,7 @@ do
                   __debugtype = "DebugAdapter.LogPointResult",
                 })
                 local varresult = variables.create(nil,{exprs}, nil)
-                __DebugAdapter.outputEvent(
+                DAprint.outputEvent(
                   {output=result, variablesReference=varresult.variablesReference},
                   info)
               else
@@ -354,9 +355,9 @@ do
         until not k or k == "noise_expression_metatable"
         if v then
           require("__debugadapter__/noise.lua")(v)
-          __DebugAdapter.print("installed noise expression hook", nil, nil, "console")
+          DAprint.print("installed noise expression hook", nil, nil, "console")
         else
-          __DebugAdapter.print("failed to install noise expression hook", nil, nil, "console")
+          DAprint.print("failed to install noise expression hook", nil, nil, "console")
         end
       end
 
@@ -438,6 +439,9 @@ function DAstep.attach()
   -- on_error is api for instrument mods to catch errors
   if on_error then
     on_error(on_exception)
+  end
+  if instrument then
+    instrument.on_error(on_exception)
   end
 end
 

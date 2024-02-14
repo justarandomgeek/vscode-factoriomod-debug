@@ -1,4 +1,3 @@
-local __DebugAdapter = __DebugAdapter
 local debug = debug
 local variables = require("__debugadapter__/variables.lua") -- uses pcall
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")

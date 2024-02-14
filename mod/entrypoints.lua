@@ -12,6 +12,7 @@ local nextuple = require("__debugadapter__/iterutil.lua").nextuple
 local json = require("__debugadapter__/json.lua")
 local threads = require("__debugadapter__/threads.lua")
 local variables = require("__debugadapter__/variables.lua") -- uses pcall
+local DAprint = require("__debugadapter__/print.lua")
 
 ---@class DebugAdapter.Entrypoints
 local DAEntrypoints = {}
@@ -180,7 +181,7 @@ local function labelhandler(func,entryname)
     do
       local oldhandler = hashandler[entryname]
       if oldhandler and oldhandler ~= func then
-        __DebugAdapter.print("Replacing existing {entryname} {oldhandler} with {func}",nil,3,"console",true)
+        DAprint.print("Replacing existing {entryname} {oldhandler} with {func}",nil,3,"console",true)
       end
     end
   end
