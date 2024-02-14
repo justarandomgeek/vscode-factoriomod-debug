@@ -738,7 +738,6 @@
         "runtime": "node",
         "languages": [
           "lua",
-          "phobos",
           "typescript"
         ],
         "configurationAttributes": {
