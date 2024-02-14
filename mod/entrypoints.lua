@@ -6,12 +6,11 @@ local pairs = pairs
 local error = error
 local type = type
 local select = select
----@type fun(ls:LocalisedString)
-local localised_print = localised_print
 local __DebugAdapter = __DebugAdapter
 local setmetatable = setmetatable
 local nextuple = require("__debugadapter__/iterutil.lua").nextuple
 local json = require("__debugadapter__/json.lua")
+local threads = require("__debugadapter__/threads.lua")
 local variables = require("__debugadapter__/variables.lua") -- uses pcall
 
 ---@class DebugAdapter.Entrypoints
@@ -20,6 +19,7 @@ local DAEntrypoints = {}
 ---Print an exception to the editor
 ---@param etype string
 ---@param mesg string|LocalisedString|nil
+---@package
 local function print_exception(etype,mesg)
   if mesg == nil then mesg = "<nil>" end
 
@@ -27,25 +27,26 @@ local function print_exception(etype,mesg)
     mesg = "\xEF\xB7\x94"..variables.translate(mesg)
   end
 
-  print("\xEF\xB7\x91"..json.encode{event="exception", body={
-    threadId = __DebugAdapter.this_thread,
+  json.event_prompt{event="exception", body={
+    threadId = threads.this_thread,
     filter = etype,
     mesg = mesg,
-    }})
+    }}
 end
 DAEntrypoints.print_exception = print_exception
 
 ---Generate a breakpoint or exception from mod code
 ---@param mesg string|LocalisedString|nil
+---@public
 function DAEntrypoints.breakpoint(mesg)
   debug.sethook()
   if mesg then
     print_exception("manual",mesg)
   else
-    print("\xEF\xB7\x91"..json.encode{event="stopped", body={
+    json.event_prompt{event="stopped", body={
       reason = "breakpoint",
-      threadId = __DebugAdapter.this_thread,
-      }})
+      threadId = threads.this_thread,
+      }}
   end
   debug.debug()
   return __DebugAdapter.attach()
@@ -53,6 +54,7 @@ end
 
 
 ---Terminate a debug session from mod code
+---@public
 function DAEntrypoints.terminate()
   debug.sethook()
   print("\xEF\xB7\x90\xEE\x80\x8C")
@@ -63,6 +65,7 @@ end
 ---@param filter string Where the exception was intercepted
 ---@param user_handler? function When used as xpcall, the exception will pass to this handler after continuing
 ---@return function
+---@package
 local function caught(filter, user_handler)
   ---xpcall handler for intercepting pcall/xpcall
   ---@param mesg string|LocalisedString
@@ -117,6 +120,7 @@ local event_handler = {}
 ---@param id defines.events|string
 ---@param f? function
 ---@return function?
+---@package
 local function save_event_handler(id,f)
   event_handler[id] = f
   return f
@@ -165,6 +169,7 @@ end
 ---@param func? F
 ---@param entryname string
 ---@return F? func
+---@package
 local function labelhandler(func,entryname)
   if func then
     if handlernames[func] then
@@ -194,6 +199,7 @@ local newscript = {
 ---@param event defines.events|number|string
 ---@param data EventData
 ---@param modname string
+---@public
 function DAEntrypoints.raise_event(event,data,modname)
   if modname and modname ~= oldscript.mod_name then
     if game and remote.interfaces["__debugadapter_"..modname] then

@@ -12,9 +12,10 @@ if data then
   if regvars then return regvars end
 end
 
+local dispatch = require("__debugadapter__/dispatch.lua")
 local luaObjectInfo = require("__debugadapter__/luaobjectinfo.lua")
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
-local json_encode = require("__debugadapter__/json.lua").encode
+local json = require("__debugadapter__/json.lua")
 local iterutil = require("__debugadapter__/iterutil.lua")
 
 local __DebugAdapter = __DebugAdapter
@@ -236,11 +237,11 @@ do
 
   ---Pass a string to vscode as a raw buffer
   ---@param buff string
-  ---@return integer @Buffer ID
+  ---@return string @Buffer ID for reviver
   function variables.buffer(buff)
     local bufferID = nextID()
     print("\xEF\xB7\xAE\xEF\xB7\x97"..bufferID.."\x01"..sgsub(buff, '[\n\xEF"]', escape_char_map).."\xEF\xB7\xAF")
-    return bufferID
+    return "\xEF\xB7\x95"..bufferID
   end
 end
 
@@ -701,7 +702,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,inner)
   ---@type DAvarslib.Ref
   local varRef = refs[variablesReference]
   -- or remote lookup to find a long ref in another lua...
-  if not varRef and not inner and __DebugAdapter.canRemoteCall() then
+  if not varRef and not inner and dispatch.canRemoteCall() then
     local call = remote.call
     for remotename,_ in pairs(remote.interfaces) do
       local modname = remotename:match("^__debugadapter_(.+)$")
@@ -1190,7 +1191,7 @@ function DAvars.variables(variablesReference,seq,filter,start,count,inner)
     presentationHint = {kind="virtual"},
   }
   ::done::
-  print("\xEF\xB7\x96" .. json_encode({seq = seq, body = vars}))
+  json.response{seq = seq, body = vars}
   return true
 end
 
@@ -1203,7 +1204,7 @@ end
 ---@return boolean?
 function DAvars.setVariable(variablesReference, name, value, seq, inner)
   local varRef = refs[variablesReference]
-  if not varRef and not inner and __DebugAdapter.canRemoteCall() then
+  if not varRef and not inner and dispatch.canRemoteCall() then
     local call = remote.call
     for remotename,_ in pairs(remote.interfaces) do
       local modname = remotename:match("^__debugadapter_(.+)$")
@@ -1216,7 +1217,7 @@ function DAvars.setVariable(variablesReference, name, value, seq, inner)
   end
   if not varRef then
     if not inner then
-      print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value="no such ref"}}))
+      json.response{seq = seq, body = {type="error",value="no such ref"}}
     end
     return false
   end
@@ -1232,10 +1233,10 @@ function DAvars.setVariable(variablesReference, name, value, seq, inner)
         if lname == matchname then
           localindex = matchidx
         else
-          print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {
+          json.response{seq = seq, body = {
             type="error",
             value="name mismatch at register "..matchidx.." expected `"..matchname.."` got `"..lname.."`"
-          }}))
+          }}
           return true
         end
       else
@@ -1255,14 +1256,14 @@ function DAvars.setVariable(variablesReference, name, value, seq, inner)
         local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
         if goodvalue then
           debug.setlocal(varRef.frameId,localindex,newvalue)
-          print("\xEF\xB7\x96" .. json_encode({seq = seq, body = variables.create(nil,newvalue)}))
+          json.response{seq = seq, body = variables.create(nil,newvalue)}
           return true
         else
-          print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value=newvalue}}))
+          json.response{seq = seq, body = {type="error",value=newvalue}}
           return true
         end
       else
-        print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value="named var not present"}}))
+        json.response{seq = seq, body = {type="error",value="named var not present"}}
         return true
       end
     else
@@ -1275,17 +1276,17 @@ function DAvars.setVariable(variablesReference, name, value, seq, inner)
           local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
           if goodvalue then
             debug.setlocal(varRef.frameId,i,newvalue)
-            print("\xEF\xB7\x96" .. json_encode({seq = seq, body = variables.create(nil,newvalue)}))
+            json.response{seq = seq, body = variables.create(nil,newvalue)}
             return true
           else
-            print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value=newvalue}}))
+            json.response{seq = seq, body = {type="error",value=newvalue}}
             return true
           end
         end
         i = i - 1
       end
     end
-    print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value="invalid local name"}}))
+    json.response{seq = seq, body = {type="error",value="invalid local name"}}
     return true
   elseif varRef.type == "Upvalues" then
     ---@cast varRef DAvarslib.ScopeRef
@@ -1298,16 +1299,16 @@ function DAvars.setVariable(variablesReference, name, value, seq, inner)
         local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
         if goodvalue then
           debug.setupvalue(func,i,newvalue)
-          print("\xEF\xB7\x96" .. json_encode({seq = seq, body = variables.create(nil,newvalue)}))
+          json.response{seq = seq, body = variables.create(nil,newvalue)}
           return true
         else
-          print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value=newvalue}}))
+          json.response{seq = seq, body = {type="error",value=newvalue}}
           return true
         end
       end
       i = i + 1
     end
-    print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value="invalid upval name"}}))
+    json.response{seq = seq, body = {type="error",value="invalid upval name"}}
     return true
   elseif varRef.type == "Table" or varRef.type == "LuaObject" then
     -- special names "[]" and others aren't valid lua so it won't parse anyway
@@ -1323,13 +1324,13 @@ function DAvars.setVariable(variablesReference, name, value, seq, inner)
       end
       local goodvalue,newvalue = __DebugAdapter.evaluateInternal(nil,alsoLookIn,"setvar",value)
       if not goodvalue then
-        print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value=newvalue}}))
+        json.response{seq = seq, body = {type="error",value=newvalue}}
         return true
       end
       -- this could fail if table has __newindex or LuaObject property is read only or wrong type, etc
       local goodassign,mesg = pnewindex(alsoLookIn,newname,newvalue)
       if not goodassign then
-        print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value=mesg}}))
+        json.response{seq = seq, body = {type="error",value=mesg}}
         return true
       end
 
@@ -1337,14 +1338,14 @@ function DAvars.setVariable(variablesReference, name, value, seq, inner)
       -- so fetch the value back instead of assuming it set...
       -- also, refresh the value even if we didn't update it
       local _,resultvalue = pindex(alsoLookIn,newname)
-      print("\xEF\xB7\x96" .. json_encode({seq = seq, body = variables.create(nil,resultvalue)}))
+      json.response{seq = seq, body = variables.create(nil,resultvalue)}
       return true
     else
-      print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value="invalid property name"}}))
+      json.response{seq = seq, body = {type="error",value="invalid property name"}}
       return true
     end
   else
-    print("\xEF\xB7\x96" .. json_encode({seq = seq, body = {type="error",value="cannot set on this ref type"}}))
+    json.response{seq = seq, body = {type="error",value="cannot set on this ref type"}}
     return true
   end
 end
@@ -1358,12 +1359,12 @@ function DAvars.source(id, seq, internal)
 
   local ref = sourcerefs[id]
   if ref then
-    print("\xEF\xB7\x96" .. json_encode{seq=seq, body=ref.source})
+    json.response{seq=seq, body=ref.source}
     return true
   end
   if internal then return false end
   -- or remote lookup to find a long ref in another lua...
-  if __DebugAdapter.canRemoteCall() then
+  if dispatch.canRemoteCall() then
     local call = remote.call
     for remotename,_ in pairs(remote.interfaces) do
       local modname = smatch(remotename, "^__debugadapter_(.+)$")
@@ -1375,7 +1376,7 @@ function DAvars.source(id, seq, internal)
     end
   end
 
-  print("\xEF\xB7\x96" .. json_encode{seq=seq, body=nil})
+  json.response{seq=seq, body=nil}
   return false
 end
 

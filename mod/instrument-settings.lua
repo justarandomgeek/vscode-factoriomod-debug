@@ -11,7 +11,7 @@ for name,version in pairs(mods) do
     version = version,
   }
 end
-print("\xEF\xB7\x95" .. json.encode({event="modules", body=modules}))
+json.event{event="modules", body=modules}
 debug.getregistry().__DASentModules = true
 
 print("\xEF\xB7\x90\xEE\x80\x80")

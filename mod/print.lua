@@ -2,9 +2,8 @@ local __DebugAdapter = __DebugAdapter
 local debug = debug
 local variables = require("__debugadapter__/variables.lua") -- uses pcall
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
-require("__debugadapter__/evaluate.lua") -- uses pcall
+local DAeval = require("__debugadapter__/evaluate.lua") -- uses pcall
 local json = require('__debugadapter__/json.lua')
-local print = print
 local type = type
 local next = next
 local setmetatable = setmetatable
@@ -36,7 +35,7 @@ function DAprint.outputEvent(body, info)
     end
   end
 
-  print("\xEF\xB7\x95"..json.encode{
+  json.event{
     event="output",
     body={
       output=body.output,
@@ -44,7 +43,7 @@ function DAprint.outputEvent(body, info)
       variablesReference=body.variablesReference,
       source=dasource,
       line=daline,
-    }})
+    }}
 end
 
 ---@param expr any
@@ -52,6 +51,7 @@ end
 ---@param upStack? integer
 ---@param category? "console"|"important"|"stdout"|"stderr"
 ---@param noexprs? boolean
+---@public
 function DAprint.print(expr,alsoLookIn,upStack,category,noexprs)
   local texpr = type(expr)
   ---@type string
@@ -61,7 +61,7 @@ function DAprint.print(expr,alsoLookIn,upStack,category,noexprs)
   if texpr == "string" then
     ---@type any[]
     local exprs
-    result,exprs = __DebugAdapter.stringInterp(expr,3,alsoLookIn,"print")
+    result,exprs = DAeval.stringInterp(expr,3,alsoLookIn,"print")
     if next(exprs) and not noexprs then
       setmetatable(exprs,{
         __debugline = function() return result end,
@@ -96,6 +96,6 @@ function DAprint.print(expr,alsoLookIn,upStack,category,noexprs)
   else
     info = debug.getinfo(2,"lS")
   end
-  __DebugAdapter.outputEvent(body, info)
+  DAprint.outputEvent(body, info)
 end
 return DAprint

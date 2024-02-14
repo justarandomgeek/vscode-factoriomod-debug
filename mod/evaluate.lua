@@ -1,10 +1,11 @@
+local dispatch = require("__debugadapter__/dispatch.lua")
+local threads = require("__debugadapter__/threads.lua")
 local variables = require("__debugadapter__/variables.lua")
-local json_encode = require("__debugadapter__/json.lua").encode
+local json = require("__debugadapter__/json.lua")
 local __DebugAdapter = __DebugAdapter
 local debug = debug
 local string = string
 local table = table
-local print = print
 local type = type
 local getmetatable = getmetatable
 local pcall = pcall -- capture pcall early before entrypoints wraps it
@@ -423,7 +424,7 @@ function DAEval.evaluate(target,context,expression,seq)
   local modname, frameId, tag
   if ttarget == "number" then
     local thread
-    thread,frameId,tag = __DebugAdapter.splitFrameId(target)
+    thread,frameId,tag = threads.splitFrameId(target)
     modname = thread.name
   elseif ttarget == "string"then
     modname = target
@@ -431,10 +432,10 @@ function DAEval.evaluate(target,context,expression,seq)
     modname = "level"
   end
   if modname and script and modname~=script.mod_name then
-    if __DebugAdapter.canRemoteCall() and remote.interfaces["__debugadapter_"..modname] then
+    if dispatch.canRemoteCall() and remote.interfaces["__debugadapter_"..modname] then
       return remote.call("__debugadapter_"..modname,"evaluate",target,context,expression,seq)
     else
-      print("\xEF\xB7\x96" .. json_encode({seq=seq, body={result = "`"..modname.."` not available for eval", type="error", variablesReference=0}}))
+      json.response{seq=seq, body={result = "`"..modname.."` not available for eval", type="error", variablesReference=0}}
       return
     end
   end
@@ -476,7 +477,7 @@ function DAEval.evaluate(target,context,expression,seq)
           __DebugAdapter.stepIgnore(err)
           success,result = xpcall(mtresult.__debugvisualize,err,result)
         end
-        evalresult.result = json_encode(result)
+        evalresult.result = json.encode(result)
       end
     else
       if context == "repl" then
@@ -499,7 +500,7 @@ function DAEval.evaluate(target,context,expression,seq)
   else
     evalresult = {result = "Invalid Frame in Evaluate", type="error", variablesReference=0}
   end
-  print("\xEF\xB7\x96" .. json_encode({seq=seq, body=evalresult}))
+  json.response{seq=seq, body=evalresult}
 end
 
 return DAEval

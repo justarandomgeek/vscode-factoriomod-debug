@@ -15,6 +15,6 @@ if not debug.getregistry().__DASentModules then
       version = version,
     }
   end
-  print("\xEF\xB7\x95" .. json.encode({event="modules", modules=modules}))
+  json.event{event="modules", modules=modules}
   debug.getregistry().__DASentModules = true
 end

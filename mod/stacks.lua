@@ -1,17 +1,15 @@
+local dispatch = require("__debugadapter__/dispatch.lua")
+local threads = require("__debugadapter__/threads.lua")
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua") -- uses pcall
 local variables = require("__debugadapter__/variables.lua") -- uses pcall
 local json = require('__debugadapter__/json.lua')
 local remote = remote and (type(remote)=="table" and rawget(remote,"__raw")) or remote
 local script = script
 local debug = debug
-local print = print
-local pairs = pairs
 local select = select
-local table_size = table_size
 local __DebugAdapter = __DebugAdapter
 
 ---@class DebugAdapter.Stacks
----@field this_thread integer
 local DAStacks = {}
 
 local sourcelabel = {
@@ -26,53 +24,19 @@ local function labelframe(i,sourcename,mod_name,extra)
   }
 end
 
----@type DebugProtocol.Thread[]
-local threads
-do
-  if not script then
-    threads = {
-      { id = 1, name = "data", },
-    }
-    DAStacks.this_thread = 1
-  elseif script.level.is_simulation then
-    threads = {
-      { id = 1, name = "simulation", },
-    }
-    DAStacks.this_thread = 1
-  else
-    threads = {
-      { id = 1, name = "level", },
-    }
-    if script.mod_name == "level" then
-      DAStacks.this_thread = 1
-    end
-    for name in pairs(script.active_mods) do
-      local i = #threads + 1
-      threads[i] = { id = i, name = name, }
-      if name == script.mod_name then
-        DAStacks.this_thread = i
-      end
-    end
-  end
-end
-
----@param seq number
-function DAStacks.threads(seq)
-  print("\xEF\xB7\x96" .. json.encode{body={threads=threads},seq=seq})
-end
 
 ---@param threadid integer
 ---@param startFrame integer | nil
 ---@param seq integer
 function DAStacks.stackTrace(threadid, startFrame, seq)
-  local thread = threads[threadid]
+  local thread = threads.active_threads[threadid]
   if script and thread.name ~= script.mod_name then
-    if __DebugAdapter.canRemoteCall() and remote.interfaces["__debugadapter_"..thread.name] then
+    if dispatch.canRemoteCall() and remote.interfaces["__debugadapter_"..thread.name] then
       -- redirect...
       remote.call("__debugadapter_"..thread.name, "stackTrace", threadid, startFrame, seq)
     else
       -- return empty if can't remote...
-      print("\xEF\xB7\x96" .. json.encode{body={},seq=seq})
+      json.response{body={},seq=seq}
     end
     return
   end
@@ -108,7 +72,7 @@ function DAStacks.stackTrace(threadid, startFrame, seq)
     local isC = info.what == "C"
     if isC then
       if framename == "__index" or framename == "__newindex" then
-        local describe = __DebugAdapter.describe
+        local describe = variables.describe
         local t = describe(select(2,debug.getlocal(i,1)),true)
         local k = describe(select(2,debug.getlocal(i,2)),true)
         if framename == "__newindex" then
@@ -165,34 +129,22 @@ function DAStacks.stackTrace(threadid, startFrame, seq)
     i = i + 1
   end
 
-  print("\xEF\xB7\x96" .. json.encode{body=stackFrames,seq=seq})
-end
-
----@param frameId integer
----@return DebugProtocol.Thread thread
----@return integer frameId
----@return integer tag
-function DAStacks.splitFrameId(frameId)
-  local threadid = math.floor(frameId/1024)
-  local thread = threads[threadid]
-  local i = math.floor((frameId % 1024) / 4)
-  local tag = frameId % 4
-  return thread,i,tag
+  json.response{body=stackFrames,seq=seq}
 end
 
 ---@param frameId integer
 ---@prints DebugProtocol.Scope[]
 function DAStacks.scopes(frameId, seq)
-  local thread,i,tag = DAStacks.splitFrameId(frameId)
+  local thread,i,tag = threads.splitFrameId(frameId)
   if script and thread.name ~= script.mod_name then
-    if __DebugAdapter.canRemoteCall() and remote.interfaces["__debugadapter_"..thread.name] then
+    if dispatch.canRemoteCall() and remote.interfaces["__debugadapter_"..thread.name] then
       -- redirect...
       remote.call("__debugadapter_"..thread.name, "scopes", frameId, seq)
     else
       -- return empty if can't remote...
-      print("\xEF\xB7\x96" .. json.encode{body={
+      json.response{body={
         { name = "[Thread Unreachable]", variablesReference = 0, expensive=false }
-      },seq=seq})
+      },seq=seq}
     end
     return
   end
@@ -211,11 +163,11 @@ function DAStacks.scopes(frameId, seq)
     -- Lua Globals
     scopes[#scopes+1] = { name = "Lua Globals", variablesReference = variables.tableRef(_ENV), expensive=false }
 
-    print("\xEF\xB7\x96" .. json.encode({seq=seq, body=scopes}))
+    json.response{seq=seq, body=scopes}
   else
-    print("\xEF\xB7\x96" .. json.encode({seq=seq, body={
+    json.response{seq=seq, body={
       { name = "[No Frame]", variablesReference = 0, expensive=false }
-    }}))
+    }}
   end
 end
 

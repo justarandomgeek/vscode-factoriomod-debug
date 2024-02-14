@@ -53,9 +53,11 @@ local string = string
 local setmetatable = setmetatable
 local print = print
 
+local dispatch = require("__debugadapter__/dispatch.lua")
+local threads = require("__debugadapter__/threads.lua")
 local variables = require("__debugadapter__/variables.lua")
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
-local json_encode = require("__debugadapter__/json.lua").encode
+local json_event_prompt = require("__debugadapter__/json.lua").event_prompt
 local datastring = require("__debugadapter__/datastring.lua")
 local ReadBreakpoints = datastring.ReadBreakpoints
 
@@ -127,6 +129,25 @@ function DAstep.dumpIgnore(source)
     end
   end
 end
+DAstep.dumpIgnore = DAstep.dumpIgnore
+
+local blockhook
+local unhooked = setmetatable({}, {__mode = "k"})
+function DAstep.unhook(f)
+  local oldblock
+  local rehook = function(...)
+    blockhook = oldblock
+    return ...
+  end
+  local unhook = function(...)
+    oldblock = blockhook
+    blockhook = true
+    return rehook(f(...))
+  end
+  unhooked[unhook] = true
+  unhooked[rehook] = true
+  return unhook
+end
 
 local hook
 do
@@ -148,9 +169,9 @@ do
       local dump
       if not isDumpIgnore[s] then
         local rawdump = string.dump(info.func)
-        dump = "\xEF\xB7\x95" .. variables.buffer(rawdump)
+        dump = variables.buffer(rawdump)
       end
-      print("\xEF\xB7\x91"..json_encode{event="source", body={ source = dasource, dump = dump }})
+      json_event_prompt{event="source", body={ source = dasource, dump = dump }}
       debugprompt()
     end
   end
@@ -189,17 +210,18 @@ do
   ---debug hook function
   ---@param event string
   function hook(event)
-    if event == "line" or event == "count" then
+    if blockhook then return end
+    local info = getinfo(2,"Slfu")
+    if unhooked[info.func] then return end
     if event == "line" then
-      local info = getinfo(2,"Slf")
       local ignored = stepIgnoreFuncs[info.func]
       if ignored then return end
       if step_enabled and stepdepth and stepdepth<=0 then
         stepdepth = nil
-        print("\xEF\xB7\x91"..json_encode{event="stopped", body={
+        json_event_prompt{event="stopped", body={
           reason = "step",
-          threadId = __DebugAdapter.this_thread,
-          }})
+          threadId = threads.this_thread,
+          }}
         debugprompt()
         bp_hook(info.source)
       else
@@ -241,13 +263,13 @@ do
                 local varresult = variables.create(nil,{exprs}, nil)
                 __DebugAdapter.outputEvent(
                   {output=result, variablesReference=varresult.variablesReference},
-                  {source=normalizeLuaSource(info.source), currentline=line})
+                  info)
               else
                 stepdepth = nil
-                print("\xEF\xB7\x91"..json_encode{event="stopped", body={
+                json_event_prompt{event="stopped", body={
                   reason = "breakpoint",
-                  threadId = __DebugAdapter.this_thread,
-                  }})
+                  threadId = threads.this_thread,
+                  }}
                 debugprompt()
                 bp_hook(info.source)
               end
@@ -257,39 +279,36 @@ do
         end
       end
     elseif event == "count" then
-      local info = getinfo(2,"Slf")
       if step_instr then
         if stepdepth and stepdepth<=0 then
           stepdepth = nil
-          print("\xEF\xB7\x91"..json_encode{event="stopped", body={
+          json_event_prompt{event="stopped", body={
             reason = "step",
-            threadId = __DebugAdapter.this_thread,
-            }})
+            threadId = threads.this_thread,
+            }}
           debugprompt()
           bp_hook(info.source)
         elseif runningBreak() then
-          print("\xEF\xB7\x91"..json_encode{event="running", body={
-            threadId = __DebugAdapter.this_thread,
-            }})
+          json_event_prompt{event="running", body={
+            threadId = threads.this_thread,
+            }}
           debugprompt()
           bp_hook(info.source)
         end
       else
-        print("\xEF\xB7\x91"..json_encode{event="running", body={
-          threadId = __DebugAdapter.this_thread,
-          }})
+        json_event_prompt{event="running", body={
+          threadId = threads.this_thread,
+          }}
         debugprompt()
         bp_hook(info.source)
       end
     elseif event == "tail call" then
-      local info = getinfo(2,"Sf")
       if info.what == "main" then
         sourceEvent(info)
       end
       bp_hook(info.source)
 
     elseif event == "call" then
-      local info = getinfo(2,"Sfu")
       if info.what == "main" then
         sourceEvent(info)
       end
@@ -305,19 +324,19 @@ do
         local parent_is_none_or_api = not parent or (parent.what=="C" and parent.nups > 0)
         if info_is_api then
           print("call out "..script.mod_name)
-          __DebugAdapter.setStepping(stepdepth, step_instr)
-          __DebugAdapter.step(nil)
+          DAstep.setStepping(stepdepth, step_instr)
+          DAstep.step(nil)
         elseif parent_is_none_or_api then
           print("call in "..script.mod_name)
-          __DebugAdapter.step(__DebugAdapter.getStepping())
+          DAstep.step(DAstep.getStepping())
         end
       end
 
       if not parent then
         if not step_enabled and not stepIgnoreFuncs[info.func] then
-          print("\xEF\xB7\x91"..json_encode{event="running", body={
-            threadId = __DebugAdapter.this_thread,
-            }})
+          json_event_prompt{event="running", body={
+            threadId = threads.this_thread,
+            }}
           debugprompt()
         end
         bp_hook(info.source)
@@ -326,7 +345,6 @@ do
       end
 
     elseif event == "return" then
-      local info = getinfo(2,"Su")
       if info.what == "main" and info.source == "@__core__/lualib/noise.lua" then
         local i,k,v
         i = 0
@@ -348,11 +366,11 @@ do
         local parent_is_none_or_api = not parent or (parent.what=="C" and parent.nups > 0)
         if info_is_api then
           print("ret in "..script.mod_name)
-          __DebugAdapter.step(__DebugAdapter.getStepping())
+          DAstep.step(DAstep.getStepping())
         elseif parent_is_none_or_api then
           print("ret out "..script.mod_name)
-          __DebugAdapter.setStepping(stepdepth, step_instr)
-          __DebugAdapter.step(nil)
+          DAstep.setStepping(stepdepth, step_instr)
+          DAstep.step(nil)
         end
       end
 
@@ -377,7 +395,7 @@ if __DebugAdapter.instrument then
     -- 3 = pCallWithStackTraceMessageHandler, 4 = at exception
     local info = debug.getinfo(i,"Sf")
     repeat
-      if (info.what ~= "C") and (info.source:sub(1,1) ~= "=") and not __DebugAdapter.isStepIgnore(info.func) then
+      if (info.what ~= "C") and (info.source:sub(1,1) ~= "=") and not DAstep.isStepIgnore(info.func) then
         return true
       end
       i = i + 1
@@ -390,7 +408,7 @@ if __DebugAdapter.instrument then
   function on_exception (mesg)
     debug.sethook()
     if not stack_has_location() then
-      __DebugAdapter.getStepping()
+      DAstep.getStepping()
       debug.sethook(hook,hook_rate())
       return
     end
@@ -400,7 +418,7 @@ if __DebugAdapter.instrument then
         mesg:match("^Error when running interface function") or
         mesg:match("^The mod [a-zA-Z0-9 _-]+ %([0-9.]+%) caused a non%-recoverable error")
         )then
-      __DebugAdapter.getStepping()
+      DAstep.getStepping()
       debug.sethook(hook,hook_rate())
       return
     end
@@ -408,7 +426,7 @@ if __DebugAdapter.instrument then
     __DebugAdapter.print_exception("unhandled",mesg)
     debug.debug()
 
-    __DebugAdapter.getStepping()
+    DAstep.getStepping()
     debug.sethook(hook,hook_rate())
   end
   -- shared for stack trace to know to skip one extra
@@ -438,34 +456,10 @@ function DAstep.setBreakpoints(source,breaks)
   end
 end
 
-local function isMainChunk()
-  local i = 2 -- no need to check getinfo or isMainChunk
-  ---@type string
-  local what
-  local getinfo = debug.getinfo
-  while true do
-    local info = getinfo(i,"S")
-    if info then
-      what = info.what
-      i = i + 1
-    else
-      break
-    end
-  end
-  return what == "main"
-end
-stepIgnore(isMainChunk)
-
-function DAstep.canRemoteCall()
-  -- remote.call is only legal from within events, game catches all but on_load
-  -- during on_load, script exists and the root of the stack is no longer the main chunk
-  return game or script and not isMainChunk()
-end
-
 ---@param change string
 function DAstep.updateBreakpoints(change)
   -- pass it around to everyone if possible, else just set it here...
-  if DAstep.canRemoteCall() and remote.interfaces["debugadapter"] then
+  if dispatch.canRemoteCall() and remote.interfaces["debugadapter"] then
     remote.call("debugadapter", "updateBreakpoints", change)
   else
     local source,changedbreaks = ReadBreakpoints(change)
@@ -474,16 +468,6 @@ function DAstep.updateBreakpoints(change)
     else
 
     end
-  end
-end
-
----@overload fun(source:string):table<number,DebugProtocol.SourceBreakpoint>
----@overload fun():table<string,table<number,DebugProtocol.SourceBreakpoint>>
-function DAstep.dumpBreakpoints(source)
-  if source then
-    return breakpoints[source]
-  else
-    return breakpoints
   end
 end
 
@@ -504,7 +488,7 @@ function DAstep.step_enabled(state)
   print("step_enabled="..tostring(state))
   if step_enabled == state then return end
   -- pass it around to everyone if possible, else just set it here...
-  if DAstep.canRemoteCall() then
+  if dispatch.canRemoteCall() then
     local call = remote.call
     for remotename,_ in pairs(remote.interfaces) do
       local modname = remotename:match("^__debugadapter_(.+)$")
@@ -521,7 +505,7 @@ end
 function DAstep.step_enabled_inner(state)
   step_enabled = state
 end
-
+unhooked[DAstep.step_enabled_inner] = true
 
 do
   -- functions for passing stepping state across context-switches by handing it to main DA vm
@@ -535,7 +519,7 @@ do
   ---@return number? stepping
   ---@return boolean? step_instr
   function DAstep.getStepping(clear)
-    if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
+    if script and script.mod_name ~= "debugadapter" and dispatch.canRemoteCall() and remote.interfaces["debugadapter"] then
       return remote.call--[[@as fun(string,string,boolean?):number?,boolean?]]("debugadapter", "getStepping", clear)
     else
       local stepping,step_instr = cross_stepping, cross_step_instr
@@ -550,7 +534,7 @@ do
   ---@param stepping? number
   ---@param step_instr? boolean
   function DAstep.setStepping(stepping, step_instr)
-    if script and script.mod_name ~= "debugadapter" and __DebugAdapter.canRemoteCall() and remote.interfaces["debugadapter"] then
+    if script and script.mod_name ~= "debugadapter" and dispatch.canRemoteCall() and remote.interfaces["debugadapter"] then
       return remote.call("debugadapter", "setStepping", stepping, step_instr)
     else
       cross_stepping = stepping

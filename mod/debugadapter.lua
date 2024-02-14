@@ -54,6 +54,9 @@ end)
 --this has to be first before requiring other files so they can mark functions as ignored
 DAMerge(require("__debugadapter__/stepping.lua"))
 
+local threads = require("__debugadapter__/threads.lua")
+__DebugAdapter.threads = threads.threads
+
 require("__debugadapter__/luaobjectinfo.lua") -- uses pcall
 
 local variables = require("__debugadapter__/variables.lua") -- uses pcall
@@ -74,6 +77,7 @@ local debug = debug
 local print = print
 
 ---Force the DA Client to refresh everything
+---@public
 function __DebugAdapter.refresh()
   print("\xEF\xB7\x98")
 end

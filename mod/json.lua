@@ -127,6 +127,20 @@ function encode(value, stack)
   end
 end
 stepIgnore(encode)
-
 json.encode = encode
+
+
+function json.event_prompt(e)
+  print("\xEF\xB7\x91"..encode(e))
+end
+
+function json.event(e)
+  print("\xEF\xB7\x95"..encode(e))
+end
+
+function json.response(e)
+  print("\xEF\xB7\x96"..encode(e))
+end
+
+
 return json
