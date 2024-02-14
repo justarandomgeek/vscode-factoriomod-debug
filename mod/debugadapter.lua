@@ -24,11 +24,9 @@ end
 ---@field hooklog? boolean enable replacing `log`
 ---@field keepoldlog? boolean when set, `log` replacement will still call original `log`
 ---@field runningBreak? number frequency to check for pause in long-running code
----@field hascurrentpc? boolean set to `true` if debug.getinfo supports 'p'->`currentpc`
-
 
 -- this is a global so the vscode extension can get to it from debug.debug()
----@class DebugAdapter : DebugAdapter.Config, DebugAdapter.Stepping, DebugAdapter.Variables, DebugAdapter.Evaluate, DebugAdapter.Print, DebugAdapter.Entrypoints, DebugAdapter.Stacks
+---@class DebugAdapter : DebugAdapter.Config, DebugAdapter.Stepping, DebugAdapter.Variables, DebugAdapter.Evaluate, DebugAdapter.Print, DebugAdapter.Stacks
 local __DebugAdapter = _ENV.__DebugAdapter or {} -- but might have been defined already for selective instrument mode
 _ENV.__DebugAdapter = __DebugAdapter
 
@@ -43,13 +41,6 @@ local require = require
 
 -- capture raw remote before it gets replaced
 local remote = remote
-
-pcall(function()
-  -- see if we have debug.getinfo(,"p") to get currentpc
-  -- if not, this will throw and exit the pcall immediately before setting flag
-  local _ = debug.getinfo(1,"p")
-  __DebugAdapter.hascurrentpc = true
-end)
 
 --this has to be first before requiring other files so they can mark functions as ignored
 DAMerge(require("__debugadapter__/stepping.lua"))
@@ -67,7 +58,6 @@ if __DebugAdapter.hooklog ~= false then
   require("__debugadapter__/log.lua") -- uses pcall
 end
 DAMerge(require("__debugadapter__/print.lua")) -- uses evaluate/variables
-DAMerge(require("__debugadapter__/entrypoints.lua")) -- must be after anyone using pcall/xpcall
 
 DAMerge(require("__debugadapter__/stacks.lua"))
 require("__debugadapter__/test.lua")

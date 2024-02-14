@@ -3,6 +3,7 @@ local threads = require("__debugadapter__/threads.lua")
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua") -- uses pcall
 local variables = require("__debugadapter__/variables.lua") -- uses pcall
 local json = require('__debugadapter__/json.lua')
+local stepping = require('__debugadapter__/stepping.lua')
 local remote = remote and (type(remote)=="table" and rawget(remote,"__raw")) or remote
 local script = script
 local debug = debug
@@ -49,7 +50,7 @@ function DAStacks.stackTrace(threadid, startFrame, seq)
     local atprompt = debug.getinfo(3,"f")
     if atprompt and atprompt.func == debug.debug then
       local on_ex_info = debug.getinfo(4,"f")
-      if __DebugAdapter.instrument and on_ex_info and on_ex_info.func == __DebugAdapter.on_exception then
+      if __DebugAdapter.instrument and on_ex_info and on_ex_info.func == stepping.on_exception then
         offset = offset + 1
       end
     else
@@ -62,7 +63,7 @@ function DAStacks.stackTrace(threadid, startFrame, seq)
   ---@type DebugProtocol.StackFrame[]
   local stackFrames = {}
   while true do
-    local info = debug.getinfo(i,"nSlutf")
+    local info = debug.getinfo(i,"nSlutfp")
     if not info then break end
     ---@type string
     local framename = info.name or "(name unavailable)"
@@ -83,7 +84,7 @@ function DAStacks.stackTrace(threadid, startFrame, seq)
         end
       end
     elseif script and framename == "(name unavailable)" then
-      local entrypoint = __DebugAdapter.getEntryLabel(info.func)
+      local entrypoint = stepping.getEntryLabel(info.func)
       if entrypoint then
         framename = entrypoint
       end
@@ -108,14 +109,12 @@ function DAStacks.stackTrace(threadid, startFrame, seq)
         name = source,
         path = source,
       }
-      if __DebugAdapter.isStepIgnore(info.func) then
+      if stepping.isStepIgnore(info.func) then
         dasource.presentationHint = "deemphasize"
       end
 
-      if __DebugAdapter.hascurrentpc then
-        stackFrame.currentpc = debug.getinfo(i,"p").currentpc
-        stackFrame.linedefined = info.linedefined
-      end
+      stackFrame.currentpc = info.currentpc
+      stackFrame.linedefined = info.linedefined
 
       if sourceIsCode then
         local sourceref = variables.sourceRef(info.source)
