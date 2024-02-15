@@ -60,6 +60,7 @@ local json = require("__debugadapter__/json.lua")
 local dispatch = require("__debugadapter__/dispatch.lua")
 local threads = require("__debugadapter__/threads.lua")
 local variables = require("__debugadapter__/variables.lua")
+local evaluate = require("__debugadapter__/evaluate.lua")
 local DAprint = require("__debugadapter__/print.lua")
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local json_event_prompt = require("__debugadapter__/json.lua").event_prompt
@@ -243,7 +244,7 @@ do
             local isHit = true
 
             if b.condition then
-              local success,conditionResult = __DebugAdapter.evaluateInternal(frameId,nil,"breakpoint",b.condition)
+              local success,conditionResult = evaluate.evaluateInternal(frameId,nil,"breakpoint",b.condition)
               if success and (not conditionResult) then
                 isHit = false
               end
@@ -251,7 +252,7 @@ do
 
             if isHit and b.hitCondition then -- only counts if condition was true
               b.hits = (b.hits or 0) + 1
-              local success,hitResult = __DebugAdapter.evaluateInternal(frameId,nil,"breakpoint",b.hitCondition)
+              local success,hitResult = evaluate.evaluateInternal(frameId,nil,"breakpoint",b.hitCondition)
               if success and type(hitResult) == "number" and b.hits < hitResult then
                 isHit = false
               end
@@ -260,7 +261,7 @@ do
             if isHit then
               if b.logMessage then
                 -- parse and print logMessage as an expression in the scope of the breakpoint
-                local result,exprs = __DebugAdapter.stringInterp(b.logMessage,frameId,nil,"logpoint")
+                local result,exprs = evaluate.stringInterp(b.logMessage,frameId,nil,"logpoint")
                 setmetatable(exprs,{
                   __debugline = function() return result end,
                   __debugtype = "DebugAdapter.LogPointResult",
