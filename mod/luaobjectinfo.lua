@@ -7,9 +7,11 @@ local load = load
 local pairs = pairs
 local type = type
 local string = string
+local smatch = string.match
 local setmetatable = setmetatable
 local debug = debug
 local dgetmetatable = debug.getmetatable
+local debugprompt = debug.debug
 local tconcat = table.concat
 
 local validLuaObjectTypes = {table=true,userdata=true}
@@ -35,7 +37,7 @@ do
     end
   end
   print("\xEF\xB7\x90\xEE\x80\x84")
-  debug.debug()
+  debugprompt()
   __DebugAdapter.loadObjectInfo = nil ---@diagnostic disable-line inject-field
 end
 
@@ -134,7 +136,7 @@ local enumSpecial = {
   ["defines.circuit_connector_id"] = function() --1.1
     ---@diagnostic disable-next-line: undefined-field
     local circuit_connector_id = defines.circuit_connector_id
-    local combinator = invert(circuit_connector_id,"defines.circuit_connector_id.",function(k,v) return (not not string.match(k,"^combinator")) end)
+    local combinator = invert(circuit_connector_id,"defines.circuit_connector_id.",function(k,v) return (not not smatch(k,"^combinator")) end)
     local netnames = {
       ["accumulator"] = {[circuit_connector_id.accumulator] = "defines.circuit_connector_id.accumulator"},
       ["container"] = {[circuit_connector_id.container] = "defines.circuit_connector_id.container"},
@@ -174,20 +176,20 @@ local enumSpecial = {
       [defines.inventory.chest] = "defines.inventory.chest",
     }
 
-    local assembler = with(burner,invert(defines.inventory,"defines.inventory.",function(k,v) return not not string.match(k,"^assembling_machine_") end))
+    local assembler = with(burner,invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^assembling_machine_") end))
 
-    local character = invert(defines.inventory,"defines.inventory.",function(k,v) return (not not string.match(k,"^character_")) and k ~= "character_corpse" end)
-    local robot = invert(defines.inventory,"defines.inventory.",function(k,v) return (not not string.match(k,"^robot_")) end)
+    local character = invert(defines.inventory,"defines.inventory.",function(k,v) return (not not smatch(k,"^character_")) and k ~= "character_corpse" end)
+    local robot = invert(defines.inventory,"defines.inventory.",function(k,v) return (not not smatch(k,"^robot_")) end)
 
     local invname = {
       burner = burner,
-      item = invert(defines.inventory,"defines.inventory.",function(k,v) return not not string.match(k,"^item_") end),
+      item = invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^item_") end),
       player = {
         [defines.controllers.character] = character,
         [defines.controllers.god] =
-          invert(defines.inventory,"defines.inventory.",function(k,v) return not not string.match(k,"^god_") end),
+          invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^god_") end),
         [defines.controllers.editor] =
-          invert(defines.inventory,"defines.inventory.",function(k,v) return not not string.match(k,"^editor_") end),
+          invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^editor_") end),
       },
       entity = {
         ["container"]=chest,
@@ -198,20 +200,20 @@ local enumSpecial = {
         ["construction-robot"]=robot,
         ["logistic-robot"]=robot,
 
-        ["ammo-turret"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not string.match(k,"^turret_") end),
-        ["artillery-turret"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not string.match(k,"^artillery_turret_") end),
-        ["artillery-wagon"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not string.match(k,"^artillery_wagon_") end),
-        ["roboport"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not string.match(k,"^roboport_") end),
-        ["beacon"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not string.match(k,"^beacon_") end),
-        ["character-corpse"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not string.match(k,"^character_corpse_") end),
+        ["ammo-turret"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^turret_") end),
+        ["artillery-turret"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^artillery_turret_") end),
+        ["artillery-wagon"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^artillery_wagon_") end),
+        ["roboport"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^roboport_") end),
+        ["beacon"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^beacon_") end),
+        ["character-corpse"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^character_corpse_") end),
 
-        ["furnace"]=with(burner,invert(defines.inventory,"defines.inventory.",function(k,v) return not not string.match(k,"^furnace_") end)),
+        ["furnace"]=with(burner,invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^furnace_") end)),
         ["assembling-machine"]=assembler,
-        ["mining-drill"]=with(burner,invert(defines.inventory,"defines.inventory.",function(k,v) return not not string.match(k,"^mining_drill_") end)),
-        ["lab"]=with(burner,invert(defines.inventory,"defines.inventory.",function(k,v) return not not string.match(k,"^lab_") end)),
-        ["car"]=with(burner,invert(defines.inventory,"defines.inventory.",function(k,v) return not not string.match(k,"^car_") end)),
-        ["spider-vehicle"]=with(burner,invert(defines.inventory,"defines.inventory.",function(k,v) return not not string.match(k,"^spider_") end)),
-        ["rocket-silo"]=with(assembler,invert(defines.inventory,"defines.inventory.",function(k,v) return not not string.match(k,"^rocket_silo_") end)),
+        ["mining-drill"]=with(burner,invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^mining_drill_") end)),
+        ["lab"]=with(burner,invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^lab_") end)),
+        ["car"]=with(burner,invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^car_") end)),
+        ["spider-vehicle"]=with(burner,invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^spider_") end)),
+        ["rocket-silo"]=with(assembler,invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^rocket_silo_") end)),
 
       },
     }
@@ -252,10 +254,10 @@ local enumSpecial = {
   ["defines.wire_connector_id"] = function () --1.2
     ---@diagnostic disable-next-line: undefined-field
     local wire_connector_id = defines.wire_connector_id
-    local default = invert(wire_connector_id,"defines.wire_connector_id.",function(k,v) return (not not string.match(k,"^circuit")) end)
-    local combinator = invert(wire_connector_id,"defines.wire_connector_id.",function(k,v) return (not not string.match(k,"^combinator")) end)
-    local pole = invert(wire_connector_id,"defines.wire_connector_id.",function(k,v) return (not not string.match(k,"^pole")) end)
-    local switch = invert(wire_connector_id,"defines.wire_connector_id.",function(k,v) return (not not string.match(k,"^power_switch")) end)
+    local default = invert(wire_connector_id,"defines.wire_connector_id.",function(k,v) return (not not smatch(k,"^circuit")) end)
+    local combinator = invert(wire_connector_id,"defines.wire_connector_id.",function(k,v) return (not not smatch(k,"^combinator")) end)
+    local pole = invert(wire_connector_id,"defines.wire_connector_id.",function(k,v) return (not not smatch(k,"^pole")) end)
+    local switch = invert(wire_connector_id,"defines.wire_connector_id.",function(k,v) return (not not smatch(k,"^power_switch")) end)
     local entity = {
       ["electric-pole"] = pole,
       ["power-switch"] = switch,

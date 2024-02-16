@@ -56,7 +56,8 @@ DAMerge(require("__debugadapter__/evaluate.lua")) -- uses pcall
 if __DebugAdapter.hooklog ~= false then
   require("__debugadapter__/log.lua") -- uses pcall
 end
-DAMerge(require("__debugadapter__/print.lua")) -- uses evaluate/variables
+local daprint = require("__debugadapter__/print.lua") -- uses evaluate/variables
+DAMerge(daprint)
 
 DAMerge(require("__debugadapter__/stacks.lua"))
 require("__debugadapter__/test.lua")
@@ -79,7 +80,7 @@ do
   end
 
   if data then
-    __DebugAdapter.print("debugadapter registered for data" .. ininstrument, nil, nil, "console")
+    daprint.print("debugadapter registered for data" .. ininstrument, nil, nil, "console")
     __DebugAdapter.attach()
     print("\xEF\xB7\x90\xEE\x80\x87")
     debug.debug()
@@ -89,7 +90,7 @@ do
   else
     -- in addition to the global, set up a remote so we can configure from DA's on_tick
     -- and pass stepping state around remote calls
-    __DebugAdapter.print("debugadapter registered for " .. script.mod_name .. ininstrument, nil, nil, "console")
+    daprint.print("debugadapter registered for " .. script.mod_name .. ininstrument, nil, nil, "console")
 
     __DebugAdapter.attach()
     print("\xEF\xB7\x90\xEE\x80\x88")

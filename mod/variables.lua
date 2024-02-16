@@ -4,9 +4,12 @@ if ... ~= "__debugadapter__/variables.lua" then
   return require("__debugadapter__/variables.lua")
 end
 
+
+local debug = debug
+local dgetregistry = debug.getregistry
 if data then
   -- data stage clears package.loaded between files, so we stash a copy in Lua registry too
-  local reg = debug.getregistry()
+  local reg = dgetregistry()
   ---@type DAvarslib
   local regvars = reg.__DAVariables
   if regvars then return regvars end
@@ -19,8 +22,22 @@ local json = require("__debugadapter__/json.lua")
 local iterutil = require("__debugadapter__/iterutil.lua")
 
 local __DebugAdapter = __DebugAdapter
-local debug = debug
+local dgetmetatable = debug.getmetatable
+local dgetinfo = debug.getinfo
+local dgetlocal = debug.getlocal
+local dsetlocal = debug.setlocal
+local dgetupvalue = debug.getupvalue
+local dsetupvalue = debug.setupvalue
+local debugprompt = debug.debug
+local string = string
+local ssub = string.sub
+local sformat = string.format
+local smatch = string.match
+local schar = string.char
+local sgsub = string.gsub
 local table = table
+local tinsert = table.insert
+local tconcat = table.concat
 local tostring = tostring
 local setmetatable = setmetatable
 local getmetatable = getmetatable
@@ -31,9 +48,6 @@ local ipairs = ipairs
 local print = print
 local pcall = pcall -- capture pcall early before entrypoints wraps it
 local type = type
-local string = string
-local schar = string.char
-local sgsub = string.gsub
 
 ---@type {[integer]:DAvarslib.Ref}
 local refs = setmetatable({},{
@@ -192,7 +206,7 @@ do
       return ref
     end
     print("\xEF\xB7\x90\xEE\x80\x85")
-    debug.debug(); -- call __DebugAdapter.transferRef(ref) and continue
+    debugprompt(); -- call __DebugAdapter.transferRef(ref) and continue
     return nextRefID
   end
   __DebugAdapter.stepIgnore(nextID)
@@ -467,11 +481,11 @@ local function describeLuaObject(classname,object,short)
   ---@type string
   local lineitem
   if classname == "LuaCustomTable" then
-      lineitem = ("%d item%s"):format(#object, #object~=1 and "s" or "" )
+      lineitem = sformat("%d item%s", #object, #object~=1 and "s" or "" )
   else
-    if luaObjectInfo.alwaysValid[classname:match("^([^.]+)%.?")] or object.valid then
+    if luaObjectInfo.alwaysValid[smatch(classname, "^([^.]+)%.?")] or object.valid then
       local lineitemfmt = luaObjectInfo.lineItem[classname]
-      lineitem = ("<%s>"):format(classname)
+      lineitem = sformat("<%s>", classname)
       local litype = type(lineitemfmt)
       if litype == "function" then
         -- don't crash a debug session for a bad formatter...
@@ -481,7 +495,7 @@ local function describeLuaObject(classname,object,short)
         lineitem = __DebugAdapter.stringInterp(lineitemfmt,nil,object,"luaobjectline")
       end
     else
-      lineitem = ("<Invalid %s>"):format(classname)
+      lineitem = sformat("<Invalid %s>", classname)
     end
   end
   return lineitem,classname
@@ -502,7 +516,7 @@ function variables.describe(value,short)
     if classname then
       lineitem,vtype = describeLuaObject(classname,value,short)
     else -- non-LuaObject tables
-      local mt = debug.getmetatable(value)
+      local mt = dgetmetatable(value)
       if mt and mt.__debugline then -- it knows how to make a line for itself...
         ---@type string|fun(value:table,short?:boolean)
         local debugline = mt.__debugline
@@ -539,22 +553,20 @@ function variables.describe(value,short)
             local innerpairs = { "{ " }
             for k,v in pairs(value) do
               if k == inext then
-                innerpairs[#innerpairs + 1] = ([[%s, ]]):format((variables.describe(v,true)))
+                innerpairs[#innerpairs + 1] = sformat([[%s, ]], (variables.describe(v,true)))
                 inext = inext + 1
               else
                 inext = nil
-                if type(k) == "string" and k:match("^[a-zA-Z_][a-zA-Z0-9_]*$") then
-                  innerpairs[#innerpairs + 1] = ([[%s=%s, ]]):format(
-                    k, (variables.describe(v,true)))
+                if type(k) == "string" and smatch(k, "^[a-zA-Z_][a-zA-Z0-9_]*$") then
+                  innerpairs[#innerpairs + 1] = sformat([[%s=%s, ]], k, (variables.describe(v,true)))
                 else
-                  innerpairs[#innerpairs + 1] = ([[[%s]=%s, ]]):format(
-                    (variables.describe(k,true)), (variables.describe(v,true)))
+                  innerpairs[#innerpairs + 1] = sformat([[[%s]=%s, ]], (variables.describe(k,true)), (variables.describe(v,true)))
                 end
 
               end
             end
             innerpairs[#innerpairs + 1] = "}"
-            lineitem = table.concat(innerpairs)
+            lineitem = tconcat(innerpairs)
           else
             -- this is an empty table!
             lineitem = "{}"
@@ -563,15 +575,15 @@ function variables.describe(value,short)
       end
     end
   elseif vtype == "function" then
-    local info = debug.getinfo(value, "nS")
+    local info = dgetinfo(value, "nS")
     lineitem = "<function>"
     if not short then
       if info.what == "C" then
         lineitem = "<C function>"
       elseif info.what == "Lua" then
-        lineitem = ("<Lua function %s:%d>"):format(info.source and normalizeLuaSource(info.source),info.linedefined)
+        lineitem = sformat("<Lua function %s:%d>", info.source and normalizeLuaSource(info.source),info.linedefined)
       elseif info.what == "main" then
-        lineitem = ("<main chunk %s>"):format(info.source and normalizeLuaSource(info.source))
+        lineitem = sformat("<main chunk %s>", info.source and normalizeLuaSource(info.source))
       end
     end
   elseif vtype == "userdata" then ---@cast value LuaObject
@@ -582,7 +594,7 @@ function variables.describe(value,short)
       lineitem = "<userdata>"
     end
   elseif vtype == "string" then
-    lineitem = ("%q"):format(value)
+    lineitem = sformat("%q", value)
   else -- boolean, number, nil
     lineitem = tostring(value)
   end
@@ -613,10 +625,10 @@ function variables.create(name,value,evalName)
     else
       namedVariables = #value
     end
-  elseif vtype:sub(1,3) == "Lua" then
+  elseif ssub(vtype,1,3) == "Lua" then
     variablesReference = variables.luaObjectRef(value,vtype,evalName)
   elseif vtype == "table" then
-    local mt = debug.getmetatable(value)
+    local mt = dgetmetatable(value)
     if not mt or mt.__debugcontents == nil then
       variablesReference = variables.tableRef(value,nil,nil,nil,evalName)
       namedVariables = 0
@@ -642,7 +654,7 @@ function variables.create(name,value,evalName)
       vtype = mt.__debugtype
     end
   elseif vtype == "function" then
-    local info = debug.getinfo(value, "u")
+    local info = dgetinfo(value, "u")
     if info.nups > 0 then
       variablesReference = variables.funcRef(value)
     end
@@ -724,24 +736,24 @@ function dispatch.__remote.variables(variablesReference,seq,filter,start,count)
     if mode == "varargs" then
       i = -1
       while true do
-        local name,value = debug.getlocal(varRef.frameId,i)
+        local name,value = dgetlocal(varRef.frameId,i)
         if not name then break end
-        vars[#vars + 1] = variables.create(("(*vararg %d)"):format(-i),value)
+        vars[#vars + 1] = variables.create(sformat("(*vararg %d)", -i),value)
         i = i - 1
       end
     else
       ---@type {[string]:{index:number, reg:number}}
       local shadow = {}
       while true do
-        local name,value = debug.getlocal(varRef.frameId,i)
+        local name,value = dgetlocal(varRef.frameId,i)
         if not name then break end
-        local isTemp = name:sub(1,1) == "("
+        local isTemp = ssub(name,1,1) == "("
         if isTemp then hasTemps = true end
         if (mode == "temps" and isTemp) or (not mode and not isTemp) then
           ---@type string
           local evalName
           if isTemp then
-            name = ("%s %d)"):format(name:sub(1,-2),i)
+            name = sformat("%s %d)",ssub(name,1,-2),i)
           else
             evalName = name
           end
@@ -759,17 +771,17 @@ function dispatch.__remote.variables(variablesReference,seq,filter,start,count)
       end
       if not mode then
         if hasTemps then
-          table.insert(vars,1,{
+          tinsert(vars,1,{
             name = "<temporaries>", value = "<temporaries>",
             variablesReference = variables.scopeRef(varRef.frameId,"Locals","temps"),
             presentationHint = {kind="virtual"},
           })
         end
-        local info = debug.getinfo(varRef.frameId,"u")
+        local info = dgetinfo(varRef.frameId,"u")
         if info.isvararg then
           local varargidx = info.nparams + 1
           if hasTemps then varargidx = varargidx + 1 end
-          table.insert(vars,varargidx,{
+          tinsert(vars,varargidx,{
             name = "<varargs>", value = "<varargs>",
             variablesReference = variables.scopeRef(varRef.frameId,"Locals","varargs"),
             presentationHint = {kind="virtual"},
@@ -779,10 +791,10 @@ function dispatch.__remote.variables(variablesReference,seq,filter,start,count)
     end
   elseif varRef.type == "Upvalues" then
     ---@cast varRef DAvarslib.ScopeRef
-    local func = debug.getinfo(varRef.frameId,"f").func
+    local func = dgetinfo(varRef.frameId,"f").func
     local i = 1
     while true do
-      local name,value = debug.getupvalue(func,i)
+      local name,value = dgetupvalue(func,i)
       if not name then break end
       vars[#vars + 1] = variables.create(name,value,name)
       i = i + 1
@@ -792,7 +804,7 @@ function dispatch.__remote.variables(variablesReference,seq,filter,start,count)
     local tabref = varRef.table()
     if not tabref then goto collected end
     -- use debug.getmetatable insead of getmetatable to get raw meta instead of __metatable result
-    local mt = debug.getmetatable(tabref)
+    local mt = dgetmetatable(tabref)
     if varRef.mode == "count" then
       --don't show meta on these by default as they're mostly LuaObjects providing count iteration anyway
       if varRef.showMeta == true and mt then
@@ -1021,7 +1033,7 @@ function dispatch.__remote.variables(variablesReference,seq,filter,start,count)
     ---@cast varRef DAvarslib.LuaObjectRef
     local object = varRef.object()
     if not object then goto collected end
-    if luaObjectInfo.alwaysValid[varRef.classname:match("^([^.]+).?")] or object.valid then
+    if luaObjectInfo.alwaysValid[smatch(varRef.classname,"^([^.]+).?")] or object.valid then
       if varRef.classname == "LuaItemStack" and --[[@cast object LuaItemStack]]
         not object.valid_for_read then
         vars[#vars + 1] = {
@@ -1045,7 +1057,7 @@ function dispatch.__remote.variables(variablesReference,seq,filter,start,count)
           if keyprops.thisAsTable then
             vars[#vars + 1] = {
               name = "[]",
-              value = ("%d item%s"):format(#object, #object~=1 and "s" or ""),
+              value = sformat("%d item%s", #object, #object~=1 and "s" or ""),
               type = varRef.classname .. "[]",
               variablesReference = variables.tableRef(object, keyprops.iterMode, false,nil,varRef.evalName),
               indexedVariables = #object + 1,
@@ -1134,7 +1146,7 @@ function dispatch.__remote.variables(variablesReference,seq,filter,start,count)
     if not func then goto collected end
     local i = 1
     while true do
-      local name,value = debug.getupvalue(func,i)
+      local name,value = dgetupvalue(func,i)
       if not name then break end
       if name == "" then name = "<"..i..">" end
       vars[#vars + 1] = variables.create(name,value,name)
@@ -1208,9 +1220,9 @@ function dispatch.__remote.setVariable(variablesReference, name, value, seq)
     if varRef.mode ~= "varargs" then
       local i = 1
       local localindex
-      local matchname,matchidx = name:match("^([_%a][_%w]*)@(%d+)$")
+      local matchname,matchidx = smatch(name, "^([_%a][_%w]*)@(%d+)$")
       if matchname then
-        local lname = debug.getlocal(varRef.frameId,matchidx)
+        local lname = dgetlocal(varRef.frameId,matchidx)
         if lname == matchname then
           localindex = matchidx
         else
@@ -1222,10 +1234,10 @@ function dispatch.__remote.setVariable(variablesReference, name, value, seq)
         end
       else
         while true do
-          local lname = debug.getlocal(varRef.frameId,i)
+          local lname = dgetlocal(varRef.frameId,i)
           if not lname then break end
-          if lname:sub(1,1) == "(" then
-            lname = ("%s %d)"):format(lname:sub(1,-2),i)
+          if ssub(lname,1,1) == "(" then
+            lname = sformat("%s %d)",ssub(lname,1,-2),i)
           end
           if lname == name then
             localindex = i
@@ -1236,7 +1248,7 @@ function dispatch.__remote.setVariable(variablesReference, name, value, seq)
       if localindex then
         local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
         if goodvalue then
-          debug.setlocal(varRef.frameId,localindex,newvalue)
+          dsetlocal(varRef.frameId,localindex,newvalue)
           json.response{seq = seq, body = variables.create(nil,newvalue)}
           return true
         else
@@ -1250,13 +1262,13 @@ function dispatch.__remote.setVariable(variablesReference, name, value, seq)
     else
       local i = -1
       while true do
-        local vaname = debug.getlocal(varRef.frameId,i)
+        local vaname = dgetlocal(varRef.frameId,i)
         if not vaname then break end
-        vaname = ("(*vararg %d)"):format(-i)
+        vaname = sformat("(*vararg %d)",-i)
         if vaname == name then
           local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
           if goodvalue then
-            debug.setlocal(varRef.frameId,i,newvalue)
+            dsetlocal(varRef.frameId,i,newvalue)
             json.response{seq = seq, body = variables.create(nil,newvalue)}
             return true
           else
@@ -1271,15 +1283,15 @@ function dispatch.__remote.setVariable(variablesReference, name, value, seq)
     return true
   elseif varRef.type == "Upvalues" then
     ---@cast varRef DAvarslib.ScopeRef
-    local func = debug.getinfo(varRef.frameId,"f").func
+    local func = dgetinfo(varRef.frameId,"f").func
     local i = 1
     while true do
-      local upname = debug.getupvalue(func,i)
+      local upname = dgetupvalue(func,i)
       if not upname then break end
       if upname == name then
         local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
         if goodvalue then
-          debug.setupvalue(func,i,newvalue)
+          dsetupvalue(func,i,newvalue)
           json.response{seq = seq, body = variables.create(nil,newvalue)}
           return true
         else
@@ -1356,7 +1368,7 @@ dispatch.__remote.source = DAvars.source
 
 if data then
   -- data stage clears package.loaded between files, so we stash a copy in Lua registry too
-  local reg = debug.getregistry()
+  local reg = dgetregistry()
   reg.__DAVariables = variables
 end
 

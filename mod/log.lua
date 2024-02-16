@@ -1,6 +1,8 @@
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local variables = require("__debugadapter__/variables.lua") -- uses pcall
+local print = require("__debugadapter__/print.lua")
 local debug = debug
+local dgetinfo = debug.getinfo
 local type = type
 local getmetatable = getmetatable
 
@@ -26,17 +28,17 @@ local function newlog(mesg)
   local source
   ---@type string
   local loc
-  local istail = debug.getinfo(1,"t")
+  local istail = dgetinfo(1,"t")
   if istail.istailcall then
     source = {source = "=(...tailcall...)", currentline = 1}
     loc = "=(tailcall):?: "
   else
-    local info = debug.getinfo(2,"lS")
+    local info = dgetinfo(2,"lS")
     body.line = info.currentline
     source = {source = normalizeLuaSource(info.source), currentline = info.currentline}
     loc = info.source..":"..info.currentline..": "
   end
-  __DebugAdapter.outputEvent(body, source)
+  print.outputEvent(body, source)
   if keepoldlog then
     return oldlog({"",loc,mesg})
   end

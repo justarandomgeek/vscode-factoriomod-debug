@@ -1,4 +1,5 @@
 local debug = debug
+local dgetinfo = debug.getinfo
 local variables = require("__debugadapter__/variables.lua") -- uses pcall
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local DAeval = require("__debugadapter__/evaluate.lua") -- uses pcall
@@ -90,10 +91,10 @@ function DAprint.print(expr,alsoLookIn,upStack,category,noexprs)
   if upStack then
     if upStack ~= -1 then
       upStack = upStack + 1
-      info = debug.getinfo(upStack,"lS")
+      info = dgetinfo(upStack,"lS")
     end
   else
-    info = debug.getinfo(2,"lS")
+    info = dgetinfo(2,"lS")
   end
   DAprint.outputEvent(body, info)
 end

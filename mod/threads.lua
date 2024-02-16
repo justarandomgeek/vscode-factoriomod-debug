@@ -1,4 +1,7 @@
 local json = require('__debugadapter__/json.lua')
+local script = (type(script)=="table" and rawget(script,"__raw")) or script
+local math = math
+local mfloor = math.floor
 
 ---@class DebugAdapter.Threads
 ---@field this_thread integer
@@ -47,9 +50,9 @@ end
 ---@return integer frameId
 ---@return integer tag
 function DAthreads.splitFrameId(frameId)
-  local threadid = math.floor(frameId/1024)
+  local threadid = mfloor(frameId/1024)
   local thread = active_threads[threadid]
-  local i = math.floor((frameId % 1024) / 4)
+  local i = mfloor((frameId % 1024) / 4)
   local tag = frameId % 4
   return thread,i,tag
 end

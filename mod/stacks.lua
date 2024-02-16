@@ -4,8 +4,14 @@ local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua") --
 local variables = require("__debugadapter__/variables.lua") -- uses pcall
 local json = require('__debugadapter__/json.lua')
 local stepping = require('__debugadapter__/stepping.lua')
-local script = script
+local script = (type(script)=="table" and rawget(script,"__raw")) or script
 local debug = debug
+local debugprompt = debug.debug
+local dgetinfo = debug.getinfo
+local dgetlocal = debug.getlocal
+local string = string
+local sformat = string.format
+local ssub = string.sub
 local select = select
 local __DebugAdapter = __DebugAdapter
 
@@ -36,15 +42,14 @@ function DAStacks.stackTrace(threadid, startFrame, seq)
 end
 function dispatch.__remote.stackTrace(startFrame, seq)
   local threadid = threads.this_thread
-  --TODO: update?
   local offset = 7 -- 0 getinfo, 1 stackTrace, 2 callThread, 3 stackTrace, 4 debug command, 5 debug.debug,
   -- in normal stepping:                       6 sethook callback, 7 at breakpoint
   -- in exception (instrument only)            6 on_error callback, 7 pCallWithStackTraceMessageHandler, 6 at exception
   -- in remote-redirected call:                2 at stack
   do
-    local atprompt = debug.getinfo(5,"f")
-    if atprompt and atprompt.func == debug.debug then
-      local on_ex_info = debug.getinfo(6,"f")
+    local atprompt = dgetinfo(5,"f")
+    if atprompt and atprompt.func == debugprompt then
+      local on_ex_info = dgetinfo(6,"f")
       if __DebugAdapter.instrument and on_ex_info and on_ex_info.func == stepping.on_exception then
         offset = offset + 1
       end
@@ -58,7 +63,7 @@ function dispatch.__remote.stackTrace(startFrame, seq)
   ---@type DebugProtocol.StackFrame[]
   local stackFrames = {}
   while true do
-    local info = debug.getinfo(i,"nSlutfp")
+    local info = dgetinfo(i,"nSlutfp")
     if not info then break end
     ---@type string
     local framename = info.name or "(name unavailable)"
@@ -69,13 +74,13 @@ function dispatch.__remote.stackTrace(startFrame, seq)
     if isC then
       if framename == "__index" or framename == "__newindex" then
         local describe = variables.describe
-        local t = describe(select(2,debug.getlocal(i,1)),true)
-        local k = describe(select(2,debug.getlocal(i,2)),true)
+        local t = describe(select(2,dgetlocal(i,1)),true)
+        local k = describe(select(2,dgetlocal(i,2)),true)
         if framename == "__newindex" then
-          local v = describe(select(2,debug.getlocal(i,3)),true)
-          framename = ("__newindex(%s,%s,%s)"):format(t,k,v)
+          local v = describe(select(2,dgetlocal(i,3)),true)
+          framename = sformat("__newindex(%s,%s,%s)",t,k,v)
         else
-          framename = ("__index(%s,%s)"):format(t,k)
+          framename = sformat("__index(%s,%s)",t,k)
         end
       end
     elseif script and framename == "(name unavailable)" then
@@ -85,11 +90,11 @@ function dispatch.__remote.stackTrace(startFrame, seq)
       end
     end
     if info.istailcall then
-      framename = ("[tail calls...] %s"):format(framename)
+      framename = sformat("[tail calls...] %s",framename)
     end
     local source = normalizeLuaSource(info.source)
     local sourceIsCode = source == "=(dostring)"
-    local noLuaSource = (not sourceIsCode) and source:sub(1,1) == "="
+    local noLuaSource = (not sourceIsCode) and ssub(source,1,1) == "="
     local noSource = isC or noLuaSource
     ---@type DebugProtocol.StackFrame
     local stackFrame = {

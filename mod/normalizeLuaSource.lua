@@ -1,4 +1,5 @@
 local __DebugAdapter = __DebugAdapter
+local script = (type(script)=="table" and rawget(script,"__raw")) or script
 local string = string
 local ssub = string.sub
 local smatch = string.match

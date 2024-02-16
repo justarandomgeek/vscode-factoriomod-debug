@@ -2,6 +2,7 @@ local string = string
 local sformat = string.format
 local sbyte = string.byte
 local schar = string.char
+local sgsub = string.gsub
 local tconcat = table.concat
 local mhuge = math.huge
 local rawget = rawget
@@ -38,7 +39,7 @@ end
 ---@param val string
 ---@return string json
 local function encode_string(val)
-  return '"' .. val:gsub('[%z\x01-\x1f\\"]', escape_char_map) .. '"'
+  return '"' .. sgsub(val, '[%z\x01-\x1f\\"]', escape_char_map) .. '"'
 end
 
 ---Output a number formatted as a JSON number

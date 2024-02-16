@@ -43,11 +43,20 @@ stepIgnore(DAstep.isStepIgnore)
 
 local rawscript = script
 local debug = debug
+local dgetinfo = debug.getinfo
+local dgetlocal = debug.getlocal
+local debugprompt = debug.debug
+local dsethook = debug.sethook
 local string = string
+local sdump = string.dump
+local ssub = string.sub
+local sformat = string.format
+local smatch = string.match
 local setmetatable = setmetatable
 local print = print
 local rawxpcall = xpcall
 local table = table
+local tconcat = table.concat
 local error = error
 local select = select
 local require = require
@@ -153,9 +162,6 @@ end
 
 local hook
 do
-  local getinfo = debug.getinfo
-  local debugprompt = debug.debug
-
   --- report a new `Source` event on entry to a main chunk
   ---@param info debuginfo
   local function sourceEvent(info)
@@ -163,14 +169,14 @@ do
     local dasource
     if s == "=(dostring)" then
       dasource = variables.sourceRef(info.source)
-    elseif s:sub(1,1) == "@" then
+    elseif ssub(s,1,1) == "@" then
       dasource = { name = s, path = "\xEF\xB7\x91"..s }
     end
 
     if dasource then
       local dump
       if not isDumpIgnore[s] then
-        local rawdump = string.dump(info.func)
+        local rawdump = sdump(info.func)
         dump = variables.buffer(rawdump)
       end
       json_event_prompt{event="source", body={ source = dasource, dump = dump }}
@@ -180,7 +186,7 @@ do
 
   ---@param source string
   local function bp_hook(source)
-    debug.sethook(hook,hook_rate(source))
+    dsethook(hook,hook_rate(source))
   end
 
 
@@ -213,7 +219,7 @@ do
   ---@param event string
   function hook(event)
     if blockhook then return end
-    local info = getinfo(2,"Slfu")
+    local info = dgetinfo(2,"Slfu")
     if unhooked[info.func] then return end
     if event == "line" then
       local ignored = stepIgnoreFuncs[info.func]
@@ -320,7 +326,7 @@ do
       end
 
 
-      local parent = getinfo(3,"Su")
+      local parent = dgetinfo(3,"Su")
       if rawscript and step_enabled then
         local info_is_api = info.what=="C" and info.nups > 0
         local parent_is_none_or_api = not parent or (parent.what=="C" and parent.nups > 0)
@@ -352,7 +358,7 @@ do
         i = 0
         repeat
           i = i + 1
-          k,v = debug.getlocal(2,i)
+          k,v = dgetlocal(2,i)
         until not k or k == "noise_expression_metatable"
         if v then
           require("__debugadapter__/noise.lua")(v)
@@ -362,7 +368,7 @@ do
         end
       end
 
-      local parent = getinfo(3,"Su")
+      local parent = dgetinfo(3,"Su")
       if rawscript and step_enabled then
         local info_is_api = info.what=="C" and info.nups > 0
         local parent_is_none_or_api = not parent or (parent.what=="C" and parent.nups > 0)
@@ -413,48 +419,48 @@ if __DebugAdapter.instrument then
     local i = 4
     -- 1 = stack_has_location, 2 = on_exception,
     -- 3 = pCallWithStackTraceMessageHandler, 4 = at exception
-    local info = debug.getinfo(i,"Sf")
+    local info = dgetinfo(i,"Sf")
     repeat
-      if (info.what ~= "C") and (info.source:sub(1,1) ~= "=") and not DAstep.isStepIgnore(info.func) then
+      if (info.what ~= "C") and (ssub(info.source,1,1) ~= "=") and not DAstep.isStepIgnore(info.func) then
         return true
       end
       i = i + 1
-      info = debug.getinfo(i,"Sf")
+      info = dgetinfo(i,"Sf")
     until not info
     return false
   end
   stepIgnore(stack_has_location)
 
   function on_exception (mesg)
-    debug.sethook()
+    dsethook()
     if not stack_has_location() then
       dispatch.getStepping()
-      debug.sethook(hook,hook_rate())
+      dsethook(hook,hook_rate())
       return
     end
     local mtype = type(mesg)
     -- don't bother breaking when a remote.call's error bubbles up, we've already had that one...
     if mtype == "string" and (
-        mesg:match("^Error when running interface function") or
-        mesg:match("^The mod [a-zA-Z0-9 _-]+ %([0-9.]+%) caused a non%-recoverable error")
+        smatch(mesg, "^Error when running interface function") or
+        smatch(mesg, "^The mod [a-zA-Z0-9 _-]+ %([0-9.]+%) caused a non%-recoverable error")
         )then
       dispatch.getStepping()
-      debug.sethook(hook,hook_rate())
+      dsethook(hook,hook_rate())
       return
     end
 
     print_exception("unhandled",mesg)
-    debug.debug()
+    debugprompt()
 
     dispatch.getStepping()
-    debug.sethook(hook,hook_rate())
+    dsethook(hook,hook_rate())
   end
   -- shared for stack trace to know to skip one extra
   DAstep.on_exception = on_exception
 end
 
 function DAstep.attach()
-  debug.sethook(hook,hook_rate())
+  dsethook(hook,hook_rate())
   -- on_error is api for instrument mods to catch errors
   if on_error then
     on_error(on_exception)
@@ -494,7 +500,7 @@ function DAstep.step(depth,instruction)
     print("step "..rawscript.mod_name.." "..tostring(depth).." "..tostring(instruction))
   end
   if depth and stepdepth then
-    print(("step %d with existing depth! %d"):format(depth,stepdepth))
+    print(sformat("step %d with existing depth! %d",depth,stepdepth))
   end
   stepdepth = depth
   step_instr = instruction
@@ -514,7 +520,7 @@ unhooked[dispatch.__remote.step_enabled] = true
 ---@param mesg string|LocalisedString|nil
 ---@public
 function DAstep.breakpoint(mesg)
-  debug.sethook()
+  dsethook()
   if mesg then
     print_exception("manual",mesg)
   else
@@ -523,7 +529,7 @@ function DAstep.breakpoint(mesg)
       threadId = threads.this_thread,
       }}
   end
-  debug.debug()
+  debugprompt()
   return DAstep.attach()
 end
 
@@ -531,9 +537,9 @@ end
 ---Terminate a debug session from mod code
 ---@public
 function DAstep.terminate()
-  debug.sethook()
+  dsethook()
   print("\xEF\xB7\x90\xEE\x80\x8C")
-  debug.debug()
+  debugprompt()
 end
 
 ---Generate handlers for pcall/xpcall wrappers
@@ -546,9 +552,9 @@ local function caught(filter, user_handler)
   ---@param mesg string|LocalisedString
   ---@return string|LocalisedString mesg
   return stepIgnore(function(mesg)
-    debug.sethook()
+    dsethook()
     print_exception(filter,mesg)
-    debug.debug()
+    debugprompt()
     DAstep.attach()
     if user_handler then
       return user_handler(mesg)
@@ -721,9 +727,9 @@ if rawscript then
     else
       local ttype = type(tick)
       if ttype == "number" then
-        return rawscript.on_nth_tick(tick,labelhandler(f,("on_nth_tick %d handler"):format(tick)))
+        return rawscript.on_nth_tick(tick,labelhandler(f,sformat("on_nth_tick %d handler",tick)))
       elseif ttype == "table" then
-        return rawscript.on_nth_tick(tick,labelhandler(f,("on_nth_tick {%s} handler"):format(table.concat(tick,","))))
+        return rawscript.on_nth_tick(tick,labelhandler(f,sformat("on_nth_tick {%s} handler",tconcat(tick,","))))
       else
         error("Bad argument `tick` expected number or table got "..ttype,2)
       end
@@ -742,7 +748,7 @@ if rawscript then
     ---@type boolean
     local has_filters = select("#",...)  > 0
     if etype == "number" then ---@cast event defines.events
-      local evtname = ("event %d"):format(event)
+      local evtname = sformat("event %d",event)
       for k,v in pairs(defines.events) do
         if event == v then
           ---@type string
@@ -750,12 +756,12 @@ if rawscript then
           break
         end
       end
-      return rawscript.on_event(event,labelhandler(save_event_handler(event,f), ("%s handler"):format(evtname)),...)
+      return rawscript.on_event(event,labelhandler(save_event_handler(event,f), sformat("%s handler",evtname)),...)
     elseif etype == "string" then
       if has_filters then
         error("Filters can only be used when registering single events.",2)
       end
-      return rawscript.on_event(event,labelhandler(save_event_handler(event,f), ("%s handler"):format(event)))
+      return rawscript.on_event(event,labelhandler(save_event_handler(event,f), sformat("%s handler",event)))
     elseif etype == "table" then
       if has_filters then
         error("Filters can only be used when registering single events.",2)
