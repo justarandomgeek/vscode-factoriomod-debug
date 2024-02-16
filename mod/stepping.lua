@@ -41,10 +41,7 @@ function DAstep.isStepIgnore(f)
 end
 stepIgnore(DAstep.isStepIgnore)
 
--- capture the raw object
-local remote = (type(remote)=="table" and rawget(remote,"__raw")) or remote
-local script = (type(script)=="table" and rawget(script,"__raw")) or script
-
+local rawscript = script
 local debug = debug
 local string = string
 local setmetatable = setmetatable
@@ -135,7 +132,6 @@ function DAstep.dumpIgnore(source)
     end
   end
 end
-DAstep.dumpIgnore = DAstep.dumpIgnore
 
 local blockhook
 local unhooked = setmetatable({}, {__mode = "k"})
@@ -325,15 +321,15 @@ do
 
 
       local parent = getinfo(3,"Su")
-      if script and step_enabled then
+      if rawscript and step_enabled then
         local info_is_api = info.what=="C" and info.nups > 0
         local parent_is_none_or_api = not parent or (parent.what=="C" and parent.nups > 0)
         if info_is_api then
-          print("call out "..script.mod_name)
+          print("call out "..rawscript.mod_name)
           dispatch.setStepping(stepdepth, step_instr)
           DAstep.step(nil)
         elseif parent_is_none_or_api then
-          print("call in "..script.mod_name)
+          print("call in "..rawscript.mod_name)
           DAstep.step(dispatch.getStepping())
         end
       end
@@ -367,14 +363,14 @@ do
       end
 
       local parent = getinfo(3,"Su")
-      if script and step_enabled then
+      if rawscript and step_enabled then
         local info_is_api = info.what=="C" and info.nups > 0
         local parent_is_none_or_api = not parent or (parent.what=="C" and parent.nups > 0)
         if info_is_api then
-          print("ret in "..script.mod_name)
+          print("ret in "..rawscript.mod_name)
           DAstep.step(dispatch.getStepping())
         elseif parent_is_none_or_api then
-          print("ret out "..script.mod_name)
+          print("ret out "..rawscript.mod_name)
           dispatch.setStepping(stepdepth, step_instr)
           DAstep.step(nil)
         end
@@ -494,8 +490,8 @@ end
 ---@param depth? number
 ---@param instruction? boolean
 function DAstep.step(depth,instruction)
-  if script then
-    print("step "..script.mod_name.." "..tostring(depth).." "..tostring(instruction))
+  if rawscript then
+    print("step "..rawscript.mod_name.." "..tostring(depth).." "..tostring(instruction))
   end
   if depth and stepdepth then
     print(("step %d with existing depth! %d"):format(depth,stepdepth))
@@ -587,7 +583,7 @@ end
 stepIgnore(xpcall)
 
 -- don't need the rest in data stage...
-if script then
+if rawscript then
 
   ---@type table<function,string>
   local handlernames = setmetatable({},{__mode="k"})
@@ -668,9 +664,8 @@ if script then
   end
   stepIgnore(labelhandler)
 
-  local oldscript = script
   local newscript = {
-    __raw = oldscript
+    __raw = rawscript
   }
 
   ---Simulate an event being raised in the target mod ("level" for the scenario).
@@ -680,36 +675,35 @@ if script then
   ---@param modname string
   ---@public
   function DAstep.raise_event(event,data,modname)
-    if modname and modname ~= oldscript.mod_name then
-      if game and remote.interfaces["__debugadapter_"..modname] then
-        return remote.call("__debugadapter_"..modname,"raise_event",event,data)
-      else
-        error("cannot raise events here")
-      end
-    else
-      local f = event_handler[event]
-      if f then
-        return f(data)
-      end
+    if not dispatch.callMod(modname, "raise_event", event, data) then
+      error("cannot raise events here")
     end
   end
-  dispatch.__remote.raise_event = DAstep.raise_event
+
+  ---@param event defines.events|number|string
+  ---@param data EventData
+  function dispatch.__remote.raise_event(event,data)
+    local f = event_handler[event]
+    if f then
+      return f(data)
+    end
+  end
 
   ---@param f? function
   function newscript.on_init(f)
-    oldscript.on_init(labelhandler(f,"on_init handler"))
+    rawscript.on_init(labelhandler(f,"on_init handler"))
   end
   newscript.on_init()
 
   ---@param f? function
   function newscript.on_load(f)
-    oldscript.on_load(labelhandler(f,"on_load handler"))
+    rawscript.on_load(labelhandler(f,"on_load handler"))
   end
   newscript.on_load()
 
   ---@param f? function
   function newscript.on_configuration_changed(f)
-    return oldscript.on_configuration_changed(labelhandler(f,"on_configuration_changed handler"))
+    return rawscript.on_configuration_changed(labelhandler(f,"on_configuration_changed handler"))
   end
 
   ---@param tick uint|uint[]|nil
@@ -719,17 +713,17 @@ if script then
     if not tick then
       if f then
         -- pass this through for the error...
-        return oldscript.on_nth_tick(tick,f)
+        return rawscript.on_nth_tick(tick,f)
       else
         -- just in case somebody gives me a `false`...
-        return oldscript.on_nth_tick(tick)
+        return rawscript.on_nth_tick(tick)
       end
     else
       local ttype = type(tick)
       if ttype == "number" then
-        return oldscript.on_nth_tick(tick,labelhandler(f,("on_nth_tick %d handler"):format(tick)))
+        return rawscript.on_nth_tick(tick,labelhandler(f,("on_nth_tick %d handler"):format(tick)))
       elseif ttype == "table" then
-        return oldscript.on_nth_tick(tick,labelhandler(f,("on_nth_tick {%s} handler"):format(table.concat(tick,","))))
+        return rawscript.on_nth_tick(tick,labelhandler(f,("on_nth_tick {%s} handler"):format(table.concat(tick,","))))
       else
         error("Bad argument `tick` expected number or table got "..ttype,2)
       end
@@ -756,12 +750,12 @@ if script then
           break
         end
       end
-      return oldscript.on_event(event,labelhandler(save_event_handler(event,f), ("%s handler"):format(evtname)),...)
+      return rawscript.on_event(event,labelhandler(save_event_handler(event,f), ("%s handler"):format(evtname)),...)
     elseif etype == "string" then
       if has_filters then
         error("Filters can only be used when registering single events.",2)
       end
-      return oldscript.on_event(event,labelhandler(save_event_handler(event,f), ("%s handler"):format(event)))
+      return rawscript.on_event(event,labelhandler(save_event_handler(event,f), ("%s handler"):format(event)))
     elseif etype == "table" then
       if has_filters then
         error("Filters can only be used when registering single events.",2)
@@ -776,11 +770,11 @@ if script then
 
 
   local newscriptmeta = {
-    __index = oldscript,
+    __index = rawscript,
     ---@param t table
     ---@param k any
     ---@param v any
-    __newindex = function(t,k,v) oldscript[k] = v end,
+    __newindex = function(t,k,v) rawscript[k] = v end,
     __debugline = "<LuaBootstrap Debug Proxy>",
     __debugtype = "DebugAdapter.LuaBootstrap",
   }
@@ -789,30 +783,30 @@ if script then
     stepIgnore(newscriptmeta)
   )
 
-  local oldcommands = commands
+  local rawcommands = commands
   local newcommands = {
-    __raw = oldcommands,
+    __raw = rawcommands,
   }
 
   ---@param name string
   ---@param help string|LocalisedString
   ---@param f function
   function newcommands.add_command(name,help,f)
-    return oldcommands.add_command(name,help,labelhandler(f, "command /" .. name))
+    return rawcommands.add_command(name,help,labelhandler(f, "command /" .. name))
   end
 
   ---@param name string
   function newcommands.remove_command(name)
     labelhandler(nil, "command /" .. name)
-    return oldcommands.remove_command(name)
+    return rawcommands.remove_command(name)
   end
 
   local newcommandsmeta = {
-    __index = oldcommands,
+    __index = rawcommands,
     ---@param t table
     ---@param k any
     ---@param v any
-    __newindex = function(t,k,v) oldcommands[k] = v end,
+    __newindex = function(t,k,v) rawcommands[k] = v end,
     __debugline = "<LuaCommandProcessor Debug Proxy>",
     __debugtype = "DebugAdapter.LuaCommandProcessor",
   }
@@ -821,36 +815,36 @@ if script then
     stepIgnore(newcommandsmeta)
   )
 
-  local oldremote = remote
+  local rawremote = remote
   local newremote = {
-    __raw = oldremote,
+    __raw = rawremote,
   }
 
   ---@param remotename string
   ---@param funcs table<string,function>
   function newremote.add_interface(remotename,funcs)
     myRemotes[remotename] = funcs
-    return oldremote.add_interface(remotename,funcs)
+    return rawremote.add_interface(remotename,funcs)
   end
 
   ---@param remotename string
   function newremote.remove_interface(remotename)
     myRemotes[remotename] = nil
-    return oldremote.remove_interface(remotename)
+    return rawremote.remove_interface(remotename)
   end
 
   local remotemeta = {
-    __index = oldremote,
+    __index = rawremote,
     ---@param t table
     ---@param k any
     ---@param v any
-    __newindex = function(t,k,v) oldremote[k] = v end,
+    __newindex = function(t,k,v) rawremote[k] = v end,
     __debugline = "<LuaRemote Debug Proxy>",
     __debugtype = "DebugAdapter.LuaRemote",
     __debugcontents = function()
       return nextuple, {
-        ["interfaces"] = {oldremote.interfaces},
-        ["<raw>"] = {oldremote, {rawName = true, virtual = true}},
+        ["interfaces"] = {rawremote.interfaces},
+        ["<raw>"] = {rawremote, {rawName = true, virtual = true}},
         ["<myRemotes>"] = {myRemotes, {rawName = true, virtual = true}},
       }
     end,
@@ -860,9 +854,9 @@ if script then
     stepIgnore(remotemeta)
   )
 
-  script = newscript
-  commands = newcommands
-  remote = newremote
+  _ENV.script = newscript
+  _ENV.commands = newcommands
+  _ENV.remote = newremote
 end
 
 local vmeta = {
