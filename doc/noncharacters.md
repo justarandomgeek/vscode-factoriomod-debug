@@ -44,11 +44,11 @@ EE 80 82  E002  on_instrument_control
 EE 80 83  E003  on_da_control
 EE 80 84  E004  object_info
 EE 80 85  E005  getref
-EE 80 86  E006  on_tick
+EE 80 86  E006  ~~on_tick~~
 EE 80 87  E007  on_data
 EE 80 88  E008  on_parse
-EE 80 89  E009  on_init
-EE 80 8A  E00A  on_load
+EE 80 89  E009  ~~on_init~~
+EE 80 8A  E00A  ~~on_load~~
 EE 80 8B  E00B  ~~leaving/running~~
 EE 80 8C  E00C  terminate
 EE 80 8D  E00D  ~~step~~

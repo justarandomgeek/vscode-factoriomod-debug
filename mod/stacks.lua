@@ -4,7 +4,6 @@ local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua") --
 local variables = require("__debugadapter__/variables.lua") -- uses pcall
 local json = require('__debugadapter__/json.lua')
 local stepping = require('__debugadapter__/stepping.lua')
-local remote = remote and (type(remote)=="table" and rawget(remote,"__raw")) or remote
 local script = script
 local debug = debug
 local select = select
@@ -30,26 +29,22 @@ end
 ---@param startFrame integer | nil
 ---@param seq integer
 function DAStacks.stackTrace(threadid, startFrame, seq)
-  local thread = threads.active_threads[threadid]
-  if script and thread.name ~= script.mod_name then
-    if dispatch.canRemoteCall() and remote.interfaces["__debugadapter_"..thread.name] then
-      -- redirect...
-      remote.call("__debugadapter_"..thread.name, "stackTrace", threadid, startFrame, seq)
-    else
-      -- return empty if can't remote...
-      json.response{body={},seq=seq}
-    end
-    return
+  if not dispatch.callThread(threadid, "stackTrace", startFrame, seq) then
+    -- return empty if can't call...
+    json.response{body={},seq=seq}
   end
-
-  local offset = 5 -- 0 getinfo, 1 stackTrace, 2 debug command, 3 debug.debug,
-  -- in normal stepping:                       4 sethook callback, 5 at breakpoint
-  -- in exception (instrument only)            4 on_error callback, 5 pCallWithStackTraceMessageHandler, 6 at exception
+end
+function dispatch.__remote.stackTrace(startFrame, seq)
+  local threadid = threads.this_thread
+  --TODO: update?
+  local offset = 7 -- 0 getinfo, 1 stackTrace, 2 callThread, 3 stackTrace, 4 debug command, 5 debug.debug,
+  -- in normal stepping:                       6 sethook callback, 7 at breakpoint
+  -- in exception (instrument only)            6 on_error callback, 7 pCallWithStackTraceMessageHandler, 6 at exception
   -- in remote-redirected call:                2 at stack
   do
-    local atprompt = debug.getinfo(3,"f")
+    local atprompt = debug.getinfo(5,"f")
     if atprompt and atprompt.func == debug.debug then
-      local on_ex_info = debug.getinfo(4,"f")
+      local on_ex_info = debug.getinfo(6,"f")
       if __DebugAdapter.instrument and on_ex_info and on_ex_info.func == stepping.on_exception then
         offset = offset + 1
       end
@@ -131,23 +126,22 @@ function DAStacks.stackTrace(threadid, startFrame, seq)
   json.response{body=stackFrames,seq=seq}
 end
 
----@param frameId integer
----@prints DebugProtocol.Scope[]
-function DAStacks.scopes(frameId, seq)
-  local thread,i,tag = threads.splitFrameId(frameId)
-  if script and thread.name ~= script.mod_name then
-    if dispatch.canRemoteCall() and remote.interfaces["__debugadapter_"..thread.name] then
-      -- redirect...
-      remote.call("__debugadapter_"..thread.name, "scopes", frameId, seq)
-    else
-      -- return empty if can't remote...
-      json.response{body={
-        { name = "[Thread Unreachable]", variablesReference = 0, expensive=false }
-      },seq=seq}
-    end
-    return
-  end
 
+---@param frameId integer
+---@param seq integer
+function DAStacks.scopes(frameId, seq)
+  if not dispatch.callFrame(frameId, "scopes", seq) then
+    -- return empty if can't call...
+    json.response{body={
+      { name = "[Thread Unreachable]", variablesReference = 0, expensive=false }
+    },seq=seq}
+  end
+end
+
+---@param i integer
+---@param tag integer
+---@param seq integer
+function dispatch.__remote.scopes(i, tag, seq)
   if tag == 0 and debug.getinfo(i,"f") then
     ---@type DebugProtocol.Scope[]
     local scopes = {}

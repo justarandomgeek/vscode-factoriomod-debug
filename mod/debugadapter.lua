@@ -39,8 +39,7 @@ end
 
 local require = require
 
--- capture raw remote before it gets replaced
-local remote = remote
+require("__debugadapter__/dispatch.lua")
 
 --this has to be first before requiring other files so they can mark functions as ignored
 DAMerge(require("__debugadapter__/stepping.lua"))
@@ -91,17 +90,6 @@ do
     -- in addition to the global, set up a remote so we can configure from DA's on_tick
     -- and pass stepping state around remote calls
     __DebugAdapter.print("debugadapter registered for " .. script.mod_name .. ininstrument, nil, nil, "console")
-    remote.add_interface("__debugadapter_" .. script.mod_name ,{
-      setBreakpoints = __DebugAdapter.setBreakpoints,
-      variables = __DebugAdapter.variables,
-      setVariable = __DebugAdapter.setVariable,
-      stackTrace = __DebugAdapter.stackTrace,
-      scopes = __DebugAdapter.scopes,
-      evaluate = __DebugAdapter.evaluate,
-      source = __DebugAdapter.source,
-      raise_event = __DebugAdapter.raise_event,
-      step_enabled = __DebugAdapter.step_enabled_inner,
-    })
 
     __DebugAdapter.attach()
     print("\xEF\xB7\x90\xEE\x80\x88")

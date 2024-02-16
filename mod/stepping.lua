@@ -330,11 +330,11 @@ do
         local parent_is_none_or_api = not parent or (parent.what=="C" and parent.nups > 0)
         if info_is_api then
           print("call out "..script.mod_name)
-          DAstep.setStepping(stepdepth, step_instr)
+          dispatch.setStepping(stepdepth, step_instr)
           DAstep.step(nil)
         elseif parent_is_none_or_api then
           print("call in "..script.mod_name)
-          DAstep.step(DAstep.getStepping())
+          DAstep.step(dispatch.getStepping())
         end
       end
 
@@ -372,10 +372,10 @@ do
         local parent_is_none_or_api = not parent or (parent.what=="C" and parent.nups > 0)
         if info_is_api then
           print("ret in "..script.mod_name)
-          DAstep.step(DAstep.getStepping())
+          DAstep.step(dispatch.getStepping())
         elseif parent_is_none_or_api then
           print("ret out "..script.mod_name)
-          DAstep.setStepping(stepdepth, step_instr)
+          dispatch.setStepping(stepdepth, step_instr)
           DAstep.step(nil)
         end
       end
@@ -432,7 +432,7 @@ if __DebugAdapter.instrument then
   function on_exception (mesg)
     debug.sethook()
     if not stack_has_location() then
-      DAstep.getStepping()
+      dispatch.getStepping()
       debug.sethook(hook,hook_rate())
       return
     end
@@ -442,7 +442,7 @@ if __DebugAdapter.instrument then
         mesg:match("^Error when running interface function") or
         mesg:match("^The mod [a-zA-Z0-9 _-]+ %([0-9.]+%) caused a non%-recoverable error")
         )then
-      DAstep.getStepping()
+      dispatch.getStepping()
       debug.sethook(hook,hook_rate())
       return
     end
@@ -450,7 +450,7 @@ if __DebugAdapter.instrument then
     print_exception("unhandled",mesg)
     debug.debug()
 
-    DAstep.getStepping()
+    dispatch.getStepping()
     debug.sethook(hook,hook_rate())
   end
   -- shared for stack trace to know to skip one extra
@@ -470,7 +470,7 @@ end
 
 ---@param source string
 ---@param breaks? DebugProtocol.SourceBreakpoint[]
-function DAstep.setBreakpoints(source,breaks)
+function dispatch.__remote.setBreakpoints(source,breaks)
   if breaks then
     ---@type table<number,DebugProtocol.SourceBreakpoint>
     local filebreaks = {}
@@ -485,16 +485,9 @@ end
 
 ---@param change string
 function DAstep.updateBreakpoints(change)
-  -- pass it around to everyone if possible, else just set it here...
-  if dispatch.canRemoteCall() and remote.interfaces["debugadapter"] then
-    remote.call("debugadapter", "updateBreakpoints", change)
-  else
-    local source,changedbreaks = ReadBreakpoints(change)
-    if source then
-      DAstep.setBreakpoints(source,changedbreaks)
-    else
-
-    end
+  local source,changedbreaks = ReadBreakpoints(change)
+  if source then
+    dispatch.callAll("setBreakpoints", source, changedbreaks)
   end
 end
 
@@ -512,63 +505,14 @@ function DAstep.step(depth,instruction)
 end
 
 function DAstep.step_enabled(state)
-  print("step_enabled="..tostring(state))
   if step_enabled == state then return end
-  -- pass it around to everyone if possible, else just set it here...
-  if dispatch.canRemoteCall() then
-    local call = remote.call
-    for remotename,_ in pairs(remote.interfaces) do
-      local modname = remotename:match("^__debugadapter_(.+)$")
-      if modname then
-        call(remotename,"step_enabled",state)
-      end
-    end
-  else
-    print("local")
-    step_enabled = state
-  end
+  dispatch.callAll("step_enabled", state)
 end
 
-function DAstep.step_enabled_inner(state)
+function dispatch.__remote.step_enabled(state)
   step_enabled = state
 end
-unhooked[DAstep.step_enabled_inner] = true
-
-do
-  -- functions for passing stepping state across context-switches by handing it to main DA vm
-
-  ---@type number?
-  local cross_stepping
-  ---@type boolean?
-  local cross_step_instr
-
-  ---@param clear? boolean default true
-  ---@return number? stepping
-  ---@return boolean? step_instr
-  function DAstep.getStepping(clear)
-    if script and script.mod_name ~= "debugadapter" and dispatch.canRemoteCall() and remote.interfaces["debugadapter"] then
-      return remote.call--[[@as fun(string,string,boolean?):number?,boolean?]]("debugadapter", "getStepping", clear)
-    else
-      local stepping,step_instr = cross_stepping, cross_step_instr
-      if clear ~= false then
-        cross_stepping,cross_step_instr = nil,nil
-      end
-
-      return stepping,step_instr
-    end
-  end
-
-  ---@param stepping? number
-  ---@param step_instr? boolean
-  function DAstep.setStepping(stepping, step_instr)
-    if script and script.mod_name ~= "debugadapter" and dispatch.canRemoteCall() and remote.interfaces["debugadapter"] then
-      return remote.call("debugadapter", "setStepping", stepping, step_instr)
-    else
-      cross_stepping = stepping
-      cross_step_instr = step_instr
-    end
-  end
-end
+unhooked[dispatch.__remote.step_enabled] = true
 
 ---Generate a breakpoint or exception from mod code
 ---@param mesg string|LocalisedString|nil
@@ -749,6 +693,7 @@ if script then
       end
     end
   end
+  dispatch.__remote.raise_event = DAstep.raise_event
 
   ---@param f? function
   function newscript.on_init(f)

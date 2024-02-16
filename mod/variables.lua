@@ -24,8 +24,6 @@ local table = table
 local tostring = tostring
 local setmetatable = setmetatable
 local getmetatable = getmetatable
-local rawget = rawget
-local rawset = rawset
 local rawlen = rawlen
 local next = next
 local pairs = pairs
@@ -35,9 +33,7 @@ local pcall = pcall -- capture pcall early before entrypoints wraps it
 local type = type
 local string = string
 local schar = string.char
-local smatch = string.match
 local sgsub = string.gsub
-local remote = remote and (type(remote)=="table" and rawget(remote,"__raw")) or remote
 
 ---@type {[integer]:DAvarslib.Ref}
 local refs = setmetatable({},{
@@ -695,114 +691,224 @@ local itermode = {
 ---@param filter nil | 'indexed' | 'named'
 ---@param start nil | integer
 ---@param count nil | integer
----@param inner? boolean
----@return boolean?
----@prints Variable[]
-function DAvars.variables(variablesReference,seq,filter,start,count,inner)
+function DAvars.variables(variablesReference,seq,filter,start,count)
+  if not dispatch.find("variables",variablesReference,seq,filter,start,count) then
+    json.response{seq = seq, body = {
+      name= "Expired variablesReference",
+      value= "Expired variablesReference ref="..variablesReference.." seq="..seq,
+      variablesReference= 0,
+      presentationHint = {kind="virtual"},
+    }}
+  end
+end
+
+---@param variablesReference integer
+---@param seq integer
+---@param filter nil | 'indexed' | 'named'
+---@param start nil | integer
+---@param count nil | integer
+---@return boolean
+function dispatch.__remote.variables(variablesReference,seq,filter,start,count)
   ---@type DAvarslib.Ref
   local varRef = refs[variablesReference]
-  -- or remote lookup to find a long ref in another lua...
-  if not varRef and not inner and dispatch.canRemoteCall() then
-    local call = remote.call
-    for remotename,_ in pairs(remote.interfaces) do
-      local modname = remotename:match("^__debugadapter_(.+)$")
-      if modname then
-        if call(remotename,"variables",variablesReference,seq,filter,start,count,true) then
-          return true
+  if not varRef then return false end
+
+  ---@type DebugProtocol.Variable[]
+  local vars = {}
+  if varRef.type == "Locals" then
+    ---@cast varRef DAvarslib.ScopeRef
+    local mode = varRef.mode
+    local hasTemps =  false
+    local i = 1
+
+    if mode == "varargs" then
+      i = -1
+      while true do
+        local name,value = debug.getlocal(varRef.frameId,i)
+        if not name then break end
+        vars[#vars + 1] = variables.create(("(*vararg %d)"):format(-i),value)
+        i = i - 1
+      end
+    else
+      ---@type {[string]:{index:number, reg:number}}
+      local shadow = {}
+      while true do
+        local name,value = debug.getlocal(varRef.frameId,i)
+        if not name then break end
+        local isTemp = name:sub(1,1) == "("
+        if isTemp then hasTemps = true end
+        if (mode == "temps" and isTemp) or (not mode and not isTemp) then
+          ---@type string
+          local evalName
+          if isTemp then
+            name = ("%s %d)"):format(name:sub(1,-2),i)
+          else
+            evalName = name
+          end
+          local j = #vars + 1
+          local lastshadow = shadow[name]
+          if lastshadow then
+            local var = vars[lastshadow.index]
+            var.name = var.name.."@"..lastshadow.reg
+            if var.evaluateName then var.evaluateName = nil end
+          end
+          vars[j] = variables.create(name,value,evalName)
+          shadow[name] = {index = j, reg = i}
+        end
+        i = i + 1
+      end
+      if not mode then
+        if hasTemps then
+          table.insert(vars,1,{
+            name = "<temporaries>", value = "<temporaries>",
+            variablesReference = variables.scopeRef(varRef.frameId,"Locals","temps"),
+            presentationHint = {kind="virtual"},
+          })
+        end
+        local info = debug.getinfo(varRef.frameId,"u")
+        if info.isvararg then
+          local varargidx = info.nparams + 1
+          if hasTemps then varargidx = varargidx + 1 end
+          table.insert(vars,varargidx,{
+            name = "<varargs>", value = "<varargs>",
+            variablesReference = variables.scopeRef(varRef.frameId,"Locals","varargs"),
+            presentationHint = {kind="virtual"},
+          })
         end
       end
     end
-  end
-  ---@type DebugProtocol.Variable[]
-  local vars = {}
-  if varRef then
-    if varRef.type == "Locals" then
-      ---@cast varRef DAvarslib.ScopeRef
-      local mode = varRef.mode
-      local hasTemps =  false
-      local i = 1
-
-      if mode == "varargs" then
-        i = -1
-        while true do
-          local name,value = debug.getlocal(varRef.frameId,i)
-          if not name then break end
-          vars[#vars + 1] = variables.create(("(*vararg %d)"):format(-i),value)
-          i = i - 1
+  elseif varRef.type == "Upvalues" then
+    ---@cast varRef DAvarslib.ScopeRef
+    local func = debug.getinfo(varRef.frameId,"f").func
+    local i = 1
+    while true do
+      local name,value = debug.getupvalue(func,i)
+      if not name then break end
+      vars[#vars + 1] = variables.create(name,value,name)
+      i = i + 1
+    end
+  elseif varRef.type == "Table" then
+    ---@cast varRef DAvarslib.TableRef
+    local tabref = varRef.table()
+    if not tabref then goto collected end
+    -- use debug.getmetatable insead of getmetatable to get raw meta instead of __metatable result
+    local mt = debug.getmetatable(tabref)
+    if varRef.mode == "count" then
+      --don't show meta on these by default as they're mostly LuaObjects providing count iteration anyway
+      if varRef.showMeta == true and mt then
+        ---@type string
+        local evalName
+        if varRef.evalName then
+          evalName = "debug.getmetatable(" .. varRef.evalName .. ")"
+        end
+        vars[#vars + 1]{
+          name = "<metatable>",
+          value = "metatable",
+          type = "metatable",
+          variablesReference = variables.tableRef(mt),
+          evaluateName = evalName,
+          presentationHint = {kind="virtual"},
+        }
+      end
+      local stop = #tabref
+      if filter == "indexed" then
+        if not start or start == 0 then
+          start = 1
+          count = count - 1
+        end
+        local wouldstop = start + (count - 1)
+        if wouldstop < stop then
+          stop = wouldstop
         end
       else
-        ---@type {[string]:{index:number, reg:number}}
-        local shadow = {}
-        while true do
-          local name,value = debug.getlocal(varRef.frameId,i)
-          if not name then break end
-          local isTemp = name:sub(1,1) == "("
-          if isTemp then hasTemps = true end
-          if (mode == "temps" and isTemp) or (not mode and not isTemp) then
-            ---@type string
-            local evalName
-            if isTemp then
-              name = ("%s %d)"):format(name:sub(1,-2),i)
-            else
-              evalName = name
-            end
-            local j = #vars + 1
-            local lastshadow = shadow[name]
-            if lastshadow then
-              local var = vars[lastshadow.index]
-              var.name = var.name.."@"..lastshadow.reg
-              if var.evaluateName then var.evaluateName = nil end
-            end
-            vars[j] = variables.create(name,value,evalName)
-            shadow[name] = {index = j, reg = i}
-          end
-          i = i + 1
-        end
-        if not mode then
-          if hasTemps then
-            table.insert(vars,1,{
-              name = "<temporaries>", value = "<temporaries>",
-              variablesReference = variables.scopeRef(varRef.frameId,"Locals","temps"),
-              presentationHint = {kind="virtual"},
-            })
-          end
-          local info = debug.getinfo(varRef.frameId,"u")
-          if info.isvararg then
-            local varargidx = info.nparams + 1
-            if hasTemps then varargidx = varargidx + 1 end
-            table.insert(vars,varargidx,{
-              name = "<varargs>", value = "<varargs>",
-              variablesReference = variables.scopeRef(varRef.frameId,"Locals","varargs"),
-              presentationHint = {kind="virtual"},
-            })
-          end
-        end
+        start = 1
       end
-    elseif varRef.type == "Upvalues" then
-      ---@cast varRef DAvarslib.ScopeRef
-      local func = debug.getinfo(varRef.frameId,"f").func
-      local i = 1
-      while true do
-        local name,value = debug.getupvalue(func,i)
-        if not name then break end
-        vars[#vars + 1] = variables.create(name,value,name)
-        i = i + 1
+      for i=start,stop do
+        ---@type string
+        local evalName
+        if varRef.evalName then
+          evalName = varRef.evalName .. "[" .. tostring(i) .. "]"
+        end
+        vars[#vars + 1] = variables.create(tostring(i),tabref[i], evalName)
       end
-    elseif varRef.type == "Table" then
-      ---@cast varRef DAvarslib.TableRef
-      local tabref = varRef.table()
-      if not tabref then goto collected end
-      -- use debug.getmetatable insead of getmetatable to get raw meta instead of __metatable result
-      local mt = debug.getmetatable(tabref)
-      if varRef.mode == "count" then
-        --don't show meta on these by default as they're mostly LuaObjects providing count iteration anyway
-        if varRef.showMeta == true and mt then
+    else
+      if mt and type(mt.__debugcontents) == "function" then
+        ---@type DebugAdapter.DebugContents<any,any,any>
+        local __debugcontents = mt.__debugcontents
+        local success, __debugnext, t, firstk = pcall(__debugcontents,tabref,varRef.extra)
+        if success then
+          ---@cast __debugnext DebugAdapter.DebugNext<any,any>
+          while true do
+            local success,k,v,opts = pcall(__debugnext,t,firstk)
+            if not success then
+              vars[#vars + 1] = {
+                  name = "<__debugnext error>",
+                  -- describe in case it's a LocalisedString or other non-string error object
+                  value = variables.describe(k),
+                  type = "error",
+                  variablesReference = 0,
+                  presentationHint = {kind="virtual"},
+                }
+                break
+            end
+            if not k then
+              break
+            end
+            local kline,ktype = variables.describe(k,true)
+            local newvar = variables.create(kline,v)
+            if ktype == "string" and opts and opts.rawName then
+              newvar.name = k
+            elseif ktype == "table" or ktype == "function" then
+              newvar.variablesReference,newvar.name = variables.kvRef(k,v)
+            end
+            if type(v)=="string" and opts and opts.rawValue then
+              newvar.value = v
+              newvar.type = nil
+            end
+            if opts and opts.ref then
+                local ref = opts.ref
+                local tref = type(ref)
+                if tref == "table" then
+                  newvar.variablesReference = variables.tableRef(ref,nil,nil,opts.extra)
+                elseif tref == "function" then
+                  if opts.fetchable then
+                    newvar.variablesReference = variables.fetchRef(ref)
+                    newvar.presentationHint = newvar.presentationHint or {}
+                    newvar.presentationHint.lazy = true
+                  else
+                    newvar.variablesReference = variables.funcRef(ref)
+                  end
+                end
+
+            elseif type(v) == "table" and opts and opts.extra then
+              newvar.variablesReference = variables.tableRef(v,nil,nil,opts.extra)
+            end
+            if opts and opts.virtual then
+              newvar.presentationHint = newvar.presentationHint or {}
+              newvar.presentationHint.kind="virtual"
+            end
+            vars[#vars + 1] = newvar
+            firstk = k
+          end
+        else
+          vars[#vars + 1] = {
+            name = "<__debugcontents error>",
+            -- describe in case it's a LocalisedString or other non-string error object
+            value = variables.describe(__debugnext),
+            type = "error",
+            variablesReference = 0,
+            presentationHint = {kind="virtual"},
+          }
+        end
+      else
+        -- show metatables by default for table-like objects
+        if varRef.showMeta ~= false and mt then
           ---@type string
           local evalName
           if varRef.evalName then
             evalName = "debug.getmetatable(" .. varRef.evalName .. ")"
           end
-          vars[#vars + 1]{
+          vars[#vars + 1] = {
             name = "<metatable>",
             value = "metatable",
             type = "metatable",
@@ -811,374 +917,255 @@ function DAvars.variables(variablesReference,seq,filter,start,count,inner)
             presentationHint = {kind="virtual"},
           }
         end
-        local stop = #tabref
-        if filter == "indexed" then
-          if not start or start == 0 then
-            start = 1
-            count = count - 1
-          end
-          local wouldstop = start + (count - 1)
-          if wouldstop < stop then
-            stop = wouldstop
-          end
-        else
-          start = 1
+
+        -- rough heuristic for matching LocalisedStrings
+        -- tables with no meta, and [1] that is string
+        if filter == "named" and not mt and #tabref >= 1 and type(tabref[1]) == "string" then
+          -- print a translation for this with unique id
+          local i,mesg = variables.translate(tabref)
+          vars[#vars + 1] = {
+            name = "<translated>",
+            value = i and ("\xEF\xB7\x94"..i) or ("<"..mesg..">"),
+            type = "LocalisedString",
+            variablesReference = 0,
+            presentationHint = { kind = "virtual", attributes = { "readOnly" } },
+          }
         end
-        for i=start,stop do
-          ---@type string
-          local evalName
-          if varRef.evalName then
-            evalName = varRef.evalName .. "[" .. tostring(i) .. "]"
-          end
-          vars[#vars + 1] = variables.create(tostring(i),tabref[i], evalName)
-        end
-      else
-        if mt and type(mt.__debugcontents) == "function" then
-          ---@type DebugAdapter.DebugContents<any,any,any>
-          local __debugcontents = mt.__debugcontents
-          local success, __debugnext, t, firstk = pcall(__debugcontents,tabref,varRef.extra)
+
+        ---@alias nextfn fun(t:table,k:any):any,any
+        ---@type fun(t:table):nextfn,table,any
+        local debugpairs = itermode[varRef.mode]
+        if debugpairs then
+          local success,f,t,firstk = pcall(debugpairs,tabref)
           if success then
-            ---@cast __debugnext DebugAdapter.DebugNext<any,any>
+            ---@type fun(t:table):number
+            local len = mt and mt.__len
+            if len then
+              if not luaObjectInfo.try_object_name(tabref) then
+                len = rawlen
+              end
+            else
+              len = rawlen
+            end
+            local maxindex = len(tabref)
+            if filter == "indexed" then
+              if not start or start == 0 then
+                start = 1
+                count = count and (count - 1)
+              end
+              firstk = start - 1
+              if firstk == 0 then firstk = nil end
+            elseif filter == "named" then
+              if maxindex > 0 then
+                firstk = maxindex
+              end
+              -- skip ahead some names? limit them? vscode does not currently ask for limited names
+            end
+            local limit = (filter == "indexed") and (start+count)
             while true do
-              local success,k,v,opts = pcall(__debugnext,t,firstk)
+              local success,k,v = pcall(f,t,firstk)
               if not success then
                 vars[#vars + 1] = {
-                    name = "<__debugnext error>",
-                    -- describe in case it's a LocalisedString or other non-string error object
-                    value = variables.describe(k),
-                    type = "error",
-                    variablesReference = 0,
-                    presentationHint = {kind="virtual"},
-                  }
-                  break
+                  name = "<"..varRef.mode.." iter error>",
+                  value = variables.describe(k),
+                  type = "error",
+                  variablesReference = 0,
+                  presentationHint = {kind="virtual"},
+                }
+                break
               end
               if not k then
                 break
               end
+              if filter == "indexed" and ((type(k) ~= "number") or (k > maxindex) or (k >= limit) or (k == 0) or (k % 1 ~= 0)) then
+                break
+              end
+              ---@type string
+              local evalName
+              if varRef.evalName then
+                evalName = varRef.evalName .. "[" .. variables.describe(k,true) .. "]"
+              end
               local kline,ktype = variables.describe(k,true)
-              local newvar = variables.create(kline,v)
-              if ktype == "string" and opts and opts.rawName then
-                newvar.name = k
-              elseif ktype == "table" or ktype == "function" then
+              local newvar = variables.create(kline,v, evalName)
+              if ktype == "table" or ktype == "function" then
                 newvar.variablesReference,newvar.name = variables.kvRef(k,v)
               end
-              if type(v)=="string" and opts and opts.rawValue then
-                newvar.value = v
-                newvar.type = nil
-              end
-              if opts and opts.ref then
-                  local ref = opts.ref
-                  local tref = type(ref)
-                  if tref == "table" then
-                    newvar.variablesReference = variables.tableRef(ref,nil,nil,opts.extra)
-                  elseif tref == "function" then
-                    if opts.fetchable then
-                      newvar.variablesReference = variables.fetchRef(ref)
-                      newvar.presentationHint = newvar.presentationHint or {}
-                      newvar.presentationHint.lazy = true
-                    else
-                      newvar.variablesReference = variables.funcRef(ref)
-                    end
-                  end
-
-              elseif type(v) == "table" and opts and opts.extra then
-                newvar.variablesReference = variables.tableRef(v,nil,nil,opts.extra)
-              end
-              if opts and opts.virtual then
-                newvar.presentationHint = newvar.presentationHint or {}
-                newvar.presentationHint.kind="virtual"
-              end
               vars[#vars + 1] = newvar
+              if count then
+                count = count - 1
+                if count == 0 then break end
+              end
               firstk = k
             end
           else
             vars[#vars + 1] = {
-              name = "<__debugcontents error>",
-              -- describe in case it's a LocalisedString or other non-string error object
-              value = variables.describe(__debugnext),
+              name = "<"..varRef.mode.." error>",
+              value = variables.describe(f),
               type = "error",
               variablesReference = 0,
               presentationHint = {kind="virtual"},
             }
           end
         else
-          -- show metatables by default for table-like objects
-          if varRef.showMeta ~= false and mt then
-            ---@type string
-            local evalName
-            if varRef.evalName then
-              evalName = "debug.getmetatable(" .. varRef.evalName .. ")"
-            end
-            vars[#vars + 1] = {
-              name = "<metatable>",
-              value = "metatable",
-              type = "metatable",
-              variablesReference = variables.tableRef(mt),
-              evaluateName = evalName,
-              presentationHint = {kind="virtual"},
-            }
-          end
-
-          -- rough heuristic for matching LocalisedStrings
-          -- tables with no meta, and [1] that is string
-          if filter == "named" and not mt and #tabref >= 1 and type(tabref[1]) == "string" then
-            -- print a translation for this with unique id
-            local i,mesg = variables.translate(tabref)
-            vars[#vars + 1] = {
-              name = "<translated>",
-              value = i and ("\xEF\xB7\x94"..i) or ("<"..mesg..">"),
-              type = "LocalisedString",
-              variablesReference = 0,
-              presentationHint = { kind = "virtual", attributes = { "readOnly" } },
-            }
-          end
-
-          ---@alias nextfn fun(t:table,k:any):any,any
-          ---@type fun(t:table):nextfn,table,any
-          local debugpairs = itermode[varRef.mode]
-          if debugpairs then
-            local success,f,t,firstk = pcall(debugpairs,tabref)
-            if success then
-              ---@type fun(t:table):number
-              local len = mt and mt.__len
-              if len then
-                if not luaObjectInfo.try_object_name(tabref) then
-                  len = rawlen
-                end
-              else
-                len = rawlen
-              end
-              local maxindex = len(tabref)
-              if filter == "indexed" then
-                if not start or start == 0 then
-                  start = 1
-                  count = count and (count - 1)
-                end
-                firstk = start - 1
-                if firstk == 0 then firstk = nil end
-              elseif filter == "named" then
-                if maxindex > 0 then
-                  firstk = maxindex
-                end
-                -- skip ahead some names? limit them? vscode does not currently ask for limited names
-              end
-              local limit = (filter == "indexed") and (start+count)
-              while true do
-                local success,k,v = pcall(f,t,firstk)
-                if not success then
-                  vars[#vars + 1] = {
-                    name = "<"..varRef.mode.." iter error>",
-                    value = variables.describe(k),
-                    type = "error",
-                    variablesReference = 0,
-                    presentationHint = {kind="virtual"},
-                  }
-                  break
-                end
-                if not k then
-                  break
-                end
-                if filter == "indexed" and ((type(k) ~= "number") or (k > maxindex) or (k >= limit) or (k == 0) or (k % 1 ~= 0)) then
-                  break
-                end
-                ---@type string
-                local evalName
-                if varRef.evalName then
-                  evalName = varRef.evalName .. "[" .. variables.describe(k,true) .. "]"
-                end
-                local kline,ktype = variables.describe(k,true)
-                local newvar = variables.create(kline,v, evalName)
-                if ktype == "table" or ktype == "function" then
-                  newvar.variablesReference,newvar.name = variables.kvRef(k,v)
-                end
-                vars[#vars + 1] = newvar
-                if count then
-                  count = count - 1
-                  if count == 0 then break end
-                end
-                firstk = k
-              end
-            else
-              vars[#vars + 1] = {
-                name = "<"..varRef.mode.." error>",
-                value = variables.describe(f),
-                type = "error",
-                variablesReference = 0,
-                presentationHint = {kind="virtual"},
-              }
-            end
-          else
-            vars[#vars + 1] = {
-              name = "<table varRef error>",
-              value = "missing iterator for table varRef mode ".. varRef.mode,
-              type = "error",
-              variablesReference = 0,
-              presentationHint = {kind="virtual"},
-            }
-          end
+          vars[#vars + 1] = {
+            name = "<table varRef error>",
+            value = "missing iterator for table varRef mode ".. varRef.mode,
+            type = "error",
+            variablesReference = 0,
+            presentationHint = {kind="virtual"},
+          }
         end
       end
-    elseif varRef.type == "LuaObject" then
-      ---@cast varRef DAvarslib.LuaObjectRef
-      local object = varRef.object()
-      if not object then goto collected end
-      if luaObjectInfo.alwaysValid[varRef.classname:match("^([^.]+).?")] or object.valid then
-        if varRef.classname == "LuaItemStack" and --[[@cast object LuaItemStack]]
-          not object.valid_for_read then
-          vars[#vars + 1] = {
-            name = [["valid"]],
-            value = "true",
-            type = "boolean",
-            variablesReference = 0,
-            presentationHint = { kind = "property", attributes = { "readOnly" } },
-          }
-          vars[#vars + 1] = {
-            name = [["valid_for_read"]],
-            value = "false",
-            type = "boolean",
-            variablesReference = 0,
-            presentationHint = { kind = "property", attributes = { "readOnly" } },
-          }
-        else
-          local keys = luaObjectInfo.expandKeys[varRef.classname]
-          if not keys then print("Missing keys for class " .. varRef.classname) end
-          for key,keyprops in pairs(keys) do
-            if keyprops.thisAsTable then
-              vars[#vars + 1] = {
-                name = "[]",
-                value = ("%d item%s"):format(#object, #object~=1 and "s" or ""),
-                type = varRef.classname .. "[]",
-                variablesReference = variables.tableRef(object, keyprops.iterMode, false,nil,varRef.evalName),
-                indexedVariables = #object + 1,
-                presentationHint = { kind = "virtual", attributes = { "readOnly" } },
-              }
-            elseif keyprops.thisTranslated then
-              ---@type string
-              local value
-              do
-                -- print a translation for this with unique id
-                local id,mesg = variables.translate(object)
-                if id then
-                  value = "\xEF\xB7\x94"..id
-                else
-                  value = "<"..mesg..">"
-                end
-              end
-              vars[#vars + 1] = {
-                name = "<translated>",
-                value = value,
-                type = "LocalisedString",
-                variablesReference = 0,
-                presentationHint = { kind = "virtual", attributes = { "readOnly" } },
-              }
-            else
-              -- Not all keys are valid on all LuaObjects of a given type. Just skip the errors (or nils)
-              local success,value = pindex(object,key)
-              if success and value ~= nil then
-                ---@type string
-                local evalName
-                if varRef.evalName then
-                  evalName = varRef.evalName .. "[" .. variables.describe(key,true) .. "]"
-                end
-                local var = variables.create(variables.describe(key,true),value,evalName)
-
-                local enum = keyprops.enum
-                local tenum = type(enum)
-                if tenum == "table" then
-                  local name = enum[value]
-                  if name then
-                    var.value = name
-                  end
-                elseif tenum == "function" then
-                  local success,name = pcall(enum,object,value)
-                  if success and name then
-                    var.value = name
-                  end
-                end
-
-                var.presentationHint = var.presentationHint or {}
-                var.presentationHint.kind = "property"
-                if keyprops.readOnly then
-                  var.presentationHint.attributes = var.presentationHint.attributes or {}
-                  var.presentationHint.attributes[#var.presentationHint.attributes + 1] = "readOnly"
-                end
-                if keyprops.fetchable then
-                  var.name = key.."()"
-                  var.presentationHint.kind = "method"
-                  var.presentationHint.lazy = true
-                  var.variablesReference = variables.fetchRef(value)
-                end
-                vars[#vars + 1] = var
-              end
-            end
-          end
-        end
-      else
+    end
+  elseif varRef.type == "LuaObject" then
+    ---@cast varRef DAvarslib.LuaObjectRef
+    local object = varRef.object()
+    if not object then goto collected end
+    if luaObjectInfo.alwaysValid[varRef.classname:match("^([^.]+).?")] or object.valid then
+      if varRef.classname == "LuaItemStack" and --[[@cast object LuaItemStack]]
+        not object.valid_for_read then
         vars[#vars + 1] = {
           name = [["valid"]],
+          value = "true",
+          type = "boolean",
+          variablesReference = 0,
+          presentationHint = { kind = "property", attributes = { "readOnly" } },
+        }
+        vars[#vars + 1] = {
+          name = [["valid_for_read"]],
           value = "false",
           type = "boolean",
           variablesReference = 0,
           presentationHint = { kind = "property", attributes = { "readOnly" } },
         }
-      end
-    elseif varRef.type == "kvPair" then
-      ---@cast varRef DAvarslib.KVRef
-      local key = varRef.key()
-      local value = varRef.value()
-      if key==nil or value==nil then goto collected end
-      vars[#vars + 1] = variables.create("<key>",key)
-      vars[#vars + 1] = variables.create("<value>",value)
-    elseif varRef.type == "Function" then
-      ---@cast varRef DAvarslib.FuncRef
-      local func = varRef.func()
-      if not func then goto collected end
-      local i = 1
-      while true do
-        local name,value = debug.getupvalue(func,i)
-        if not name then break end
-        if name == "" then name = "<"..i..">" end
-        vars[#vars + 1] = variables.create(name,value,name)
-        i = i + 1
-      end
-    elseif varRef.type == "Fetch" then
-      ---@cast varRef DAvarslib.FetchRef
-      local func = varRef.func()
-      if not func then goto collected end
-      local success,result = pcall(func)
-      if success then
-        vars[#vars + 1] = variables.create("<Fetch Result>",result)
       else
-        vars[#vars + 1] = {
-          name = "<Fetch error>",
-          -- describe in case it's a LocalisedString or other non-string error object
-          value = variables.describe(result),
-          type = "error",
-          variablesReference = 0,
-          presentationHint = { kind="virtual"},
-        }
+        local keys = luaObjectInfo.expandKeys[varRef.classname]
+        if not keys then print("Missing keys for class " .. varRef.classname) end
+        for key,keyprops in pairs(keys) do
+          if keyprops.thisAsTable then
+            vars[#vars + 1] = {
+              name = "[]",
+              value = ("%d item%s"):format(#object, #object~=1 and "s" or ""),
+              type = varRef.classname .. "[]",
+              variablesReference = variables.tableRef(object, keyprops.iterMode, false,nil,varRef.evalName),
+              indexedVariables = #object + 1,
+              presentationHint = { kind = "virtual", attributes = { "readOnly" } },
+            }
+          elseif keyprops.thisTranslated then
+            ---@type string
+            local value
+            do
+              -- print a translation for this with unique id
+              local id,mesg = variables.translate(object)
+              if id then
+                value = "\xEF\xB7\x94"..id
+              else
+                value = "<"..mesg..">"
+              end
+            end
+            vars[#vars + 1] = {
+              name = "<translated>",
+              value = value,
+              type = "LocalisedString",
+              variablesReference = 0,
+              presentationHint = { kind = "virtual", attributes = { "readOnly" } },
+            }
+          else
+            -- Not all keys are valid on all LuaObjects of a given type. Just skip the errors (or nils)
+            local success,value = pindex(object,key)
+            if success and value ~= nil then
+              ---@type string
+              local evalName
+              if varRef.evalName then
+                evalName = varRef.evalName .. "[" .. variables.describe(key,true) .. "]"
+              end
+              local var = variables.create(variables.describe(key,true),value,evalName)
+
+              local enum = keyprops.enum
+              local tenum = type(enum)
+              if tenum == "table" then
+                local name = enum[value]
+                if name then
+                  var.value = name
+                end
+              elseif tenum == "function" then
+                local success,name = pcall(enum,object,value)
+                if success and name then
+                  var.value = name
+                end
+              end
+
+              var.presentationHint = var.presentationHint or {}
+              var.presentationHint.kind = "property"
+              if keyprops.readOnly then
+                var.presentationHint.attributes = var.presentationHint.attributes or {}
+                var.presentationHint.attributes[#var.presentationHint.attributes + 1] = "readOnly"
+              end
+              if keyprops.fetchable then
+                var.name = key.."()"
+                var.presentationHint.kind = "method"
+                var.presentationHint.lazy = true
+                var.variablesReference = variables.fetchRef(value)
+              end
+              vars[#vars + 1] = var
+            end
+          end
+        end
       end
-    end
-    if #vars == 0 then
-      vars[1] = {
-        name = "<empty>",
-        value = "empty",
-        type = "empty",
-        variablesReference = 0,
-        presentationHint = { kind = "virtual", attributes = { "readOnly" } },
-      }
-    end
-  else
-    if inner then
-      return false
     else
-      vars[1] = {
-        name= "Expired variablesReference",
-        value= "Expired variablesReference ref="..variablesReference.." seq="..seq,
-        variablesReference= 0,
-        presentationHint = {kind="virtual"},
+      vars[#vars + 1] = {
+        name = [["valid"]],
+        value = "false",
+        type = "boolean",
+        variablesReference = 0,
+        presentationHint = { kind = "property", attributes = { "readOnly" } },
       }
     end
+  elseif varRef.type == "kvPair" then
+    ---@cast varRef DAvarslib.KVRef
+    local key = varRef.key()
+    local value = varRef.value()
+    if key==nil or value==nil then goto collected end
+    vars[#vars + 1] = variables.create("<key>",key)
+    vars[#vars + 1] = variables.create("<value>",value)
+  elseif varRef.type == "Function" then
+    ---@cast varRef DAvarslib.FuncRef
+    local func = varRef.func()
+    if not func then goto collected end
+    local i = 1
+    while true do
+      local name,value = debug.getupvalue(func,i)
+      if not name then break end
+      if name == "" then name = "<"..i..">" end
+      vars[#vars + 1] = variables.create(name,value,name)
+      i = i + 1
+    end
+  elseif varRef.type == "Fetch" then
+    ---@cast varRef DAvarslib.FetchRef
+    local func = varRef.func()
+    if not func then goto collected end
+    local success,result = pcall(func)
+    if success then
+      vars[#vars + 1] = variables.create("<Fetch Result>",result)
+    else
+      vars[#vars + 1] = {
+        name = "<Fetch error>",
+        -- describe in case it's a LocalisedString or other non-string error object
+        value = variables.describe(result),
+        type = "error",
+        variablesReference = 0,
+        presentationHint = { kind="virtual"},
+      }
+    end
+  end
+  if #vars == 0 then
+    vars[1] = {
+      name = "<empty>",
+      value = "empty",
+      type = "empty",
+      variablesReference = 0,
+      presentationHint = { kind = "virtual", attributes = { "readOnly" } },
+    }
   end
   goto done
   ::collected::
@@ -1200,27 +1187,21 @@ end
 ---@param name string
 ---@param value string
 ---@param seq number
----@param inner? boolean
 ---@return boolean?
-function DAvars.setVariable(variablesReference, name, value, seq, inner)
+function DAvars.setVariable(variablesReference, name, value, seq)
+  if not dispatch.find("setVariable", variablesReference, name, value, seq) then
+    json.response{seq = seq, body = {type="error",value="no such ref"}}
+  end
+end
+
+---@param variablesReference integer
+---@param name string
+---@param value string
+---@param seq number
+---@return boolean
+function dispatch.__remote.setVariable(variablesReference, name, value, seq)
   local varRef = refs[variablesReference]
-  if not varRef and not inner and dispatch.canRemoteCall() then
-    local call = remote.call
-    for remotename,_ in pairs(remote.interfaces) do
-      local modname = remotename:match("^__debugadapter_(.+)$")
-      if modname then
-        if call(remotename, "setVariable", variablesReference, name, value, seq, true) then
-          return true
-        end
-      end
-    end
-  end
-  if not varRef then
-    if not inner then
-      json.response{seq = seq, body = {type="error",value="no such ref"}}
-    end
-    return false
-  end
+  if not varRef then return false end
 
   if varRef.type == "Locals" then
     ---@cast varRef DAvarslib.ScopeRef
@@ -1364,25 +1345,19 @@ function DAvars.source(id, seq, internal)
   end
   if internal then return false end
   -- or remote lookup to find a long ref in another lua...
-  if dispatch.canRemoteCall() then
-    local call = remote.call
-    for remotename,_ in pairs(remote.interfaces) do
-      local modname = smatch(remotename, "^__debugadapter_(.+)$")
-      if modname then
-        if call(remotename,"source",id,seq,true) then
-          return true
-        end
-      end
-    end
+  if dispatch.find("source", id, seq, true) then
+    return true
   end
 
   json.response{seq=seq, body=nil}
   return false
 end
+dispatch.__remote.source = DAvars.source
 
 if data then
   -- data stage clears package.loaded between files, so we stash a copy in Lua registry too
   local reg = debug.getregistry()
   reg.__DAVariables = variables
 end
+
 return __DebugAdapter.stepIgnore(variables)

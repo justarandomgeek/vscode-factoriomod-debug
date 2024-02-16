@@ -644,9 +644,11 @@ suite('Debug Adapter', ()=>{
 			breakpoints: [{ line: 3 }],
 		})).eventually.contain({ success: true });
 		await dc.configurationDoneRequest();
-		await dc.waitForEvent('stopped');
+		const stopped = (await dc.waitForEvent('stopped')) as DebugProtocol.StoppedEvent;
+		expect(stopped.body).has.property("threadId").that.is.a('number');
+		const threadId = stopped.body.threadId!;
 
-		const stack = await dc.stackTraceRequest({threadId: 1, levels: 1});
+		const stack = await dc.stackTraceRequest({threadId, levels: 1});
 		const frameId = stack.body.stackFrames[0].id;
 
 		const result = await dc.evaluateRequest({

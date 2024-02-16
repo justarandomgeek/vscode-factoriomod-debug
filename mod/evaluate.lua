@@ -502,5 +502,6 @@ function DAEval.evaluate(target,context,expression,seq)
   end
   json.response{seq=seq, body=evalresult}
 end
+dispatch.__remote.evaluate = DAEval.evaluate
 
 return DAEval
