@@ -1,5 +1,4 @@
 local dispatch = require("__debugadapter__/dispatch.lua")
-local threads = require("__debugadapter__/threads.lua")
 local variables = require("__debugadapter__/variables.lua")
 local json = require("__debugadapter__/json.lua")
 local __DebugAdapter = __DebugAdapter
@@ -13,9 +12,6 @@ local xpcall = xpcall -- ditto
 local setmetatable = setmetatable
 local load = load
 local pindex = variables.pindex
-
--- capture the raw object
-local remote = remote and (type(remote)=="table" and rawget(remote,"__raw")) or remote
 
 ---@class DebugAdapter.Evaluate
 local DAEval = {}
@@ -421,25 +417,25 @@ local evalresultmeta = {
 ---@param seq integer
 function DAEval.evaluate(target,context,expression,seq)
   local ttarget = type(target)
-  local modname, frameId, tag
+  local result
   if ttarget == "number" then
-    local thread
-    thread,frameId,tag = threads.splitFrameId(target)
-    modname = thread.name
+    result = dispatch.callFrame(target, "evaluate", context, expression, seq)
   elseif ttarget == "string"then
-    modname = target
+    result = dispatch.callMod(target, "evaluate", nil, nil, context, expression, seq)
   elseif ttarget == "nil" then
-    modname = "level"
+    result = dispatch.callMod("level", "evaluate", nil, nil, context, expression, seq)
   end
-  if modname and script and modname~=script.mod_name then
-    if dispatch.canRemoteCall() and remote.interfaces["__debugadapter_"..modname] then
-      return remote.call("__debugadapter_"..modname,"evaluate",target,context,expression,seq)
-    else
-      json.response{seq=seq, body={result = "`"..modname.."` not available for eval", type="error", variablesReference=0}}
-      return
-    end
+  if not result then
+    json.response{seq=seq, body={result = "`"..(target or "level").."` not available for eval", type="error", variablesReference=0}}
   end
+end
 
+---@param frameId? integer frameId
+---@param tag? integer
+---@param context? string
+---@param expression string
+---@param seq integer
+function dispatch.__remote.evaluate(frameId,tag,context,expression,seq)
   ---@type DebugProtocol.EvaluateResponseBody
   local evalresult
   if tag and tag ~= 0 then
@@ -502,6 +498,5 @@ function DAEval.evaluate(target,context,expression,seq)
   end
   json.response{seq=seq, body=evalresult}
 end
-dispatch.__remote.evaluate = DAEval.evaluate
 
 return DAEval
