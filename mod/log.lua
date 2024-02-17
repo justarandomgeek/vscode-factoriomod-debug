@@ -1,5 +1,5 @@
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
-local variables = require("__debugadapter__/variables.lua") -- uses pcall
+local variables = require("__debugadapter__/variables.lua")
 local print = require("__debugadapter__/print.lua")
 local debug = debug
 local dgetinfo = debug.getinfo
@@ -43,6 +43,5 @@ local function newlog(mesg)
     return oldlog({"",loc,mesg})
   end
 end
-__DebugAdapter.stepIgnore(newlog)
 
 log = newlog

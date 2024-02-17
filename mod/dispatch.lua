@@ -136,6 +136,17 @@ function dispatch.callFrame(frameId, funcname, ...)
   return false
 end
 
+do
+  local bindings = {}
+  function dispatch.bind(name, f)
+    if f then
+      bindings[name] = f
+    else
+      return bindings[name]
+    end
+  end
+end
+
 
 do
   -- functions for passing stepping state across context-switches by handing it to main DA vm

@@ -1,3 +1,4 @@
+local dispatch = require("__debugadapter__/dispatch.lua")
 local invert = require("__debugadapter__/enumutil.lua").invert
 local __DebugAdapter = __DebugAdapter
 local defines = defines
@@ -13,6 +14,11 @@ local debug = debug
 local dgetmetatable = debug.getmetatable
 local debugprompt = debug.debug
 local tconcat = table.concat
+
+local function stringInterp(...)
+  stringInterp = dispatch.bind("stringInterp")
+  return stringInterp(...)
+end
 
 local validLuaObjectTypes = {table=true,userdata=true}
 
@@ -49,7 +55,7 @@ luaObjectInfo.lineItem = {
   LuaItemStack = function(stack,short)
     if stack.valid_for_read then
       if not short then
-        return (__DebugAdapter.stringInterp(
+        return (stringInterp(
           [[<LuaItemStack>{[}name={name}, count={count}{]}]],
           nil,
           stack,
@@ -451,4 +457,4 @@ for classname, class in pairs(extraKeys) do
   end
 end
 
-return __DebugAdapter.stepIgnore(luaObjectInfo)
+return luaObjectInfo

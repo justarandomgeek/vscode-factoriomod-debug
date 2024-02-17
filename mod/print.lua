@@ -1,9 +1,9 @@
+local json = require('__debugadapter__/json.lua')
+local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
+local variables = require("__debugadapter__/variables.lua")
+local evaluate = require("__debugadapter__/evaluate.lua")
 local debug = debug
 local dgetinfo = debug.getinfo
-local variables = require("__debugadapter__/variables.lua") -- uses pcall
-local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
-local DAeval = require("__debugadapter__/evaluate.lua") -- uses pcall
-local json = require('__debugadapter__/json.lua')
 local type = type
 local next = next
 local setmetatable = setmetatable
@@ -61,7 +61,7 @@ function DAprint.print(expr,alsoLookIn,upStack,category,noexprs)
   if texpr == "string" then
     ---@type any[]
     local exprs
-    result,exprs = DAeval.stringInterp(expr,3,alsoLookIn,"print")
+    result,exprs = evaluate.stringInterp(expr,3,alsoLookIn,"print")
     if next(exprs) and not noexprs then
       setmetatable(exprs,{
         __debugline = function() return result end,

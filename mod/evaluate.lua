@@ -1,7 +1,6 @@
+local json = require("__debugadapter__/json.lua")
 local dispatch = require("__debugadapter__/dispatch.lua")
 local variables = require("__debugadapter__/variables.lua")
-local json = require("__debugadapter__/json.lua")
-local __DebugAdapter = __DebugAdapter
 local debug = debug
 local string = string
 local table = table
@@ -230,9 +229,8 @@ local function evalmeta(env,frameId,alsoLookIn)
       env[k] = v
     end
   }
-  return __DebugAdapter.stepIgnore(em)
+  return em
 end
-__DebugAdapter.stepIgnore(evalmeta)
 
 ---@class DebugAdapter.CountedResult: any[]
 ---@field n integer
@@ -319,6 +317,7 @@ function DAEval.evaluateInternal(frameId,alsoLookIn,context,expression,timed)
     end
   return closeframe(pcall(f))
 end
+dispatch.bind("evaluateInternal", DAEval.evaluateInternal)
 
 ---@param str string
 ---@param frameId? integer
@@ -385,6 +384,7 @@ function DAEval.stringInterp(str,frameId,alsoLookIn,context)
     end)
     return result,evals
 end
+dispatch.bind("stringInterp", DAEval.stringInterp)
 
 local evalresultmeta = {
   __debugline = function(t)
@@ -470,7 +470,6 @@ function dispatch.__remote.evaluate(frameId,tag,context,expression,seq)
         local mtresult = getmetatable(result)
         if mtresult and mtresult.__debugvisualize then
           local function err(e) return debug.traceback("__debugvisualize error: "..e) end
-          __DebugAdapter.stepIgnore(err)
           success,result = xpcall(mtresult.__debugvisualize,err,result)
         end
         evalresult.result = json.encode(result)

@@ -6,7 +6,9 @@ local mfloor = math.floor
 ---@class DebugAdapter.Threads
 ---@field this_thread integer
 ---@field active_threads DebugProtocol.Thread[]
-local DAthreads = {}
+local DAthreads = {
+  __dap = {}
+}
 
 ---@type DebugProtocol.Thread[]
 local active_threads
@@ -40,7 +42,7 @@ end
 DAthreads.active_threads = active_threads
 
 ---@param seq number
-function DAthreads.threads(seq)
+function DAthreads.__dap.threads(seq)
   json.response{body={threads=active_threads},seq=seq}
 end
 

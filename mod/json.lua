@@ -11,11 +11,6 @@ local pairs = pairs
 local tostring = tostring
 local type = type
 
----@param f function
----@return function
-local stepIgnore = __DebugAdapter and __DebugAdapter.stepIgnore or function(f) return f end
-
-
 ---@class DebugAdapter.json
 local json = {}
 
@@ -105,13 +100,13 @@ local function encode_table(val, stack)
   end
 end
 
-local type_encode = stepIgnore({
+local type_encode = {
   ["nil"] = encode_nil,
   ["string"] = encode_string,
   ["table"] = encode_table,
   ["boolean"] = tostring,
   ["number"] = encode_number,
-})
+}
 
 ---Output a value formatted as JSON
 ---@generic T : table|string|number|boolean|nil
@@ -127,7 +122,6 @@ function encode(value, stack)
     return '"<'..t..'>"'
   end
 end
-stepIgnore(encode)
 json.encode = encode
 
 

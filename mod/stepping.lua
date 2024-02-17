@@ -10,6 +10,10 @@ local __DebugAdapter = __DebugAdapter
 
 ---@class DebugAdapter.Stepping
 local DAstep = {}
+---@class DebugAdapter.Stepping.DAP
+DAstep.__dap = {}
+---@class DebugAdapter.Stepping.Public
+DAstep.__pub = {}
 
 ---Mark a function or table of functions (keys and values, deep) to be ignored by the stepping hook
 ---@generic T : table|function
@@ -29,9 +33,7 @@ local function stepIgnore(f)
 end
 stepIgnore(stepIgnore)
 
-DAstep.stepIgnore = stepIgnore
--- and a direct assignment early for other modules...
-__DebugAdapter.stepIgnore = DAstep.stepIgnore
+DAstep.__pub.stepIgnore = stepIgnore
 
 ---Check if a function is ignored
 ---@param f function
@@ -62,16 +64,14 @@ local select = select
 local require = require
 
 local nextuple = require("__debugadapter__/iterutil.lua").nextuple
-local json = require("__debugadapter__/json.lua")
-local dispatch = require("__debugadapter__/dispatch.lua")
+local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
+local json_event_prompt = require("__debugadapter__/json.lua").event_prompt
+local ReadBreakpoints = require("__debugadapter__/datastring.lua").ReadBreakpoints
 local threads = require("__debugadapter__/threads.lua")
+local dispatch = require("__debugadapter__/dispatch.lua")
 local variables = require("__debugadapter__/variables.lua")
 local evaluate = require("__debugadapter__/evaluate.lua")
 local DAprint = require("__debugadapter__/print.lua")
-local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
-local json_event_prompt = require("__debugadapter__/json.lua").event_prompt
-local datastring = require("__debugadapter__/datastring.lua")
-local ReadBreakpoints = datastring.ReadBreakpoints
 
 ---@type table<string,table<number,DebugProtocol.SourceBreakpoint>>
 local breakpoints = {}
@@ -131,7 +131,7 @@ local isDumpIgnore = {}
 
 --- Disable dumping (disassmbly, breakpoint location validation) for a file or list of files
 ---@param source string|string[] exact source name, e.g. `"@__modname__/file.lua"`
-function DAstep.dumpIgnore(source)
+function DAstep.__pub.dumpIgnore(source)
   local tsource = type(source)
   if tsource == "string" then
     isDumpIgnore[source] = true
@@ -333,10 +333,10 @@ do
         if info_is_api then
           print("call out "..rawscript.mod_name)
           dispatch.setStepping(stepdepth, step_instr)
-          DAstep.step(nil)
+          DAstep.__dap.step(nil)
         elseif parent_is_none_or_api then
           print("call in "..rawscript.mod_name)
-          DAstep.step(dispatch.getStepping())
+          DAstep.__dap.step(dispatch.getStepping())
         end
       end
 
@@ -374,11 +374,11 @@ do
         local parent_is_none_or_api = not parent or (parent.what=="C" and parent.nups > 0)
         if info_is_api then
           print("ret in "..rawscript.mod_name)
-          DAstep.step(dispatch.getStepping())
+          DAstep.__dap.step(dispatch.getStepping())
         elseif parent_is_none_or_api then
           print("ret out "..rawscript.mod_name)
           dispatch.setStepping(stepdepth, step_instr)
-          DAstep.step(nil)
+          DAstep.__dap.step(nil)
         end
       end
 
@@ -406,7 +406,7 @@ local function print_exception(etype,mesg)
     mesg = "\xEF\xB7\x94"..variables.translate(mesg)
   end
 
-  json.event_prompt{event="exception", body={
+  json_event_prompt{event="exception", body={
     threadId = threads.this_thread,
     filter = etype,
     mesg = mesg,
@@ -486,7 +486,7 @@ function dispatch.__remote.setBreakpoints(source,breaks)
 end
 
 ---@param change string
-function DAstep.updateBreakpoints(change)
+function DAstep.__dap.updateBreakpoints(change)
   local source,changedbreaks = ReadBreakpoints(change)
   if source then
     dispatch.callAll("setBreakpoints", source, changedbreaks)
@@ -495,7 +495,7 @@ end
 
 ---@param depth? number
 ---@param instruction? boolean
-function DAstep.step(depth,instruction)
+function DAstep.__dap.step(depth,instruction)
   if rawscript then
     print("step "..rawscript.mod_name.." "..tostring(depth).." "..tostring(instruction))
   end
@@ -506,7 +506,7 @@ function DAstep.step(depth,instruction)
   step_instr = instruction
 end
 
-function DAstep.step_enabled(state)
+function DAstep.__dap.step_enabled(state)
   if step_enabled == state then return end
   dispatch.callAll("step_enabled", state)
 end
@@ -524,7 +524,7 @@ function DAstep.breakpoint(mesg)
   if mesg then
     print_exception("manual",mesg)
   else
-    json.event_prompt{event="stopped", body={
+    json_event_prompt{event="stopped", body={
       reason = "breakpoint",
       threadId = threads.this_thread,
       }}
@@ -532,6 +532,7 @@ function DAstep.breakpoint(mesg)
   debugprompt()
   return DAstep.attach()
 end
+DAstep.__pub.breakpoint = DAstep.breakpoint
 
 
 ---Terminate a debug session from mod code
@@ -541,6 +542,7 @@ function DAstep.terminate()
   print("\xEF\xB7\x90\xEE\x80\x8C")
   debugprompt()
 end
+DAstep.__pub.terminate = DAstep.terminate
 
 ---Generate handlers for pcall/xpcall wrappers
 ---@param filter string Where the exception was intercepted
@@ -680,7 +682,7 @@ if rawscript then
   ---@param data EventData
   ---@param modname string
   ---@public
-  function DAstep.raise_event(event,data,modname)
+  function DAstep.__pub.raise_event(event,data,modname)
     if not dispatch.callMod(modname, "raise_event", event, data) then
       error("cannot raise events here")
     end

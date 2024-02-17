@@ -26,7 +26,7 @@ end
 ---@field runningBreak? number frequency to check for pause in long-running code
 
 -- this is a global so the vscode extension can get to it from debug.debug()
----@class DebugAdapter : DebugAdapter.Config, DebugAdapter.Stepping, DebugAdapter.Variables, DebugAdapter.Evaluate, DebugAdapter.Print, DebugAdapter.Stacks
+---@class DebugAdapter : DebugAdapter.Config, DebugAdapter.Stepping.Public, DebugAdapter.Stepping.DAP, DebugAdapter.Variables, DebugAdapter.Stacks
 local __DebugAdapter = _ENV.__DebugAdapter or {} -- but might have been defined already for selective instrument mode
 _ENV.__DebugAdapter = __DebugAdapter
 
@@ -38,33 +38,36 @@ local function DAMerge(t)
 end
 
 local require = require
-
-require("__debugadapter__/dispatch.lua")
-
---this has to be first before requiring other files so they can mark functions as ignored
-DAMerge(require("__debugadapter__/stepping.lua"))
-
-local threads = require("__debugadapter__/threads.lua")
-__DebugAdapter.threads = threads.threads
-
-require("__debugadapter__/luaobjectinfo.lua") -- uses pcall
-
-local variables = require("__debugadapter__/variables.lua") -- uses pcall
-DAMerge(variables.__)
-require("__debugadapter__/normalizeLuaSource.lua") -- uses pcall, not used here but do it now for load order
-DAMerge(require("__debugadapter__/evaluate.lua")) -- uses pcall
-if __DebugAdapter.hooklog ~= false then
-  require("__debugadapter__/log.lua") -- uses pcall
-end
-local daprint = require("__debugadapter__/print.lua") -- uses evaluate/variables
-DAMerge(daprint)
-
-DAMerge(require("__debugadapter__/stacks.lua"))
-require("__debugadapter__/test.lua")
-
 local script = script
 local debug = debug
 local print = print
+
+local threads = require("__debugadapter__/threads.lua")
+__DebugAdapter.threads = threads.__dap.threads
+require("__debugadapter__/dispatch.lua")
+
+local variables = require("__debugadapter__/variables.lua")
+DAMerge(variables.__dap)
+
+local evaluate = require("__debugadapter__/evaluate.lua")
+__DebugAdapter.evaluate = evaluate.evaluate
+
+local daprint = require("__debugadapter__/print.lua")
+__DebugAdapter.print = daprint.print
+
+if __DebugAdapter.hooklog ~= false then
+  require("__debugadapter__/log.lua")
+end
+
+local stepping = require("__debugadapter__/stepping.lua")
+DAMerge(stepping.__dap)
+DAMerge(stepping.__pub)
+
+local stacks = require("__debugadapter__/stacks.lua")
+DAMerge(stacks)
+
+require("__debugadapter__/test.lua")
+
 
 ---Force the DA Client to refresh everything
 ---@public
@@ -72,7 +75,6 @@ function __DebugAdapter.refresh()
   print("\xEF\xB7\x98")
 end
 
-__DebugAdapter.stepIgnore(__DebugAdapter)
 do
   local ininstrument = ""
   if __DebugAdapter.instrument then
@@ -81,7 +83,7 @@ do
 
   if data then
     daprint.print("debugadapter registered for data" .. ininstrument, nil, nil, "console")
-    __DebugAdapter.attach()
+    stepping.attach()
     print("\xEF\xB7\x90\xEE\x80\x87")
     debug.debug()
     -- data stage clears package.loaded between files, so we stash a copy in Lua registry too
@@ -92,7 +94,7 @@ do
     -- and pass stepping state around remote calls
     daprint.print("debugadapter registered for " .. script.mod_name .. ininstrument, nil, nil, "console")
 
-    __DebugAdapter.attach()
+    stepping.attach()
     print("\xEF\xB7\x90\xEE\x80\x88")
     debug.debug()
   end

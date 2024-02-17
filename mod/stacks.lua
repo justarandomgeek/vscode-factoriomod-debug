@@ -1,8 +1,8 @@
-local dispatch = require("__debugadapter__/dispatch.lua")
-local threads = require("__debugadapter__/threads.lua")
-local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua") -- uses pcall
-local variables = require("__debugadapter__/variables.lua") -- uses pcall
 local json = require('__debugadapter__/json.lua')
+local threads = require("__debugadapter__/threads.lua")
+local dispatch = require("__debugadapter__/dispatch.lua")
+local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
+local variables = require("__debugadapter__/variables.lua")
 local stepping = require('__debugadapter__/stepping.lua')
 local script = (type(script)=="table" and rawget(script,"__raw")) or script
 local debug = debug

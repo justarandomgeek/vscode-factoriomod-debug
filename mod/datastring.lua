@@ -24,12 +24,6 @@ local bor = bit32.bor
 local lshift = bit32.lshift
 local rshift = bit32.rshift
 
-local stepIgnore = __DebugAdapter and __DebugAdapter.stepIgnore or
----@generic T : table|function
----@param f T
----@return T
-function(f) return f end
-
 ---@class DataString
 local DataString = {}
 
@@ -215,4 +209,4 @@ local function ReadBreakpoints(strdata)
 end
 DataString.ReadBreakpoints = ReadBreakpoints
 
-return stepIgnore(DataString)
+return DataString

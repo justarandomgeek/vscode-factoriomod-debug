@@ -21,7 +21,6 @@ local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
 local json = require("__debugadapter__/json.lua")
 local iterutil = require("__debugadapter__/iterutil.lua")
 
-local __DebugAdapter = __DebugAdapter
 local dgetmetatable = debug.getmetatable
 local dgetinfo = debug.getinfo
 local dgetlocal = debug.getlocal
@@ -46,8 +45,18 @@ local next = next
 local pairs = pairs
 local ipairs = ipairs
 local print = print
-local pcall = pcall -- capture pcall early before entrypoints wraps it
+local pcall = pcall
 local type = type
+
+local function stringInterp(...)
+  stringInterp = dispatch.bind("stringInterp")
+  return stringInterp(...)
+end
+
+local function evaluateInternal(...)
+  evaluateInternal = dispatch.bind("evaluateInternal")
+  return evaluateInternal(...)
+end
 
 ---@type {[integer]:DAvarslib.Ref}
 local refs = setmetatable({},{
@@ -82,9 +91,9 @@ do
   local wrapmeta = {
     __debugtype = "DebugAdapter.Collectable",
     __mode = "v",
-    __call = __DebugAdapter.stepIgnore(function(self)
+    __call = function(self)
       return collectables[self.__weak]
-    end),
+    end,
   }
 
   ---@alias DAvarslib.Collectable<T> fun():T
@@ -117,7 +126,6 @@ do
     collectables[k] = obj
     return setmetatable({__weak=k}, wrapmeta) --[[@as DAvarslib.Collectable]]
   end
-  __DebugAdapter.stepIgnore(collectable)
 end
 
 ---@class DebugAdapter.Variables
@@ -127,7 +135,7 @@ local DAvars = {}
 ---@class DAvarslib
 local variables = {
   -- objects to pass up to the parent __DebugAdapter
-  __ = DAvars,
+  __dap = DAvars,
 }
 local pindex,pnewindex
 do
@@ -209,7 +217,6 @@ do
     debugprompt(); -- call __DebugAdapter.transferRef(ref) and continue
     return nextRefID
   end
-  __DebugAdapter.stepIgnore(nextID)
 end
 
 do
@@ -492,7 +499,7 @@ local function describeLuaObject(classname,object,short)
         local success,result = pcall(lineitemfmt,object,short)
         if success then lineitem = result end
       elseif litype == "string" and not short then
-        lineitem = __DebugAdapter.stringInterp(lineitemfmt,nil,object,"luaobjectline")
+        lineitem = stringInterp(lineitemfmt,nil,object,"luaobjectline")
       end
     else
       lineitem = sformat("<Invalid %s>", classname)
@@ -530,7 +537,7 @@ function variables.describe(value,short)
             lineitem = "<__debugline error>"
           end
         elseif dltype == "string" and not short then
-          lineitem = __DebugAdapter.stringInterp(debugline,nil,value,"metadebugline")
+          lineitem = stringInterp(debugline,nil,value,"metadebugline")
         else
           lineitem = "{<...>}"
         end
@@ -1246,7 +1253,7 @@ function dispatch.__remote.setVariable(variablesReference, name, value, seq)
         end
       end
       if localindex then
-        local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
+        local goodvalue,newvalue = evaluateInternal(varRef.frameId+1,nil,"setvar",value)
         if goodvalue then
           dsetlocal(varRef.frameId,localindex,newvalue)
           json.response{seq = seq, body = variables.create(nil,newvalue)}
@@ -1266,7 +1273,7 @@ function dispatch.__remote.setVariable(variablesReference, name, value, seq)
         if not vaname then break end
         vaname = sformat("(*vararg %d)",-i)
         if vaname == name then
-          local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
+          local goodvalue,newvalue = evaluateInternal(varRef.frameId+1,nil,"setvar",value)
           if goodvalue then
             dsetlocal(varRef.frameId,i,newvalue)
             json.response{seq = seq, body = variables.create(nil,newvalue)}
@@ -1289,7 +1296,7 @@ function dispatch.__remote.setVariable(variablesReference, name, value, seq)
       local upname = dgetupvalue(func,i)
       if not upname then break end
       if upname == name then
-        local goodvalue,newvalue = __DebugAdapter.evaluateInternal(varRef.frameId+1,nil,"setvar",value)
+        local goodvalue,newvalue = evaluateInternal(varRef.frameId+1,nil,"setvar",value)
         if goodvalue then
           dsetupvalue(func,i,newvalue)
           json.response{seq = seq, body = variables.create(nil,newvalue)}
@@ -1305,7 +1312,7 @@ function dispatch.__remote.setVariable(variablesReference, name, value, seq)
     return true
   elseif varRef.type == "Table" or varRef.type == "LuaObject" then
     -- special names "[]" and others aren't valid lua so it won't parse anyway
-    local goodname,newname = __DebugAdapter.evaluateInternal(nil,nil,"setvar",name)
+    local goodname,newname = evaluateInternal(nil,nil,"setvar",name)
     if goodname then
       local alsoLookIn ---@type table|LuaObject
       if varRef.type == "Table" then
@@ -1315,7 +1322,7 @@ function dispatch.__remote.setVariable(variablesReference, name, value, seq)
         ---@cast varRef DAvarslib.LuaObjectRef
         alsoLookIn = varRef.object()
       end
-      local goodvalue,newvalue = __DebugAdapter.evaluateInternal(nil,alsoLookIn,"setvar",value)
+      local goodvalue,newvalue = evaluateInternal(nil,alsoLookIn,"setvar",value)
       if not goodvalue then
         json.response{seq = seq, body = {type="error",value=newvalue}}
         return true
@@ -1372,4 +1379,4 @@ if data then
   reg.__DAVariables = variables
 end
 
-return __DebugAdapter.stepIgnore(variables)
+return variables
