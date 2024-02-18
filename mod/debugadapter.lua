@@ -26,14 +26,18 @@ end
 ---@field runningBreak? number frequency to check for pause in long-running code
 
 -- this is a global so the vscode extension can get to it from debug.debug()
----@class DebugAdapter : DebugAdapter.Config, DebugAdapter.Stepping.Public, DebugAdapter.Stepping.DAP, DebugAdapter.Variables, DebugAdapter.Stacks
+---@class DebugAdapter : DebugAdapter.Config, DebugAdapter.Stepping.Public
 local __DebugAdapter = _ENV.__DebugAdapter or {} -- but might have been defined already for selective instrument mode
 _ENV.__DebugAdapter = __DebugAdapter
 
----@param t table<string,any>
-local function DAMerge(t)
-  for k, v in pairs(t) do
-    __DebugAdapter[k] = v
+---@class DebugAdapter.ClientInterface: DebugAdapter.Stepping.DAP, DebugAdapter.Variables, DebugAdapter.Stacks
+__DebugAdapter.__dap = {}
+
+---@param to table<string,any>
+---@param from table<string,any>
+local function merge(to, from)
+  for k, v in pairs(from) do
+    to[k] = v
   end
 end
 
@@ -43,14 +47,14 @@ local debug = debug
 local print = print
 
 local threads = require("__debugadapter__/threads.lua")
-__DebugAdapter.threads = threads.__dap.threads
+__DebugAdapter.__dap.threads = threads.__dap.threads
 require("__debugadapter__/dispatch.lua")
 
 local variables = require("__debugadapter__/variables.lua")
-DAMerge(variables.__dap)
+merge(__DebugAdapter.__dap, variables.__dap)
 
 local evaluate = require("__debugadapter__/evaluate.lua")
-__DebugAdapter.evaluate = evaluate.evaluate
+__DebugAdapter.__dap.evaluate = evaluate.evaluate
 
 local daprint = require("__debugadapter__/print.lua")
 __DebugAdapter.print = daprint.print
@@ -60,11 +64,11 @@ if __DebugAdapter.hooklog ~= false then
 end
 
 local stepping = require("__debugadapter__/stepping.lua")
-DAMerge(stepping.__dap)
-DAMerge(stepping.__pub)
+merge(__DebugAdapter.__dap, stepping.__dap)
+merge(__DebugAdapter, stepping.__pub)
 
 local stacks = require("__debugadapter__/stacks.lua")
-DAMerge(stacks)
+merge(__DebugAdapter.__dap, stacks)
 
 require("__debugadapter__/test.lua")
 

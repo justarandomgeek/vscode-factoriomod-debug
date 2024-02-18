@@ -145,12 +145,13 @@ end
 local blockhook
 local unhooked = setmetatable({}, {__mode = "k"})
 function DAstep.unhook(f)
+  if unhooked[f] then return f end
   local oldblock
-  local rehook = function(...)
+  local function rehook(...)
     blockhook = oldblock
     return ...
   end
-  local unhook = function(...)
+  local function unhook(...)
     oldblock = blockhook
     blockhook = true
     return rehook(f(...))
@@ -459,14 +460,15 @@ if __DebugAdapter.instrument then
   DAstep.on_exception = on_exception
 end
 
+local apihooks = {}
 function DAstep.attach()
   dsethook(hook,hook_rate())
+  for k, v in pairs(apihooks) do
+    rawset(_ENV, k, v)
+  end
   -- on_error is api for instrument mods to catch errors
   if on_error then
     on_error(on_exception)
-  end
-  if instrument then
-    instrument.on_error(on_exception)
   end
 end
 
@@ -573,7 +575,7 @@ stepIgnore(caught)
 ---@return boolean success
 ---@return any result
 ---@return ...
-function pcall(func,...)
+function apihooks.pcall(func,...)
   return rawxpcall(func, caught("pcall"), ...)
 end
 stepIgnore(pcall)
@@ -585,7 +587,7 @@ stepIgnore(pcall)
 ---@return boolean success
 ---@return any result
 ---@return ...
-function xpcall(func, user_handler, ...)
+function apihooks.xpcall(func, user_handler, ...)
   return rawxpcall(func, caught("xpcall",user_handler), ...)
 end
 stepIgnore(xpcall)
@@ -672,7 +674,7 @@ if rawscript then
   end
   stepIgnore(labelhandler)
 
-  local newscript = {
+  apihooks.script = {
     __raw = rawscript
   }
 
@@ -698,26 +700,26 @@ if rawscript then
   end
 
   ---@param f? function
-  function newscript.on_init(f)
+  function apihooks.script.on_init(f)
     rawscript.on_init(labelhandler(f,"on_init handler"))
   end
-  newscript.on_init()
+  apihooks.script.on_init()
 
   ---@param f? function
-  function newscript.on_load(f)
+  function apihooks.script.on_load(f)
     rawscript.on_load(labelhandler(f,"on_load handler"))
   end
-  newscript.on_load()
+  apihooks.script.on_load()
 
   ---@param f? function
-  function newscript.on_configuration_changed(f)
+  function apihooks.script.on_configuration_changed(f)
     return rawscript.on_configuration_changed(labelhandler(f,"on_configuration_changed handler"))
   end
 
   ---@param tick uint|uint[]|nil
   ---@param f fun(x:NthTickEventData)|nil
   ---@overload fun(x:nil)
-  function newscript.on_nth_tick(tick,f)
+  function apihooks.script.on_nth_tick(tick,f)
     if not tick then
       if f then
         -- pass this through for the error...
@@ -744,7 +746,7 @@ if rawscript then
   ---@overload fun(event:defines.events,f:fun(e:EventData)|nil, filters:table)
   ---@overload fun(event:string,f:fun(e:EventData)|nil)
   ---@overload fun(events:defines.events[],f:fun(e:EventData)|nil)
-  function newscript.on_event(event,f,...)
+  local function on_event(event,f,...)
     -- on_event checks arg count and throws if event is table and filters is present, even if filters is nil
     local etype = type(event)
     ---@type boolean
@@ -769,12 +771,13 @@ if rawscript then
         error("Filters can only be used when registering single events.",2)
       end
       for _,e in pairs(event) do
-        newscript.on_event(e,f)
+        on_event(e,f)
       end
     else
       error({"","Invalid Event type ",etype},2)
     end
   end
+  apihooks.script.on_event = on_event
 
 
   local newscriptmeta = {
@@ -786,25 +789,22 @@ if rawscript then
     __debugline = "<LuaBootstrap Debug Proxy>",
     __debugtype = "DebugAdapter.LuaBootstrap",
   }
-  setmetatable(
-    stepIgnore(newscript),
-    stepIgnore(newscriptmeta)
-  )
+  setmetatable(apihooks.script, newscriptmeta)
 
   local rawcommands = commands
-  local newcommands = {
+  apihooks.commands = {
     __raw = rawcommands,
   }
 
   ---@param name string
   ---@param help string|LocalisedString
   ---@param f function
-  function newcommands.add_command(name,help,f)
+  function apihooks.commands.add_command(name,help,f)
     return rawcommands.add_command(name,help,labelhandler(f, "command /" .. name))
   end
 
   ---@param name string
-  function newcommands.remove_command(name)
+  function apihooks.commands.remove_command(name)
     labelhandler(nil, "command /" .. name)
     return rawcommands.remove_command(name)
   end
@@ -818,25 +818,22 @@ if rawscript then
     __debugline = "<LuaCommandProcessor Debug Proxy>",
     __debugtype = "DebugAdapter.LuaCommandProcessor",
   }
-  setmetatable(
-    stepIgnore(newcommands),
-    stepIgnore(newcommandsmeta)
-  )
+  setmetatable(apihooks.commands, newcommandsmeta)
 
   local rawremote = remote
-  local newremote = {
+  apihooks.remote = {
     __raw = rawremote,
   }
 
   ---@param remotename string
   ---@param funcs table<string,function>
-  function newremote.add_interface(remotename,funcs)
+  function apihooks.remote.add_interface(remotename,funcs)
     myRemotes[remotename] = funcs
     return rawremote.add_interface(remotename,funcs)
   end
 
   ---@param remotename string
-  function newremote.remove_interface(remotename)
+  function apihooks.remote.remove_interface(remotename)
     myRemotes[remotename] = nil
     return rawremote.remove_interface(remotename)
   end
@@ -857,14 +854,7 @@ if rawscript then
       }
     end,
   }
-  setmetatable(
-    stepIgnore(newremote),
-    stepIgnore(remotemeta)
-  )
-
-  _ENV.script = newscript
-  _ENV.commands = newcommands
-  _ENV.remote = newremote
+  setmetatable(apihooks.remote, remotemeta)
 end
 
 local vmeta = {
@@ -877,5 +867,4 @@ local vmeta = {
     }
   end,
 }
-stepIgnore(vmeta)
 return setmetatable(DAstep,vmeta)

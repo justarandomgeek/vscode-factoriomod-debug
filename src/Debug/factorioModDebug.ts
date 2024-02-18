@@ -668,7 +668,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	private allocateRefBlock() {
 		const nextRef = this.nextRef;
 		this.nextRef += 4096;
-		this.writeStdin(`__DebugAdapter.transferRef(${nextRef})`);
+		this.writeStdin(`__DebugAdapter.__dap.transferRef(${nextRef})`);
 	}
 
 	protected convertClientPathToDebugger(clientPath: string): string {
@@ -814,7 +814,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		if (this.inPrompt > 0) {
 			response.body = await new Promise<{threads:DebugProtocol.Thread[]}>((resolve)=>{
 				this._responses.set(response.request_seq, resolve);
-				this.writeStdin(`__DebugAdapter.threads(${response.request_seq})\n`);
+				this.writeStdin(`__DebugAdapter.__dap.threads(${response.request_seq})\n`);
 			});
 			this.sendResponse(response);
 		} else {
@@ -829,7 +829,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 		const stack = await new Promise<DebugProtocol.StackFrame[]>((resolve)=>{
 			this._responses.set(response.request_seq, resolve);
-			this.writeStdin(`__DebugAdapter.stackTrace(${args.threadId},${startFrame},${response.request_seq})\n`);
+			this.writeStdin(`__DebugAdapter.__dap.stackTrace(${args.threadId},${startFrame},${response.request_seq})\n`);
 		});
 
 		response.body = { stackFrames: (stack as (DebugProtocol.StackFrame&{linedefined:number; currentpc:number})[]).map(
@@ -864,7 +864,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	protected async scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments) {
 		const scopes = new Promise<DebugProtocol.Scope[]>((resolve)=>{
 			this._responses.set(response.request_seq, resolve);
-			this.writeStdin(`__DebugAdapter.scopes(${args.frameId}, ${response.request_seq})\n`);
+			this.writeStdin(`__DebugAdapter.__dap.scopes(${args.frameId}, ${response.request_seq})\n`);
 		});
 		response.body = { scopes: await scopes };
 		this.sendResponse(response);
@@ -878,7 +878,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			new Promise<DebugProtocol.Variable[]>(async (resolve)=>{
 				this._responses.set(response.request_seq, resolve);
 				if (!await this.writeOrQueueStdin(
-					`__DebugAdapter.variables(${args.variablesReference},${response.request_seq},${args.filter? `"${args.filter}"`:"nil"},${args.start || "nil"},${args.count || "nil"})\n`,
+					`__DebugAdapter.__dap.variables(${args.variablesReference},${response.request_seq},${args.filter? `"${args.filter}"`:"nil"},${args.start || "nil"},${args.count || "nil"})\n`,
 					consumed,
 					ac.signal)) {
 					this._responses.delete(response.request_seq);
@@ -921,7 +921,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	protected async setVariableRequest(response: DebugProtocol.SetVariableResponse, args: DebugProtocol.SetVariableArguments, request?: DebugProtocol.Request) {
 		const body = await new Promise<DebugProtocol.Variable>((resolve)=>{
 			this._responses.set(response.request_seq, resolve);
-			this.writeStdin(`__DebugAdapter.setVariable(${args.variablesReference},${luaBlockQuote(Buffer.from(args.name))},${luaBlockQuote(Buffer.from(args.value))},${response.request_seq})\n`);
+			this.writeStdin(`__DebugAdapter.__dap.setVariable(${args.variablesReference},${luaBlockQuote(Buffer.from(args.name))},${luaBlockQuote(Buffer.from(args.value))},${response.request_seq})\n`);
 		});
 		if (body.type === "error") {
 			response.success = false;
@@ -952,7 +952,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			new Promise<EvaluateResponseBody>(async (resolve)=>{
 				this._responses.set(response.request_seq, resolve);
 				if (!await this.writeOrQueueStdin(
-					`__DebugAdapter.evaluate(${target},"${args.context}",${expr},${response.request_seq})\n`,
+					`__DebugAdapter.__dap.evaluate(${target},"${args.context}",${expr},${response.request_seq})\n`,
 					consumed,
 					ac.signal)) {
 					this._responses.delete(response.request_seq);
@@ -992,7 +992,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	}
 
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
-		this.writeStdin(`__DebugAdapter.step_enabled(false)`);
+		this.writeStdin(`__DebugAdapter.__dap.step_enabled(false)`);
 		this.continue();
 		this.sendResponse(response);
 	}
@@ -1011,8 +1011,8 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		if (this.breakPointsChanged.size !== 0) {
 			this.updateBreakpoints();
 		}
-		this.writeStdin(`__DebugAdapter.step_enabled(true)`);
-		this.writeStdin(`__DebugAdapter.step(${stepdepth[event]},${granularity==="instruction"})`);
+		this.writeStdin(`__DebugAdapter.__dap.step_enabled(true)`);
+		this.writeStdin(`__DebugAdapter.__dap.step(${stepdepth[event]},${granularity==="instruction"})`);
 		this.writeStdin("cont");
 		this.inPrompt--;
 	}
@@ -1170,7 +1170,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				new Promise<string|undefined>(async (resolve)=>{
 					this._responses.set(response.request_seq, resolve);
 					if (!await this.writeOrQueueStdin(
-						`__DebugAdapter.source(${ref},${response.request_seq})\n`,
+						`__DebugAdapter.__dap.source(${ref},${response.request_seq})\n`,
 						consumed,
 						ac.signal)) {
 						this._dumps.delete(ref);
@@ -1470,7 +1470,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.breakPoints.forEach((breakpoints:DebugProtocol.SourceBreakpoint[], filename:string)=>{
 			if (updateAll || this.breakPointsChanged.has(filename)) {
 				changes.push(Buffer.concat([
-					Buffer.from("__DebugAdapter.updateBreakpoints("),
+					Buffer.from("__DebugAdapter.__dap.updateBreakpoints("),
 					luaBlockQuote(encodeBreakpoints(filename, breakpoints)),
 					Buffer.from(")\n"),
 				]));

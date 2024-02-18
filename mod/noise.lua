@@ -1,3 +1,4 @@
+local variables = require("__debugadapter__/variables.lua")
 local to_tree_node
 local pairs = pairs
 local next = next
@@ -6,7 +7,7 @@ local debug = debug
 local table = table
 
 local function expval(ex)
-  return { name = ex.type, value = __DebugAdapter.describe(ex.literal_value), children={} }
+  return { name = ex.type, value = variables.describe(ex.literal_value), children={} }
 end
 
 local typevis = {
@@ -65,7 +66,7 @@ end
 
 local debugline
 local function expvalline(ex,short)
-  return __DebugAdapter.describe(ex.literal_value,short)
+  return variables.describe(ex.literal_value,short)
 end
 
 local typeline = {

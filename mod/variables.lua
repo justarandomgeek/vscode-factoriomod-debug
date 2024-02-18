@@ -607,7 +607,6 @@ function variables.describe(value,short)
   end
   return lineitem,vtype
 end
-DAvars.describe = variables.describe
 
 --- Generate a default debug view for `value` named `name`
 ---@param name string | nil
