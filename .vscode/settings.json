@@ -26,7 +26,8 @@
         //"no-unknown": "Any",
     },
     "Lua.diagnostics.severity": {
-        //"no-unknown": "Information"
+        //"no-unknown": "Information",
+        //"unused-local": "Information",
     },
     "Lua.runtime.version": "Lua 5.2",
     "Lua.runtime.builtin": {
