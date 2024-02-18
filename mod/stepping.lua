@@ -115,6 +115,8 @@ local function filebreaks(source)
 end
 
 ---@param source? string
+---@return string|"c"|"l"|"r" mask
+---@return number count
 local function hook_rate(source)
   if not source or step_enabled or filebreaks(source) then
     if step_instr then
@@ -571,7 +573,7 @@ stepIgnore(caught)
 
 ---`pcall` replacement to redirect the exception to display in the editor
 ---@param func function
----@vararg any
+---@param ... any
 ---@return boolean success
 ---@return any result
 ---@return ...
@@ -583,7 +585,7 @@ stepIgnore(pcall)
 ---`xpcall` replacement to redirect the exception to display in the editor
 ---@param func function
 ---@param user_handler function
----@vararg any
+---@param ... any
 ---@return boolean success
 ---@return any result
 ---@return ...
@@ -692,6 +694,7 @@ if rawscript then
 
   ---@param event defines.events|number|string
   ---@param data EventData
+  ---@return ...
   function dispatch.__remote.raise_event(event,data)
     local f = event_handler[event]
     if f then
@@ -713,7 +716,7 @@ if rawscript then
 
   ---@param f? function
   function apihooks.script.on_configuration_changed(f)
-    return rawscript.on_configuration_changed(labelhandler(f,"on_configuration_changed handler"))
+    rawscript.on_configuration_changed(labelhandler(f,"on_configuration_changed handler"))
   end
 
   ---@param tick uint|uint[]|nil

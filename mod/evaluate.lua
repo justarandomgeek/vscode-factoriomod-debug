@@ -2,12 +2,23 @@ local json = require("__debugadapter__/json.lua")
 local dispatch = require("__debugadapter__/dispatch.lua")
 local variables = require("__debugadapter__/variables.lua")
 local debug = debug
+local dgetinfo = debug.getinfo
+local dgetlocal = debug.getlocal
+local dsetlocal = debug.setlocal
+local dgetupvalue = debug.getupvalue
+local dsetupvalue = debug.setupvalue
+local dtraceback = debug.traceback
 local string = string
+local ssub = string.sub
+local sgsub = string.gsub
 local table = table
+local tunpack = table.unpack
+local tpack = table.pack
+local tconcat = table.concat
 local type = type
 local getmetatable = getmetatable
-local pcall = pcall -- capture pcall early before entrypoints wraps it
-local xpcall = xpcall -- ditto
+local pcall = pcall
+local xpcall = xpcall
 local setmetatable = setmetatable
 local load = load
 local pindex = variables.pindex
@@ -28,7 +39,7 @@ local function timedpcall(f)
     local t = game.create_profiler()
     local res = {pcall(f)}
     t.stop()
-    return t,table.unpack(res)
+    return t,tunpack(res)
   else
     return nil,pcall(f)
   end
@@ -39,9 +50,6 @@ end
 ---@param alsoLookIn? table|nil
 ---@return table
 local function evalmeta(env,frameId,alsoLookIn)
-  local getinfo = debug.getinfo
-  local getlocal = debug.getlocal
-  local getupvalue = debug.getupvalue
   local em = {
     __closeframe = function ()
       frameId = false
@@ -95,7 +103,7 @@ local function evalmeta(env,frameId,alsoLookIn)
         ---@type integer|nil
         local offset
         while true do
-          local info = getinfo(i,"f")
+          local info = dgetinfo(i,"f")
           if info then
             local func = info.func
             if func == DAEval.evaluateInternal then
@@ -119,7 +127,7 @@ local function evalmeta(env,frameId,alsoLookIn)
           ---@type any
           local localvalue
           while true do
-            local name,value = getlocal(frame,i)
+            local name,value = dgetlocal(frame,i)
             if not name then break end
             if name:sub(1,1) ~= "(" then
               if name == k then
@@ -131,10 +139,10 @@ local function evalmeta(env,frameId,alsoLookIn)
           if islocal then return localvalue end
 
           --check for upvalue at frameId
-          local func = getinfo(frame,"f").func
+          local func = dgetinfo(frame,"f").func
           i = 1
           while true do
-            local name,value = getupvalue(func,i)
+            local name,value = dgetupvalue(func,i)
             if not name then break end
             if name == k then return value end
             i = i + 1
@@ -172,7 +180,7 @@ local function evalmeta(env,frameId,alsoLookIn)
         ---@type integer|nil
         local offset
         while true do
-          local info = getinfo(i,"f")
+          local info = dgetinfo(i,"f")
           if info then
             local func = info.func
             if func == DAEval.evaluateInternal then
@@ -194,7 +202,7 @@ local function evalmeta(env,frameId,alsoLookIn)
           ---@type integer|nil
           local localindex
           while true do
-            local name = getlocal(frame,i)
+            local name = dgetlocal(frame,i)
             if not name then break end
             if name:sub(1,1) ~= "(" then
               if name == k then
@@ -204,19 +212,19 @@ local function evalmeta(env,frameId,alsoLookIn)
             i = i + 1
           end
           if localindex then
-            debug.setlocal(frame,localindex,v)
+            dsetlocal(frame,localindex,v)
             return
           end
 
           --check for upvalue at frameId
-          local func = getinfo(frame,"f").func
+          local func = dgetinfo(frame,"f").func
           i = 1
           while true do
-            local name = getupvalue(func,i)
+            local name = dgetupvalue(func,i)
             if not name then break end
             if not name == "_ENV" then
               if name == k then
-                debug.setupvalue(func,i,v)
+                dsetupvalue(func,i,v)
                 return
               end
             end
@@ -249,10 +257,11 @@ function DAEval.evaluateInternal(frameId,alsoLookIn,context,expression,timed)
   if frameId then
     -- if there's a function here, check if it has an active local or upval
     local i = 0
+    ---@type boolean
     local found
     while true do
       i = i+1
-      local name,value = debug.getlocal(frameId,i)
+      local name,value = dgetlocal(frameId,i)
       if not name then
         if found then
           goto foundenv
@@ -266,11 +275,11 @@ function DAEval.evaluateInternal(frameId,alsoLookIn,context,expression,timed)
       end
     end
     i = 0
-    local info = debug.getinfo(frameId,"f")
+    local info = dgetinfo(frameId,"f")
     local func = info.func
     while true do
       i = i+1
-      local name,value = debug.getupvalue(func,i)
+      local name,value = dgetupvalue(func,i)
       if not name then break end
       if name == "_ENV" then
         env = value
@@ -301,16 +310,16 @@ function DAEval.evaluateInternal(frameId,alsoLookIn,context,expression,timed)
     function(timer,success,...)
       if frameId then
         local mt = getmetatable(env)
-        local __closeframe = mt and mt.__closeframe
+        local __closeframe = mt and mt.__closeframe --[[@as fun()?]]
         if __closeframe then __closeframe() end
       end
-      return timer,success,table.pack(...)
+      return timer,success,tpack(...)
     end
     or
     function(success,...)
       if frameId then
         local mt = getmetatable(env)
-        local __closeframe = mt and mt.__closeframe
+        local __closeframe = mt and mt.__closeframe --[[@as fun()?]]
         if __closeframe then __closeframe() end
       end
       return success,...
@@ -326,10 +335,10 @@ dispatch.bind("evaluateInternal", DAEval.evaluateInternal)
 ---@return string
 ---@return any[]
 function DAEval.stringInterp(str,frameId,alsoLookIn,context)
-  local sub = string.sub
+  ---@type any[]
   local evals = {}
   local evalidx = 1
-  local result = string.gsub(str,"(%b{})",
+  local result = sgsub(str,"(%b{})",
     function(expr)
       if expr == "{[}" then
         evals[evalidx] = "{"
@@ -347,17 +356,18 @@ function DAEval.stringInterp(str,frameId,alsoLookIn,context)
           return "<error>"
         end
         local fId = frameId + 2
-        local info = debug.getinfo(fId,"u")
+        local info = dgetinfo(fId,"u")
         if info and info.isvararg then
           local i = -1
+          ---@type string[]
           local args = {}
           while true do
-            local name,value = debug.getlocal(fId,i)
+            local name,value = dgetlocal(fId,i)
             if not name then break end
             args[#args + 1] = variables.describe(value,true)
             i = i - 1
           end
-          local result = table.concat(args,", ")
+          local result = tconcat(args,", ")
           evals[evalidx] = setmetatable(args,{
             __debugline = "...",
             __debugtype = "vararg",
@@ -370,7 +380,7 @@ function DAEval.stringInterp(str,frameId,alsoLookIn,context)
           return "<error>"
         end
       end
-      expr = sub(expr,2,-2)
+      expr = ssub(expr,2,-2)
       local success,result = DAEval.evaluateInternal(frameId and frameId+3,alsoLookIn,context or "interp",expr)
       if success then
         evals[evalidx] = result
@@ -388,11 +398,12 @@ dispatch.bind("stringInterp", DAEval.stringInterp)
 
 local evalresultmeta = {
   __debugline = function(t)
+    ---@type string[]
     local s = {}
     for i=1,t.n do
       s[i] = variables.describe(t[i])
     end
-    return table.concat(s,", ")
+    return tconcat(s,", ")
   end,
   __debugtype = "DebugAdapter.EvalResult",
   __debugcontents = function (t)
@@ -441,7 +452,7 @@ function dispatch.__remote.evaluate(frameId,tag,context,expression,seq)
   if tag and tag ~= 0 then
     frameId = nil
   end
-  if not frameId or debug.getinfo(frameId,"f") then
+  if not frameId or dgetinfo(frameId,"f") then
     local timer,success,result
     if context == "repl" then
       timer,success,result = DAEval.evaluateInternal(frameId and frameId+1,nil,context,expression,true)
@@ -469,7 +480,7 @@ function dispatch.__remote.evaluate(frameId,tag,context,expression,seq)
       if context == "visualize" then
         local mtresult = getmetatable(result)
         if mtresult and mtresult.__debugvisualize then
-          local function err(e) return debug.traceback("__debugvisualize error: "..e) end
+          local function err(e) return dtraceback("__debugvisualize error: "..e) end
           success,result = xpcall(mtresult.__debugvisualize,err,result)
         end
         evalresult.result = json.encode(result)

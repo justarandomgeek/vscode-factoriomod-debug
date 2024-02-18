@@ -45,10 +45,10 @@ local function canRemoteCall()
   -- during on_load, script exists and the root of the stack is no longer the main chunk
   return not not (game or script and not isMainChunk())
 end
-dispatch.canRemoteCall = canRemoteCall
 
 --- call a remote function in all registered mods
 ---@param funcname string Name of remote function to call
+---@param ... Any
 function dispatch.callAll(funcname,...)
   if canRemoteCall() then
     for remotename,interface in pairs(remote.interfaces) do
@@ -64,6 +64,7 @@ end
 
 --- call a remote function in all registered mods until one returns true
 ---@param funcname string Name of remote function to call
+---@param ... Any
 ---@return boolean
 function dispatch.find(funcname,...)
   -- try local first...
@@ -86,6 +87,12 @@ function dispatch.find(funcname,...)
 end
 
 
+--- try to call a remote function in a specific mod
+---@param modname string
+---@param funcname string Name of remote function to call
+---@param ... Any
+---@return boolean
+---@return ...
 function dispatch.callMod(modname, funcname, ...)
   if modname == script.mod_name then
     return true, __remote[funcname](...)
@@ -95,13 +102,19 @@ function dispatch.callMod(modname, funcname, ...)
     local remotename = "__debugadapter_"..modname
     local interface = remote.interfaces[remotename]
     if interface[funcname] then
-      return true, remote.call(remotename, funcname, ...)
+      return true, rcall(remotename, funcname, ...)
     end
   end
 
   return false
 end
 
+--- try to call a remote function in a specific thread
+---@param threadid integer
+---@param funcname string Name of remote function to call
+---@param ... Any
+---@return boolean
+---@return ...
 function dispatch.callThread(threadid, funcname, ...)
   if threadid == threads.this_thread then
     return true, __remote[funcname](...)
@@ -112,13 +125,19 @@ function dispatch.callThread(threadid, funcname, ...)
     local remotename = "__debugadapter_"..thread.name
     local interface = remote.interfaces[remotename]
     if interface[funcname] then
-      return true, remote.call(remotename, funcname, ...)
+      return true, rcall(remotename, funcname, ...)
     end
   end
 
   return false
 end
 
+--- try to call a remote function in a specific stack frame
+---@param frameId integer
+---@param funcname string Name of remote function to call
+---@param ... Any
+---@return boolean
+---@return ...
 function dispatch.callFrame(frameId, funcname, ...)
   local thread,i,tag = threads.splitFrameId(frameId)
   if thread.id == threads.this_thread then
@@ -129,7 +148,7 @@ function dispatch.callFrame(frameId, funcname, ...)
     local remotename = "__debugadapter_"..thread.name
     local interface = remote.interfaces[remotename]
     if interface[funcname] then
-      return true, remote.call(remotename, funcname, i, tag, ...)
+      return true, rcall(remotename, funcname, i, tag, ...)
     end
   end
 
@@ -137,7 +156,13 @@ function dispatch.callFrame(frameId, funcname, ...)
 end
 
 do
+  ---@type {[string]:function}
   local bindings = {}
+
+  --- get or set functions for late binding
+  ---@param name string
+  ---@param f function
+  ---@return function?
   function dispatch.bind(name, f)
     if f then
       bindings[name] = f
@@ -161,7 +186,7 @@ do
   ---@return boolean? step_instr
   function dispatch.getStepping(clear)
     if script and script.mod_name ~= "debugadapter" and canRemoteCall() and remote.interfaces["debugadapter"] then
-      return remote.call--[[@as fun(string,string,boolean?):number?,boolean?]]("debugadapter", "getStepping", clear)
+      return rcall--[[@as fun(string,string,boolean?):number?,boolean?]]("debugadapter", "getStepping", clear)
     else
       local stepping,step_instr = cross_stepping, cross_step_instr
       if clear ~= false then
@@ -177,7 +202,8 @@ do
   ---@param step_instr? boolean
   function dispatch.setStepping(stepping, step_instr)
     if script and script.mod_name ~= "debugadapter" and canRemoteCall() and remote.interfaces["debugadapter"] then
-      return remote.call("debugadapter", "setStepping", stepping, step_instr)
+      rcall("debugadapter", "setStepping", stepping, step_instr)
+      return
     else
       cross_stepping = stepping
       cross_step_instr = step_instr

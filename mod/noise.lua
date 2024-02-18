@@ -5,6 +5,7 @@ local next = next
 local tostring = tostring
 local debug = debug
 local table = table
+local tconcat = table.concat
 
 local function expval(ex)
   return { name = ex.type, value = variables.describe(ex.literal_value), children={} }
@@ -94,7 +95,7 @@ local typeline = {
         for i,arg in pairs(ex.arguments) do
           args[i] = debugline(arg,true)
         end
-        argstring = "("..table.concat(args,", ")..")"
+        argstring = "("..tconcat(args,", ")..")"
       end
     else
       if short then
@@ -103,7 +104,7 @@ local typeline = {
         for k,arg in pairs(ex.arguments) do
           args[#args+1] = tostring(k).."="..debugline(arg,true)
         end
-        argstring = "{"..table.concat(args,", ").."}"
+        argstring = "{"..tconcat(args,", ").."}"
       end
     end
     return ex.function_name..argstring
