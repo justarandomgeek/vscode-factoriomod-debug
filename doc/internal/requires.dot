@@ -1,0 +1,92 @@
+digraph G {
+pad=1
+
+json;
+threads;
+dispatch;
+
+normalizeLuaSource
+enumutil;
+luaobjectinfo;
+iterutil;
+
+variables;
+evaluate;
+
+print;
+log;
+
+datastring;
+stepping;
+stacks;
+
+debugadapter;
+
+
+edge [color=blue];
+debugadapter -> threads;
+threads -> json;
+
+edge [color=red];
+debugadapter -> dispatch;
+dispatch -> threads;
+
+edge [color=green];
+debugadapter -> variables;
+variables -> dispatch [dir=both arrowtail=odiamond];
+variables -> luaobjectinfo;
+variables -> normalizeLuaSource;
+variables -> json;
+variables -> iterutil;
+
+edge [color=orange];
+debugadapter -> evaluate;
+evaluate -> json;
+evaluate -> dispatch [dir=both arrowtail=dot];
+evaluate -> variables ;# describe, error, create, translate, pindex
+
+edge [color=darkorchid];
+debugadapter -> print;
+print -> json;
+print -> normalizeLuaSource;
+print -> variables;
+print -> evaluate;
+
+edge [color=steelblue];
+debugadapter -> stepping;
+stepping -> iterutil;
+stepping -> normalizeLuaSource;
+stepping -> json;
+stepping -> datastring;
+stepping -> threads;
+stepping -> dispatch;
+stepping -> variables;
+stepping -> evaluate ;# stringInterp, evaluateInternal
+stepping -> print ;# outputEvent, print
+
+edge [color=blue];
+debugadapter -> log;
+log -> normalizeLuaSource;
+log -> variables;
+log -> print;
+
+edge [color=purple];
+debugadapter -> stacks;
+stacks -> json;
+stacks -> threads;
+stacks -> dispatch;
+stacks -> normalizeLuaSource;
+stacks -> variables;
+stacks -> stepping ;# on_exception, getEntryLabel
+
+edge [color=deeppink];
+luaobjectinfo -> enumutil;
+luaobjectinfo -> dispatch [dir=both arrowtail=odiamond];
+
+# late bindings via dispatch
+edge [constraint=false color=orangered arrowhead=odot];
+variables -> evaluate ;# stringInterp, evaluateInternal
+luaobjectinfo -> evaluate ;# stringInterp
+
+
+}
