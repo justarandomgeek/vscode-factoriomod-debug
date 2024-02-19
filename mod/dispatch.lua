@@ -161,7 +161,7 @@ do
 
   --- get or set functions for late binding
   ---@param name string
-  ---@param f function
+  ---@param f? function
   ---@return function?
   function dispatch.bind(name, f)
     if f then

@@ -14,9 +14,10 @@ local debug = debug
 local dgetmetatable = debug.getmetatable
 local debugprompt = debug.debug
 local tconcat = table.concat
+local assert = assert
 
 local function stringInterp(...)
-  stringInterp = dispatch.bind("stringInterp")
+  stringInterp = assert(dispatch.bind("stringInterp"))
   return stringInterp(...)
 end
 

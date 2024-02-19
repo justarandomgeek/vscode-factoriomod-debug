@@ -47,14 +47,15 @@ local ipairs = ipairs
 local print = print
 local pcall = pcall
 local type = type
+local assert = assert
 
 local function stringInterp(...)
-  stringInterp = dispatch.bind("stringInterp")
+  stringInterp = assert(dispatch.bind("stringInterp"))
   return stringInterp(...)
 end
 
 local function evaluateInternal(...)
-  evaluateInternal = dispatch.bind("evaluateInternal")
+  evaluateInternal = assert(dispatch.bind("evaluateInternal"))
   return evaluateInternal(...)
 end
 

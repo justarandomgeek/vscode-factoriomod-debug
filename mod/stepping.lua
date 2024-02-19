@@ -115,7 +115,7 @@ local function filebreaks(source)
 end
 
 ---@param source? string
----@return string|"c"|"l"|"r" mask
+---@return hookmask mask
 ---@return number count
 local function hook_rate(source)
   if not source or step_enabled or filebreaks(source) then
@@ -144,8 +144,15 @@ function DAstep.__pub.dumpIgnore(source)
   end
 end
 
+---@type boolean?
 local blockhook
+---@type {[function]:true}
 local unhooked = setmetatable({}, {__mode = "k"})
+
+--- wrap a function with disabling hooks
+---@generic F : function
+---@param f F
+---@return F
 function DAstep.unhook(f)
   if unhooked[f] then return f end
   local oldblock
@@ -183,7 +190,7 @@ do
         dump = variables.buffer(rawdump)
       end
       json_event_prompt{event="source", body={ source = dasource, dump = dump }}
-      debugprompt()
+      debugprompt() -- get breakpoint updates if needed
     end
   end
 
@@ -464,6 +471,7 @@ end
 
 local apihooks = {}
 function DAstep.attach()
+  blockhook = true
   dsethook(hook,hook_rate())
   for k, v in pairs(apihooks) do
     rawset(_ENV, k, v)
@@ -472,11 +480,13 @@ function DAstep.attach()
   if on_error then
     on_error(on_exception)
   end
+  blockhook = false
 end
+unhooked[DAstep.attach] = true
 
 ---@param source string
 ---@param breaks? DebugProtocol.SourceBreakpoint[]
-function dispatch.__remote.setBreakpoints(source,breaks)
+dispatch.__remote.setBreakpoints = DAstep.unhook(function(source,breaks)
   if breaks then
     ---@type table<number,DebugProtocol.SourceBreakpoint>
     local filebreaks = {}
@@ -487,7 +497,7 @@ function dispatch.__remote.setBreakpoints(source,breaks)
   else
     breakpoints[source] = nil
   end
-end
+end)
 
 ---@param change string
 function DAstep.__dap.updateBreakpoints(change)
@@ -523,8 +533,7 @@ unhooked[dispatch.__remote.step_enabled] = true
 ---Generate a breakpoint or exception from mod code
 ---@param mesg string|LocalisedString|nil
 ---@public
-function DAstep.breakpoint(mesg)
-  dsethook()
+DAstep.__pub.breakpoint = DAstep.unhook(function(mesg)
   if mesg then
     print_exception("manual",mesg)
   else
@@ -534,19 +543,17 @@ function DAstep.breakpoint(mesg)
       }}
   end
   debugprompt()
-  return DAstep.attach()
-end
-DAstep.__pub.breakpoint = DAstep.breakpoint
+end)
 
 
 ---Terminate a debug session from mod code
 ---@public
-function DAstep.terminate()
+function DAstep.__pub.terminate()
   dsethook()
   print("\xEF\xB7\x90\xEE\x80\x8C")
   debugprompt()
 end
-DAstep.__pub.terminate = DAstep.terminate
+unhooked[DAstep.__pub.terminate] = true
 
 ---Generate handlers for pcall/xpcall wrappers
 ---@param filter string Where the exception was intercepted
@@ -686,11 +693,11 @@ if rawscript then
   ---@param data EventData
   ---@param modname string
   ---@public
-  function DAstep.__pub.raise_event(event,data,modname)
+  DAstep.__pub.raise_event = DAstep.unhook(function(event,data,modname)
     if not dispatch.callMod(modname, "raise_event", event, data) then
       error("cannot raise events here")
     end
-  end
+  end)
 
   ---@param event defines.events|number|string
   ---@param data EventData
