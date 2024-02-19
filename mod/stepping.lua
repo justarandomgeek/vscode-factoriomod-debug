@@ -533,7 +533,9 @@ unhooked[dispatch.__remote.step_enabled] = true
 ---Generate a breakpoint or exception from mod code
 ---@param mesg string|LocalisedString|nil
 ---@public
-DAstep.__pub.breakpoint = DAstep.unhook(function(mesg)
+function DAstep.__pub.breakpoint(mesg)
+  local oldblock = blockhook
+  blockhook = true
   if mesg then
     print_exception("manual",mesg)
   else
@@ -543,8 +545,9 @@ DAstep.__pub.breakpoint = DAstep.unhook(function(mesg)
       }}
   end
   debugprompt()
-end)
-
+  blockhook = oldblock
+end
+unhooked[DAstep.__pub.breakpoint] = true
 
 ---Terminate a debug session from mod code
 ---@public
