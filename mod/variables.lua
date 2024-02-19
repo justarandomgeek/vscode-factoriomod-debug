@@ -225,7 +225,7 @@ do
 
   ---Translate a LocalisedString
   ---@param mesg LocalisedString
-  ---@return integer|false @Translation ID or false if error
+  ---@return string|false @Translation ID or false if error
   ---@return string|nil @Error if any
   function variables.translate(mesg)
     local translationID = nextID()
@@ -234,7 +234,7 @@ do
     mesg,"\xEF\xB7\xAF"
     })
     if success then
-      return translationID
+      return "\xEF\xB7\x94"..translationID
     else
       return success,result
     end
@@ -941,10 +941,10 @@ function dispatch.__remote.variables(variablesReference,seq,filter,start,count)
         -- tables with no meta, and [1] that is string
         if filter == "named" and not mt and #tabref >= 1 and type(tabref[1]) == "string" then
           -- print a translation for this with unique id
-          local i,mesg = variables.translate(tabref)
+          local s,mesg = variables.translate(tabref)
           vars[#vars + 1] = {
             name = "<translated>",
-            value = i and ("\xEF\xB7\x94"..i) or ("<"..mesg..">"),
+            value = s or ("<"..mesg..">"),
             type = "LocalisedString",
             variablesReference = 0,
             presentationHint = { kind = "virtual", attributes = { "readOnly" } },
@@ -1076,11 +1076,7 @@ function dispatch.__remote.variables(variablesReference,seq,filter,start,count)
             do
               -- print a translation for this with unique id
               local id,mesg = variables.translate(object)
-              if id then
-                value = "\xEF\xB7\x94"..id
-              else
-                value = "<"..mesg..">"
-              end
+              value = id or ("<"..mesg..">")
             end
             vars[#vars + 1] = {
               name = "<translated>",

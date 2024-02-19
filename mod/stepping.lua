@@ -413,7 +413,8 @@ local function print_exception(etype,mesg)
   if mesg == nil then mesg = "<nil>" end
 
   if type(mesg) == "table" and not getmetatable(mesg) and #mesg>=1 and type(mesg[1])=="string" then
-    mesg = "\xEF\xB7\x94"..variables.translate(mesg)
+    local ref,err = variables.translate(mesg)
+    mesg = ref or ("<"..err..">")
   end
 
   json_event_prompt{event="exception", body={

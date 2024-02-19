@@ -28,7 +28,7 @@ interface ModPaths{
 }
 type EvaluateResponseBody = DebugProtocol.EvaluateResponse['body'] & {
 	// translation ID for time this eval ran
-	timer?: number
+	timer?: string
 };
 
 type resolver<T> = (value: T | PromiseLike<T>)=>void;
@@ -984,8 +984,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		}
 		response.body = body;
 		if (body.timer) {
-			const time = this.translations.get(body.timer)?.replace(/^.*: /, "") ??
-								`{Missing Translation ID ${body.timer}}`;
+			const time = body.timer.replace(/^.*: /, "");
 			body.result += "\n⏱️ " + time;
 		}
 		this.sendResponse(response);

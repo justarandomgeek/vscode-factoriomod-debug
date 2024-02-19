@@ -16,7 +16,8 @@ local function newlog(mesg)
   local outmesg = mesg
   local tmesg = type(mesg)
   if tmesg == "table" and (mesg.object_name == "LuaProfiler" or (not getmetatable(mesg) and type(mesg[1])=="string")) then
-    outmesg = "\xEF\xB7\x94"..variables.translate(mesg)
+    local tref,err = variables.translate(mesg)
+    outmesg = tref or ("<"..err..">")
   elseif tmesg ~= "string" then
     outmesg = variables.describe(mesg)
   end

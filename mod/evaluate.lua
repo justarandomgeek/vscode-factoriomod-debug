@@ -494,7 +494,8 @@ function dispatch.__remote.evaluate(frameId,tag,context,expression,seq)
       local outmesg = result
       local tmesg = type(result)
       if tmesg == "table" and (result--[[@as LuaObject]].object_name == "LuaProfiler" or (not getmetatable(result) and #result>=1 and type(result[1])=="string")) then
-        outmesg = "\xEF\xB7\x94"..variables.translate(result)
+        local tref,err = variables.translate(result)
+        outmesg = tref or ("<"..err..">")
       elseif tmesg ~= "string" then
         outmesg = variables.describe(result)
       end

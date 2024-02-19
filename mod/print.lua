@@ -72,7 +72,8 @@ function DAprint.print(expr,alsoLookIn,upStack,category,noexprs)
       ref = v.variablesReference
     end
   elseif texpr == "table" and (expr.object_name == "LuaProfiler" or (not getmetatable(expr) and #expr>=1 and type(expr[1])=="string")) then
-    result = "\xEF\xB7\x94"..variables.translate(expr)
+    local tref,err = variables.translate(expr)
+    result = tref or ("<"..err..">")
   else
     if texpr == "table" then
       expr = {expr}
