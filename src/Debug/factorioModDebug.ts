@@ -1304,7 +1304,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				hookopts += `runningBreak=${this.launchArgs!.runningBreak},`;
 			}
 
-			this.writeStdin(`__DebugAdapter={${hookopts}}`);
+			this.writeStdin(`__DebugAdapter={__config={${hookopts}}}`);
 		}
 
 		this.writeStdin("cont");

@@ -7,6 +7,7 @@ local stepIgnoreFuncs = {}
 -- make it weak keys so it doesn't keep an otherwise-dead function around
 setmetatable(stepIgnoreFuncs,{__mode="k"})
 local __DebugAdapter = __DebugAdapter
+local DAConfig = __DebugAdapter.__config
 
 ---@class DebugAdapter.Stepping
 local DAstep = {}
@@ -84,7 +85,7 @@ local runningBreak
 do
   local i = 0
   function runningBreak()
-    if i < (__DebugAdapter.runningBreak or 5000) then
+    if i < (DAConfig.runningBreak or 5000) then
       i = i + 1
       return false
     else
@@ -122,10 +123,10 @@ local function hook_rate(source)
     if step_instr then
       return "cr", 1
     else
-      return "clr", (__DebugAdapter.runningBreak or 5000)
+      return "clr", (DAConfig.runningBreak or 5000)
     end
   end
-  return "cr", (__DebugAdapter.runningBreak or 5000)
+  return "cr", (DAConfig.runningBreak or 5000)
 end
 
 ---@type table<string,true>
@@ -425,7 +426,7 @@ local function print_exception(etype,mesg)
 end
 
 local on_exception
-if __DebugAdapter.instrument then
+if DAConfig.instrument then
   local function stack_has_location()
     local i = 4
     -- 1 = stack_has_location, 2 = on_exception,
@@ -553,6 +554,7 @@ unhooked[DAstep.__pub.breakpoint] = true
 ---Terminate a debug session from mod code
 ---@public
 function DAstep.__pub.terminate()
+  blockhook = true
   dsethook()
   print("\xEF\xB7\x90\xEE\x80\x8C")
   debugprompt()

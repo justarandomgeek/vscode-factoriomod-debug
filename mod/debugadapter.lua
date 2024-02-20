@@ -17,6 +17,15 @@ if data then
 end
 
 
+
+-- this is a global so the vscode extension can get to it from debug.debug()
+---@class DebugAdapter : DebugAdapter.Stepping.Public
+local __DebugAdapter = _ENV.__DebugAdapter or {} -- but might have been defined already for selective instrument mode
+_ENV.__DebugAdapter = __DebugAdapter
+
+---@class DebugAdapter.ClientInterface: DebugAdapter.Stepping.DAP, DebugAdapter.Variables, DebugAdapter.Stacks
+__DebugAdapter.__dap = {}
+
 -- Various fields set by vscode to configure the debug adapter
 ---@class DebugAdapter.Config
 ---@field instrument boolean set in DA's instrument-*.lua
@@ -24,14 +33,7 @@ end
 ---@field hooklog? boolean enable replacing `log`
 ---@field keepoldlog? boolean when set, `log` replacement will still call original `log`
 ---@field runningBreak? number frequency to check for pause in long-running code
-
--- this is a global so the vscode extension can get to it from debug.debug()
----@class DebugAdapter : DebugAdapter.Config, DebugAdapter.Stepping.Public
-local __DebugAdapter = _ENV.__DebugAdapter or {} -- but might have been defined already for selective instrument mode
-_ENV.__DebugAdapter = __DebugAdapter
-
----@class DebugAdapter.ClientInterface: DebugAdapter.Stepping.DAP, DebugAdapter.Variables, DebugAdapter.Stacks
-__DebugAdapter.__dap = {}
+__DebugAdapter.__config = __DebugAdapter.__config or {}
 
 ---@param to table<string,any>
 ---@param from table<string,any>
@@ -59,7 +61,7 @@ __DebugAdapter.__dap.evaluate = evaluate.evaluate
 local daprint = require("__debugadapter__/print.lua")
 __DebugAdapter.print = daprint.print
 
-if __DebugAdapter.hooklog ~= false then
+if __DebugAdapter.__config.hooklog ~= false then
   require("__debugadapter__/log.lua")
 end
 
@@ -81,7 +83,7 @@ end
 
 do
   local ininstrument = ""
-  if __DebugAdapter.instrument then
+  if __DebugAdapter.__config.instrument then
     ininstrument = " in Instrument Mode"
   end
 

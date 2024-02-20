@@ -42,15 +42,16 @@ function DAStacks.stackTrace(threadid, startFrame, seq)
 end
 function dispatch.__remote.stackTrace(startFrame, seq)
   local threadid = threads.this_thread
-  local offset = 7 -- 0 getinfo, 1 stackTrace, 2 callThread, 3 stackTrace, 4 debug command, 5 debug.debug,
+  local offset = 7
+  -- 0 getinfo, 1 stackTrace, 2 callThread, 3 stackTrace, 4 debug command, 5 debug.debug,
   -- in normal stepping:                       6 sethook callback, 7 at breakpoint
-  -- in exception (instrument only)            6 on_error callback, 7 pCallWithStackTraceMessageHandler, 6 at exception
+  -- in exception (instrument only)            6 on_error callback, 7 pCallWithStackTraceMessageHandler, 8 at exception
   -- in remote-redirected call:                2 at stack
   do
     local atprompt = dgetinfo(5,"f")
     if atprompt and atprompt.func == debugprompt then
       local on_ex_info = dgetinfo(6,"f")
-      if __DebugAdapter.instrument and on_ex_info and on_ex_info.func == stepping.on_exception then
+      if on_ex_info and on_ex_info.func == stepping.on_exception then
         offset = offset + 1
       end
     else

@@ -8,10 +8,10 @@ local getmetatable = getmetatable
 
 -- log protection is disabled in Instrument Mode on Factorio >= 0.18.34
 -- don't bother attempting the hook otherwise
-if not __DebugAdapter.instrument then return end
+if not __DebugAdapter.__config.instrument then return end
 
 local oldlog = log
-local keepoldlog = __DebugAdapter.keepoldlog
+local keepoldlog = __DebugAdapter.__config.keepoldlog
 local function newlog(mesg)
   local outmesg = mesg
   local tmesg = type(mesg)
