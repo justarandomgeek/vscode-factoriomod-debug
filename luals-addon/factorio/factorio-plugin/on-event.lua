@@ -21,7 +21,7 @@ end
 ---@param diffs Diff[] @ The diffs to add more diffs to
 local function replace(_, text, diffs)
   ---@param s_func_param integer
-  ---@param class_name_getter fun(): string
+  ---@param class_name_getter fun(): (string?)
   local function process_func_param(s_func_param, class_name_getter)
     ---@type integer|nil, integer, string
     local s_func, s_param_name, param_name = text:match("^%s*()function%s*%(%s*()([^)%s]+)", s_func_param)
