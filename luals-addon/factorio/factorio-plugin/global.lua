@@ -71,7 +71,7 @@ local function replace(uri, text, diffs)
     ---@type table<integer, true>
     local matches_to_ignore = {}
     -- remove matches that where `global` is actually indexing into something (`.global`)
-    for dot_pos, start in text:gmatch("()%.[^%S\n]*()global%s*[=.%[]")--[[@as fun():integer, integer]] do
+    for dot_pos, start in text:gmatch("()%.%s*()global%s*[=.%[]")--[[@as fun():integer, integer]] do
       if text:sub(dot_pos - 1, dot_pos - 1) ~= "." -- If it's a concat, keep it.
         and text:sub(dot_pos - 2, dot_pos - 1) ~= "_G" -- Keep indexes into _G
         and text:sub(dot_pos - 4, dot_pos - 1) ~= "_ENV" -- and _ENV
@@ -87,7 +87,7 @@ local function replace(uri, text, diffs)
     ---@param ignore_char string
     local function add_diffs(preceding_text, start, finish, ignore_pos, ignore_char)
       if matches_to_ignore[start]
-        or (ignore_char == "" and not preceding_text:find("=[^%S\n]*$"))
+        or (ignore_char == "" and not preceding_text:find("=%s*$"))
         or util.is_disabled(start, global_module_flag)
       then
         return
@@ -114,7 +114,7 @@ local function replace(uri, text, diffs)
     -- function for it would be incredibly inefficient, constantly allocating new tables.
     util.reset_is_disabled_to_file_start()
     for start, finish, ignore_pos, ignore_char in
-      string.gmatch(text, "()global%f[^a-zA-Z0-9_]()[^%S\n]*()([=.%[]?)")--[[@as fun(): integer, integer, integer, string]]
+      string.gmatch(text, "()global%f[^a-zA-Z0-9_]()%s*()([=.%[]?)")--[[@as fun(): integer, integer, integer, string]]
     do
       if identifier_char_lut[string.sub(text, start - 1, start - 1)] then goto continue end
       local line_start = util.get_line_start(start)
