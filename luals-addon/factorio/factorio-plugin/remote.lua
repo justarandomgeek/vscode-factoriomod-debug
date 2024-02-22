@@ -70,27 +70,18 @@ local function replace(_, text, diffs)
   ---@param s_param_1 integer
   local function handle_call(s_entire_thing, s_call, f_call, p_open_paren, s_param_1)
     if util.is_disabled(s_entire_thing, remote_call_module_flag) then return end
-    util.add_diff(diffs, s_call - 1, s_call, text:sub(s_call - 1, s_call - 1).."--\n")
-    util.add_diff(diffs, s_call, f_call,
-      "__typed_interfaces---@diagnostic disable-line:undefined-field\n")
 
     local chain_diff = {} ---@type ChainDiffElem[]
     local open_paren_diff = {i = p_open_paren, text = ""}
     chain_diff[1] = open_paren_diff
 
     local name, name_comma_or_paren, s_param_2 = process_param(chain_diff, s_param_1)
-    if not name then
-      util.remove_diff(diffs)
-      return
-    end
+    if not name then return end
     ---@cast s_param_2 -nil
 
     if name_comma_or_paren == "," then
       local func, func_comma_or_paren, p_finish = process_param(chain_diff, s_param_2)
-      if not func then
-        util.remove_diff(diffs)
-        return
-      end
+      if not func then return end
       ---@cast p_finish -nil
 
       chain_diff[6] = {i = p_finish}
@@ -105,6 +96,9 @@ local function replace(_, text, diffs)
       end
     end
 
+    util.add_diff(diffs, s_call - 1, s_call, text:sub(s_call - 1, s_call - 1).."--\n")
+    util.add_diff(diffs, s_call, f_call,
+      "__typed_interfaces---@diagnostic disable-line:undefined-field\n")
     util.add_chain_diff(chain_diff, diffs)
   end
 
