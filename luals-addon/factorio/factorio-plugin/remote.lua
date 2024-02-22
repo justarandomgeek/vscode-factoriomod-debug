@@ -109,9 +109,10 @@ local function replace(_, text, diffs)
   end
 
   util.reset_is_disabled_to_file_start()
-  for s_entire_thing, s_add_or_call in
-    string.gmatch(text, "()remote%s*%.%s*()")--[[@as fun(): integer, integer]]
+  for f_remote, s_add_or_call in
+    string.gmatch(text, "remote()%s*%.%s*()")--[[@as fun(): integer, integer]]
   do
+    local s_entire_thing = f_remote - #"remote"
     local f_add_or_call, p_open_paren, s_param_1 = text:match("^add_interface()%s*()%(()", s_add_or_call)
     if f_add_or_call then
       handle_add_interface(s_entire_thing, s_add_or_call, f_add_or_call, p_open_paren, s_param_1)

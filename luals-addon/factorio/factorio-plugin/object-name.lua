@@ -8,9 +8,10 @@ local object_name_module_flag = util.module_flags.object_name
 ---@param diffs Diff[] @ The diffs to add more diffs to
 local function replace(_, text, diffs)
   util.reset_is_disabled_to_file_start()
-  for s_obj_name, f_obj_name in
-    string.gmatch(text, "()object_name()%f[^a-zA-Z0-9_]")--[[@as fun(): integer, integer]]
+  for f_obj_name in
+    string.gmatch(text, "object_name()%f[^a-zA-Z0-9_]")--[[@as fun(): integer]]
   do
+    local s_obj_name = f_obj_name - #"object_name"
     if util.is_disabled(s_obj_name, object_name_module_flag) then goto continue end
     local preceding_start = s_obj_name - 128 -- Look behind quite far because variable names can be quite long.
     local preceding_text = text:sub(preceding_start, s_obj_name - 1)

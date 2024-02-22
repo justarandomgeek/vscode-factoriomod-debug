@@ -67,10 +67,11 @@ local function replace(_, text, diffs)
   end
 
   util.reset_is_disabled_to_file_start()
-  for s_vent, char_post_event, s_rest in
+  for f_vent, char_post_event, s_rest in
     -- Checking for vent and then checking [Ee] after makes the pattern twice as fast, based on measurements.
-    string.gmatch(text, "()vent%s*([%.%(])%s*()")--[[@as fun():integer, string, integer]]
+    string.gmatch(text, "vent()%s*([%.%(])%s*()")--[[@as fun():integer, string, integer]]
   do
+    local s_vent = f_vent - #"vent"
     if char_post_event == "(" then
       if text:sub(s_vent - 4, s_vent - 1) == "on_e" then
         process_regular(s_rest)

@@ -72,9 +72,10 @@ local function replace(uri, text, diffs)
     -- however since we are dealing with a variable amount of values, creating a generic
     -- function for it would be incredibly inefficient, constantly allocating new tables.
     util.reset_is_disabled_to_file_start()
-    for start, finish, ignore_pos, ignore_char in
-      string.gmatch(text, "()global%f[^a-zA-Z0-9_]()%s*()([=.%[]?)")--[[@as fun(): integer, integer, integer, string]]
+    for finish, ignore_pos, ignore_char in
+      string.gmatch(text, "global%f[^a-zA-Z0-9_]()%s*()([=.%[]?)")--[[@as fun(): integer, integer, string]]
     do
+      local start = finish - #"global"
       if identifier_char_lut[text:sub(start - 1, start - 1)] then goto continue end
 
       local preceding_start = start - 16
