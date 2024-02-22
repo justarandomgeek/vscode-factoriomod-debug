@@ -67,26 +67,32 @@ local function replace(_, text, diffs)
   end
 
   util.reset_is_disabled_to_file_start()
-  for s_param in
-    string.gmatch(text, "on_event%s*%(%s*()")--[[@as fun():integer]]
+  for s_event, char_post_event, s_rest in
+    string.gmatch(text, "()[Ee]vent%s*([%.%(])%s*()")--[[@as fun():integer, string, integer]]
   do
-    process_regular(s_param)
-  end
-
-  util.reset_is_disabled_to_file_start()
-  for s_param in
-    string.gmatch(text, "[Ee]vent%s*%.%s*register%s*%(%s*()")--[[@as fun():integer]]
-  do
-    process_regular(s_param)
-  end
-
-  util.reset_is_disabled_to_file_start()
-  for class_name, s_func_param in
-    string.gmatch(text, "[Ee]vent%s*%.%s*([a-zA-Z_][a-zA-Z0-9_]*)%s*%(()")--[[@as fun():string, integer]]
-  do
-    if class_name ~= "on_configuration_changed" then
-      process_func_param(s_func_param, function() return "EventData."..class_name end)
+    if char_post_event == "(" then
+      if text:sub(s_event - 3, s_event) == "on_e" then
+        process_regular(s_rest)
+      end
+      goto continue
     end
+    -- `char_post_event == "."`
+
+    local s_param = text:match("^register%s*%(%s*()", s_rest)
+    if s_param then
+      process_regular(s_param)
+      goto continue
+    end
+
+    local class_name, s_func_param = text:match("^([a-zA-Z_][a-zA-Z0-9_]*)%s*%(()", s_rest)
+    if class_name then
+      if class_name ~= "on_configuration_changed" then
+        process_func_param(s_func_param, function() return "EventData."..class_name end)
+      end
+      goto continue
+    end
+
+    ::continue::
   end
 end
 
