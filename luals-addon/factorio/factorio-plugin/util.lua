@@ -526,6 +526,21 @@ do
     end
   end
 
+  local function process_start_of_line()
+    if not cursor then return end
+    line_start = cursor -- The next line starts after the newline character. Cursor has already advanced.
+    -- During the creation of `ranges` and `ranges_flags` there can be overlapping ranges,
+    -- mainly due to ---@plugin disable-next-line and disable-line.
+    -- When this happens, the functions for adding or removing flags for ranges perform
+    -- binary searches to find the index to insert at. However since overlapping ranges can
+    -- only occur within the current line, once done with a line the lower bound can be shifted up.
+    if line_start >= ranges[ranges_count] then
+      ranges_current_lower_bound = ranges_count
+    else -- There are already ranges on this next line, find the index for the start of the line.
+      ranges_current_lower_bound = binary_search_ranges(line_start)
+    end
+  end
+
   ---@param start_position integer
   local function parse_short_comment(start_position)
     if take("^%-") then
@@ -539,6 +554,7 @@ do
     -- because it can allow for ranges to be combined into 1.
     cursor = find_next_line_start(cursor)
     add_flags_to_range(start_position, cursor, module_flags.all)
+    process_start_of_line()
   end
 
   local function parse()
@@ -571,17 +587,7 @@ do
       elseif current_char == '"' or current_char == "'" then
         parse_short_string(anchor, current_char)
       elseif current_char == "\r" or current_char == "\n" then
-        line_start = cursor -- The next line starts after the newline character. Cursor has already advanced.
-        -- During the creation of `ranges` and `ranges_flags` there can be overlapping ranges,
-        -- mainly due to ---@plugin disable-next-line and disable-line.
-        -- When this happens, the functions for adding or removing flags for ranges perform
-        -- binary searches to find the index to insert at. However since overlapping ranges can
-        -- only occur within the current line, once done with a line the lower bound can be shifted up.
-        if line_start >= ranges[ranges_count] then
-          ranges_current_lower_bound = ranges_count
-        else -- There are already ranges on this next line, find the index for the start of the line.
-          ranges_current_lower_bound = binary_search_ranges(line_start)
-        end
+        process_start_of_line()
       else
         error("Impossible current_char '"..tostring(current_char).."'.")
       end
