@@ -201,20 +201,33 @@ local ranges_flags = {module_flags.none} -- Indexes match up with `disabled_posi
 local ranges_count = 1
 local ranges_current_lower_bound = 0 -- Zero based.
 
+---Always contains 1 element.
+---@type integer[]
+local line_starts = {1}
+local line_starts_count = 1
+local line_starts_current_lower_bound = 0 -- Zero based.
+
+---@param list any
+---@param lower_bound integer @ Zero based, inclusive.
+---@param upper_bound integer @ Zero based, exclusive.
 ---@param position integer @ The position to search for in `ranges`.
 ---@return integer found_index @ The position at this index is the greatest position which is <= `position`.
-local function binary_search_ranges(position)
-  local lower_bound = ranges_current_lower_bound -- Zero based, inclusive.
-  local upper_bound = ranges_count -- Zero based, exclusive.
+local function binary_search(list, lower_bound, upper_bound, position)
   repeat
     local i = floor_div(lower_bound + upper_bound, 2)
-    if ranges[i + 1] <= position then
+    if list[i + 1] <= position then
       lower_bound = i + 1 -- It's inclusive, so +1 to make it not check this index twice.
     else
       upper_bound = i -- It's exclusive, it won't check this index twice.
     end
   until lower_bound == upper_bound
   return lower_bound - 1
+end
+
+---@param position integer @ The position to search for in `ranges`.
+---@return integer found_index @ The position at this index is the greatest position which is <= `position`.
+local function binary_search_ranges(position)
+  return binary_search(ranges, ranges_current_lower_bound, ranges_count, position)
 end
 
 ---@param position integer
@@ -227,8 +240,17 @@ local function is_disabled(position, flag)
   return band(flags, flag) ~= 0
 end
 
-local function reset_is_disabled_to_file_start()
+---@param position integer @ The position to search for in `ranges`.
+---@return integer found_index @ The position at this index is the greatest position which is <= `position`.
+local function get_line_start(position)
+  local index = binary_search(line_starts, line_starts_current_lower_bound, line_starts_count, position)
+  line_starts_current_lower_bound = index
+  return line_starts[index]
+end
+
+local function reset_binary_searchers_to_file_start()
   ranges_current_lower_bound = 0
+  line_starts_current_lower_bound = 0
 end
 
 local function clean_up_disabled_data()
@@ -237,6 +259,12 @@ local function clean_up_disabled_data()
   -- tables, we don't want it to shrink these tables, because they're constantly reused.
   ranges_count = 1
   ranges_current_lower_bound = 0
+end
+
+local function clean_up_line_starts_data()
+  -- See comment in `clean_up_disabled_data`.
+  line_starts_count = 1
+  line_starts_current_lower_bound = 0
 end
 
 ---@param position integer @ One based.
@@ -572,6 +600,8 @@ do
         parse_short_string(anchor, current_char)
       elseif current_char == "\r" or current_char == "\n" then
         line_start = cursor -- The next line starts after the newline character. Cursor has already advanced.
+        line_starts_count = line_starts_count + 1
+        line_starts[line_starts_count] = line_start
         -- During the creation of `ranges` and `ranges_flags` there can be overlapping ranges,
         -- mainly due to ---@plugin disable-next-line and disable-line.
         -- When this happens, the functions for adding or removing flags for ranges perform
@@ -616,12 +646,14 @@ end
 local function on_post_process_file()
   clean_up_diff_finished_pos_to_diff_map()
   clean_up_disabled_data()
+  clean_up_line_starts_data()
 end
 
 return {
   module_flags = module_flags,
   is_disabled = is_disabled,
-  reset_is_disabled_to_file_start = reset_is_disabled_to_file_start,
+  get_line_start = get_line_start,
+  reset_is_disabled_to_file_start = reset_binary_searchers_to_file_start,
   gmatch_at_start_of_line = gmatch_at_start_of_line,
   add_diff = add_diff,
   add_or_append_diff = add_or_append_diff,
