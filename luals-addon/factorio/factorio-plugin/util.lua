@@ -361,6 +361,9 @@ remote_call=true,
 require=true,
 }).]]
 
+---@type integer[]|{count: integer}
+local line_start_slashes = {count = 0}
+
 local parse_strings_comments_and_annotations
 do
   ---@type string
@@ -529,6 +532,10 @@ do
   local function process_start_of_line()
     if not cursor then return end
     line_start = cursor -- The next line starts after the newline character. Cursor has already advanced.
+    if take("^/") then
+      line_start_slashes.count = line_start_slashes.count + 1
+      line_start_slashes[line_start_slashes.count] = line_start
+    end
     -- During the creation of `ranges` and `ranges_flags` there can be overlapping ranges,
     -- mainly due to ---@plugin disable-next-line and disable-line.
     -- When this happens, the functions for adding or removing flags for ranges perform
@@ -606,6 +613,7 @@ do
     diffs = diffs_array
     cursor = 1 -- 1 is the first character in the source file.
     line_start = 1
+    line_start_slashes.count = 0
     parse()
     -- If it is currently still inside of a string or comment, that range will not get closed.
     -- That's fine however because nothing will be checking if a position past the end of the
@@ -636,6 +644,7 @@ return {
   extend_chain_diff_elem_text = extend_chain_diff_elem_text,
   try_parse_string_literal = try_parse_string_literal,
   use_source_to_index = use_source_to_index,
+  line_start_slashes = line_start_slashes,
   on_pre_process_file = on_pre_process_file,
   on_post_process_file = on_post_process_file,
 }
