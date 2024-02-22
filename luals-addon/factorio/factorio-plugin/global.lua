@@ -7,6 +7,21 @@ if not __plugin_dev then
   workspace = require("workspace")
 end
 
+---[a-zA-Z0-9_]
+local identifier_char_lut = {["_"] = true}
+do
+  ---@param from_char string
+  ---@param to_char string
+  local function add_range(from_char, to_char)
+    for byte = string.byte(from_char), string.byte(to_char) do
+      identifier_char_lut[string.char(byte)] = true
+    end
+  end
+  add_range("a", "z")
+  add_range("A", "Z")
+  add_range("0", "9")
+end
+
 ---Rename `global` so we can tell them apart!
 ---@param uri string @ The uri of file
 ---@param text string @ The content of file
@@ -98,12 +113,14 @@ local function replace(uri, text, diffs)
     -- however since we are dealing with a variable amount of values, creating a generic
     -- function for it would be incredibly inefficient, constantly allocating new tables.
     util.reset_is_disabled_to_file_start()
-    for start, finish, ignore_pos, ignore_char, final_pos in
-      string.gmatch(text, "%f[a-zA-Z0-9_]()global()[^%S\n]*()([=.%[]?)()")--[[@as fun(): integer, integer, integer, string, integer]]
+    for start, finish, ignore_pos, ignore_char in
+      string.gmatch(text, "()global()[^%S\n]*()([=.%[]?)")--[[@as fun(): integer, integer, integer, string]]
     do
+      if identifier_char_lut[string.sub(text, start - 1, start - 1)] then goto continue end
       local line_start = util.get_line_start(start)
       local preceding_text = string.sub(text, line_start, start - 1)
       add_diffs(preceding_text, start, finish, ignore_pos, ignore_char)
+      ::continue::
     end
   end
 end
