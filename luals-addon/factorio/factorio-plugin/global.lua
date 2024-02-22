@@ -80,17 +80,22 @@ local function replace(uri, text, diffs)
       end
     end
 
-    ---@param preceding_text string
-    ---@param start integer
-    ---@param finish integer
-    ---@param ignore_pos integer
-    ---@param ignore_char string
-    local function add_diffs(preceding_text, start, finish, ignore_pos, ignore_char)
+    -- There is duplication here, which would usually be handled by a util function,
+    -- however since we are dealing with a variable amount of values, creating a generic
+    -- function for it would be incredibly inefficient, constantly allocating new tables.
+    util.reset_is_disabled_to_file_start()
+    for start, finish, ignore_pos, ignore_char in
+      string.gmatch(text, "()global%f[^a-zA-Z0-9_]()%s*()([=.%[]?)")--[[@as fun(): integer, integer, integer, string]]
+    do
+      if identifier_char_lut[string.sub(text, start - 1, start - 1)] then goto continue end
+      local line_start = util.get_line_start(start)
+      local preceding_text = string.sub(text, line_start, start - 1)
+
       if matches_to_ignore[start]
         or (ignore_char == "" and not preceding_text:find("=%s*$"))
         or util.is_disabled(start, global_module_flag)
       then
-        return
+        goto continue
       end
 
       local before = text:sub(start - 1, start - 1)
@@ -107,19 +112,6 @@ local function replace(uri, text, diffs)
       end
       -- Put the diagnostic after the '.' otherwise code completion/suggestions don't work.
       util.add_diff(diffs, ignore_pos, ignore_pos + #ignore_char, ignore_char.."---@diagnostic disable-line:undefined-global\n")
-    end
-
-    -- There is duplication here, which would usually be handled by a util function,
-    -- however since we are dealing with a variable amount of values, creating a generic
-    -- function for it would be incredibly inefficient, constantly allocating new tables.
-    util.reset_is_disabled_to_file_start()
-    for start, finish, ignore_pos, ignore_char in
-      string.gmatch(text, "()global%f[^a-zA-Z0-9_]()%s*()([=.%[]?)")--[[@as fun(): integer, integer, integer, string]]
-    do
-      if identifier_char_lut[string.sub(text, start - 1, start - 1)] then goto continue end
-      local line_start = util.get_line_start(start)
-      local preceding_text = string.sub(text, line_start, start - 1)
-      add_diffs(preceding_text, start, finish, ignore_pos, ignore_char)
       ::continue::
     end
   end
