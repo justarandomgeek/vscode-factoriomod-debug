@@ -114,7 +114,7 @@ local function replace(uri, text, diffs)
     -- function for it would be incredibly inefficient, constantly allocating new tables.
     util.reset_is_disabled_to_file_start()
     for start, finish, ignore_pos, ignore_char in
-      string.gmatch(text, "()global()[^%S\n]*()([=.%[]?)")--[[@as fun(): integer, integer, integer, string]]
+      string.gmatch(text, "()global%f[^a-zA-Z0-9_]()[^%S\n]*()([=.%[]?)")--[[@as fun(): integer, integer, integer, string]]
     do
       if identifier_char_lut[string.sub(text, start - 1, start - 1)] then goto continue end
       local line_start = util.get_line_start(start)
