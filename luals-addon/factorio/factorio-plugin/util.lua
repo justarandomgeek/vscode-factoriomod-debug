@@ -20,39 +20,6 @@ local function clean_up_diff_finished_pos_to_diff_map()
   end
 end
 
----it's string.gmatch, but anchored at the start of a line
----it is not supported to capture the entire match by not defining any captures
----in that case explicitly define the capture. (Because a newline might be added at the start)
----
----**important** note: if the given pattern contains `\n` and the second line
----could be a match for the first lien of the pattern (like if you have `foo()\nfoo`)
----then the second match returned by the returned iterator would actually start at the
----`foo` that was already included in the first match.
----(so `foo()\nfoo` with the input `foo\nfoo\nfoo` would result in 2 matches instead of 1)
----this _could_ be fixed, however it is not worth the complexity and performance.
----not as long as there is no use for it
----
----the same goes for the first oddity about matching the whole pattern. it could be fixed, but is not worth it
----@param s string
----@param pattern string
----@return fun(): string|integer, ...
-local function gmatch_at_start_of_line(s, pattern)
-  local first = true
-  local unpack = table.unpack
-  ---@type fun(): string|integer, ...
-  local gmatch_iterator = s:gmatch("\n"..pattern)
-  return function()
-    if first then
-      first = false
-      local result = {s:match("^"..pattern)}
-      if result[1] then
-        return unpack(result)
-      end
-    end
-    return gmatch_iterator()
-  end
-end
-
 ---extends the text of a ChainDiffElem or setting it if it is nil
 ---@param elem ChainDiffElem
 ---@param text string
@@ -636,7 +603,6 @@ return {
   module_flags = module_flags,
   is_disabled = is_disabled,
   reset_is_disabled_to_file_start = reset_is_disabled_to_file_start,
-  gmatch_at_start_of_line = gmatch_at_start_of_line,
   add_diff = add_diff,
   add_or_append_diff = add_or_append_diff,
   remove_diff = remove_diff,
