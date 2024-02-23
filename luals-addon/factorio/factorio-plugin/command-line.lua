@@ -16,6 +16,9 @@ local commands_lut = {
 ---@param text string @ The content of file
 ---@param diffs Diff[] @ The diffs to add more diffs to
 local function replace(uri, text, diffs)
+  -- Process line_start_slashes after util pre_process has finished, since plugin disable-line annotations exist.
+  -- Basically at the time of encountering the slash at the start of the line, it does not know if that position
+  -- in the file may or may not have the command_line module disabled.
   util.reset_is_disabled_to_file_start()
   for i = 1, line_start_slashes.count do
     local slash_pos = line_start_slashes[i]
