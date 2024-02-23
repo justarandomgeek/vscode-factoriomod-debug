@@ -3,7 +3,9 @@
 [<img height='36' style='border:0px;height:36px;' src='https://az743702.vo.msecnd.net/cdn/kofi2.png?v=2' border='0' alt='Buy Me a Coffee at ko-fi.com'/>](https://ko-fi.com/X8X41IE4T)
 
 ## 1.1.42
-
+* Sumneko library package:
+  * Fixed that `---@plugin disable-line` would also affect the previous lines if they had comments
+  * Improved plugin performance by ~500%. Unfortunately this isn't really noticeable, because other parts of the LuaLS take up much more time
 
 ## 1.1.41
 * Sumneko library package:

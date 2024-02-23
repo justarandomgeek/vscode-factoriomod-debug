@@ -20,39 +20,6 @@ local function clean_up_diff_finished_pos_to_diff_map()
   end
 end
 
----it's string.gmatch, but anchored at the start of a line
----it is not supported to capture the entire match by not defining any captures
----in that case explicitly define the capture. (Because a newline might be added at the start)
----
----**important** note: if the given pattern contains `\n` and the second line
----could be a match for the first lien of the pattern (like if you have `foo()\nfoo`)
----then the second match returned by the returned iterator would actually start at the
----`foo` that was already included in the first match.
----(so `foo()\nfoo` with the input `foo\nfoo\nfoo` would result in 2 matches instead of 1)
----this _could_ be fixed, however it is not worth the complexity and performance.
----not as long as there is no use for it
----
----the same goes for the first oddity about matching the whole pattern. it could be fixed, but is not worth it
----@param s string
----@param pattern string
----@return fun(): string|integer, ...
-local function gmatch_at_start_of_line(s, pattern)
-  local first = true
-  local unpack = table.unpack
-  ---@type fun(): string|integer, ...
-  local gmatch_iterator = s:gmatch("\n"..pattern)
-  return function()
-    if first then
-      first = false
-      local result = {s:match("^"..pattern)}
-      if result[1] then
-        return unpack(result)
-      end
-    end
-    return gmatch_iterator()
-  end
-end
-
 ---extends the text of a ChainDiffElem or setting it if it is nil
 ---@param elem ChainDiffElem
 ---@param text string
@@ -361,6 +328,9 @@ remote_call=true,
 require=true,
 }).]]
 
+---@type integer[]|{count: integer}
+local line_start_slashes = {count = 0}
+
 local parse_strings_comments_and_annotations
 do
   ---@type string
@@ -526,6 +496,25 @@ do
     end
   end
 
+  local function process_start_of_line()
+    if not cursor then return end
+    line_start = cursor -- The next line starts after the newline character. Cursor has already advanced.
+    if take("^/") then
+      line_start_slashes.count = line_start_slashes.count + 1
+      line_start_slashes[line_start_slashes.count] = line_start
+    end
+    -- During the creation of `ranges` and `ranges_flags` there can be overlapping ranges,
+    -- mainly due to ---@plugin disable-next-line and disable-line.
+    -- When this happens, the functions for adding or removing flags for ranges perform
+    -- binary searches to find the index to insert at. However since overlapping ranges can
+    -- only occur within the current line, once done with a line the lower bound can be shifted up.
+    if line_start >= ranges[ranges_count] then
+      ranges_current_lower_bound = ranges_count
+    else -- There are already ranges on this next line, find the index for the start of the line.
+      ranges_current_lower_bound = binary_search_ranges(line_start)
+    end
+  end
+
   ---@param start_position integer
   local function parse_short_comment(start_position)
     if take("^%-") then
@@ -539,6 +528,7 @@ do
     -- because it can allow for ranges to be combined into 1.
     cursor = find_next_line_start(cursor)
     add_flags_to_range(start_position, cursor, module_flags.all)
+    process_start_of_line()
   end
 
   local function parse()
@@ -571,17 +561,7 @@ do
       elseif current_char == '"' or current_char == "'" then
         parse_short_string(anchor, current_char)
       elseif current_char == "\r" or current_char == "\n" then
-        line_start = cursor -- The next line starts after the newline character. Cursor has already advanced.
-        -- During the creation of `ranges` and `ranges_flags` there can be overlapping ranges,
-        -- mainly due to ---@plugin disable-next-line and disable-line.
-        -- When this happens, the functions for adding or removing flags for ranges perform
-        -- binary searches to find the index to insert at. However since overlapping ranges can
-        -- only occur within the current line, once done with a line the lower bound can be shifted up.
-        if line_start >= ranges[ranges_count] then
-          ranges_current_lower_bound = ranges_count
-        else -- There are already ranges on this next line, find the index for the start of the line.
-          ranges_current_lower_bound = binary_search_ranges(line_start)
-        end
+        process_start_of_line()
       else
         error("Impossible current_char '"..tostring(current_char).."'.")
       end
@@ -600,6 +580,7 @@ do
     diffs = diffs_array
     cursor = 1 -- 1 is the first character in the source file.
     line_start = 1
+    line_start_slashes.count = 0
     parse()
     -- If it is currently still inside of a string or comment, that range will not get closed.
     -- That's fine however because nothing will be checking if a position past the end of the
@@ -622,7 +603,6 @@ return {
   module_flags = module_flags,
   is_disabled = is_disabled,
   reset_is_disabled_to_file_start = reset_is_disabled_to_file_start,
-  gmatch_at_start_of_line = gmatch_at_start_of_line,
   add_diff = add_diff,
   add_or_append_diff = add_or_append_diff,
   remove_diff = remove_diff,
@@ -630,6 +610,7 @@ return {
   extend_chain_diff_elem_text = extend_chain_diff_elem_text,
   try_parse_string_literal = try_parse_string_literal,
   use_source_to_index = use_source_to_index,
+  line_start_slashes = line_start_slashes,
   on_pre_process_file = on_pre_process_file,
   on_post_process_file = on_post_process_file,
 }

@@ -36,20 +36,19 @@ local function replace(_, text, diffs)
     return param, comma_or_paren, p_param_finish
   end
 
-  -- remote.add_interface
-
-  util.reset_is_disabled_to_file_start()
-  for s_entire_thing, s_add, f_add, p_open_paren, p_param_1 in
-    string.gmatch(text, "()remote%s*%.%s*()add_interface()%s*()%(()") --[[@as fun(): integer, integer, integer, integer, integer]]
-  do
+  ---remote.add_interface
+  ---@param s_entire_thing integer
+  ---@param s_add integer
+  ---@param f_add integer
+  ---@param p_open_paren integer
+  ---@param s_param_1 integer
+  local function handle_add_interface(s_entire_thing, s_add, f_add, p_open_paren, s_param_1)
     local chain_diff = {} ---@type ChainDiffElem[]
     local open_paren_diff = {i = p_open_paren, text = ""}
     chain_diff[1] = open_paren_diff
 
-    local name, name_comma_or_paren, s_param_2 = process_param(chain_diff, p_param_1)
-    if not name then
-      goto continue
-    end
+    local name, name_comma_or_paren, s_param_2 = process_param(chain_diff, s_param_1)
+    if not name then return end
 
     if name_comma_or_paren == "," and not util.is_disabled(s_entire_thing, remote_add_module_flag) then
       util.extend_chain_diff_elem_text(chain_diff[3], "=(")
@@ -59,42 +58,30 @@ local function replace(_, text, diffs)
         "__typed_interfaces---@diagnostic disable-line:undefined-field\n")
       util.add_chain_diff(chain_diff, diffs)
     end
-
-    ::continue::
   end
 
-
-
-  -- remote.call
-  -- this in particular needs to work as you're typing, not just once you're done
-  -- which significantly complicates things, like we can't use the commas as reliable anchors
-
-  util.reset_is_disabled_to_file_start()
-  for s_entire_thing, s_call, f_call, p_open_paren, s_param_1 in
-    string.gmatch(text, "()remote%s*%.%s*()call()%s*()%(()")--[[@as fun(): integer, integer, integer, integer, integer]]
-  do
-    if util.is_disabled(s_entire_thing, remote_call_module_flag) then goto continue end
-    util.add_diff(diffs, s_call - 1, s_call, text:sub(s_call - 1, s_call - 1).."--\n")
-    util.add_diff(diffs, s_call, f_call,
-      "__typed_interfaces---@diagnostic disable-line:undefined-field\n")
+  ---remote.call
+  ---this in particular needs to work as you're typing, not just once you're done
+  ---which significantly complicates things, like we can't use the commas as reliable anchors
+  ---@param s_entire_thing integer
+  ---@param s_call integer
+  ---@param f_call integer
+  ---@param p_open_paren integer
+  ---@param s_param_1 integer
+  local function handle_call(s_entire_thing, s_call, f_call, p_open_paren, s_param_1)
+    if util.is_disabled(s_entire_thing, remote_call_module_flag) then return end
 
     local chain_diff = {} ---@type ChainDiffElem[]
     local open_paren_diff = {i = p_open_paren, text = ""}
     chain_diff[1] = open_paren_diff
 
     local name, name_comma_or_paren, s_param_2 = process_param(chain_diff, s_param_1)
-    if not name then
-      util.remove_diff(diffs)
-      goto continue
-    end
+    if not name then return end
     ---@cast s_param_2 -nil
 
     if name_comma_or_paren == "," then
       local func, func_comma_or_paren, p_finish = process_param(chain_diff, s_param_2)
-      if not func then
-        util.remove_diff(diffs)
-        goto continue
-      end
+      if not func then return end
       ---@cast p_finish -nil
 
       chain_diff[6] = {i = p_finish}
@@ -109,7 +96,28 @@ local function replace(_, text, diffs)
       end
     end
 
+    util.add_diff(diffs, s_call - 1, s_call, text:sub(s_call - 1, s_call - 1).."--\n")
+    util.add_diff(diffs, s_call, f_call,
+      "__typed_interfaces---@diagnostic disable-line:undefined-field\n")
     util.add_chain_diff(chain_diff, diffs)
+  end
+
+  util.reset_is_disabled_to_file_start()
+  for f_remote, s_add_or_call in
+    string.gmatch(text, "remote()%s*%.%s*()")--[[@as fun(): integer, integer]]
+  do
+    local s_entire_thing = f_remote - #"remote"
+    local f_add_or_call, p_open_paren, s_param_1 = text:match("^add_interface()%s*()%(()", s_add_or_call)
+    if f_add_or_call then
+      handle_add_interface(s_entire_thing, s_add_or_call, f_add_or_call, p_open_paren, s_param_1)
+      goto continue
+    end
+
+    f_add_or_call, p_open_paren, s_param_1 = text:match("^call()%s*()%(()", s_add_or_call)
+    if f_add_or_call then
+      handle_call(s_entire_thing, s_add_or_call, f_add_or_call, p_open_paren, s_param_1)
+      goto continue
+    end
 
     ::continue::
   end

@@ -8,8 +8,8 @@ local require_module_flag = util.module_flags.require
 ---@param diffs Diff[] @ The diffs to add more diffs to
 local function replace(_, text, diffs)
   util.reset_is_disabled_to_file_start()
-  for require_pos, start, name, finish in
-    text:gmatch("()require%s*%(?%s*['\"]()(.-)()['\"]%s*%)?")--[=[@as fun(): integer, integer, string, integer]=]
+  for f_require, start, name, finish in
+    text:gmatch("require()%s*%(?%s*['\"]()(.-)()['\"]%s*%)?")--[=[@as fun(): integer, integer, string, integer]=]
   do
     local original_name = name
 
@@ -26,7 +26,7 @@ local function replace(_, text, diffs)
       name = name:gsub("%.[^.\\/]+$", "")
     end
 
-    if name ~= original_name and not util.is_disabled(require_pos, require_module_flag) then
+    if name ~= original_name and not util.is_disabled(f_require - 1, require_module_flag) then
       util.add_diff(diffs, start, finish, name)
     end
   end
