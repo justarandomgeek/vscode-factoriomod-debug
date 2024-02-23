@@ -68,9 +68,6 @@ local function replace(uri, text, diffs)
     this_mod = this_mod:gsub("[^a-zA-Z0-9_]","_")
     local global_name = "__"..this_mod.."__global"
 
-    -- There is duplication here, which would usually be handled by a util function,
-    -- however since we are dealing with a variable amount of values, creating a generic
-    -- function for it would be incredibly inefficient, constantly allocating new tables.
     util.reset_is_disabled_to_file_start()
     for finish, ignore_pos, ignore_char in
       string.gmatch(text, "global%f[^a-zA-Z0-9_]()%s*()([=.%[]?)")--[[@as fun(): integer, integer, string]]
