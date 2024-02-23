@@ -5,6 +5,7 @@
 ## 1.1.42
 * Sumneko library package:
   * Fixed that `---@plugin disable-line` would also affect the previous lines if they had comments
+  * Improved plugin performance by ~500%. Unfortunately this isn't really noticeable, because other parts of the LuaLS take up much more time
 
 ## 1.1.41
 * Sumneko library package:
