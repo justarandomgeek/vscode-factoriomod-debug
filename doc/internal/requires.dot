@@ -49,7 +49,7 @@ edge [color=darkorchid];
 debugadapter -> print;
 print -> json;
 print -> normalizeLuaSource;
-print -> variables;
+print -> variables; # create, translate, sourceRef
 print -> evaluate;
 
 edge [color=steelblue];
@@ -60,14 +60,14 @@ stepping -> json;
 stepping -> datastring;
 stepping -> threads;
 stepping -> dispatch;
-stepping -> variables;
-stepping -> evaluate ;# stringInterp, evaluateInternal
-stepping -> print ;# outputEvent, print
+stepping -> variables; # create, translate, buffer, sourceRef
+stepping -> evaluate ; # stringInterp, evaluateInternal
+stepping -> print ; # outputEvent, print
 
 edge [color=blue];
 debugadapter -> log;
 log -> normalizeLuaSource;
-log -> variables;
+log -> variables; # describe, translate
 log -> print;
 
 edge [color=purple];
@@ -76,7 +76,7 @@ stacks -> json;
 stacks -> threads;
 stacks -> dispatch;
 stacks -> normalizeLuaSource;
-stacks -> variables;
+stacks -> variables; # describe, sourceRef, scopeRef, tableRef
 stacks -> stepping ;# on_exception, getEntryLabel
 
 edge [color=deeppink];

@@ -1,0 +1,30 @@
+digraph calls {
+pad=1
+# 0 getinfo, 1 stackTrace, 2 callThread, 3 stackTrace, 4 debug command, 5 debug.debug,
+# in normal stepping:                       6 sethook callback, 7 at breakpoint
+# in exception (instrument only)            6 on_error callback, 7 pCallWithStackTraceMessageHandler, 8 at exception
+# in remote-redirected call:                2 unhook, 3 at stack
+
+"@code" -> api
+"??" -> "@code" -> api_breakpoint -> debugprompt;
+
+pcall -> "???" -> "@error" -> caught -> debugprompt
+xpcall -> "???"
+
+event -> "??"
+"??" -> "@unhandled" -> pCallWithStackTraceMessageHandler -> on_exception -> debugprompt;
+"??" -> "@step" -> hook;
+"??" -> "@breakpoint" -> hook;
+hook -> debugprompt;
+
+debugprompt -> "debug command" -> dap_outer -> dispatch -> dap_inner;
+dispatch -> unhook;
+"@remote" -> unhook -> dap_inner
+
+dap_inner -> "0 getinfo";
+
+{ rank=same; "@code" "@step" "@breakpoint" "@error" }
+{ rank=same; hook api_breakpoint on_exception caught }
+{ rank=same; dispatch unhook }
+
+}
