@@ -12,9 +12,10 @@ local rcall = remote and remote.call
 local dispatch = {}
 
 local __daremote = {}
+local __inner = {}
+dispatch.__inner = __inner
 local __remote = {}
 dispatch.__remote = __remote
-dispatch.__daremote = __daremote
 if remote then
   if script.mod_name ~= "debugadapter" then
     remote.add_interface("__debugadapter_" .. script.mod_name, __remote)
@@ -58,7 +59,7 @@ function dispatch.callAll(funcname,...)
       end
     end
   else
-    __remote[funcname](...)
+    __inner[funcname](...)
   end
 end
 
@@ -68,7 +69,7 @@ end
 ---@return boolean
 function dispatch.find(funcname,...)
   -- try local first...
-  if __remote[funcname](...) then
+  if __inner[funcname](...) then
     return true
   end
 
@@ -95,13 +96,13 @@ end
 ---@return ...
 function dispatch.callMod(modname, funcname, ...)
   if modname == script.mod_name then
-    return true, __remote[funcname](...)
+    return true, __inner[funcname](...)
   end
 
   if canRemoteCall() then
     local remotename = "__debugadapter_"..modname
     local interface = remote.interfaces[remotename]
-    if interface[funcname] then
+    if interface and interface[funcname] then
       return true, rcall(remotename, funcname, ...)
     end
   end
@@ -117,14 +118,14 @@ end
 ---@return ...
 function dispatch.callThread(threadid, funcname, ...)
   if threadid == threads.this_thread then
-    return true, __remote[funcname](...)
+    return true, __inner[funcname](...)
   end
 
   local thread = threads.active_threads[threadid]
   if canRemoteCall() then
     local remotename = "__debugadapter_"..thread.name
     local interface = remote.interfaces[remotename]
-    if interface[funcname] then
+    if interface and interface[funcname] then
       return true, rcall(remotename, funcname, ...)
     end
   end
@@ -141,13 +142,13 @@ end
 function dispatch.callFrame(frameId, funcname, ...)
   local thread,i,tag = threads.splitFrameId(frameId)
   if thread.id == threads.this_thread then
-    return true, __remote[funcname](i, tag, ...)
+    return true, __inner[funcname](i, tag, ...)
   end
 
   if canRemoteCall() then
     local remotename = "__debugadapter_"..thread.name
     local interface = remote.interfaces[remotename]
-    if interface[funcname] then
+    if interface and interface[funcname] then
       return true, rcall(remotename, funcname, i, tag, ...)
     end
   end

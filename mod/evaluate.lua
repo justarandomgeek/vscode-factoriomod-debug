@@ -446,7 +446,7 @@ end
 ---@param context? string
 ---@param expression string
 ---@param seq integer
-function dispatch.__remote.evaluate(frameId,tag,context,expression,seq)
+function dispatch.__inner.evaluate(frameId,tag,context,expression,seq)
   ---@type DebugProtocol.EvaluateResponseBody
   local evalresult
   if tag and tag ~= 0 then

@@ -40,13 +40,13 @@ function DAStacks.stackTrace(threadid, startFrame, seq)
     json.response{body={},seq=seq}
   end
 end
-function dispatch.__remote.stackTrace(startFrame, seq)
+function dispatch.__inner.stackTrace(startFrame, seq)
   local threadid = threads.this_thread
   local offset = 7
   -- 0 getinfo, 1 stackTrace, 2 callThread, 3 stackTrace, 4 debug command, 5 debug.debug,
   -- in normal stepping:                       6 sethook callback, 7 at breakpoint
   -- in exception (instrument only)            6 on_error callback, 7 pCallWithStackTraceMessageHandler, 8 at exception
-  -- in remote-redirected call:                2 at stack
+  -- in remote-redirected call:                2 unhook, 3 at stack
   do
     local atprompt = dgetinfo(5,"f")
     if atprompt and atprompt.func == debugprompt then
@@ -55,7 +55,7 @@ function dispatch.__remote.stackTrace(startFrame, seq)
         offset = offset + 1
       end
     else
-      offset = 2 -- redirected call
+      offset = 3 -- redirected call
     end
   end
 
@@ -147,7 +147,7 @@ end
 ---@param i integer
 ---@param tag integer
 ---@param seq integer
-function dispatch.__remote.scopes(i, tag, seq)
+function dispatch.__inner.scopes(i, tag, seq)
   if tag == 0 and debug.getinfo(i,"f") then
     ---@type DebugProtocol.Scope[]
     local scopes = {}

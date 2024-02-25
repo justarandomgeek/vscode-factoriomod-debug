@@ -727,7 +727,7 @@ end
 ---@param start nil | integer
 ---@param count nil | integer
 ---@return boolean
-function dispatch.__remote.variables(variablesReference,seq,filter,start,count)
+function dispatch.__inner.variables(variablesReference,seq,filter,start,count)
   ---@type DAvarslib.Ref
   local varRef = refs[variablesReference]
   if not varRef then return false end
@@ -1214,7 +1214,7 @@ end
 ---@param value string
 ---@param seq number
 ---@return boolean
-function dispatch.__remote.setVariable(variablesReference, name, value, seq)
+function dispatch.__inner.setVariable(variablesReference, name, value, seq)
   local varRef = refs[variablesReference]
   if not varRef then return false end
 
@@ -1367,7 +1367,7 @@ function DAvars.source(id, seq, internal)
   json.response{seq=seq, body=nil}
   return false
 end
-dispatch.__remote.source = DAvars.source
+dispatch.__inner.source = DAvars.source
 
 if data then
   -- data stage clears package.loaded between files, so we stash a copy in Lua registry too

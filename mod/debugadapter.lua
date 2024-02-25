@@ -49,30 +49,30 @@ local debug = debug
 local print = print
 
 local threads = require("__debugadapter__/threads.lua")
-__DebugAdapter.__dap.threads = threads.__dap.threads
-require("__debugadapter__/dispatch.lua")
-
+local dispatch = require("__debugadapter__/dispatch.lua")
 local variables = require("__debugadapter__/variables.lua")
-merge(__DebugAdapter.__dap, variables.__dap)
-
 local evaluate = require("__debugadapter__/evaluate.lua")
-__DebugAdapter.__dap.evaluate = evaluate.evaluate
-
 local daprint = require("__debugadapter__/print.lua")
+local stepping = require("__debugadapter__/stepping.lua")
+local stacks = require("__debugadapter__/stacks.lua")
+
 __DebugAdapter.print = daprint.print
+merge(__DebugAdapter, stepping.__pub)
+
+__DebugAdapter.__dap.threads = threads.__dap.threads
+merge(__DebugAdapter.__dap, variables.__dap)
+__DebugAdapter.__dap.evaluate = evaluate.evaluate
+merge(__DebugAdapter.__dap, stepping.__dap)
+merge(__DebugAdapter.__dap, stacks)
 
 if __DebugAdapter.__config.hooklog ~= false then
   require("__debugadapter__/log.lua")
 end
-
-local stepping = require("__debugadapter__/stepping.lua")
-merge(__DebugAdapter.__dap, stepping.__dap)
-merge(__DebugAdapter, stepping.__pub)
-
-local stacks = require("__debugadapter__/stacks.lua")
-merge(__DebugAdapter.__dap, stacks)
-
 require("__debugadapter__/test.lua")
+
+for k, v in pairs(dispatch.__inner) do
+  dispatch.__remote[k] = stepping.unhook(v)
+end
 
 
 ---Force the DA Client to refresh everything

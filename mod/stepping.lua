@@ -488,7 +488,7 @@ unhooked[DAstep.attach] = true
 
 ---@param source string
 ---@param breaks? DebugProtocol.SourceBreakpoint[]
-dispatch.__remote.setBreakpoints = DAstep.unhook(function(source,breaks)
+dispatch.__inner.setBreakpoints = DAstep.unhook(function(source,breaks)
   if breaks then
     ---@type table<number,DebugProtocol.SourceBreakpoint>
     local filebreaks = {}
@@ -527,10 +527,10 @@ function DAstep.__dap.step_enabled(state)
   dispatch.callAll("step_enabled", state)
 end
 
-function dispatch.__remote.step_enabled(state)
+function dispatch.__inner.step_enabled(state)
   step_enabled = state
 end
-unhooked[dispatch.__remote.step_enabled] = true
+unhooked[dispatch.__inner.step_enabled] = true
 
 ---Generate a breakpoint or exception from mod code
 ---@param mesg string|LocalisedString|nil
@@ -708,7 +708,7 @@ if rawscript then
   ---@param event defines.events|number|string
   ---@param data EventData
   ---@return ...
-  function dispatch.__remote.raise_event(event,data)
+  function dispatch.__inner.raise_event(event,data)
     local f = event_handler[event]
     if f then
       return f(data)
