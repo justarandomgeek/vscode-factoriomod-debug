@@ -1,5 +1,6 @@
 local json = require('__debugadapter__/json.lua')
 local script = (type(script)=="table" and rawget(script,"__raw")) or script
+local remote = (type(remote)=="table" and rawget(remote,"__raw")) or remote
 local math = math
 local mfloor = math.floor
 
@@ -43,7 +44,19 @@ DAthreads.active_threads = active_threads
 
 ---@param seq number
 function DAthreads.__dap.threads(seq)
-  json.response{body={threads=active_threads},seq=seq}
+  local threads = {}
+  if remote then
+    for _, thread in pairs(active_threads) do
+      local remotename = "__debugadapter_"..thread.name
+      local interface = remote.interfaces[remotename]
+      if interface then
+        threads[#threads+1] = thread
+      end
+    end
+  else
+    threads=active_threads
+  end
+  json.response{body={threads=threads},seq=seq}
 end
 
 

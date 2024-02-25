@@ -8,24 +8,24 @@ local script = (type(script)=="table" and rawget(script,"__raw")) or script
 local debug = debug
 local debugprompt = debug.debug
 local dgetinfo = debug.getinfo
+local dgetupvalue = debug.getupvalue
 local dgetlocal = debug.getlocal
 local string = string
-local sformat = string.format
 local ssub = string.sub
 local select = select
-local __DebugAdapter = __DebugAdapter
+
+local remote = (type(remote)=="table" and rawget(remote,"__raw")) or remote
+local rcallptr = remote and select(2, dgetupvalue(remote.call, 2))
+
+local threadid = threads.this_thread
 
 ---@class DebugAdapter.Stacks
 local DAStacks = {}
 
-local sourcelabel = {
-  api = function(mod_name,extra) return (extra or "api call").." from "..mod_name end,
-}
-
-local function labelframe(i,sourcename,mod_name,extra)
+local function labelframe(i, tag, name)
   return {
-    id = i,
-    name = (sourcelabel[sourcename] or function(mod_name) return "unkown from "..mod_name end)(mod_name,extra),
+    id = threadid*1024 + i*4 + tag,
+    name = name,
     presentationHint = "label",
   }
 end
@@ -41,7 +41,6 @@ function DAStacks.stackTrace(threadid, startFrame, seq)
   end
 end
 function dispatch.__inner.stackTrace(startFrame, seq)
-  local threadid = threads.this_thread
   local offset = 7
   -- 0 getinfo, 1 stackTrace, 2 callThread, 3 stackTrace, 4 debug command, 5 debug.debug,
   -- in normal stepping:                       6 sethook callback, 7 at breakpoint
@@ -73,15 +72,15 @@ function dispatch.__inner.stackTrace(startFrame, seq)
     end
     local isC = info.what == "C"
     if isC then
-      if framename == "__index" or framename == "__newindex" then
-        local describe = variables.describe
-        local t = describe(select(2,dgetlocal(i,1)),true)
-        local k = describe(select(2,dgetlocal(i,2)),true)
-        if framename == "__newindex" then
-          local v = describe(select(2,dgetlocal(i,3)),true)
-          framename = sformat("__newindex(%s,%s,%s)",t,k,v)
-        else
-          framename = sformat("__index(%s,%s)",t,k)
+      if info.nups == 3 then
+        local _,obj = dgetupvalue(info.func, 3)
+        if obj == remote then
+          local _,method = dgetupvalue(info.func, 2)
+          if method == rcallptr then
+            local _,interface = dgetlocal(i, 1)
+            local _,func = dgetlocal(i, 2)
+            framename = "remote to "..interface.."::"..func
+          end
         end
       end
     elseif script and framename == "(name unavailable)" then
@@ -89,9 +88,6 @@ function dispatch.__inner.stackTrace(startFrame, seq)
       if entrypoint then
         framename = entrypoint
       end
-    end
-    if info.istailcall then
-      framename = sformat("[tail calls...] %s",framename)
     end
     local source = normalizeLuaSource(info.source)
     local sourceIsCode = source == "=(dostring)"
@@ -126,7 +122,14 @@ function dispatch.__inner.stackTrace(startFrame, seq)
       stackFrame.source = dasource
     end
     stackFrames[#stackFrames+1] = stackFrame
+    if info.istailcall then
+      stackFrames[#stackFrames+1] = labelframe(i, 1, "[tail calls...]")
+    end
     i = i + 1
+  end
+
+  if not next(stackFrames) then
+    stackFrames[1] = labelframe(i, 1, "[no active calls]")
   end
 
   json.response{body=stackFrames,seq=seq}
@@ -148,15 +151,19 @@ end
 ---@param tag integer
 ---@param seq integer
 function dispatch.__inner.scopes(i, tag, seq)
-  if tag == 0 and debug.getinfo(i,"f") then
+  local hasframe = tag == 0 and debug.getinfo(i,"f")
+  local globalonly = tag == 1
+  if hasframe or globalonly then
     ---@type DebugProtocol.Scope[]
     local scopes = {}
-    -- Locals
-    scopes[#scopes+1] = { name = "Locals", variablesReference = variables.scopeRef(i,"Locals"), expensive=false }
-    -- Upvalues
-    scopes[#scopes+1] = { name = "Upvalues", variablesReference = variables.scopeRef(i,"Upvalues"), expensive=false }
+    if hasframe then
+      -- Locals
+      scopes[#scopes+1] = { name = "Locals", variablesReference = variables.scopeRef(i,"Locals"), expensive=false }
+      -- Upvalues
+      scopes[#scopes+1] = { name = "Upvalues", variablesReference = variables.scopeRef(i,"Upvalues"), expensive=false }
+    end
     -- Factorio `global`
-    if global then
+    if type(global) == "table" then
       scopes[#scopes+1] = { name = "Factorio global", variablesReference = variables.tableRef(global), expensive=false }
     end
     -- Lua Globals

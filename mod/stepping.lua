@@ -657,7 +657,7 @@ if rawscript then
     for name,interface in pairs(myRemotes) do
       for fname,f in pairs(interface) do
         if f == func then
-          return "remote "..fname.."::"..name
+          return "remote "..name.."::"..fname
         end
       end
     end
