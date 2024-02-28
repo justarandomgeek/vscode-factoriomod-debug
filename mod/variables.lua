@@ -158,7 +158,7 @@ end
 variables.pindex = pindex
 variables.pnewindex = pnewindex
 
-local gmeta = getmetatable(_ENV)
+local gmeta = getmetatable(_ENV) --[[@as metatable_debug]]
 if not gmeta then
   gmeta = {}
   setmetatable(_ENV,gmeta)
@@ -524,7 +524,7 @@ function variables.describe(value,short)
     if classname then
       lineitem,vtype = describeLuaObject(classname,value,short)
     else -- non-LuaObject tables
-      local mt = dgetmetatable(value)
+      local mt = dgetmetatable(value) --[[@as metatable_debug]]
       if mt and mt.__debugline then -- it knows how to make a line for itself...
         ---@type string|fun(value:table,short?:boolean)
         local debugline = mt.__debugline
@@ -635,7 +635,7 @@ function variables.create(name,value,evalName)
   elseif ssub(vtype,1,3) == "Lua" then
     variablesReference = variables.luaObjectRef(value,vtype,evalName)
   elseif vtype == "table" then
-    local mt = dgetmetatable(value)
+    local mt = dgetmetatable(value) --[[@as metatable_debug]]
     if not mt or mt.__debugcontents == nil then
       variablesReference = variables.tableRef(value,nil,nil,nil,evalName)
       namedVariables = 0
@@ -692,6 +692,12 @@ local itermode = {
   pairs = pairs,
   ipairs = ipairs,
 }
+
+---@class metatable_debug: metatable
+---@field __debugline string|(fun(self:table):string)|nil
+---@field __debugtype string|nil
+---@field __debugcontents DebugAdapter.DebugContents<any,any,any>|false|nil
+---@field __debugvisualize (fun(self:table):table)|nil
 
 ---@alias DebugAdapter.DebugContents<K,V,E> fun(self:table,extra:E):DebugAdapter.DebugNext<K,V,E>,any,any
 ---@alias DebugAdapter.DebugNext<K,V> fun(t:any,k:K):K,V,DebugAdapter.RenderOptions
@@ -811,7 +817,7 @@ function dispatch.__inner.variables(variablesReference,seq,filter,start,count)
     local tabref = varRef.table()
     if not tabref then goto collected end
     -- use debug.getmetatable insead of getmetatable to get raw meta instead of __metatable result
-    local mt = dgetmetatable(tabref)
+    local mt = dgetmetatable(tabref) --[[@as metatable_debug]]
     if varRef.mode == "count" then
       --don't show meta on these by default as they're mostly LuaObjects providing count iteration anyway
       if varRef.showMeta == true and mt then
@@ -957,7 +963,6 @@ function dispatch.__inner.variables(variablesReference,seq,filter,start,count)
         if debugpairs then
           local success,f,t,firstk = pcall(debugpairs,tabref)
           if success then
-            ---@type fun(t:table):number
             local len = mt and mt.__len
             if len then
               if not luaObjectInfo.try_object_name(tabref) then

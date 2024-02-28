@@ -45,11 +45,15 @@ local function timedpcall(f)
   end
 end
 
+---@class metatable_debug_env: metatable_debug
+---@field __closeframe fun()
+
 ---@param env table
 ---@param frameId? integer|false|nil
 ---@param alsoLookIn? table|nil
----@return table
+---@return metatable_debug_env
 local function evalmeta(env,frameId,alsoLookIn)
+  ---@type metatable_debug_env
   local em = {
     __closeframe = function ()
       frameId = false
@@ -309,8 +313,8 @@ function DAEval.evaluateInternal(frameId,alsoLookIn,context,expression,timed)
   local closeframe = timed and
     function(timer,success,...)
       if frameId then
-        local mt = getmetatable(env)
-        local __closeframe = mt and mt.__closeframe --[[@as fun()?]]
+        local mt = getmetatable(env) --[[@as metatable_debug_env]]
+        local __closeframe = mt and mt.__closeframe
         if __closeframe then __closeframe() end
       end
       return timer,success,tpack(...)
@@ -318,8 +322,8 @@ function DAEval.evaluateInternal(frameId,alsoLookIn,context,expression,timed)
     or
     function(success,...)
       if frameId then
-        local mt = getmetatable(env)
-        local __closeframe = mt and mt.__closeframe --[[@as fun()?]]
+        local mt = getmetatable(env) --[[@as metatable_debug_env]]
+        local __closeframe = mt and mt.__closeframe
         if __closeframe then __closeframe() end
       end
       return success,...
@@ -396,6 +400,7 @@ function DAEval.stringInterp(str,frameId,alsoLookIn,context)
 end
 dispatch.bind("stringInterp", DAEval.stringInterp)
 
+---@type metatable_debug
 local evalresultmeta = {
   __debugline = function(t)
     ---@type string[]
@@ -478,7 +483,7 @@ function dispatch.__inner.evaluate(frameId,tag,context,expression,seq)
       end
 
       if context == "visualize" then
-        local mtresult = getmetatable(result)
+        local mtresult = getmetatable(result) --[[@as metatable_debug]]
         if mtresult and mtresult.__debugvisualize then
           local function err(e) return dtraceback("__debugvisualize error: "..e) end
           success,result = xpcall(mtresult.__debugvisualize,err,result)

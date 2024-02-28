@@ -795,7 +795,7 @@ if rawscript then
   end
   apihooks.script.on_event = on_event
 
-
+  ---@type metatable_debug
   local newscriptmeta = {
     __index = rawscript,
     ---@param t table
@@ -825,6 +825,7 @@ if rawscript then
     return rawcommands.remove_command(name)
   end
 
+  ---@type metatable_debug
   local newcommandsmeta = {
     __index = rawcommands,
     ---@param t table
@@ -854,6 +855,7 @@ if rawscript then
     return rawremote.remove_interface(remotename)
   end
 
+  ---@type metatable_debug
   local remotemeta = {
     __index = rawremote,
     ---@param t table
@@ -873,6 +875,7 @@ if rawscript then
   setmetatable(apihooks.remote, remotemeta)
 end
 
+---@type metatable_debug
 local vmeta = {
   __debugline = "<Debug Adapter Stepping Module>",
   __debugtype = "DebugAdapter.Stepping",
