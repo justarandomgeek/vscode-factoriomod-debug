@@ -220,10 +220,16 @@ do
       call none -> *
       call isapi -> *
       return * <- isapi
+      catch when top=isapi
     out
       call * -> isapi
       return none <- *
       return isapi <- *
+      catch unhandled
+
+  catch:
+    unhandled: unwind stepdepth to entrypoint, or 0
+    else: unwind stepdept to rawxpcal +
 ]]
 
   ---debug hook function
@@ -426,50 +432,6 @@ local function print_exception(etype,mesg)
 end
 
 local on_exception
-if DAConfig.instrument then
-  local function stack_has_location()
-    local i = 4
-    -- 1 = stack_has_location, 2 = on_exception,
-    -- 3 = pCallWithStackTraceMessageHandler, 4 = at exception
-    local info = dgetinfo(i,"Sf")
-    repeat
-      if (info.what ~= "C") and (ssub(info.source,1,1) ~= "=") and not DAstep.isStepIgnore(info.func) then
-        return true
-      end
-      i = i + 1
-      info = dgetinfo(i,"Sf")
-    until not info
-    return false
-  end
-  stepIgnore(stack_has_location)
-
-  function on_exception (mesg)
-    dsethook()
-    if not stack_has_location() then
-      dispatch.getStepping()
-      dsethook(hook,hook_rate())
-      return
-    end
-    local mtype = type(mesg)
-    -- don't bother breaking when a remote.call's error bubbles up, we've already had that one...
-    if mtype == "string" and (
-        smatch(mesg, "^Error when running interface function") or
-        smatch(mesg, "^The mod [a-zA-Z0-9 _-]+ %([0-9.]+%) caused a non%-recoverable error")
-        )then
-      dispatch.getStepping()
-      dsethook(hook,hook_rate())
-      return
-    end
-
-    print_exception("unhandled",mesg)
-    debugprompt()
-
-    dispatch.getStepping()
-    dsethook(hook,hook_rate())
-  end
-  -- shared for stack trace to know to skip one extra
-  DAstep.on_exception = on_exception
-end
 
 local apihooks = {}
 function DAstep.attach()
@@ -570,19 +532,98 @@ local function caught(filter, user_handler)
   ---xpcall handler for intercepting pcall/xpcall
   ---@param mesg string|LocalisedString
   ---@return string|LocalisedString mesg
-  return stepIgnore(function(mesg)
-    dsethook()
+  local function _caught(mesg)
+    local oldblock = blockhook
+    blockhook = true
+
+    local info = dgetinfo(filter=="unhandled" and 3 or 2, "Su")
+    if rawscript and step_enabled then
+      local top_is_api = info.what=="C" and info.nups > 0
+      if top_is_api then
+        print("catch in "..rawscript.mod_name)
+        DAstep.__dap.step(dispatch.getStepping())
+      end
+    end
+
+    -- if we were stepping over/out, adjust the depth for what's about
+    -- to get dropped by the throw...
+    if stepdepth and stepdepth >= 0 then
+      local was = stepdepth
+      -- +1 for a user_handler, since our call is blocked
+      -- and the tailcall won't count
+      if user_handler then
+        stepdepth = stepdepth + 1
+      end
+      -- then subtract one for every level up to...
+      if filter=="unhandled" then
+        -- one for pCallWithStackTraceMessageHandler
+        stepdepth = stepdepth - 1
+        -- and try to find the entrypoint...
+        local i = 4
+        local func = dgetinfo(i, "ft")
+        while func do
+          stepdepth = stepdepth - 1
+          -- a known entrypoint
+          if DAstep.getEntryLabel(func.func) then break end
+          -- a tailcall with parent is_api (likely re-entrant stack + entrypoint tailcalled)
+          if func.istailcall then
+            local parent = dgetinfo(i+1, "Su")
+            if parent.what == "C" and parent.nups > 0 then
+              break
+            end
+          end
+          i = i + 1
+          func = dgetinfo(i, "f")
+        end
+
+      else
+        -- count to rawxpcall
+        local i = 3
+        local func = dgetinfo(i, "f")
+        while func do
+          if func.func == rawxpcall then break end
+          i = i + 1
+          stepdepth = stepdepth - 1
+          func = dgetinfo(i, "f")
+        end
+      end
+      print("catch "..stepdepth.." was "..was)
+    end
+
+    -- vscode might not want this, in which case it'll continue immediately,
+    -- leaving the existing stepping state...
     print_exception(filter,mesg)
     debugprompt()
-    DAstep.attach()
+
+    if rawscript and step_enabled and filter=="unhandled" then
+      print("catch out "..rawscript.mod_name)
+      dispatch.setStepping(stepdepth, step_instr)
+      DAstep.__dap.step(nil)
+    end
+
+    -- re-hook *before* calling user_handler
+    -- tailcall so it's where it expects to be on the stack
+    blockhook = oldblock
     if user_handler then
       return user_handler(mesg)
+    elseif filter=="unhandled" then
+      -- no return at all for unhandled, it will preserve the message anyway
+      return
     else
       return mesg
     end
-  end)
+  end
+  unhooked[_caught] = true
+  return _caught
 end
-stepIgnore(caught)
+unhooked[caught] = true
+
+if DAConfig.instrument then
+  on_exception = caught("unhandled")
+  -- shared for stack trace to know to skip one extra
+  DAstep.on_exception = on_exception
+  unhooked[on_exception] = true
+end
 
 ---`pcall` replacement to redirect the exception to display in the editor
 ---@param func function
@@ -846,6 +887,15 @@ if rawscript then
   ---@param funcs table<string,function>
   function apihooks.remote.add_interface(remotename,funcs)
     myRemotes[remotename] = funcs
+    for name, func in pairs(funcs) do
+      if type(func) == "function" then
+        local info = dgetinfo(func, "S")
+        if info and info.what == "C" then
+          DAprint.print("remote "..remotename.."::"..name.." is a cfunction! thrown error locations may be incorrect.",
+            nil, 2, "console")
+        end
+      end
+    end
     return rawremote.add_interface(remotename,funcs)
   end
 

@@ -5,26 +5,25 @@ pad=1
 # in exception (instrument only)            6 on_error callback, 7 pCallWithStackTraceMessageHandler, 8 at exception
 # in remote-redirected call:                2 unhook, 3 at stack
 
-"@code" -> api
 "??" -> "@code" -> api_breakpoint -> debugprompt;
 
-pcall -> "???" -> "@error" -> caught -> debugprompt
-xpcall -> "???"
+pcall -> rawxpcall -> "???" -> "@error" -> caught -> debugprompt
+xpcall -> rawxpcall
+caught -> user_handler [dir=both; arrowtail=crow;]
 
 event -> "??"
-"??" -> "@unhandled" -> pCallWithStackTraceMessageHandler -> on_exception -> debugprompt;
+"??" -> "@unhandled" -> pCallWithStackTraceMessageHandler -> caught;
 "??" -> "@step" -> hook;
 "??" -> "@breakpoint" -> hook;
 hook -> debugprompt;
 
 debugprompt -> "debug command" -> dap_outer -> dispatch -> dap_inner;
-dispatch -> unhook;
+{ rank=same; dispatch -> unhook }
 "@remote" -> unhook -> dap_inner
 
 dap_inner -> "0 getinfo";
 
 { rank=same; "@code" "@step" "@breakpoint" "@error" }
-{ rank=same; hook api_breakpoint on_exception caught }
-{ rank=same; dispatch unhook }
+{ rank=same; hook api_breakpoint caught }
 
 }

@@ -694,7 +694,7 @@ local itermode = {
 }
 
 ---@class metatable_debug: metatable
----@field __debugline string|(fun(self:table):string)|nil
+---@field __debugline string|(fun(self:table, short?:boolean):string)|nil
 ---@field __debugtype string|nil
 ---@field __debugcontents DebugAdapter.DebugContents<any,any,any>|false|nil
 ---@field __debugvisualize (fun(self:table):table)|nil
