@@ -720,6 +720,10 @@
       {
         "fileMatch": "campaigns/*/description.json",
         "url": "./schema/campaign.json"
+      },
+      {
+        "fileMatch": "migrations/*.json",
+        "url": "./schema/migration.json"
       }
     ],
     "breakpoints": [

@@ -1,0 +1,46 @@
+{
+  "title": "Factorio json migration",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "definitions": {
+    "migration_list": {
+      "type":"array",
+      "items": {
+        "type":"array",
+        "items": {"type": "string"},
+        "minItems": 2,
+        "maxItems": 2,
+        "uniqueItems": true
+      }
+    }
+  },
+  "properties": {
+    "custom-input": { "$ref": "#/definitions/migration_list"},
+    "equipment-grid": { "$ref": "#/definitions/migration_list"},
+    "entity": { "$ref": "#/definitions/migration_list"},
+    "item": { "$ref": "#/definitions/migration_list"},
+    "tile": { "$ref": "#/definitions/migration_list"},
+    "decorative": { "$ref": "#/definitions/migration_list"},
+    "recipe-category": { "$ref": "#/definitions/migration_list"},
+    "item-group": { "$ref": "#/definitions/migration_list"},
+    "item-subgroup": { "$ref": "#/definitions/migration_list"},
+    "recipe": { "$ref": "#/definitions/migration_list"},
+    "fluid": { "$ref": "#/definitions/migration_list"},
+    "ammo-category": { "$ref": "#/definitions/migration_list"},
+    "fuel-category": { "$ref": "#/definitions/migration_list"},
+    "resource-category": { "$ref": "#/definitions/migration_list"},
+    "technology": { "$ref": "#/definitions/migration_list"},
+    "noise-layer": { "$ref": "#/definitions/migration_list"},
+    "noise-expression": { "$ref": "#/definitions/migration_list"},
+    "autoplace-control": { "$ref": "#/definitions/migration_list"},
+    "equipment": { "$ref": "#/definitions/migration_list"},
+    "damage-type": { "$ref": "#/definitions/migration_list"},
+    "virtual-signal": { "$ref": "#/definitions/migration_list"},
+    "achievement": { "$ref": "#/definitions/migration_list"},
+    "module-category": { "$ref": "#/definitions/migration_list"},
+    "equipment-category": { "$ref": "#/definitions/migration_list"},
+    "mod-setting": { "$ref": "#/definitions/migration_list"},
+    "trivial-smoke": { "$ref": "#/definitions/migration_list"},
+    "shortcut": { "$ref": "#/definitions/migration_list"}
+  }
+}
