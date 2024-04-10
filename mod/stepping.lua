@@ -351,13 +351,9 @@ do
         local info_is_api = info.what=="C" and info.nups > 0
         local parent_is_none_or_api = not parent or (parent.what=="C" and parent.nups > 0)
         if info_is_api then
-          local pname = parent and (parent.short_src..":"..parent.currentline) or ""
-          print("call out "..rawscript.mod_name.." "..pname)
           dispatch.setStepping(stepdepth, step_instr)
           DAstep.__dap.step(nil)
         elseif parent_is_none_or_api then
-          local iname = (info.short_src..":"..info.currentline) or ""
-          print("call in "..rawscript.mod_name.." "..iname)
           DAstep.__dap.step(dispatch.getStepping())
         end
       end
@@ -394,15 +390,11 @@ do
       if rawscript and step_enabled then
         local info_is_api = info.what=="C" and info.nups > 0
         local parent_is_none_or_api = not parent or (parent.what=="C" and parent.nups > 0)
-        local pname = parent and (parent.short_src..":"..parent.currentline) or ""
-        local iname = (info.short_src..":"..info.currentline) or ""
         if info_is_api then
-          print("ret in "..rawscript.mod_name.." "..pname.." "..iname)
           DAstep.__dap.step(dispatch.getStepping())
         elseif parent_is_none_or_api then
           local skip = skip_ret_out[info.func]
           skip_ret_out[info.func] = nil
-          print("ret out "..rawscript.mod_name.." "..pname.." "..iname.." "..tostring(skip))
           if not skip then
             dispatch.setStepping(stepdepth, step_instr)
             DAstep.__dap.step(nil)
@@ -485,9 +477,6 @@ end
 ---@param depth? number
 ---@param instruction? boolean
 function DAstep.__dap.step(depth,instruction)
-  if rawscript then
-    print("step "..rawscript.mod_name.." "..tostring(depth).." "..tostring(instruction))
-  end
   if depth and stepdepth then
     print(sformat("step %d with existing depth! %d",depth,stepdepth))
   end
@@ -599,7 +588,6 @@ local function caught(filter, user_handler)
           func = dgetinfo(i, "f")
         end
       end
-      print("catch "..stepdepth.." was "..was)
     end
 
     -- vscode might not want this, in which case it'll continue immediately,
@@ -608,7 +596,6 @@ local function caught(filter, user_handler)
     debugprompt()
 
     if rawscript and step_enabled and filter=="unhandled" then
-      print("catch out "..rawscript.mod_name)
       -- unhandled gets a `return out` on pCallWithStackTraceMessageHandler
       skip_ret_out[dgetinfo(2).func]=true
       dispatch.setStepping(stepdepth, step_instr)
