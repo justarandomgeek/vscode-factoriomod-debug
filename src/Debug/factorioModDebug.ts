@@ -339,6 +339,11 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			if (args.useInstrumentMode ?? true) {
 				args.factorioArgs.push("--instrument-mod", "debugadapter");
 			}
+			const app_version = this.activeVersion.docs.application_version;
+			if (app_version.match(/[a-fA-F0-9]{7}/) // assume git is always newer than stripped debug
+				|| (app_version.match(/\d+\.\d+\.\d+/)) && semver.gte(app_version, "1.1.107", {loose: true}) ) {
+				args.factorioArgs.push("--enable-unsafe-lua-debug-api");
+			}
 			if ((args.checkPrototypes ?? true) && !args.factorioArgs.includes("--check-unused-prototype-data")) {
 				args.factorioArgs.push("--check-unused-prototype-data");
 			}
