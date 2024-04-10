@@ -12,6 +12,7 @@ local dgetupvalue = debug.getupvalue
 local dgetlocal = debug.getlocal
 local string = string
 local ssub = string.sub
+local smatch = string.match
 local select = select
 
 local remote = (type(remote)=="table" and rawget(remote,"__raw")) or remote
@@ -106,7 +107,7 @@ function dispatch.__inner.stackTrace(startFrame, seq)
         name = source,
         path = source,
       }
-      if stepping.isStepIgnore(info.func) then
+      if stepping.isStepIgnore(info.func) or smatch(source, "^@__debugadapter__") then
         dasource.presentationHint = "deemphasize"
       end
 
