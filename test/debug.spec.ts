@@ -341,14 +341,37 @@ suite('Debug Adapter', ()=>{
 		await waitFor(/^Unknown interface: test-missing2$/);
 		await dc.continueRequest({threadId: 1});
 
+		await waitFor(/^remote1$/);
+		await dc.continueRequest({threadId: 1});
 		await waitFor(/debugadapter-tests\.error: remote1/);
 		await dc.continueRequest({threadId: 1});
+
+		await waitFor(/^remote2$/);
+		await dc.continueRequest({threadId: 1});
 		await waitFor(/debugadapter-tests\.error: remote2/);
+		await dc.continueRequest({threadId: 1});
+
+		await waitFor(/^remote3$/);
+		await dc.continueRequest({threadId: 1});
+		await waitFor(/level\.error: remote3/);
+		await dc.continueRequest({threadId: 1});
+		await waitFor(/debugadapter-tests\.call:.+level\.error: remote3/);
+		await dc.continueRequest({threadId: 1});
+
+		await waitFor(/^remote4$/);
+		await dc.continueRequest({threadId: 1});
+		await waitFor(/level\.error: remote4/);
+		await dc.continueRequest({threadId: 1});
+		await waitFor(/debugadapter-tests\.call:.+level\.error: remote4/);
 		await dc.continueRequest({threadId: 1});
 
 		await waitFor(/^premote1$/);
 		await dc.continueRequest({threadId: 1});
 		await waitFor(/^premote2$/);
+		await dc.continueRequest({threadId: 1});
+		await waitFor(/^premote3$/);
+		await dc.continueRequest({threadId: 1});
+		await waitFor(/^premote4$/);
 		await dc.continueRequest({threadId: 1});
 
 		await waitFor(/^pcall1$/);

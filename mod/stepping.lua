@@ -171,6 +171,7 @@ function DAstep.unhook(f)
   return unhook
 end
 
+local skip_ret_out = {}
 local hook
 do
   --- report a new `Source` event on entry to a main chunk
@@ -221,11 +222,13 @@ do
       call isapi -> *
       return * <- isapi
       catch when top=isapi
+        (filter=unhandled does call in pCallWithStackTraceMessageHandler instead)
     out
       call * -> isapi
       return none <- *
       return isapi <- *
       catch unhandled
+        (blocks ret out pCallWithStackTraceMessageHandler)
 
   catch:
     unhandled: unwind stepdepth to entrypoint, or 0
@@ -343,16 +346,18 @@ do
       end
 
 
-      local parent = dgetinfo(3,"Su")
+      local parent = dgetinfo(3,"Slu")
       if rawscript and step_enabled then
         local info_is_api = info.what=="C" and info.nups > 0
         local parent_is_none_or_api = not parent or (parent.what=="C" and parent.nups > 0)
         if info_is_api then
-          print("call out "..rawscript.mod_name)
+          local pname = parent and (parent.short_src..":"..parent.currentline) or ""
+          print("call out "..rawscript.mod_name.." "..pname)
           dispatch.setStepping(stepdepth, step_instr)
           DAstep.__dap.step(nil)
         elseif parent_is_none_or_api then
-          print("call in "..rawscript.mod_name)
+          local iname = (info.short_src..":"..info.currentline) or ""
+          print("call in "..rawscript.mod_name.." "..iname)
           DAstep.__dap.step(dispatch.getStepping())
         end
       end
@@ -385,17 +390,23 @@ do
         end
       end
 
-      local parent = dgetinfo(3,"Su")
+      local parent = dgetinfo(3,"Slu")
       if rawscript and step_enabled then
         local info_is_api = info.what=="C" and info.nups > 0
         local parent_is_none_or_api = not parent or (parent.what=="C" and parent.nups > 0)
+        local pname = parent and (parent.short_src..":"..parent.currentline) or ""
+        local iname = (info.short_src..":"..info.currentline) or ""
         if info_is_api then
-          print("ret in "..rawscript.mod_name)
+          print("ret in "..rawscript.mod_name.." "..pname.." "..iname)
           DAstep.__dap.step(dispatch.getStepping())
         elseif parent_is_none_or_api then
-          print("ret out "..rawscript.mod_name)
-          dispatch.setStepping(stepdepth, step_instr)
-          DAstep.__dap.step(nil)
+          local skip = skip_ret_out[info.func]
+          skip_ret_out[info.func] = nil
+          print("ret out "..rawscript.mod_name.." "..pname.." "..iname.." "..tostring(skip))
+          if not skip then
+            dispatch.setStepping(stepdepth, step_instr)
+            DAstep.__dap.step(nil)
+          end
         end
       end
 
@@ -539,8 +550,9 @@ local function caught(filter, user_handler)
     local info = dgetinfo(filter=="unhandled" and 3 or 2, "Su")
     if rawscript and step_enabled then
       local top_is_api = info.what=="C" and info.nups > 0
-      if top_is_api then
-        print("catch in "..rawscript.mod_name)
+      -- unhandled already got a `call in` on pCallWithStackTraceMessageHandler
+      if top_is_api and filter~="unhandled" then
+        print("catch in "..rawscript.mod_name.." "..filter)
         DAstep.__dap.step(dispatch.getStepping())
       end
     end
@@ -559,7 +571,7 @@ local function caught(filter, user_handler)
         -- one for pCallWithStackTraceMessageHandler
         stepdepth = stepdepth - 1
         -- and try to find the entrypoint...
-        local i = 4
+        local i = 3
         local func = dgetinfo(i, "ft")
         while func do
           stepdepth = stepdepth - 1
@@ -578,7 +590,7 @@ local function caught(filter, user_handler)
 
       else
         -- count to rawxpcall
-        local i = 3
+        local i = 2
         local func = dgetinfo(i, "f")
         while func do
           if func.func == rawxpcall then break end
@@ -597,6 +609,8 @@ local function caught(filter, user_handler)
 
     if rawscript and step_enabled and filter=="unhandled" then
       print("catch out "..rawscript.mod_name)
+      -- unhandled gets a `return out` on pCallWithStackTraceMessageHandler
+      skip_ret_out[dgetinfo(2).func]=true
       dispatch.setStepping(stepdepth, step_instr)
       DAstep.__dap.step(nil)
     end
@@ -634,7 +648,7 @@ end
 function apihooks.pcall(func,...)
   return rawxpcall(func, caught("pcall"), ...)
 end
-stepIgnore(pcall)
+stepIgnore(apihooks.pcall)
 
 ---`xpcall` replacement to redirect the exception to display in the editor
 ---@param func function
@@ -646,7 +660,7 @@ stepIgnore(pcall)
 function apihooks.xpcall(func, user_handler, ...)
   return rawxpcall(func, caught("xpcall",user_handler), ...)
 end
-stepIgnore(xpcall)
+stepIgnore(apihooks.xpcall)
 
 -- don't need the rest in data stage...
 if rawscript then

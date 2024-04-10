@@ -1,12 +1,13 @@
+local rcall = remote.call
 remote.add_interface("debugadapter-tests",{
 	error = function (mesg)
-		return error(mesg)
+		return error(mesg, -1)
 	end,
 	perror = function (mesg)
-		return pcall(error,mesg)
+		return pcall(error,mesg, -1)
 	end,
 	call = function(...)
-		return remote.call(...)
+		return rcall(...)
 	end
 })
 
