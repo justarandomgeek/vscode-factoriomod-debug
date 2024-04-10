@@ -8,6 +8,9 @@
   * Selectively un-set hook when not stepping and no breakpoints active in file
 * VSCode:
   * JSON Schema for migrations
+* Sumneko library package:
+  * Fixed that `---@plugin disable-line` would also affect the previous lines if they had comments
+  * Improved plugin performance by ~500%. Unfortunately this isn't really noticeable, because other parts of the LuaLS take up much more time
 
 ## 1.1.41
 * Sumneko library package:

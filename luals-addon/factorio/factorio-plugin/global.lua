@@ -7,6 +7,21 @@ if not __plugin_dev then
   workspace = require("workspace")
 end
 
+---[a-zA-Z0-9_]
+local identifier_char_lut = {["_"] = true}
+do
+  ---@param from_char string
+  ---@param to_char string
+  local function add_range(from_char, to_char)
+    for byte = string.byte(from_char), string.byte(to_char) do
+      identifier_char_lut[string.char(byte)] = true
+    end
+  end
+  add_range("a", "z")
+  add_range("A", "Z")
+  add_range("0", "9")
+end
+
 ---Rename `global` so we can tell them apart!
 ---@param uri string @ The uri of file
 ---@param text string @ The content of file
@@ -53,29 +68,30 @@ local function replace(uri, text, diffs)
     this_mod = this_mod:gsub("[^a-zA-Z0-9_]","_")
     local global_name = "__"..this_mod.."__global"
 
-    ---@type table<integer, true>
-    local matches_to_ignore = {}
-    -- remove matches that where `global` is actually indexing into something (`.global`)
-    for dot_pos, start in text:gmatch("()%.[^%S\n]*()global%s*[=.%[]")--[[@as fun():integer, integer]] do
-      if text:sub(dot_pos - 1, dot_pos - 1) ~= "." -- If it's a concat, keep it.
-        and text:sub(dot_pos - 2, dot_pos - 1) ~= "_G" -- Keep indexes into _G
-        and text:sub(dot_pos - 4, dot_pos - 1) ~= "_ENV" -- and _ENV
-      then
-        matches_to_ignore[start] = true
-      end
-    end
+    util.reset_is_disabled_to_file_start()
+    for finish, ignore_pos, ignore_char in
+      string.gmatch(text, "global%f[^a-zA-Z0-9_]()%s*()([=.%[]?)")--[[@as fun(): integer, integer, string]]
+    do
+      local start = finish - #"global"
+      if identifier_char_lut[text:sub(start - 1, start - 1)] then goto continue end
 
-    ---@param preceding_text string
-    ---@param start integer
-    ---@param finish integer
-    ---@param ignore_pos integer
-    ---@param ignore_char string
-    local function add_diffs(preceding_text, start, finish, ignore_pos, ignore_char)
-      if matches_to_ignore[start]
-        or (ignore_char == "" and not preceding_text:find("=[^%S\n]*$"))
+      local preceding_start = start - 16
+      local preceding_text = text:sub(preceding_start, start - 1)
+      local dot_pos = preceding_text:match("()%.%s*$")
+      if dot_pos then
+        dot_pos = preceding_start + dot_pos - 1
+        if text:sub(dot_pos - 1, dot_pos - 1) ~= "." -- If it's a concat, keep it.
+          and text:sub(dot_pos - 2, dot_pos - 1) ~= "_G" -- Keep indexes into _G
+          and text:sub(dot_pos - 4, dot_pos - 1) ~= "_ENV" -- and _ENV
+        then
+          goto continue
+        end
+      end
+
+      if (ignore_char == "" and not preceding_text:find("=%s*$") and not preceding_text:find("%.%.%s*$"))
         or util.is_disabled(start, global_module_flag)
       then
-        return
+        goto continue
       end
 
       local before = text:sub(start - 1, start - 1)
@@ -92,25 +108,8 @@ local function replace(uri, text, diffs)
       end
       -- Put the diagnostic after the '.' otherwise code completion/suggestions don't work.
       util.add_diff(diffs, ignore_pos, ignore_pos + #ignore_char, ignore_char.."---@diagnostic disable-line:undefined-global\n")
-    end
 
-    -- There is duplication here, which would usually be handled by a util function,
-    -- however since we are dealing with a variable amount of values, creating a generic
-    -- function for it would be incredibly inefficient, constantly allocating new tables.
-    util.reset_is_disabled_to_file_start()
-    for preceding_text, start, finish, ignore_pos, ignore_char, final_pos in
-      util.gmatch_at_start_of_line(text, "([^\n]-)%f[a-zA-Z0-9_]()global()[^%S\n]*()([=.%[]?)()")--[[@as fun(): string, integer, integer, integer, string, integer]]
-    do
-      add_diffs(preceding_text, start, finish, ignore_pos, ignore_char)
-      while true do
-        if ignore_char == "=" then -- To support `global = global`.
-          final_pos = final_pos - 1
-        end
-        preceding_text, start, finish, ignore_pos, ignore_char, final_pos
-          = text:match("^([^\n]-)%f[a-zA-Z0-9_]()global()[^%S\n]*()([=.%[]?)()", final_pos)
-        if not start then break end
-        add_diffs(preceding_text, start, finish, ignore_pos, ignore_char)
-      end
+      ::continue::
     end
   end
 end
