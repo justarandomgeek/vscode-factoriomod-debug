@@ -127,7 +127,7 @@ function defined<T>(x:T|undefined):x is T { return x !== undefined; }
 
 function recordSymbol(record:Record):DocumentSymbol {
 	return {
-		name: record.value,
+		name: record.value ? record.value : "<error>",
 		detail: "", //TODO: stringify children? attached comment group?
 		kind: SymbolKind.String,
 		range: record.range,
@@ -138,7 +138,7 @@ function recordSymbol(record:Record):DocumentSymbol {
 
 function sectionSymbols(section:Section):DocumentSymbol {
 	return {
-		name: section.value,
+		name: section.value ? section.value : "<error>",
 		detail: "", //TODO: first comment group?
 		kind: SymbolKind.Namespace,
 		range: section.range,

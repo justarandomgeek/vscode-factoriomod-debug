@@ -282,6 +282,21 @@ suite("LSP", ()=>{
 			expect(diags.diagnostics[0].code).equals("section.rootconflict");
 		});
 
+		test("section-emptyname", async function() {
+			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
+			expect(diags.uri).equals(doc.uri);
+			expect(diags.diagnostics).length(1);
+			expect(diags.diagnostics[0].code).equals("section.invalid");
+
+			const symbols = <DocumentSymbol[]> await clientConnection.sendRequest(DocumentSymbolRequest.type, { textDocument: docItem(doc) } as DocumentSymbolParams);
+			expect(symbols).length(1);
+			expect(symbols[0]).includes({
+				detail: '',
+				kind: SymbolKind.Namespace,
+			});
+			expect(symbols[0].name);
+		});
+
 		test("section-invalid", async function() {
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
 			expect(diags.uri).equals(doc.uri);
