@@ -91,10 +91,10 @@ export abstract class PropertyTree {
 		let size = Buffer.alloc(1);
 
 		if (strbuff.length < 255) {
-			size.writeInt8(strbuff.length);
+			size.writeUInt8(strbuff.length);
 		} else {
 			size = Buffer.alloc(5);
-			size.writeInt8(255);
+			size.writeUInt8(255);
 			size.writeUInt32LE(strbuff.length, 1);
 		}
 		return Buffer.concat([
@@ -158,7 +158,7 @@ export abstract class PropertyTree {
 			case PropertyTreeType.list:
 			{
 				const size = Buffer.alloc(4);
-				size.writeInt32LE(tree.value.length);
+				size.writeUInt32LE(tree.value.length);
 				return Buffer.concat([
 					PropertyTree.typeTag(PropertyTreeType.list),
 					size,
@@ -185,7 +185,7 @@ export abstract class PropertyTree {
 				}
 
 				const size = Buffer.alloc(4);
-				size.writeInt32LE(buffs.length);
+				size.writeUInt32LE(buffs.length);
 
 				return Buffer.concat([
 					PropertyTree.typeTag(PropertyTreeType.dictionary),

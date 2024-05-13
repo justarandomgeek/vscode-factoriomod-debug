@@ -6,10 +6,10 @@ import { Duplex } from "stream";
 //TODO: figure out why and import a more sensible way
 //@ts-expect-error
 import * as _fmtk from "../dist/fmtk";
+import { BufferStream } from "../src/Util/BufferStream";
 const fmtk = _fmtk as typeof import("../src/fmtk");
-const { BufferSplitter, EncodingUtil } = fmtk;
+const { BufferSplitter, EncodingUtil, PropertyTree, PropertyTreeType } = fmtk;
 const { encodeVarInt } = EncodingUtil;
-
 class TestStream extends Duplex {
 	_write(chunk: string, _encoding: string, done: () => void) {
 		this.emit('data', chunk);
@@ -90,4 +90,75 @@ test('BufferSplitter', async ()=>{
 		Buffer.from("test1"), Buffer.from("test2"), Buffer.from("test3"), Buffer.from("test4"),
 		Buffer.from("\ntest5\n"), Buffer.from("\n"), Buffer.from("\n**start**\n"), Buffer.from("end"),
 	]);
+});
+
+test('PropertyTree', ()=>{
+	expect(PropertyTree.save({type: PropertyTreeType.none})).deep.equals(Buffer.from([0, 0]));
+
+	expect(PropertyTree.save({type: PropertyTreeType.bool, value: false})).deep.equals(Buffer.from([1, 0, 0]));
+	expect(PropertyTree.save({type: PropertyTreeType.bool, value: true})).deep.equals(Buffer.from([1, 0, 1]));
+
+	expect(PropertyTree.save({type: PropertyTreeType.number, value: 3.14})).deep.equals(Buffer.from([2, 0, 31, 133, 235, 81, 184, 30, 9, 64]));
+
+	expect(PropertyTree.save({type: PropertyTreeType.string, value: ""})).deep.equals(Buffer.from([3, 0, 1]));
+	expect(PropertyTree.save({type: PropertyTreeType.string, value: "foo"})).deep.equals(Buffer.from([3, 0, 0, 3, 102, 111, 111]));
+	expect(PropertyTree.save({type: PropertyTreeType.string, value: "a".repeat(200)})).deep.equals(
+		Buffer.concat([Buffer.from([3, 0, 0, 200]), Buffer.from("a".repeat(200))]));
+	expect(PropertyTree.save({type: PropertyTreeType.string, value: "a".repeat(300)})).deep.equals(
+		Buffer.concat([Buffer.from([3, 0, 0, 255, 44, 1, 0, 0]), Buffer.from("a".repeat(300))]));
+
+	expect(PropertyTree.save({type: PropertyTreeType.list, value: [
+		{type: PropertyTreeType.bool, value: false},
+	]})).deep.equals(
+		Buffer.from([4, 0, 1, 0, 0, 0, 1, 1, 0, 0]));
+
+	expect(PropertyTree.save({type: PropertyTreeType.dictionary, value: {
+		a: {type: PropertyTreeType.bool, value: false},
+	}})).deep.equals(
+		Buffer.from([5, 0, 1, 0, 0, 0, 0, 1, 97, 1, 0, 0]));
+
+	expect(PropertyTree.save({type: PropertyTreeType.signedinteger, value: BigInt("0x1234567812345678")})).deep.equals(
+		Buffer.from([6, 0, 0x78, 0x56, 0x34, 0x12, 0x78, 0x56, 0x34, 0x12]));
+	expect(PropertyTree.save({type: PropertyTreeType.signedinteger, value: -BigInt("0x1234567812345678")})).deep.equals(
+		Buffer.from([6, 0, 0x88, 0xa9, 0xcb, 0xed, 0x87, 0xa9, 0xcb, 0xed]));
+
+	expect(PropertyTree.save({type: PropertyTreeType.unsignedinteger, value: BigInt("0xff34567812345678")})).deep.equals(
+		Buffer.from([7, 0, 0x78, 0x56, 0x34, 0x12, 0x78, 0x56, 0x34, 0xff]));
+
+	expect(PropertyTree.load(new BufferStream(Buffer.from([0, 0])))).deep.equals({type: PropertyTreeType.none});
+
+	expect(PropertyTree.load(new BufferStream(Buffer.from([1, 0, 0])))).deep.equals({type: PropertyTreeType.bool, value: false});
+	expect(PropertyTree.load(new BufferStream(Buffer.from([1, 0, 1])))).deep.equals({type: PropertyTreeType.bool, value: true});
+
+	expect(PropertyTree.load(new BufferStream(Buffer.from([2, 0, 31, 133, 235, 81, 184, 30, 9, 64])))).deep.equals({type: PropertyTreeType.number, value: 3.14});
+
+	expect(PropertyTree.load(new BufferStream(Buffer.from([3, 0, 1])))).deep.equals({type: PropertyTreeType.string, value: ""});
+	expect(PropertyTree.load(new BufferStream(Buffer.from([3, 0, 0, 3, 102, 111, 111])))).deep.equals({type: PropertyTreeType.string, value: "foo"});
+	expect(PropertyTree.load(new BufferStream(Buffer.concat([Buffer.from([3, 0, 0, 200]), Buffer.from("a".repeat(200))]))))
+		.deep.equals({type: PropertyTreeType.string, value: "a".repeat(200)});
+	expect(PropertyTree.load(new BufferStream(Buffer.concat([Buffer.from([3, 0, 0, 255, 44, 1, 0, 0]), Buffer.from("a".repeat(300))]))))
+		.deep.equals({type: PropertyTreeType.string, value: "a".repeat(300)});
+
+
+
+	expect(PropertyTree.load(new BufferStream(Buffer.from([4, 0, 1, 0, 0, 0, 1, 1, 0, 0]))))
+		.deep.equals({type: PropertyTreeType.list, value: [
+			{type: PropertyTreeType.bool, value: false},
+		]});
+
+	expect(PropertyTree.load(new BufferStream(Buffer.from([5, 0, 1, 0, 0, 0, 0, 1, 97, 1, 0, 0]))))
+		.deep.equals({type: PropertyTreeType.dictionary, value: {
+			a: {type: PropertyTreeType.bool, value: false},
+		}});
+
+	expect(PropertyTree.load(new BufferStream(Buffer.from([6, 0, 0x78, 0x56, 0x34, 0x12, 0x78, 0x56, 0x34, 0x12]))))
+		.deep.equals({type: PropertyTreeType.signedinteger, value: BigInt("0x1234567812345678")});
+
+	expect(PropertyTree.load(new BufferStream(Buffer.from([6, 0, 0x88, 0xa9, 0xcb, 0xed, 0x87, 0xa9, 0xcb, 0xed]))))
+		.deep.equals({type: PropertyTreeType.signedinteger, value: -BigInt("0x1234567812345678")});
+
+
+	expect(PropertyTree.load(new BufferStream(Buffer.from([7, 0, 0x78, 0x56, 0x34, 0x12, 0x78, 0x56, 0x34, 0xff]))))
+		.deep.equals({type: PropertyTreeType.unsignedinteger, value: BigInt("0xff34567812345678")});
+
 });

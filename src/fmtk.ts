@@ -19,3 +19,4 @@ if (require.main === module || require.main === undefined ) {
 // so pass through the exports for the useful bits...
 export * as EncodingUtil from "./Util/EncodingUtil";
 export * from "./Util/BufferSplitter";
+export * from "./Util/PropertyTree";

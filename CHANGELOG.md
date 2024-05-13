@@ -5,6 +5,8 @@
 ## 1.1.43
 * Locale:
   * don't emit documentSymbols with empty names (#118)
+* PropertyTree: (mod settings, etc)
+  * Correct saving mid-length (129-254) strings
 
 ## 1.1.42
 * Debugger:
