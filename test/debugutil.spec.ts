@@ -7,6 +7,7 @@ import { Duplex } from "stream";
 //@ts-expect-error
 import * as _fmtk from "../dist/fmtk";
 import { BufferStream } from "../src/Util/BufferStream";
+import { MapVersion } from "../src/fmtk";
 const fmtk = _fmtk as typeof import("../src/fmtk");
 const { BufferSplitter, EncodingUtil, PropertyTree, PropertyTreeType } = fmtk;
 const { encodeVarInt } = EncodingUtil;
@@ -161,4 +162,28 @@ test('PropertyTree', ()=>{
 	expect(PropertyTree.load(new BufferStream(Buffer.from([7, 0, 0x78, 0x56, 0x34, 0x12, 0x78, 0x56, 0x34, 0xff]))))
 		.deep.equals({type: PropertyTreeType.unsignedinteger, value: BigInt("0xff34567812345678")});
 
+});
+
+test('MapVersion', ()=>{
+	expect(MapVersion.load(new BufferStream(Buffer.from([1, 0, 2, 0, 3, 0, 4, 0, 5]))))
+		.instanceOf(MapVersion)
+		.include({ main: 1, major: 2, minor: 3, patch: 4, branch: 5 });
+
+	expect(new MapVersion(1, 2, 3, 4, 5).save()).deep.equals(Buffer.from([1, 0, 2, 0, 3, 0, 4, 0, 5]));
+
+	expect(new MapVersion(1, 2, 3, 4, 0).format()).equals("1.2.3-4");
+
+	expect(new MapVersion(1, 2, 3, 4, 0).isBeyond(1, 2, 3, 3));
+	expect(new MapVersion(1, 2, 3, 4, 0).isBeyond(1, 2, 3, 4));
+	expect(!new MapVersion(1, 2, 3, 4, 0).isBeyond(1, 2, 3, 5));
+
+	expect(new MapVersion(1, 2, 3, 4, 0).isBeyond(1, 2, 2, 0));
+	expect(!new MapVersion(1, 2, 3, 4, 0).isBeyond(1, 2, 4, 0));
+
+	expect(new MapVersion(1, 2, 3, 4, 0).isBeyond(1, 1, 0, 0));
+	expect(!new MapVersion(1, 2, 3, 4, 0).isBeyond(1, 3, 0, 0));
+
+
+	expect(new MapVersion(1, 2, 3, 4, 0).isBeyond(0, 99, 0, 0));
+	expect(!new MapVersion(1, 2, 3, 4, 0).isBeyond(2, 0, 0, 0));
 });

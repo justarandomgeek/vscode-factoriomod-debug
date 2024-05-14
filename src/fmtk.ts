@@ -20,3 +20,4 @@ if (require.main === module || require.main === undefined ) {
 export * as EncodingUtil from "./Util/EncodingUtil";
 export * from "./Util/BufferSplitter";
 export * from "./Util/PropertyTree";
+export * from "./Util/MapVersion";

@@ -1,7 +1,7 @@
 import type { BufferStream } from "./BufferStream";
 
 export class MapVersion {
-	private constructor(
+	constructor(
 		public readonly main:number,
 		public readonly major:number,
 		public readonly minor:number,
@@ -24,7 +24,7 @@ export class MapVersion {
 		b.writeUInt16LE(this.major, 2);
 		b.writeUInt16LE(this.minor, 4);
 		b.writeUInt16LE(this.patch, 6);
-		b.writeInt8(this.branch, 8);
+		b.writeUInt8(this.branch, 8);
 		return b;
 	}
 
