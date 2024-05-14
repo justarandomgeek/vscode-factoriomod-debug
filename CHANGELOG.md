@@ -9,6 +9,7 @@
   * Correct saving mid-length (129-254) strings
 * VSCode:
   * Use "Restart Extension Host" instead of "Reload Window" to restart the LuaLS (#119)
+  * Trim whitespace off API keys (#117)
 
 ## 1.1.42
 * Debugger:

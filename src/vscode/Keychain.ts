@@ -20,6 +20,7 @@ export class Keychain {
 			}
 			key = await vscode.window.showInputBox({prompt: "Mod Portal API Key:", ignoreFocusOut: true, password: true });
 			if (key) {
+				key = key.trim();
 				await this.secrets.store("factorio-uploadmods", key);
 				return {from: "new", key };;
 			}

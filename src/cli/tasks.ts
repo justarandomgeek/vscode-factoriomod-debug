@@ -183,8 +183,8 @@ async function getAPIKey() {
 
 	const env = process.env["FACTORIO_UPLOAD_API_KEY"];
 	if (env) {
-		APIKey = env;
-		return env;
+		APIKey = env.trim();
+		return APIKey;
 	}
 
 	const { key } = await inquirer.prompt<{key:string}>([{
@@ -194,8 +194,8 @@ async function getAPIKey() {
 	}]);
 
 	if (key) {
-		APIKey = key;
-		return key;
+		APIKey = key.trim();
+		return APIKey;
 	}
 
 	throw new Error("No API Key");
