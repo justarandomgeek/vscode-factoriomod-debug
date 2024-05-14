@@ -7,6 +7,8 @@
   * don't emit documentSymbols with empty names (#118)
 * PropertyTree: (mod settings, etc)
   * Correct saving mid-length (129-254) strings
+* VSCode:
+  * Use "Restart Extension Host" instead of "Reload Window" to restart the LuaLS (#119)
 
 ## 1.1.42
 * Debugger:

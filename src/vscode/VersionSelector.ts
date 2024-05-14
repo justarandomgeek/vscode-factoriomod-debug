@@ -486,7 +486,7 @@ export class FactorioVersionSelector {
 					"Lua Language Server is already running and may not notice the newly-installed library bundle. Reload VSCode to force it to re-check.",
 					"Reload Now", "Reload Later") === "Reload Now") {
 					// no point awaiting this, it'll kill everything anyway...
-					vscode.commands.executeCommand("workbench.action.reloadWindow");
+					vscode.commands.executeCommand("workbench.action.restartExtensionHost");
 				}
 			}
 		}
