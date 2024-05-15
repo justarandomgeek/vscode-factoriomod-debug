@@ -7,6 +7,8 @@ local debug = debug
 local table = table
 local tconcat = table.concat
 
+local _ENV = nil
+
 local function expval(ex)
   return { name = ex.type, value = variables.describe(ex.literal_value), children={} }
 end

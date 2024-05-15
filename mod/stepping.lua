@@ -1,5 +1,6 @@
 local pairs = pairs
 local type = type
+local setmetatable = setmetatable
 
 --this has to be defined before requiring other files so they can mark functions as ignored
 ---@type {[function]:true}
@@ -54,8 +55,7 @@ local string = string
 local sdump = string.dump
 local ssub = string.sub
 local sformat = string.format
-local smatch = string.match
-local setmetatable = setmetatable
+local getmetatable = getmetatable
 local print = print
 local rawxpcall = xpcall
 local table = table
@@ -63,6 +63,8 @@ local tconcat = table.concat
 local error = error
 local select = select
 local require = require
+local rawset = rawset
+local defines = defines
 
 local nextuple = require("__debugadapter__/iterutil.lua").nextuple
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
@@ -73,6 +75,9 @@ local dispatch = require("__debugadapter__/dispatch.lua")
 local variables = require("__debugadapter__/variables.lua")
 local evaluate = require("__debugadapter__/evaluate.lua")
 local DAprint = require("__debugadapter__/print.lua")
+
+local env = _ENV
+local _ENV = nil
 
 ---@type table<string,table<number,DebugProtocol.SourceBreakpoint>>
 local breakpoints = {}
@@ -441,11 +446,11 @@ function DAstep.attach()
   blockhook = true
   dsethook(hook,hook_rate())
   for k, v in pairs(apihooks) do
-    rawset(_ENV, k, v)
+    rawset(env, k, v)
   end
   -- on_error is api for instrument mods to catch errors
-  if on_error then
-    on_error(on_exception)
+  if env.on_error then
+    env.on_error(on_exception)
   end
   blockhook = false
 end
@@ -849,7 +854,7 @@ if rawscript then
   }
   setmetatable(apihooks.script, newscriptmeta)
 
-  local rawcommands = commands
+  local rawcommands = env.commands
   apihooks.commands = {
     __raw = rawcommands,
   }
@@ -879,7 +884,7 @@ if rawscript then
   }
   setmetatable(apihooks.commands, newcommandsmeta)
 
-  local rawremote = remote
+  local rawremote = env.remote
   apihooks.remote = {
     __raw = rawremote,
   }

@@ -3,6 +3,8 @@ local string = string
 local ssub = string.sub
 local smatch = string.match
 
+local _ENV = nil
+
 ---@type string
 local levelpath
 if script and script.mod_name == "level" then

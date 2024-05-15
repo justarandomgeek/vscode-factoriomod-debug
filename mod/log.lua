@@ -5,12 +5,16 @@ local debug = debug
 local dgetinfo = debug.getinfo
 local type = type
 local getmetatable = getmetatable
+local __DebugAdapter = __DebugAdapter
+
+local env = _ENV
+local _ENV = nil
 
 -- log protection is disabled in Instrument Mode on Factorio >= 0.18.34
 -- don't bother attempting the hook otherwise
 if not __DebugAdapter.__config.instrument then return end
 
-local oldlog = log
+local oldlog = env.log
 local keepoldlog = __DebugAdapter.__config.keepoldlog
 local function newlog(mesg)
   local outmesg = mesg
@@ -45,4 +49,4 @@ local function newlog(mesg)
   end
 end
 
-log = newlog
+env.log = newlog

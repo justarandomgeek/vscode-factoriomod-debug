@@ -4,9 +4,19 @@ local threads = require("__debugadapter__/threads.lua")
 local string = string
 local smatch = string.match
 
+local debug = debug
+local dgetinfo = debug.getinfo
+
 ---@type LuaRemote
 local remote = (type(remote)=="table" and rawget(remote,"__raw")) or remote
 local rcall = remote and remote.call
+
+local script = script
+
+local pairs = pairs
+
+local env = _ENV
+local _ENV = nil
 
 ---@class DebugAdapter.Dispatch
 local dispatch = {}
@@ -28,9 +38,8 @@ local function isMainChunk()
   local i = 2 -- no need to check getinfo or isMainChunk
   ---@type string
   local what
-  local getinfo = debug.getinfo
   while true do
-    local info = getinfo(i,"S")
+    local info = dgetinfo(i,"S")
     if info then
       what = info.what
       i = i + 1
@@ -44,7 +53,7 @@ end
 local function canRemoteCall()
   -- remote.call is only legal from within events, game catches all but on_load
   -- during on_load, script exists and the root of the stack is no longer the main chunk
-  return not not (game or script and not isMainChunk())
+  return not not (env.game or script and not isMainChunk())
 end
 
 --- call a remote function in all registered mods

@@ -2,6 +2,8 @@ local next = next
 local type = type
 local unpack = table.unpack
 
+local _ENV = nil
+
 ---@generic K, V
 ---@param t table<K,V[]>
 ---@param k K

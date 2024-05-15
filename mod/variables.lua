@@ -49,6 +49,9 @@ local pcall = pcall
 local type = type
 local assert = assert
 
+local env = _ENV
+local _ENV = nil
+
 local function stringInterp(...)
   stringInterp = assert(dispatch.bind("stringInterp"))
   return stringInterp(...)
@@ -158,10 +161,10 @@ end
 variables.pindex = pindex
 variables.pnewindex = pnewindex
 
-local gmeta = getmetatable(_ENV) --[[@as metatable_debug]]
+local gmeta = getmetatable(env) --[[@as metatable_debug]]
 if not gmeta then
   gmeta = {}
-  setmetatable(_ENV,gmeta)
+  setmetatable(env,gmeta)
 end
 ---@type (DebugAdapter.RenderFilter|DebugAdapter.RenderOptionsWithFilter)[]
 local env_opts={
@@ -176,8 +179,8 @@ local env_opts={
   script = "factorio", defines = "factorio", game = "factorio", global = "factorio", mods = "factorio", data = "factorio", util = "factorio",
   log = "factorio", table_size = "factorio", localised_print = "factorio",
 
-  ["<Lua Builtin Globals>"] = {rawName=true, rawValue=true, virtual=true, ref=_ENV, extra="builtin"},
-  ["<Factorio API>"] = {rawName=true, rawValue=true, virtual=true, ref=_ENV, extra="factorio"},
+  ["<Lua Builtin Globals>"] = {rawName=true, rawValue=true, virtual=true, ref=env, extra="builtin"},
+  ["<Factorio API>"] = {rawName=true, rawValue=true, virtual=true, ref=env, extra="factorio"},
 }
 
 local env_sections = {
@@ -221,7 +224,7 @@ do
 end
 
 do
-  local localised_print = localised_print
+  local localised_print = env.localised_print
 
   ---Translate a LocalisedString
   ---@param mesg LocalisedString
@@ -1374,7 +1377,7 @@ function DAvars.source(id, seq, internal)
 end
 dispatch.__inner.source = DAvars.source
 
-if data then
+if env.data then
   -- data stage clears package.loaded between files, so we stash a copy in Lua registry too
   local reg = dgetregistry()
   reg.__DAVariables = variables

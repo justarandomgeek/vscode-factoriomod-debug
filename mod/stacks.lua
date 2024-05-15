@@ -14,11 +14,16 @@ local string = string
 local ssub = string.sub
 local smatch = string.match
 local select = select
+local next = next
+local type = type
 
 local remote = (type(remote)=="table" and rawget(remote,"__raw")) or remote
 local rcallptr = remote and select(2, dgetupvalue(remote.call, 2))
 
 local threadid = threads.this_thread
+
+local env = _ENV
+local _ENV = nil
 
 ---@class DebugAdapter.Stacks
 local DAStacks = {}
@@ -164,11 +169,11 @@ function dispatch.__inner.scopes(i, tag, seq)
       scopes[#scopes+1] = { name = "Upvalues", variablesReference = variables.scopeRef(i,"Upvalues"), expensive=false }
     end
     -- Factorio `global`
-    if type(global) == "table" then
-      scopes[#scopes+1] = { name = "Factorio global", variablesReference = variables.tableRef(global), expensive=false }
+    if type(env.global) == "table" then
+      scopes[#scopes+1] = { name = "Factorio global", variablesReference = variables.tableRef(env.global), expensive=false }
     end
     -- Lua Globals
-    scopes[#scopes+1] = { name = "Lua Globals", variablesReference = variables.tableRef(_ENV), expensive=false }
+    scopes[#scopes+1] = { name = "Lua Globals", variablesReference = variables.tableRef(env), expensive=false }
 
     json.response{seq=seq, body=scopes}
   else

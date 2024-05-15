@@ -47,6 +47,7 @@ local require = require
 local script = script
 local debug = debug
 local print = print
+local pairs = pairs
 
 local threads = require("__debugadapter__/threads.lua")
 local dispatch = require("__debugadapter__/dispatch.lua")
@@ -55,6 +56,9 @@ local evaluate = require("__debugadapter__/evaluate.lua")
 local daprint = require("__debugadapter__/print.lua")
 local stepping = require("__debugadapter__/stepping.lua")
 local stacks = require("__debugadapter__/stacks.lua")
+
+local env = _ENV
+local _ENV = nil
 
 __DebugAdapter.print = daprint.print
 merge(__DebugAdapter, stepping.__pub)
@@ -87,7 +91,7 @@ do
     ininstrument = " in Instrument Mode"
   end
 
-  if data then
+  if env.data then
     daprint.print("debugadapter registered for data" .. ininstrument, nil, nil, "console")
     stepping.attach()
     print("\xEF\xB7\x90\xEE\x80\x87")

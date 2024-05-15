@@ -23,6 +23,9 @@ local setmetatable = setmetatable
 local load = load
 local pindex = variables.pindex
 
+local env = _ENV
+local _ENV = nil
+
 ---@class DebugAdapter.Evaluate
 local DAEval = {}
 
@@ -34,6 +37,7 @@ local DAEval = {}
 ---@return boolean
 ---@return ...
 local function timedpcall(f)
+  local game = env.game
   if game then
     ---@type LuaProfiler
     local t = game.create_profiler()
@@ -256,7 +260,7 @@ end
 ---@overload fun(frameId:integer|nil,alsoLookIn:table|nil,context:string|nil,expression:string,timed?:false|nil): boolean,...
 function DAEval.evaluateInternal(frameId,alsoLookIn,context,expression,timed)
   ---@type table
-  local env = _ENV
+  local eenv = env
 
   if frameId then
     -- if there's a function here, check if it has an active local or upval
@@ -274,7 +278,7 @@ function DAEval.evaluateInternal(frameId,alsoLookIn,context,expression,timed)
         end
       end
       if name == "_ENV" then
-        env = value
+        eenv = value
         found = true
       end
     end
@@ -286,18 +290,18 @@ function DAEval.evaluateInternal(frameId,alsoLookIn,context,expression,timed)
       local name,value = dgetupvalue(func,i)
       if not name then break end
       if name == "_ENV" then
-        env = value
+        eenv = value
         goto foundenv
       end
     end
   end
   ::foundenv::
   if frameId or alsoLookIn then
-    env = setmetatable({},evalmeta(env,frameId,alsoLookIn))
+    eenv = setmetatable({},evalmeta(eenv,frameId,alsoLookIn))
   end
   local chunksrc = ("=(%s)"):format(context or "eval")
-  local f, res = load('return '.. expression, chunksrc, "t", env)
-  if not f then f, res = load(expression, chunksrc, "t", env) end
+  local f, res = load('return '.. expression, chunksrc, "t", eenv)
+  if not f then f, res = load(expression, chunksrc, "t", eenv) end
 
   if not f then
     -- invalid expression...
@@ -309,11 +313,11 @@ function DAEval.evaluateInternal(frameId,alsoLookIn,context,expression,timed)
   end
   ---@cast f function
 
-  local pcall = timed and timedpcall or pcall
+  local evalpcall = timed and timedpcall or pcall
   local closeframe = timed and
     function(timer,success,...)
       if frameId then
-        local mt = getmetatable(env) --[[@as metatable_debug_env]]
+        local mt = getmetatable(eenv) --[[@as metatable_debug_env]]
         local __closeframe = mt and mt.__closeframe
         if __closeframe then __closeframe() end
       end
@@ -322,13 +326,13 @@ function DAEval.evaluateInternal(frameId,alsoLookIn,context,expression,timed)
     or
     function(success,...)
       if frameId then
-        local mt = getmetatable(env) --[[@as metatable_debug_env]]
+        local mt = getmetatable(eenv) --[[@as metatable_debug_env]]
         local __closeframe = mt and mt.__closeframe
         if __closeframe then __closeframe() end
       end
       return success,...
     end
-  return closeframe(pcall(f))
+  return closeframe(evalpcall(f))
 end
 dispatch.bind("evaluateInternal", DAEval.evaluateInternal)
 

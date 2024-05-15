@@ -3,6 +3,9 @@ local script = (type(script)=="table" and rawget(script,"__raw")) or script
 local remote = (type(remote)=="table" and rawget(remote,"__raw")) or remote
 local math = math
 local mfloor = math.floor
+local pairs = pairs
+
+local _ENV = nil
 
 ---@class DebugAdapter.Threads
 ---@field this_thread integer

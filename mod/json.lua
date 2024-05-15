@@ -10,6 +10,9 @@ local next = next
 local pairs = pairs
 local tostring = tostring
 local type = type
+local print = print
+
+local _ENV = nil
 
 ---@class DebugAdapter.json
 local json = {}

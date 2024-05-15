@@ -10,19 +10,24 @@ local print = print
 ---@type fun(ls:LocalisedString)
 local localised_print = localised_print
 local debug = debug
+local dgetmetatable = debug.getmetatable
 local string = string
 local mod_name = script.mod_name
 local pairs = pairs
+local type = type
+local remote = remote
+
+local env = _ENV
+local _ENV = nil
 
 local create_profiler
 do
   local validLuaObjectTypes = {table=true,userdata=true}
   local reg = debug.getregistry()
-  local dgetmetatable = debug.getmetatable
-  local type = type
+
   function create_profiler(stopped)
     do
-      local game = game
+      local game = env.game
       if game then -- everywhere but main chunk or on_load
         create_profiler = game.create_profiler
         return create_profiler(stopped)
@@ -395,6 +400,6 @@ if mod_name ~= "debugadapter" then -- don't hook myself!
       dumpnow = true
     end,
   })
-  log("profiler registered for " .. mod_name)
+  env.log("profiler registered for " .. mod_name)
   attach()
 end

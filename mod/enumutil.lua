@@ -1,4 +1,5 @@
 local pairs = pairs
+local _ENV = nil
 
 --- swap the keys and values on a table
 ---@generic T

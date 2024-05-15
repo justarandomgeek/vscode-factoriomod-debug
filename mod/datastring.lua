@@ -24,6 +24,8 @@ local bor = bit32.bor
 local lshift = bit32.lshift
 local rshift = bit32.rshift
 
+local _ENV = nil
+
 ---@class DataString
 local DataString = {}
 

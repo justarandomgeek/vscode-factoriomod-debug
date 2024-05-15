@@ -16,6 +16,8 @@ local debugprompt = debug.debug
 local tconcat = table.concat
 local assert = assert
 
+local _ENV = nil
+
 local function stringInterp(...)
   stringInterp = assert(dispatch.bind("stringInterp"))
   return stringInterp(...)

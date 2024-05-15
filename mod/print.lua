@@ -9,6 +9,8 @@ local next = next
 local setmetatable = setmetatable
 local getmetatable = getmetatable
 
+local _ENV = nil
+
 ---@class DebugAdapter.Print
 local DAprint = {}
 
