@@ -30,6 +30,7 @@ debug = {}
 ---
 ---[View documents](command:extension.lua.doc?["en-us/52/manual.html/pdf-debug.debug"])
 ---
+---@deprecated most `debug` library functions are disabled since Factorio 1.1.107
 function debug.debug() end
 
 ---
@@ -41,6 +42,7 @@ function debug.debug() end
 ---@return string mask
 ---@return integer count
 ---@nodiscard
+---@deprecated most `debug` library functions are disabled since Factorio 1.1.107
 function debug.gethook() end
 
 ---@alias infowhat string
@@ -74,6 +76,7 @@ function debug.getinfo(f, what) end
 ---@return string name
 ---@return any    value
 ---@nodiscard
+---@deprecated most `debug` library functions are disabled since Factorio 1.1.107
 function debug.getlocal(f, index) end
 
 ---
@@ -84,6 +87,7 @@ function debug.getlocal(f, index) end
 ---@param object any
 ---@return table metatable
 ---@nodiscard
+---@deprecated most `debug` library functions are disabled since Factorio 1.1.107
 function debug.getmetatable(object) end
 
 ---
@@ -93,6 +97,7 @@ function debug.getmetatable(object) end
 ---
 ---@return table
 ---@nodiscard
+---@deprecated most `debug` library functions are disabled since Factorio 1.1.107
 function debug.getregistry() end
 
 ---
@@ -105,6 +110,7 @@ function debug.getregistry() end
 ---@return string name
 ---@return any    value
 ---@nodiscard
+---@deprecated most `debug` library functions are disabled since Factorio 1.1.107
 function debug.getupvalue(f, up) end
 
 ---
@@ -115,6 +121,7 @@ function debug.getupvalue(f, up) end
 ---@param u userdata
 ---@return any
 ---@nodiscard
+---@deprecated most `debug` library functions are disabled since Factorio 1.1.107
 function debug.getuservalue(u) end
 
 ---
@@ -130,6 +137,7 @@ function debug.getuservalue(u) end
 ---@deprecated
 ---@param limit integer
 ---@return integer|boolean
+---@deprecated most `debug` library functions are disabled since Factorio 1.1.107
 function debug.setcstacklimit(limit) end
 
 ---@alias hookmask string
@@ -146,6 +154,7 @@ function debug.setcstacklimit(limit) end
 ---@param hook   async fun(...):...
 ---@param mask   hookmask
 ---@param count? integer
+---@deprecated most `debug` library functions are disabled since Factorio 1.1.107
 function debug.sethook(hook, mask, count) end
 
 ---
@@ -157,6 +166,7 @@ function debug.sethook(hook, mask, count) end
 ---@param index  integer
 ---@param value  any
 ---@return string name
+---@deprecated most `debug` library functions are disabled since Factorio 1.1.107
 function debug.setlocal(level, index, value) end
 
 ---
@@ -168,6 +178,7 @@ function debug.setlocal(level, index, value) end
 ---@param value T
 ---@param meta? table
 ---@return T value
+---@deprecated most `debug` library functions are disabled since Factorio 1.1.107
 function debug.setmetatable(value, meta) end
 
 ---
@@ -179,6 +190,7 @@ function debug.setmetatable(value, meta) end
 ---@param up    integer
 ---@param value any
 ---@return string name
+---@deprecated most `debug` library functions are disabled since Factorio 1.1.107
 function debug.setupvalue(f, up, value) end
 
 ---
@@ -189,6 +201,7 @@ function debug.setupvalue(f, up, value) end
 ---@param udata userdata
 ---@param value any
 ---@return userdata udata
+---@deprecated most `debug` library functions are disabled since Factorio 1.1.107
 function debug.setuservalue(udata, value) end
 
 ---
@@ -213,6 +226,7 @@ function debug.traceback(thread, message, level) end
 ---@param n integer
 ---@return lightuserdata id
 ---@nodiscard
+---@deprecated most `debug` library functions are disabled since Factorio 1.1.107
 function debug.upvalueid(f, n) end
 
 ---
@@ -224,6 +238,7 @@ function debug.upvalueid(f, n) end
 ---@param n1 integer
 ---@param f2 async fun(...):...
 ---@param n2 integer
+---@deprecated most `debug` library functions are disabled since Factorio 1.1.107
 function debug.upvaluejoin(f1, n1, f2, n2) end
 
 return debug

@@ -33,6 +33,7 @@
         //"no-unknown": "Any",
     },
     "Lua.diagnostics.severity": {
+        "deprecated": "Hint"
         //"no-unknown": "Information",
         //"unused-local": "Information",
     },
