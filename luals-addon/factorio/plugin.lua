@@ -22,7 +22,6 @@ local util = require("factorio-plugin.util")
 local require_module = require("factorio-plugin.require")
 local global = require("factorio-plugin.global")
 local remote = require("factorio-plugin.remote")
-local on_event = require("factorio-plugin.on-event")
 local object_name = require("factorio-plugin.object-name")
 local command_line = require("factorio-plugin.command-line")
 
@@ -82,7 +81,6 @@ function OnSetText(uri, text)
 
   require_module.replace(uri, text, diffs)
   remote.replace(uri, text, diffs)
-  on_event.replace(uri, text, diffs)
   object_name.replace(uri, text, diffs)
   command_line.replace(uri, text, diffs)
   -- The following replacements require other diffs to be created already
