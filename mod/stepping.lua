@@ -413,7 +413,7 @@ do
 
       if parent then
         if parent.what ~= "C" then
-        bp_hook(parent.source)
+          bp_hook(parent.source)
         end
       end
     end
