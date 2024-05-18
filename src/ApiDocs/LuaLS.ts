@@ -169,12 +169,13 @@ export class LuaLSEnum {
 export class LuaLSEnumField {
 	constructor(
 		public readonly name:string,
+		public readonly typename:LuaLSTypeName,
 		public readonly description?:Description,
 	) {}
 
 	async write(output:Writable) {
 		await comment_description(output, this.description);
-		output.write(`${this.name}=#{},\n`);
+		output.write(`${this.name}=#{} --[[@as ${this.typename.format()}]],\n`);
 	}
 }
 

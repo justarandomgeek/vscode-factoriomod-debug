@@ -352,7 +352,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			//there aren't any with both values and subkeys for now,
 			//we'll deal with that if it ever happens...
 			if (define.values) {
-				file.add(new LuaLSEnum(name, define.values.map(v=>new LuaLSEnumField(v.name, v.description)), description));
+				file.add(new LuaLSEnum(name, define.values.map(v=>new LuaLSEnumField(v.name, new LuaLSTypeName(`${name}.${v.name}`), v.description)), description));
 			} else {
 				const lsclass = new LuaLSClass(name);
 				lsclass.global_name = name;
