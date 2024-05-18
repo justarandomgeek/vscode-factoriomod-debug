@@ -12,6 +12,9 @@
   * Trim whitespace off API keys (#117)
 * Debugger:
   * Fixed some missing captures that could cause errors if mods overwrite Lua builtins
+* LuaLS library package:
+  * Changed enums to generate typed values instead of `integer`
+  * Generate overloads for `script.on_event`, removed plugin on_event module
 
 ## 1.1.42
 * Debugger:

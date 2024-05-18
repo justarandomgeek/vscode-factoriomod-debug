@@ -51,10 +51,6 @@ Additionally, in require paths with slashes, Factorio replaces any file extensio
 
 Each mod has its own private version of [the global named `global`](https://lua-api.factorio.com/latest/auxiliary/global.html). To allow the Language Server to see this separation, `global` is renamed to `__modname__global` when used as the base variable in indexing or the target of assignment.
 
-### Event Handlers
-
-When inline functions are used as event handlers, a `@param` tag will be automatically inserted for the event-specific payload type, to make all the event fields visible.
-
 ### `remote` interfaces
 
 Because `remote` interfaces are registered and called through separate API functions, the Language Server can't make the appropriate connections to provide signature help when calling. To address this, `remote.call` and `remote.add_interface` are transformed to appear as direct access through a virtual table `__typed_interfaces`:
