@@ -324,15 +324,17 @@ export class LuaLSField {
 }
 
 export class LuaLSOverload {
-	description?:Description;
-	params?:ReadonlyArray<LuaLSParam>;
-	returns?:ReadonlyArray<LuaLSReturn>;
+	constructor(
+		public readonly description?:Description,
+		public readonly params?:ReadonlyArray<LuaLSParam>,
+		public readonly returns?:ReadonlyArray<LuaLSReturn>,
+	) {}
 
 	async write(output:Writable) {
 		await comment_description(output, this.description);
 		let params = "";
 		if (this.params) {
-			params = this.params.map(p=>`${p.name}:${p.type.format()}`).join(", ");
+			params = this.params.map(p=>`${p.name}${p.optional?'?':''}:${p.type.format()}`).join(", ");
 		}
 		let returns = "";
 		if (this.returns) {
@@ -394,7 +396,7 @@ export class LuaLSFunction {
 		}
 		let params = "";
 		if (this.params) {
-			params = this.params.map(p=>`${p.name}:${p.type.format()}`).join(", ");
+			params = this.params.map(p=>`${p.name}${p.optional?'?':''}:${p.type.format()}`).join(", ");
 		}
 		let returns = "";
 		if (this.returns) {

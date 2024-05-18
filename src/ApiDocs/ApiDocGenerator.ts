@@ -245,11 +245,11 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			switch (operator.name) {
 				case "call":
 				{
-					const callop = new LuaLSOverload();
-					callop.description = format_description(this.collect_description(operator,  { scope: "runtime", member: aclass.name, part: "call_operator" }));
-					callop.params = await this.LuaLS_params(operator.parameters, format_description);
-					callop.returns = await this.LuaLS_returns(operator.return_values, format_description);
-					lsclass.add(callop);
+					lsclass.add(new LuaLSOverload(
+						format_description(this.collect_description(operator,  { scope: "runtime", member: aclass.name, part: "call_operator" })),
+						await this.LuaLS_params(operator.parameters, format_description),
+						await this.LuaLS_returns(operator.return_values, format_description)
+					));
 					break;
 				}
 				case "length":
@@ -465,6 +465,48 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			await this.LuaLS_returns(func.return_values, format_description),
 			format_description(func.description, {scope: "runtime", member: in_class??"libraries", part: in_class?func.name:"new-functions"})
 		);
+		if (in_class === "LuaBootstrap" && func.name === "on_event") {
+
+			// rename the generated handler arg...
+			(((params[1].type as LuaLSUnion).members[0] as LuaLSFunction).params![0] as any).name="event";
+
+			for (const [_, event] of this.events) {
+				let eventtype = new LuaLSTypeName(`defines.events.${event.name}`);
+				let eventdata =  new LuaLSTypeName(`EventData.${event.name}`);
+
+				if (event.name === "CustomInputEvent") {
+					eventtype = new LuaLSTypeName(`string`);
+				}
+
+				const params = [
+					new LuaLSParam("event", eventtype),
+					new LuaLSParam("handler", new LuaLSFunction("handler", [
+						new LuaLSParam("event", eventdata),
+					])),
+				];
+
+				const hasFilter = event.description.match(/(Lua\w+Filter)\)\.$/);
+				if (hasFilter) {
+					params.push(new LuaLSParam("filters", new LuaLSArray(new LuaLSTypeName(hasFilter[1])), undefined, true));
+				}
+
+				lsfunc.add(new LuaLSOverload(
+					undefined,
+					params
+				));
+			}
+
+			// and one for custom numbered events...
+			lsfunc.add(new LuaLSOverload(
+				undefined,
+				[
+					new LuaLSParam("event", new LuaLSTypeName("uint")),
+					new LuaLSParam("handler", new LuaLSFunction("handler", [
+						new LuaLSParam("event", new LuaLSTypeName(`EventData`)),
+					])),
+				]
+			));
+		}
 		return lsfunc;
 	}
 
