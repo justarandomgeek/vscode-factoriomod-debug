@@ -165,7 +165,7 @@ test('PropertyTree', ()=>{
 });
 
 test('MapVersion', ()=>{
-	expect(MapVersion.load(new BufferStream(Buffer.from([1, 0, 2, 0, 3, 0, 4, 0, 5]))))
+	expect(MapVersion.load(Buffer.from([1, 0, 2, 0, 3, 0, 4, 0, 5])))
 		.instanceOf(MapVersion)
 		.include({ main: 1, major: 2, minor: 3, patch: 4, branch: 5 });
 

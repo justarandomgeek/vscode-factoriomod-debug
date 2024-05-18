@@ -1,5 +1,3 @@
-import type { BufferStream } from "./BufferStream";
-
 export class MapVersion {
 	constructor(
 		public readonly main:number,
@@ -9,12 +7,12 @@ export class MapVersion {
 		public readonly branch:number,
 	) {}
 
-	static load(b:BufferStream) {
-		const main = b.readUInt16LE();
-		const major = b.readUInt16LE();
-		const minor = b.readUInt16LE();
-		const patch = b.readUInt16LE();
-		const branch = b.readUInt8();
+	static load(b:Buffer) {
+		const main = b.readUInt16LE(0);
+		const major = b.readUInt16LE(2);
+		const minor = b.readUInt16LE(4);
+		const patch = b.readUInt16LE(6);
+		const branch = b.readUInt8(8);
 		return new MapVersion(main, major, minor, patch, branch);
 	}
 

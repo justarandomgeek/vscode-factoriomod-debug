@@ -192,7 +192,7 @@ export class ScriptDat {
 	};
 
 	constructor(b:BufferStream) {
-		this.version = MapVersion.load(b);
+		this.version = MapVersion.load(b.read(9));
 		this.data = {};
 		this.gcidmaps = {};
 		const modcount = b.readUInt32LE();
@@ -204,7 +204,7 @@ export class ScriptDat {
 			// this won't load anything that old.
 			const inner = new BufferStream(b.read(datasize));
 			// load and discard another mapversion...
-			MapVersion.load(inner);
+			MapVersion.load(inner.read(9));
 			// and they have separate runs of gcid
 			this.gcid = 0;
 			this.gcidmap = [];

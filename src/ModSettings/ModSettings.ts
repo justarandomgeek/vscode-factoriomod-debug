@@ -24,7 +24,7 @@ export class ModSettings {
 	private readonly _settings: ModSettingsData;
 
 	constructor(b:BufferStream) {
-		this.version = MapVersion.load(b);
+		this.version = MapVersion.load(b.read(9));
 		const tree = PropertyTree.load(b);
 		assert(tree.type===PropertyTreeType.dictionary);
 		const loading:ModSettingsData = {
