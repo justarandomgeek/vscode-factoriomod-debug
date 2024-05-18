@@ -22,11 +22,6 @@ do
       { id = 1, name = "data", },
     }
     DAthreads.this_thread = 1
-  elseif script.level.is_simulation then
-    active_threads = {
-      { id = 1, name = "simulation", },
-    }
-    DAthreads.this_thread = 1
   else
     active_threads = {
       { id = 1, name = "level", },
