@@ -318,6 +318,13 @@ suite("LSP", ()=>{
 			expect(diags.diagnostics[0].code).equals("key.invalid");
 		});
 
+		test("key-whitespace-end", async function() {
+			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
+			expect(diags.uri).equals(doc.uri);
+			expect(diags.diagnostics).length(1);
+			expect(diags.diagnostics[0].code).equals("key.whitespace-end");
+		});
+
 		test("color", async function() {
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
 			expect(diags.uri).equals(doc.uri);

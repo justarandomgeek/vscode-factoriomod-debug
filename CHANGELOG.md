@@ -4,7 +4,8 @@
 
 ## 1.1.43
 * Locale:
-  * don't emit documentSymbols with empty names (#118)
+  * Don't emit documentSymbols with empty names (#118)
+  * Warn on key ending with whitespace
 * PropertyTree: (mod settings, etc)
   * Correct saving mid-length (129-254) strings
 * VSCode:

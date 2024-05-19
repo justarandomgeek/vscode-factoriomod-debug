@@ -185,7 +185,7 @@ export class LocaleLanguageService {
 			if (line.match(/^[ \r\t]*[#;]/)) {
 				// nothing to check in comments
 			} else if (line.match(/^[ \r\t]*\[/)) {
-				const secname = line.match(/^[ \r\t]*\[([^\[]+)\][ \r\t]*$/);
+				const secname = line.match(/^[ \r\t]*\[([^\[]+)\][ \r\t]*$/d);
 				if (secname) {
 					// save current category, check for duplicates
 					currentSection = secname[1];
@@ -197,7 +197,7 @@ export class LocaleLanguageService {
 							message: "Duplicate Section",
 							source: "factorio-locale",
 							severity: DiagnosticSeverity.Error,
-							range: { start: { line: i, character: line.indexOf(currentSection) }, end: { line: i, character: line.indexOf(currentSection)+currentSection.length }},
+							range: { start: { line: i, character: secname.indices![1][0] }, end: { line: i, character: secname.indices![1][1] }},
 							relatedInformation: this.hasDiagnosticRelatedInformationCapability ? [{
 								location: {
 									uri: textDocument.uri,
@@ -218,7 +218,7 @@ export class LocaleLanguageService {
 							message: "Section Name conflicts with Key in Root",
 							source: "factorio-locale",
 							severity: DiagnosticSeverity.Error,
-							range: { start: { line: i, character: line.indexOf(currentSection) }, end: { line: i, character: line.indexOf(currentSection)+currentSection.length }},
+							range: { start: { line: i, character: secname.indices![1][0] }, end: { line: i, character: secname.indices![1][1] }},
 							relatedInformation: this.hasDiagnosticRelatedInformationCapability ? [{
 								location: {
 									uri: textDocument.uri,
@@ -242,7 +242,7 @@ export class LocaleLanguageService {
 					});
 				}
 			} else if (line.trim().length > 0) {
-				const keyval = line.match(/^[ \r\t]*([^=]*)=(.*)$/);
+				const keyval = line.match(/^[ \r\t]*([^=]*)=(.*)$/d);
 				if (keyval) {
 					const key = keyval[1];
 					if (sections.get(currentSection)!.has(key)) {
@@ -259,7 +259,7 @@ export class LocaleLanguageService {
 							source: "factorio-locale",
 							severity: DiagnosticSeverity.Error,
 							code: "key.duplicate",
-							range: { start: { line: i, character: line.indexOf(key) }, end: { line: i, character: line.indexOf(key)+key.length }},
+							range: { start: { line: i, character: keyval.indices![1][0] }, end: { line: i, character: keyval.indices![1][1] }},
 							relatedInformation: this.hasDiagnosticRelatedInformationCapability ? [{
 								location: {
 									uri: textDocument.uri,
@@ -271,6 +271,18 @@ export class LocaleLanguageService {
 					} else {
 						sections.get(currentSection)!.add(key);
 					}
+
+					const keyspace = key.match(/[\t ]+$/d);
+					if (keyspace) {
+						diags.push({
+							message: "Key ends with whitespace",
+							source: "factorio-locale",
+							severity: DiagnosticSeverity.Warning,
+							code: "key.whitespace-end",
+							range: { start: { line: i, character: keyval.indices![1][0] + keyspace.index! }, end: { line: i, character: keyval.indices![1][1] }},
+						});
+					}
+
 					//TODO: validate tags in value (keyval[2])
 				} else {
 					diags.push({
