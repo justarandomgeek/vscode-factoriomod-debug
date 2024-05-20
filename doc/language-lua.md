@@ -8,7 +8,9 @@ In addition to the docs (generated from [`runtime-api.json`](https://lua-api.fac
 
 Factorio's [`runtime-api.json`](https://lua-api.factorio.com/latest/auxiliary/json-docs-runtime.html) and [`prototype-api.json`](https://lua-api.factorio.com/latest/auxiliary/json-docs-prototype.html) are used to generate type definitions for most of the API.
 
-Event payload types are generated as subclasses of the generic event payload `EventData`, named like `EventData.on_event_name`. A library definition for `event_handler` is also generated.
+Enum values from `defines` are generated as opaque typed enum values. Each enum is a type named as itself (such as `defines.events`), as is each value (such as `defines.events.on_built_entity`). This allows function overload resolution to correctly resolve enum values.
+
+Event payload types are generated as subclasses of the generic event payload `EventData`, named like `EventData.on_event_name`. Overloads for `script.on_event` are generated with corresponding handler and filter types. A library definition for `event_handler` is also generated.
 
 Some types in the Runtime API have multiple definitions for the same type name, especially Concepts which accept both named-keys tables or array-like tables. In these cases the type will be a union of the set of definions, with the subtypes named `TypeName.0`, `TypeName.1`, etc.
 
@@ -34,7 +36,7 @@ Because Factorio mods run in [several Lua VMs](https://lua-api.factorio.com/late
 
 ### Plugin Disabling
 
-The plugin isn't perfect, so whenever it does something undesirable use `---@plugin ...` to disable it. It works very similar to `---@diagnostic`, for example: `---@plugin disable-line: on_event` or `---@plugin disable-next-line`.
+The plugin isn't perfect, so whenever it does something undesirable use `---@plugin ...` to disable it. It works very similar to `---@diagnostic`, for example: `---@plugin disable-line: object_name` or `---@plugin disable-next-line`.
 
 ### `require()`
 
