@@ -80,7 +80,9 @@ export class FactorioVersionSelector {
 			this.output.error(`No Active Factorio Version`);
 			return;
 		}
-		this.output.info(`Active Factorio Version: ${activeVersion.docs.application_version}`);
+		this.output.info(`Active Factorio Version:`);
+		this.output.info(`Binary: ${await activeVersion.getBinaryVersion().catch((reason)=>reason.toString())}`);
+		this.output.info(`Runtime JSON: ${activeVersion.docs.application_version}`);
 
 		if (await activeVersion.isPrototypeCacheEnabled()) {
 			this.output.warn(`Prototype Cache is enabled!`);

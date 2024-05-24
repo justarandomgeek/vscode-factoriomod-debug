@@ -4,6 +4,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { URI } from "vscode-uri";
 import type { ApiDocGenerator } from '../ApiDocs/ApiDocGenerator';
+import { execFile } from 'child_process';
 
 export interface FactorioVersion {
 	name: string
@@ -55,6 +56,22 @@ export class ActiveFactorioVersion {
 		public readonly docs:ApiDocGenerator,
 		private readonly workspaceFolders?: readonly {readonly uri:URI}[],
 	) {
+	}
+
+	public async getBinaryVersion():Promise<string> {
+		return new Promise((resolve, reject)=>{
+			execFile(
+				this.factorioPath, ["--version"], (error, stdout, stderr)=>{
+					if (error) { reject(error); }
+
+					const version = stdout.match(/^Version: ([0-9\.]+) /);
+					if (version) {
+						resolve(version[1]);
+					}
+
+					reject(new Error("Unable to read version"));
+				});
+		});
 	}
 
 	public async debugLaunchArgs() {
