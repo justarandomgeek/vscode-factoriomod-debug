@@ -11,7 +11,7 @@ export const overlay:{
 			split_funcs?: boolean
 		} }
 		define: { [name:string]: {
-			subkeys?:string[]
+			owntype?:boolean
 		}}
 	}
 
@@ -241,7 +241,7 @@ export const overlay:{
 		},
 		define: {
 			"defines.prototypes": {
-				subkeys: ["string", "string"],
+				owntype: true,
 			},
 		},
 	},

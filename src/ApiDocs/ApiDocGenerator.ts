@@ -362,11 +362,9 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 				lsclass.global_name = name;
 				lsclass.description = description;
 				const adjust = overlay.adjust.define[name];
-				if (adjust?.subkeys) {
+				if (adjust?.owntype) {
 					lsclass.parents = [
-						adjust.subkeys
-							.map(t=>new LuaLSTypeName(t))
-							.reduceRight<LuaLSType>((inner, key)=>new LuaLSDict(key, inner), new LuaLSLiteral(0)),
+						new LuaLSTypeName(`__${name}`),
 					];
 				}
 				file.add(lsclass);
