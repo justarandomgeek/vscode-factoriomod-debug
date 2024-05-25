@@ -1,6 +1,7 @@
 type Extends<T, X> = T extends X ? T : never;
 
-type ApiVersions = 3|4;
+type ApiVersions = 4|5;
+
 interface BaseDocs<V extends ApiVersions = ApiVersions> {
 	readonly application:"factorio"
 	readonly application_version:string
@@ -10,6 +11,11 @@ interface BaseDocs<V extends ApiVersions = ApiVersions> {
 interface BaseArrayType<T> {
 	readonly complex_type:"array"
 	readonly value: T
+}
+
+interface BaseTupleType<T> {
+	readonly complex_type: "tuple"
+	readonly values: T[]
 }
 
 interface BaseDictionaryType<T> {
@@ -42,3 +48,8 @@ interface DocLink {
 	part?:string|undefined
 }
 type DocDescriptionFormatter = (description:DocDescription, doclink?:DocLink)=>DocDescription|Promise<DocDescription>;
+
+interface DocImage {
+	readonly filename: string
+	readonly caption?: string
+}

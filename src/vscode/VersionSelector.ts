@@ -413,10 +413,8 @@ export class FactorioVersionSelector {
 		const docargs = [
 			"sumneko-3rd",
 			"-d", activeVersion.docsPath,
+			"-p", activeVersion.protosPath,
 		];
-		if (activeVersion.docs.api_version === 4) {
-			docargs.push("-p", activeVersion.protosPath);
-		}
 
 		await forkScript(
 			{ close() {}, write(data) {} },

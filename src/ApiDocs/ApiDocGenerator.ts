@@ -1,6 +1,6 @@
 import { overlay } from "./Overlay";
 import type { DocSettings } from "./DocSettings";
-import { LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSEnum, LuaLSEnumField, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSLiteral, LuaLSOperator, LuaLSOverload, LuaLSParam, LuaLSReturn, LuaLSType, LuaLSTypeName, LuaLSUnion, to_lua_ident } from "./LuaLS";
+import { LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSEnum, LuaLSEnumField, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSLiteral, LuaLSOperator, LuaLSOverload, LuaLSParam, LuaLSReturn, LuaLSTuple, LuaLSType, LuaLSTypeName, LuaLSUnion, to_lua_ident } from "./LuaLS";
 
 function sort_by_order(a:{order:number}, b:{order:number}) {
 	return a.order - b.order;
@@ -9,11 +9,10 @@ function sort_by_order(a:{order:number}, b:{order:number}) {
 export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	private readonly docs:ApiDocs<V>;
 
-	private readonly classes:Map<string, ApiClass>;
-	private readonly events:Map<string, ApiEvent>;
-	private readonly concepts:Map<string, ApiConcept>;
-	private readonly builtins:Map<string, ApiBuiltin>;
-	private readonly globals:Map<string, ApiGlobalObject>;
+	private readonly classes:Map<string, ApiClass<V>>;
+	private readonly events:Map<string, ApiEvent<V>>;
+	private readonly concepts:Map<string, ApiConcept<V>>;
+	private readonly globals:Map<string, ApiGlobalObject<V>>;
 
 	private readonly defines:Set<string>;
 
@@ -24,7 +23,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			throw `Unknown application: ${this.docs.application}`;
 		}
 
-		if (!(this.docs.api_version===3 || this.docs.api_version===4)) {
+		if (!(this.docs.api_version===4 || this.docs.api_version===5)) {
 			throw `Unsupported JSON Version ${this.docs.api_version}`;
 		}
 
@@ -35,10 +34,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		this.classes = new Map(this.docs.classes.map(c=>[c.name, c]));
 		this.events = new Map(this.docs.events.map(c=>[c.name, c]));
 		this.concepts = new Map(this.docs.concepts.map(c=>[c.name, c]));
-		this.builtins = new Map(this.docs.builtin_types.map(c=>[c.name, c]));
-
 		this.globals = new Map(this.docs.global_objects.map(g=>[g.type, g]));
-
 
 		const add_define = (define:ApiDefine, name_prefix:string)=>{
 			const name = `${name_prefix}${define.name}`;
@@ -57,6 +53,10 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		this.defines = new Set<string>();
 		this.defines.add("defines");
 		this.docs.defines.forEach(define=>add_define(define, "defines."));
+	}
+
+	public isVersion<VV extends ApiVersions>(v:VV): this is ApiDocGenerator<VV>  {
+		return (this.api_version as ApiVersions) === (v as ApiVersions);
 	}
 
 	public get api_version() : V {
@@ -95,7 +95,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		if (this.events.has(member)) {
 			return `/events.html#${member}`;
 		}
-		if (this.builtins.has(member)) {
+		if (this.api_version === 4 && ["string", "float"].includes(member)) {
 			return `/builtin-types.html#${member}`;
 		}
 		if (this.defines.has(member)) {
@@ -214,7 +214,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		return files;
 	}
 
-	private async generate_LuaLS_class(aclass:ApiClass, format_description:DocDescriptionFormatter) {
+	private async generate_LuaLS_class(aclass:ApiClass<V>, format_description:DocDescriptionFormatter) {
 		const file = new LuaLSFile(`runtime-api/${aclass.name}`, this.docs.application_version);
 		const lsclass = new LuaLSClass(aclass.name);
 
@@ -224,7 +224,9 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		}
 		lsclass.description = format_description(this.collect_description(aclass, { scope: "runtime", member: aclass.name }));
 
-		lsclass.parents = (aclass.base_classes ?? ["LuaObject"]).map(t=>new LuaLSTypeName(t));
+		lsclass.parents = aclass.parent ? [new LuaLSTypeName(aclass.parent)] :
+			aclass.base_classes ? aclass.base_classes.map(t=>new LuaLSTypeName(t)):
+			[ new LuaLSTypeName("LuaObject") ];
 		lsclass.generic_args = overlay.adjust.class[aclass.name]?.generic_params;
 		if (overlay.adjust.class[aclass.name]?.generic_parent) {
 			lsclass.parents.push(await this.LuaLS_type(overlay.adjust.class[aclass.name]?.generic_parent));
@@ -318,7 +320,6 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 					case "array":
 					case "table":
 					case "tuple":
-					case "struct":
 					case "LuaStruct":
 					{
 						const inner = await this.LuaLS_type(concept.type, {file, table_class_name: concept.name, format_description});
@@ -329,6 +330,9 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 						}
 						break;
 					}
+					case "builtin":
+						break;
+
 					default:
 						break;
 						throw new Error("");
@@ -450,20 +454,28 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	}
 
 	private async LuaLS_function(func:ApiMethod, file:LuaLSFile, format_description:DocDescriptionFormatter, in_class?:string):Promise<LuaLSFunction> {
-		const params = func.takes_table ?
-			[ new LuaLSParam("param", await this.LuaLS_table_type(func, file, `${in_class??""}${in_class?".":""}${func.name}_param`, format_description), undefined, func.table_is_optional) ]:
+		const params = (func.takes_table ?? func.format?.takes_table) ?
+			[ new LuaLSParam("param", await this.LuaLS_table_type(func, file, `${in_class??""}${in_class?".":""}${func.name}_param`, format_description), undefined, (func.table_is_optional ?? func.format?.table_optional)) ]:
 			await this.LuaLS_params(func.parameters, format_description);
-		if (func.variadic_type) {
+		if (func.variadic_type) { // V4
 			params.push(new LuaLSParam(
 				"...",
 				await this.LuaLS_type(func.variadic_type),
 				format_description(func.variadic_description)
 			));
 		}
+		if (func.variadic_parameter) { // V5
+			params.push(new LuaLSParam(
+				"...",
+				await this.LuaLS_type(func.variadic_parameter.type),
+				format_description(func.variadic_parameter.description)
+			));
+		}
+
 		const lsfunc = new LuaLSFunction(func.name,
 			params,
 			await this.LuaLS_returns(func.return_values, format_description),
-			format_description(func.description, {scope: "runtime", member: in_class??"libraries", part: in_class?func.name:"new-functions"})
+			format_description(this.collect_description(func), {scope: "runtime", member: in_class??"libraries", part: in_class?func.name:"new-functions"})
 		);
 		if (in_class === "LuaBootstrap" && func.name === "on_event") {
 
@@ -485,9 +497,15 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 					])),
 				];
 
-				const hasFilter = event.description.match(/(Lua\w+Filter)\)\.$/);
-				if (hasFilter) {
-					params.push(new LuaLSParam("filters", new LuaLSArray(new LuaLSTypeName(hasFilter[1])), undefined, true));
+				if (this.api_version === 4) {
+					const hasFilter = event.description.match(/(Lua\w+Filter)\)\.$/);
+					if (hasFilter) {
+						params.push(new LuaLSParam("filters", new LuaLSArray(new LuaLSTypeName(hasFilter[1])), undefined, true));
+					}
+				} else if (this.api_version >= 5) {
+					if (event.filter) {
+						params.push(new LuaLSParam("filters", new LuaLSArray(new LuaLSTypeName(event.filter)), undefined, true));
+					}
 				}
 
 				lsfunc.add(new LuaLSOverload(
@@ -576,15 +594,20 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 				return new LuaLSFunction(undefined, await Promise.all(api_type.parameters.map(async(p, i, a)=>new LuaLSParam(`p${i+1}`, await this.LuaLS_type(p, sub_parent(`param${a.length>1?i:""}`))))));
 			case "type":
 				return this.LuaLS_type(api_type.value, in_parent);
-			case "table":
+
+			///@ts-expect-error fallthrough
 			case "tuple":
+				if (this.isVersion(5)) {
+					return new LuaLSTuple(await Promise.all(
+						(api_type as ApiTupleType<5>).values.map((v, i)=>this.LuaLS_type(v, sub_parent(`${i}`)))));
+				}
+			case "table":
 				if (!in_parent) {
 					throw new Error(`${api_type.complex_type} without parent`);
 				}
-				return this.LuaLS_table_type(api_type, in_parent.file, in_parent.table_class_name, in_parent.format_description);
+				return this.LuaLS_table_type((api_type as ApiTableType|ApiTupleType<4>), in_parent.file, in_parent.table_class_name, in_parent.format_description);
 
-			case "struct":// V3
-			case "LuaStruct":// V4
+			case "LuaStruct":
 			{
 				if (!in_parent) {
 					throw new Error(`${api_type.complex_type} without parent`);
@@ -611,7 +634,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 	}
 
-	private collect_description(obj:Omit<ApiWithNotes, "name">&{
+	private collect_description(obj:Omit<DocBasicMember, "name">&{
 		readonly subclasses?:string[]
 		readonly raises?: ApiEventRaised[]
 	}&({
@@ -626,6 +649,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		}
 		return [
 			description,
+			obj.lists?.join("\n\n"),
 			obj.notes?.map(note=>`**Note:** ${note}`)?.join("\n\n"),
 			obj.raises && (
 				`**Events:**\n${

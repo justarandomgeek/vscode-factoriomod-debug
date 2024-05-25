@@ -15,47 +15,33 @@ program.command("luals-addon [outdir]")
 	.alias("sumneko-3rd")
 	.description("Generate a library bundle for LuaLS (sumneko.lua) LSP")
 	.requiredOption("-d, --docs <docsjson>", "Runtime docs")
-	.option("-p, --protos <protosjson>", "Prototype docs")
-	.action(async (outdir:string|undefined, options:{docs:string; protos?:string})=>{
+	.requiredOption("-p, --protos <protosjson>", "Prototype docs")
+	.action(async (outdir:string|undefined, options:{docs:string; protos:string})=>{
 		const docsettings = await getConfig("docs", {});
 		const libdir = path.join(outdir ?? process.cwd(), "factorio", "library");
 
 		const docs = new ApiDocGenerator((await fsp.readFile(options.docs, "utf8")).toString(), docsettings);
 
-		let pdocs:ProtoDocGenerator|undefined;
-		let resolve_link = (node:Link)=>{
-			const matches = node.url.match(/^(.+?)(?:::(.+))?$/);
+		const pdocs = new ProtoDocGenerator((await fsp.readFile(options.protos, "utf8")).toString(), docsettings);
+		const resolve_link = (node:Link)=>{
+			const matches = node.url.match(/^(runtime|prototype):(.+?)(?:::(.+))?$/);
 			if (matches) {
-				node.url = "https://lua-api.factorio.com/latest"+docs.resolve_link(matches[1], matches[2]);
+				switch (matches[1]) {
+					case 'runtime':
+						const rlink = docs.resolve_link(matches[2], matches[3]);
+						if (rlink) {
+							node.url = "https://lua-api.factorio.com/latest"+rlink;
+						}
+						break;
+					case 'prototype':
+						const plink = pdocs!.resolve_link(matches[2], matches[3]);
+						if (plink) {
+							node.url = "https://lua-api.factorio.com/latest"+plink;
+						}
+						break;
+				}
 			}
 		};
-		if (docs.api_version === 4) {
-			if (!options.protos) {
-				console.log("prototype-api.json (specified with -p arg) is required for v4 docs");
-				return;
-			}
-			pdocs = new ProtoDocGenerator((await fsp.readFile(options.protos, "utf8")).toString(), docsettings);
-
-			resolve_link = (node:Link)=>{
-				const matches = node.url.match(/^(runtime|prototype):(.+?)(?:::(.+))?$/);
-				if (matches) {
-					switch (matches[1]) {
-						case 'runtime':
-							const rlink = docs.resolve_link(matches[2], matches[3]);
-							if (rlink) {
-								node.url = "https://lua-api.factorio.com/latest"+rlink;
-							}
-							break;
-						case 'prototype':
-							const plink = pdocs!.resolve_link(matches[2], matches[3]);
-							if (plink) {
-								node.url = "https://lua-api.factorio.com/latest"+plink;
-							}
-							break;
-					}
-				}
-			};
-		}
 
 		const descr = remark()
 			.use(function () {

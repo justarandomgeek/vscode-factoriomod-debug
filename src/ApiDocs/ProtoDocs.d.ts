@@ -1,4 +1,4 @@
-type ProtoVersions = 4;
+type ProtoVersions = ApiVersions;
 
 interface ProtoDocs<V extends ProtoVersions = ProtoVersions> extends BaseDocs<V> {
 	readonly stage:"prototype"
@@ -7,11 +7,10 @@ interface ProtoDocs<V extends ProtoVersions = ProtoVersions> extends BaseDocs<V>
 	readonly types:ProtoConcept[]
 }
 
-interface ProtoBasicMember extends ApiBasicMember {
+interface ProtoBasicMember extends DocBasicMember {
 	readonly lists?: string[]
 	readonly examples?: string[]
-	readonly images?: ProtoImage[]
-
+	readonly images?: DocImage[]
 }
 
 interface ProtoPrototype extends ProtoBasicMember {
@@ -40,11 +39,6 @@ interface ProtoProperty extends ProtoBasicMember {
 	readonly default: string|BaseLiteralType
 }
 
-interface ProtoTupleType {
-	readonly complex_type: "tuple"
-	readonly values: ProtoType[]
-}
-
 interface ProtoStructType {
 	readonly complex_type: "struct"
 }
@@ -53,18 +47,13 @@ type ProtoType =
 	string |
 	BaseArrayType<ProtoType> | BaseDictionaryType<ProtoType> | BaseUnionType<ProtoType> |
 	BaseLiteralType | BaseTypeType<ProtoType> |
-	ProtoTupleType | ProtoStructType ;
-
-interface ProtoImage {
-	readonly filename: string
-	readonly caption?: string
-}
+	BaseTupleType<ProtoType> | ProtoStructType ;
 
 interface ProtoCustomProperty {
 	readonly description: string
 	readonly lists?: string[]
 	readonly examples?: string[]
-	readonly images?: ProtoImage[]
+	readonly images?: DocImage[]
 	readonly key_type: ProtoType
 	readonly value_type: ProtoType
 }
