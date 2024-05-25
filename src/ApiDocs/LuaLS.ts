@@ -12,6 +12,10 @@ export function to_lua_ident(str:string) {
 	return escape_lua_keyword(str.replace(/[^a-zA-Z0-9]/g, "_").replace(/^([0-9])/, "_$1"));
 }
 
+function is_lua_ident(str:string) {
+	return !!str.match(/^[a-zA-Z_][a-zA-Z_0-9]*$/);
+}
+
 type Description = string|undefined|Promise<string|undefined>;
 
 async function comment_description(output:Writable, description?:Description) {
@@ -175,7 +179,8 @@ export class LuaLSEnumField {
 
 	async write(output:Writable) {
 		await comment_description(output, this.description);
-		output.write(`${this.name}=#{} --[[@as ${this.typename.format()}]],\n`);
+		const name = is_lua_ident(this.name) ? this.name : `["${this.name}"]`;
+		output.write(`${name}=#{} --[[@as ${this.typename.format()}]],\n`);
 	}
 }
 
