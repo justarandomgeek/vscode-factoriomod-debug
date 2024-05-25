@@ -4,6 +4,7 @@
 
 ---@class __defines.prototypes
 local defines_prototypes = {
+  ---@class __defines.prototypes.achievement
   achievement = {
     achievement = 0,
     ["build-entity-achievement"] = 0,
@@ -23,30 +24,39 @@ local defines_prototypes = {
     ["research-achievement"] = 0,
     ["train-path-achievement"] = 0
   },
+  ---@class __defines.prototypes.ambient_sound
   ["ambient-sound"] = {
     ["ambient-sound"] = 0
   },
+  ---@class __defines.prototypes.ammo_category
   ["ammo-category"] = {
     ["ammo-category"] = 0
   },
+  ---@class __defines.prototypes.animation
   animation = {
     animation = 0
   },
+  ---@class __defines.prototypes.autoplace_control
   ["autoplace-control"] = {
     ["autoplace-control"] = 0
   },
+  ---@class __defines.prototypes.custom_input
   ["custom-input"] = {
     ["custom-input"] = 0
   },
+  ---@class __defines.prototypes.damage_type
   ["damage-type"] = {
     ["damage-type"] = 0
   },
+  ---@class __defines.prototypes.decorative
   decorative = {
     ["optimized-decorative"] = 0
   },
+  ---@class __defines.prototypes.editor_controller
   ["editor-controller"] = {
     ["editor-controller"] = 0
   },
+  ---@class __defines.prototypes.entity
   entity = {
     accumulator = 0,
     ["ammo-turret"] = 0,
@@ -153,6 +163,7 @@ local defines_prototypes = {
     ["unit-spawner"] = 0,
     wall = 0
   },
+  ---@class __defines.prototypes.equipment
   equipment = {
     ["active-defense-equipment"] = 0,
     ["battery-equipment"] = 0,
@@ -164,27 +175,35 @@ local defines_prototypes = {
     ["roboport-equipment"] = 0,
     ["solar-panel-equipment"] = 0
   },
+  ---@class __defines.prototypes.equipment_category
   ["equipment-category"] = {
     ["equipment-category"] = 0
   },
+  ---@class __defines.prototypes.equipment_grid
   ["equipment-grid"] = {
     ["equipment-grid"] = 0
   },
+  ---@class __defines.prototypes.fluid
   fluid = {
     fluid = 0
   },
+  ---@class __defines.prototypes.font
   font = {
     font = 0
   },
+  ---@class __defines.prototypes.fuel_category
   ["fuel-category"] = {
     ["fuel-category"] = 0
   },
+  ---@class __defines.prototypes.god_controller
   ["god-controller"] = {
     ["god-controller"] = 0
   },
+  ---@class __defines.prototypes.gui_style
   ["gui-style"] = {
     ["gui-style"] = 0
   },
+  ---@class __defines.prototypes.item
   item = {
     ammo = 0,
     armor = 0,
@@ -208,90 +227,119 @@ local defines_prototypes = {
     tool = 0,
     ["upgrade-item"] = 0
   },
+  ---@class __defines.prototypes.item_group
   ["item-group"] = {
     ["item-group"] = 0
   },
+  ---@class __defines.prototypes.item_subgroup
   ["item-subgroup"] = {
     ["item-subgroup"] = 0
   },
+  ---@class __defines.prototypes.map_gen_presets
   ["map-gen-presets"] = {
     ["map-gen-presets"] = 0
   },
+  ---@class __defines.prototypes.map_settings
   ["map-settings"] = {
     ["map-settings"] = 0
   },
+  ---@class __defines.prototypes.module_category
   ["module-category"] = {
     ["module-category"] = 0
   },
+  ---@class __defines.prototypes.mouse_cursor
   ["mouse-cursor"] = {
     ["mouse-cursor"] = 0
   },
+  ---@class __defines.prototypes.noise_expression
   ["noise-expression"] = {
     ["noise-expression"] = 0
   },
+  ---@class __defines.prototypes.noise_layer
   ["noise-layer"] = {
     ["noise-layer"] = 0
   },
+  ---@class __defines.prototypes.particle
   particle = {
     ["optimized-particle"] = 0
   },
+  ---@class __defines.prototypes.recipe
   recipe = {
     recipe = 0
   },
+  ---@class __defines.prototypes.recipe_category
   ["recipe-category"] = {
     ["recipe-category"] = 0
   },
+  ---@class __defines.prototypes.resource_category
   ["resource-category"] = {
     ["resource-category"] = 0
   },
+  ---@class __defines.prototypes.shortcut
   shortcut = {
     shortcut = 0
   },
+  ---@class __defines.prototypes.sound
   sound = {
     sound = 0
   },
+  ---@class __defines.prototypes.spectator_controller
   ["spectator-controller"] = {
     ["spectator-controller"] = 0
   },
+  ---@class __defines.prototypes.sprite
   sprite = {
     sprite = 0
   },
+  ---@class __defines.prototypes.technology
   technology = {
     technology = 0
   },
+  ---@class __defines.prototypes.tile
   tile = {
     tile = 0
   },
+  ---@class __defines.prototypes.tile_effect
   ["tile-effect"] = {
     ["tile-effect"] = 0
   },
+  ---@class __defines.prototypes.tips_and_tricks_item
   ["tips-and-tricks-item"] = {
     ["tips-and-tricks-item"] = 0
   },
+  ---@class __defines.prototypes.tips_and_tricks_item_category
   ["tips-and-tricks-item-category"] = {
     ["tips-and-tricks-item-category"] = 0
   },
+  ---@class __defines.prototypes.trigger_target_type
   ["trigger-target-type"] = {
     ["trigger-target-type"] = 0
   },
+  ---@class __defines.prototypes.trivial_smoke
   ["trivial-smoke"] = {
     ["trivial-smoke"] = 0
   },
+  ---@class __defines.prototypes.tutorial
   tutorial = {
     tutorial = 0
   },
+  ---@class __defines.prototypes.utility_constants
   ["utility-constants"] = {
     ["utility-constants"] = 0
   },
+  ---@class __defines.prototypes.utility_sounds
   ["utility-sounds"] = {
     ["utility-sounds"] = 0
   },
+  ---@class __defines.prototypes.utility_sprites
   ["utility-sprites"] = {
     ["utility-sprites"] = 0
   },
+  ---@class __defines.prototypes.virtual_signal
   ["virtual-signal"] = {
     ["virtual-signal"] = 0
   },
+  ---@class __defines.prototypes.wind_sound
   ["wind-sound"] = {
     ["wind-sound"] = 0
   }
