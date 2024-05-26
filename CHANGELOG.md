@@ -11,6 +11,7 @@
 * VSCode:
   * Use "Restart Extension Host" instead of "Reload Window" to restart the LuaLS (#119)
   * Trim whitespace off API keys (#117)
+  * Set extensionDependency on LuaLS for easier installation
 * Debugger:
   * Fixed some missing captures that could cause errors if mods overwrite Lua builtins
   * Fixed hang when attemping to debug simulations

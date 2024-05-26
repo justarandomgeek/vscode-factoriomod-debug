@@ -96,6 +96,9 @@
     "vscode-languageserver-textdocument": "^1.0.11",
     "vscode-uri": "^3.0.8"
   },
+  "extensionDependencies": [
+    "sumneko.lua"
+  ],
   "main": "./dist/fmtk.js",
   "bin": {
     "fmtk": "dist/fmtk.js"
