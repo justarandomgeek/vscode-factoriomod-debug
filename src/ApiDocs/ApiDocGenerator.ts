@@ -553,6 +553,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 				const inner = (await this.LuaLS_table_type(group, file, `${table_class_name}.${to_lua_ident(group.name)}`, format_description, [ new LuaLSTypeName(lsclass.name) ]));
 				inners.push(inner);
 			}
+			inners.push(new LuaLSTypeName(lsclass.name));
 			return new LuaLSTypeName(innerunion.name);
 		}
 		return new LuaLSTypeName(lsclass.name);;

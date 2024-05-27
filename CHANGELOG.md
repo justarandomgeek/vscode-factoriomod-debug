@@ -22,6 +22,7 @@
   * Add Support for Factorio JSON Runtime Docs v5 (Factorio >= 1.1.108)
   * Remove Support for Factorio JSON Runtime Docs v3 (Factorio < 1.1.89)
   * Fill in `defines.prototypes` with dumped values instead of `{[string]:{[string]:0}}`
+  * Include `.base` type in the union for `variant_parameter_groups` types
 
 ## 1.1.42
 * Debugger:
