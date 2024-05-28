@@ -779,28 +779,26 @@ if rawscript then
     rawscript.on_configuration_changed(labelhandler(f,"on_configuration_changed handler"))
   end
 
-  ---@param tick uint|uint[]|nil
-  ---@param f fun(x:NthTickEventData)|nil
-  ---@overload fun(x:nil)
-  function apihooks.script.on_nth_tick(tick,f)
-    if not tick then
-      if f then
-        -- pass this through for the error...
-        return rawscript.on_nth_tick(tick,f)
-      else
-        -- just in case somebody gives me a `false`...
-        return rawscript.on_nth_tick(tick)
-      end
-    else
+  ---@overload fun(tick:uint|uint[], f:fun(event:NthTickEventData)|nil)
+  ---@overload fun(_:nil)
+  function apihooks.script.on_nth_tick(...)
+    local tick, f = ...
+    local nargs = select("#", ...)
+    if nargs == 1 then
+      -- this is either `nil` to unreg all or invalid, pass through for error...
+      return rawscript.on_nth_tick(tick)
+    elseif nargs == 2 then
+
       local ttype = type(tick)
       if ttype == "number" then
         return rawscript.on_nth_tick(tick,labelhandler(f,sformat("on_nth_tick %d handler",tick)))
       elseif ttype == "table" then
         return rawscript.on_nth_tick(tick,labelhandler(f,sformat("on_nth_tick {%s} handler",tconcat(tick,","))))
-      else
-        error("Bad argument `tick` expected number or table got "..ttype,2)
       end
     end
+
+    -- forward for error
+    return rawscript.on_nth_tick(...)
   end
 
   ---@param event defines.events|string|defines.events[]

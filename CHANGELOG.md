@@ -16,6 +16,7 @@
   * Fixed some missing captures that could cause errors if mods overwrite Lua builtins
   * Fixed hang when attemping to debug simulations
   * Use `--version` to check the binary's version instead of relying on json version
+  * Fixed that `on_nth_tick` hook could hide errors for some incorrect calls
 * LuaLS library package:
   * Changed enums to generate typed values instead of `integer`
   * Generate overloads for `script.on_event`, removed plugin on_event module
