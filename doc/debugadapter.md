@@ -1,13 +1,5 @@
 # Debug Adapter
 
-## Using Factorio Mod Debug
-
-* Install the **Factorio Mod Tool Kit** extension in VS Code.
-* Switch to the run/debug view (View->Run) and select "create a launch.json file"
-* Select the debug environment "Factorio Mod Debug".
-* Adjust the paths and launch settings as required. Check Intellisense for additional launch options.
-* Press the green 'play' button or F5 to start debugging.
-
 ## Runtime Lua Diagnostics
 
 The debugger also injects runtime diagnostics into all hooked mods:
