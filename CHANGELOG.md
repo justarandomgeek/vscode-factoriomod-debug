@@ -22,7 +22,7 @@
   * Fixed that `on_nth_tick` hook could hide errors for some incorrect calls
 * LuaLS library package:
   * Changed enums to generate typed values instead of `integer`
-  * Generate overloads for `script.on_event`, removed plugin on_event module
+  * Generate overloads for `script.on_event`, removed plugin `on_event` module
   * Add Support for Factorio JSON Runtime Docs v5 (Factorio >= 1.1.108)
   * Remove Support for Factorio JSON Runtime Docs v3 (Factorio < 1.1.89)
   * Fill in `defines.prototypes` with dumped values instead of `{[string]:{[string]:0}}`
