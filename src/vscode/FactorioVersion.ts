@@ -61,7 +61,11 @@ export class ActiveFactorioVersion {
 	public async getBinaryVersion():Promise<string> {
 		return new Promise((resolve, reject)=>{
 			execFile(
-				this.factorioPath, ["--version"], (error, stdout, stderr)=>{
+				this.factorioPath, ["--version"],
+				{
+					env: Object.assign({}, process.env, {SteamAppId: "427520"}),
+				},
+				(error, stdout, stderr)=>{
 					if (error) { reject(error); }
 
 					const version = stdout.match(/^Version: ([0-9\.]+) /);
