@@ -13,11 +13,14 @@ if false then __plugin_dev = true end
 
 local workspace
 local furi
+local client
 if not __plugin_dev then
   workspace = require("workspace")
   furi = require("file-uri")
+  client = require("client")
 end
 
+local arg_parser = require("factorio-plugin.arg-parser")
 local util = require("factorio-plugin.util")
 local require_module = require("factorio-plugin.require")
 local global = require("factorio-plugin.global")
@@ -32,26 +35,61 @@ local command_line = require("factorio-plugin.command-line")
 
 ---@alias Diff.ArrayWithCount {[integer]: Diff, ["count"]: integer}
 
+---@param args string[]
+---@param config ArgsConfig
+---@param help_config? ArgsHelpConfig
+---@return table? args @ returns `nil` if there was an error, `{help = true}` if it was help
+local function parse_and_show_msg_on_error_or_help(args, config, help_config)
+  local result, err_or_index = arg_parser.parse(args, config)
+
+  if result and err_or_index < #args then
+    result = nil
+    err_or_index = "Unknown/too many values."
+  end
+
+  if result and not result.help then
+    return result
+  end
+
+  local long_msg = (result and "\n" or (err_or_index.."\n\n"))..arg_parser.get_help_string(config, help_config)
+  if not result then
+    client.showMessage("Warning", "Invalid plugin args: "..err_or_index.." See Output/log for help message.")
+    client.logMessage("Warning", long_msg)
+    log.warn(long_msg) ---@diagnostic disable-line: undefined-field
+  else
+    client.showMessage("Info", "See Output/log for help message.")
+    client.logMessage("Info", long_msg)
+    log.info(long_msg) ---@diagnostic disable-line: undefined-field
+    result = {help = true}
+  end
+  return result
+end
+
 ---@type string
-local workspace_uti = select(2, ...)
+local workspace_uri = select(2, ...)
 ---@type string[]
 local plugin_args = select(3, ...)
+
+local args = __plugin_dev and {} or parse_and_show_msg_on_error_or_help(plugin_args, {
+  options = {
+    {
+      field = "ignore",
+      long = "ignore",
+      description = "Ignore the given files entirely.",
+      type = "string",
+      min_params = 1,
+      optional = true,
+    },
+  },
+})
+args = args or {}
+
 ---@type table<string, true>
 local ignored_paths = {}
-
-if not __plugin_dev then
-  local ignoring = false
-  for _, arg in ipairs(plugin_args) do
-    if arg == "--ignore" then
-      ignoring = true
-    else
-      if ignoring then
-        arg = workspace.getAbsolutePath(workspace_uti, arg) -- Returns a normalized path.
-        if arg then
-          ignored_paths[arg] = true
-        end
-      end
-    end
+for _, path in ipairs(args.ignore or {}) do
+  path = workspace.getAbsolutePath(workspace_uri, path) -- Returns a normalized path.
+  if path then
+    ignored_paths[path] = true
   end
 end
 
