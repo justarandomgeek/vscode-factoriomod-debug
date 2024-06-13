@@ -48,6 +48,9 @@ function DAprint.outputEvent(body, info)
     }}
 end
 
+-- strong refs to values printed to console to keep them alive
+local printkeep = {}
+
 ---@param expr any
 ---@param alsoLookIn? table
 ---@param upStack? integer
@@ -70,7 +73,9 @@ function DAprint.print(expr,alsoLookIn,upStack,category,noexprs)
         __debugtype = "DebugAdapter.PrintResult",
       })
 
-      local v = variables.create(nil,{exprs}, nil)
+      local vv = {exprs}
+      local v = variables.create(nil,vv, nil)
+      printkeep[vv] = true
       ref = v.variablesReference
     end
   elseif texpr == "table" and (expr.object_name == "LuaProfiler" or (not getmetatable(expr) and #expr>=1 and type(expr[1])=="string")) then
@@ -81,6 +86,7 @@ function DAprint.print(expr,alsoLookIn,upStack,category,noexprs)
       expr = {expr}
     end
     local v = variables.create(nil,expr, nil)
+    printkeep[expr] = true
     result = v.value
     ref = v.variablesReference
   end
