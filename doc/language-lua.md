@@ -34,11 +34,34 @@ The VS Code extension will automatically configure `"Lua.workspace.userThirdPart
 
 Because Factorio mods run in [several Lua VMs](https://lua-api.factorio.com/latest/auxiliary/data-lifecycle.html), some functions have cross-VM behavior that cannot be described fully with type definitions. We handle these by providing a plugin which transforms them into a more easily understood form before the Language Server sees them.
 
+### Plugin Arguments
+
+You can use the `Lua.runtime.pluginArgs` setting to modify some behavior of the plugin. The options available are:
+
+- `[--ignore <string[]>]`\
+  Ignore the given files or folders entirely.
+  Can be absolute or relative to the workspace root.
+- `[--require-path-gsub <gsub-pair[]>]`\
+  Modify require module paths using gsub. All provided
+  pattern + replacement pairs will get applied in sequence.
+  The string passed to these gsub calls are the raw unmodified
+  string from source code.
+- `[--require-path-keep <lua-pattern[]>]`\
+  Lua patterns defining parts of require module paths
+  which should not be affected by any `--require-path-gsub`.
+  A pattern may include 2 position matches which will be
+  treated as an inclusive-exclusive range which should be
+  kept untouched. Otherwise the whole match is used.
+- `[-h | --help]`\
+  Show help message.
+
 ### Plugin Disabling
 
 The plugin isn't perfect, so whenever it does something undesirable use `---@plugin ...` to disable it. It works very similar to `---@diagnostic`, for example: `---@plugin disable-line: object_name` or `---@plugin disable-next-line`.
 
 ### `require()`
+
+Note that `--require-path-gsub` and `--require-path-keep` can be used to modify paths passed to `require` before any of the modifications mentioned below happen.
 
 Factorio allows requiring files from another mod with a `__modname__` prefix:
 ```lua

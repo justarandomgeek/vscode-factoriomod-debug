@@ -106,7 +106,8 @@ local args = __plugin_dev and {} or parse_and_show_msg_on_error_or_help(plugin_a
     {
       field = "ignore",
       long = "ignore",
-      description = "Ignore the given files or folders entirely.",
+      description = "Ignore the given files or folders entirely.\n\z
+        Can be absolute or relative to the workspace root.",
       type = "string",
       min_params = 1,
       optional = true,
