@@ -145,7 +145,7 @@ local function parse(args, config, start_index)
 
   local function consume_args_and_convert_for_type(type_id, context)
     if not type_defs[type_id] then
-      err = "Invalid type_def id '"..type_id.."' "..context..". No type converted registered with that id."
+      error("Invalid type_def id '"..type_id.."' "..context..". No type conversion registered with that id.")
     end
     local type_args = {}
     for j = 1, type_defs[type_id].arg_count do
