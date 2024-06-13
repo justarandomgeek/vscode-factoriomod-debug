@@ -35,6 +35,31 @@ local command_line = require("factorio-plugin.command-line")
 
 ---@alias Diff.ArrayWithCount {[integer]: Diff, ["count"]: integer}
 
+arg_parser.register_type{
+  id = "gsub-pair",
+  arg_count = 2,
+  convert = function(pattern_arg, replacement_arg, context)
+    return {pattern = pattern_arg, replacement = replacement_arg}
+  end,
+  compare = function(left, right)
+    return left.pattern == right.pattern
+      and left.replacement == right.replacement
+  end,
+  tostring = function(pair) return string.format("gsub(%q, %q)", pair.pattern, pair.replacement) end,
+}
+
+arg_parser.register_type{
+  id = "lua-pattern",
+  arg_count = 1,
+  convert = function(pattern_arg, context)
+    return pattern_arg
+  end,
+  compare = function(left, right)
+    return left == right
+  end,
+  tostring = function(pattern) return string.format("pattern(%q)", pattern) end,
+}
+
 ---@param args string[]
 ---@param config ArgsConfig
 ---@param help_config? ArgsHelpConfig
@@ -70,13 +95,42 @@ local workspace_uri = select(2, ...)
 ---@type string[]
 local plugin_args = select(3, ...)
 
+---@class PluginArgs
+---@field ignore string[]?
+---@field require_path_gsub {pattern: string, extended_pattern: string, replacement: string}[]?
+---@field require_path_keep string[]?
+
+---@type PluginArgs
 local args = __plugin_dev and {} or parse_and_show_msg_on_error_or_help(plugin_args, {
   options = {
     {
       field = "ignore",
       long = "ignore",
-      description = "Ignore the given files entirely.",
+      description = "Ignore the given files or folders entirely.",
       type = "string",
+      min_params = 1,
+      optional = true,
+    },
+    {
+      field = "require_path_gsub",
+      long = "require-path-gsub",
+      description = "Modify require module paths using gsub. All provided\n\z
+        pattern + replacement pairs will get applied in sequence.\n\z
+        The string passed to these gsub calls are the raw unmodified\n\z
+        string from source code.",
+      type = "gsub-pair",
+      min_params = 1,
+      optional = true,
+    },
+    {
+      field = "require_path_keep",
+      long = "require-path-keep",
+      description = "Lua patterns defining parts of require module paths\n\z
+        which should not be affected by any --require-path-gsub.\n\z
+        A pattern may include 2 position matches which will be\n\z
+        treated as an inclusive-exclusive range which should be\n\z
+        kept untouched. Otherwise the whole match is used.",
+      type = "lua-pattern",
       min_params = 1,
       optional = true,
     },
@@ -91,6 +145,16 @@ for _, path in ipairs(args.ignore or {}) do
   if path then
     ignored_paths[path] = true
   end
+end
+
+for _, pair in ipairs(args.require_path_gsub or {}) do
+  local has_caret = string.sub(pair.pattern, 1, 1) == "^"
+  local has_dollar = string.sub(pair.pattern, -1, -1) == "$"
+  local start = has_caret and 2 or 1
+  local stop = has_dollar and -2 or -1
+  pair.extended_pattern = (has_caret and "^" or "")
+    .."()("..string.sub(pair.pattern, start, stop)..")()"
+    ..(has_dollar and "$" or "")
 end
 
 ---@param uri string @ The uri of file
@@ -117,7 +181,7 @@ function OnSetText(uri, text)
 
   util.on_pre_process_file(text, diffs)
 
-  require_module.replace(uri, text, diffs)
+  require_module.replace(uri, text, diffs, args)
   remote.replace(uri, text, diffs)
   object_name.replace(uri, text, diffs)
   command_line.replace(uri, text, diffs)
