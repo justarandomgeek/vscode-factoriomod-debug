@@ -114,6 +114,10 @@ class DebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
 				}
 				executable.args.push(...await activeVersion.debugLaunchArgs());
 				return executable;
+			case "native":
+				return new vscode.DebugAdapterExecutable(activeVersion.factorioPath, ["--dap"]);
+			case "nativedbg":
+				return new vscode.DebugAdapterExecutable("vsjitdebugger.exe", [activeVersion.factorioPath, "--dap"]);
 		}
 	}
 
