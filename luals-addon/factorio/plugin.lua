@@ -70,6 +70,11 @@ local workspace_uri = select(2, ...)
 ---@type string[]
 local plugin_args = select(3, ...)
 
+---@class PluginArgs
+---@field ignore string[]?
+---@field clustorio_modules boolean
+
+---@type PluginArgs
 local args = __plugin_dev and {} or parse_and_show_msg_on_error_or_help(plugin_args, {
   options = {
     {
@@ -79,6 +84,14 @@ local args = __plugin_dev and {} or parse_and_show_msg_on_error_or_help(plugin_a
       type = "string",
       min_params = 1,
       optional = true,
+    },
+    {
+      field = "clustorio_modules",
+      long = "clustorio-modules",
+      description = "Enable the require module path modification for\n\z
+        \"^modules/[^/]-/\" to get replaced with \"module/\",\n\z
+        except for \"^modules/clustorio/\" which remains untouched.",
+      flag = true,
     },
   },
 })
@@ -117,7 +130,7 @@ function OnSetText(uri, text)
 
   util.on_pre_process_file(text, diffs)
 
-  require_module.replace(uri, text, diffs)
+  require_module.replace(uri, text, diffs, args)
   remote.replace(uri, text, diffs)
   object_name.replace(uri, text, diffs)
   command_line.replace(uri, text, diffs)

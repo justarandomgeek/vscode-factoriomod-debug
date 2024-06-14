@@ -6,7 +6,8 @@ local require_module_flag = util.module_flags.require
 ---@param _ string @ The uri of file
 ---@param text string @ The content of file
 ---@param diffs Diff[] @ The diffs to add more diffs to
-local function replace(_, text, diffs)
+---@param args PluginArgs
+local function replace(_, text, diffs, args)
   util.reset_is_disabled_to_file_start()
   for f_require, start, name, finish in
     text:gmatch("require()%s*%(?%s*['\"]()(.-)()['\"]%s*%)?")--[=[@as fun(): integer, integer, string, integer]=]
@@ -15,12 +16,13 @@ local function replace(_, text, diffs)
 
     ---Convert the mod name prefix if there is one
     name = name:gsub("^__(.-)__", "%1")
+
     --- Clusterio modules are structured with their source in 'module/'. The loader rewrites this to
     --- 'modules/plugin_name/', so the actual code needs to require("modules/plugin_name/file").
-    --- Do a back substituion here for everything except modules/clusterio, as the clusterio repo 
+    --- Do a back substitution here for everything except modules/clusterio, as the clusterio repo
     --- has its sources at 'packages/host/modules/clusterio/api.lua'.
-    if not name:find("^modules/clusterio/") then
-        name = name:gsub("^modules/[^\\/]-/", "module/")
+    if args.clustorio_modules and not name:find("^modules/clusterio/") then
+      name = name:gsub("^modules/[^/]-/", "module/")
     end
 
     ---If the path has slashes in it, it may also have an extension
