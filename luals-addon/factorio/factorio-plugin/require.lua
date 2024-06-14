@@ -21,6 +21,7 @@ local function handle_gsub_args(name, args)
       local init = 1
       while true do
         local success, start, stop, custom_start, custom_stop = pcall(string.find, name, pattern, init)
+        init = stop + 1
         if not success then
           -- Would much prefer the pattern being validated at arg parse time...
           client.showMessage("Warning", string.format("Invalid pattern for --require-path-keep: %q %s.", pattern, start))
@@ -32,7 +33,6 @@ local function handle_gsub_args(name, args)
         end
         if not start then break end
         untouched_ranges[#untouched_ranges+1] = {start = start, stop = stop}
-        init = stop + 1
       end
     end
   end
