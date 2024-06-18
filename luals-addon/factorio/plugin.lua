@@ -44,7 +44,7 @@ local function parse_and_show_msg_on_error_or_help(args, config, help_config)
 
   if result and err_or_index < #args then
     result = nil
-    err_or_index = "Unknown/too many values."
+    err_or_index = string.format("Unknown/too many values. Consumed %d out of %d arguments.", err_or_index, #args)
   end
 
   if result and not result.help then
