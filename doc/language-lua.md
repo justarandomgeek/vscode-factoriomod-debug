@@ -39,8 +39,8 @@ Because Factorio mods run in [several Lua VMs](https://lua-api.factorio.com/late
 You can use the `Lua.runtime.pluginArgs` setting to modify some behavior of the plugin. The options available are:
 
 - `[--ignore <string[]>]`\
-  Ignore the given files or folders entirely.
-  Can be absolute or relative to the workspace root.
+  Completely disable the plugin for the given folders or files.
+  Either absolute or relative to the workspace root.
 - `[--clusterio-modules]`\
   Enable the require module path modification for
   `"^modules/[^/]-/"` to get replaced with `"module/"`,
