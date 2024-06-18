@@ -5,6 +5,9 @@
 ## 1.1.44
 * Debugger
   * Set `SteamAppId` when launching for `--version`
+* LuaLS library package:
+  * Plugin option `--ignore` to ignore requires in certain files
+  * Plugin option `--clusterio-modules` to enable handling clusterio requires
 
 ## 1.1.43
 * Locale:
