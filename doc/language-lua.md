@@ -41,10 +41,10 @@ You can use the `Lua.runtime.pluginArgs` setting to modify some behavior of the 
 - `[--ignore <string[]>]`\
   Ignore the given files or folders entirely.
   Can be absolute or relative to the workspace root.
-- `[--clustorio-modules]`\
+- `[--clusterio-modules]`\
   Enable the require module path modification for
   `"^modules/[^/]-/"` to get replaced with `"module/"`,
-  except for `"^modules/clustorio/"` which remains untouched.
+  except for `"^modules/clusterio/"` which remains untouched.
 - `[-h | --help]`\
   Show help message.
 

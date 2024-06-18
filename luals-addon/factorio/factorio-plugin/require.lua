@@ -21,7 +21,7 @@ local function replace(_, text, diffs, args)
     --- 'modules/plugin_name/', so the actual code needs to require("modules/plugin_name/file").
     --- Do a back substitution here for everything except modules/clusterio, as the clusterio repo
     --- has its sources at 'packages/host/modules/clusterio/api.lua'.
-    if args.clustorio_modules and not name:find("^modules/clusterio/") then
+    if args.clusterio_modules and not name:find("^modules/clusterio/") then
       name = name:gsub("^modules/[^/]-/", "module/")
     end
 
