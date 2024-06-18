@@ -102,6 +102,9 @@ args = args or {}
 local ignored_paths = {}
 for _, path in ipairs(args.ignore or {}) do
   path = workspace.getAbsolutePath(workspace_uri, path) -- Returns a normalized path.
+  local msg = "Plugin --ignore resolved to: "..(path or "<nil>")
+  client.logMessage("Info", msg)
+  log.info(msg) ---@diagnostic disable-line: undefined-field
   if path then
     ignored_paths[path] = true
   end
