@@ -450,6 +450,9 @@ function DAEval.evaluate(target,context,expression,seq)
   end
 end
 
+-- strong refs to keep eval results from being GC'ed
+local evalkeep = {}
+
 ---@param frameId? integer frameId
 ---@param tag? integer
 ---@param context? string
@@ -480,6 +483,9 @@ function dispatch.__inner.evaluate(frameId,tag,context,expression,seq)
         end
       end
       do
+        if result then
+          evalkeep[result] = true;
+        end
         local vresult = variables.create(nil,result,nil)
         -- Variable is close enough to EvaluateResponseBody with one field moved...
         evalresult = vresult --[[@as DebugProtocol.EvaluateResponseBody]]

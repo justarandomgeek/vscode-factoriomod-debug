@@ -721,12 +721,12 @@ local itermode = {
 ---@param count nil | integer
 function DAvars.variables(variablesReference,seq,filter,start,count)
   if not dispatch.find("variables",variablesReference,seq,filter,start,count) then
-    json.response{seq = seq, body = {
+    json.response{seq = seq, body = {{
       name= "Expired variablesReference",
       value= "Expired variablesReference ref="..variablesReference.." seq="..seq,
       variablesReference= 0,
       presentationHint = {kind="virtual"},
-    }}
+    }}}
   end
 end
 
