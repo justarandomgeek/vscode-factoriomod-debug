@@ -7,6 +7,8 @@
   * Set `SteamAppId` when launching for `--version`
   * Fix Eval not available if not enough lua events running
   * Pin GC-able values from eval results or `__DebugAdapter.print(obj)` to allow expanding (some) fields when not paused
+* VSCode:
+  * Check LuaLS plugin files in Check Config
 
 ## 1.1.43
 * Locale:

@@ -7,6 +7,7 @@ import type { DocSettings } from "../ApiDocs/DocSettings";
 import { ActiveFactorioVersion, FactorioVersion, substitutePathVariables } from './FactorioVersion';
 import { forkScript } from './ModPackageProvider';
 import { version as bundleVersion } from "../../package.json";
+import { getLuaFiles } from '../LuaLSAddon';
 const fs = vscode.workspace.fs;
 
 const detectPaths:FactorioVersion[] = [
@@ -101,9 +102,20 @@ export class FactorioVersionSelector {
 		try {
 			const filecontent = (await fs.readFile(Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/config.json"))).toString();
 			const config = JSON.parse(filecontent);
-			this.output.info(`Library bundle OK in ${workspaceLibrary.fsPath}, generated from Factorio ${config.factorioVersion} with FMTK ${config.bundleVersion}`);
+			this.output.info(`Library bundle found in ${workspaceLibrary.fsPath}, generated from Factorio ${config.factorioVersion} with FMTK ${config.bundleVersion}`);
+
+			for (const file of await getLuaFiles()) {
+				try {
+					const local = (await fs.readFile(Utils.joinPath(workspaceLibrary, "sumneko-3rd", file.name))).toString();
+					if (local !== file.content) {
+						this.output.info(`file ${file.name} content mismatch!`);
+					}
+				} catch (error) {
+					this.output.error(`file ${file.name} ${error}`);
+				}
+			}
 		} catch (error) {
-			this.output.error(`Missing or damaged library bundle`);
+			this.output.error(`Missing or damaged library bundle info ${error}`);
 		}
 
 		const luals = vscode.extensions.getExtension("sumneko.lua");
