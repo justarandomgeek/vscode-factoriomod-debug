@@ -696,6 +696,10 @@ local itermode = {
   ipairs = ipairs,
 }
 
+---@type table<metatable,string>
+local knownMetatables = {}
+variables.knownMetatables = knownMetatables
+
 ---@class metatable_debug: metatable
 ---@field __debugline string|(fun(self:table, short?:boolean):string)|nil
 ---@field __debugtype string|nil
@@ -831,7 +835,7 @@ function dispatch.__inner.variables(variablesReference,seq,filter,start,count)
         end
         vars[#vars + 1]{
           name = "<metatable>",
-          value = "metatable",
+          value = knownMetatables[mt] or "metatable",
           type = "metatable",
           variablesReference = variables.tableRef(mt),
           evaluateName = evalName,
@@ -938,7 +942,7 @@ function dispatch.__inner.variables(variablesReference,seq,filter,start,count)
           end
           vars[#vars + 1] = {
             name = "<metatable>",
-            value = "metatable",
+            value = knownMetatables[mt] or "metatable",
             type = "metatable",
             variablesReference = variables.tableRef(mt),
             evaluateName = evalName,

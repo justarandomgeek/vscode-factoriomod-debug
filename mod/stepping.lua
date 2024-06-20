@@ -840,6 +840,11 @@ if rawscript then
   end
   apihooks.script.on_event = on_event
 
+  function apihooks.script.register_metatable(name, metatable)
+    rawscript.register_metatable(name, metatable)
+    variables.knownMetatables[metatable] = "<"..name..">"
+  end
+
   ---@type metatable_debug
   local newscriptmeta = {
     __index = rawscript,

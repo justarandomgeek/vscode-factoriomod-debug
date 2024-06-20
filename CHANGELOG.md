@@ -7,6 +7,7 @@
   * Set `SteamAppId` when launching for `--version`
   * Fix Eval not available if not enough lua events running
   * Pin GC-able values from eval results or `__DebugAdapter.print(obj)` to allow expanding (some) fields when not paused
+  * Display the registered name of metatables, if available
 * VSCode:
   * Check LuaLS plugin files in Check Config
 
