@@ -8,7 +8,7 @@
   * Fix Eval not available if not enough lua events running
   * Pin GC-able values from eval results or `__DebugAdapter.print(obj)` to allow expanding (some) fields when not paused
 * LuaLS library package:
-  * Plugin option `--ignore` to ignore certain files
+  * Plugin option `--ignore` to disable the plugin for certain files or folders
   * Plugin option `--clusterio-modules` to enable handling clusterio requires
 
 ## 1.1.43
