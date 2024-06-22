@@ -108,7 +108,9 @@ end
 -- Both to handle LuaLS <= v3.9.3, but also to handle args which were defined using
 -- {[string]: string|(string[])}, because I'm 99% certain that'll end up giving us a
 -- string instead of actual string arrays (aka I think it's also (a separate) bug.)
-if type(plugin_args) == "string" then
+if type(plugin_args) ~= "table" then
+  -- The log message says string even though it could be anything. If it is not a string
+  -- then the safety loop below will catch it and also log its message.
   log_warn("FMTK plugin received a string instead of a string array as plugin args.\n\z
     If LuaLS v3.9.3 or lower is used, make sure to update.\n\z
     If the issue persists it is likely a different bug in the LuaLS.")
