@@ -92,6 +92,10 @@ class DebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
 		const activeVersion = await this.versionSelector.getActiveVersion();
 		if (!activeVersion) { return; }
 
+		if (activeVersion.nativeDAP) {
+			return new vscode.DebugAdapterExecutable(activeVersion.factorioPath, ["--dap"]);
+		}
+
 		const config = vscode.workspace.getConfiguration("factorio");
 		const runMode = config.get<string>("debug.runMode", "inline");
 		switch (runMode) {

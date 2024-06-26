@@ -16,6 +16,7 @@ export interface FactorioVersion {
 	protosPath?: string
 
 	nativeDebugger?: string
+	nativeDAP?: boolean
 }
 
 
@@ -143,6 +144,9 @@ export class ActiveFactorioVersion {
 		return this.fv.nativeDebugger && substitutePathVariables(this.fv.nativeDebugger, this.workspaceFolders);
 	}
 
+	public get nativeDAP() {
+		return this.fv.nativeDAP;
+	}
 
 	private iniData? : FactorioConfigIni|Thenable<FactorioConfigIni>;
 	private async configIni() {
