@@ -475,12 +475,19 @@ export class FactorioVersionSelector {
 
 		await luaconfig.update("workspace.library", library);
 
-		const userThirdParty = luaconfig.get<string[]>("workspace.userThirdParty", []);
-		let userThirdPartyAdded = false;
+		let userThirdParty = luaconfig.get<string[]>("workspace.userThirdParty", []);
+		let hasUserThirdParty = false;
 		const path = Utils.joinPath(workspaceLibrary, "sumneko-3rd").fsPath;
-		if (!userThirdParty.includes(path)) {
+		// remove any mismatched entries and register the current one...
+		userThirdParty = userThirdParty.filter(s=>{
+			if (s === path) {
+				hasUserThirdParty = true;
+				return true;
+			}
+			return !s.includes("justarandomgeek.factoriomod-debug");
+		});
+		if (!hasUserThirdParty) {
 			userThirdParty.push(path);
-			userThirdPartyAdded = true;
 		}
 		await luaconfig.update("workspace.userThirdParty", userThirdParty);
 
@@ -493,7 +500,7 @@ export class FactorioVersionSelector {
 		if (sumneko) {
 			if (!sumneko.isActive) {
 				await sumneko.activate();
-			} else if (userThirdPartyAdded) {
+			} else if (!hasUserThirdParty) {
 				if (await vscode.window.showInformationMessage(
 					"Lua Language Server is already running and may not notice the newly-installed library bundle. Reload VSCode to force it to re-check.",
 					"Reload Now", "Reload Later") === "Reload Now") {
