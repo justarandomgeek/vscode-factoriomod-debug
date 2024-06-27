@@ -234,7 +234,10 @@ export class ModManager {
 		let replaced:string|undefined;
 		if (!options.keepOld) {
 			const oldmods = (await fsp.readdir(this.modsPath, "utf8")).filter(
-				s=>s.startsWith(name) && s.endsWith(".zip") && s !== `${name}_${version}.zip`);
+				s=>s.startsWith(name) && s.endsWith(".zip") &&
+				s.substring(name.length, s.length-(".zip".length)).match(/^_[\d\.]+$/) &&
+				s !== `${name}_${version}.zip`
+			);
 			if (oldmods.length === 1) {
 				await fsp.unlink(path.resolve(this.modsPath, oldmods[0]));
 				replaced = oldmods[0].substring(name.length+1, oldmods[0].length-4);
