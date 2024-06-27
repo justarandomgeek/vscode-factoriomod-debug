@@ -8,8 +8,10 @@
   * Fix Eval not available if not enough lua events running
   * Pin GC-able values from eval results or `__DebugAdapter.print(obj)` to allow expanding (some) fields when not paused
   * Display the registered name of metatables, if available
+  * Fix possible race when adjusting settings at launch
 * VSCode:
   * Check LuaLS plugin files in Check Config
+  * Cleanup mismatched workspace links when updating `Lua.workspace.userThirdParty`
 * LuaLS library package:
   * Plugin option `--ignore` to disable the plugin for certain files or folders
   * Plugin option `--clusterio-modules` to enable handling clusterio requires
