@@ -386,7 +386,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				}
 
 			}
-			this.fs.writeFile(modSettingsUri, settings.save());
+			await this.fs.writeFile(modSettingsUri, settings.save());
 		}
 
 		this.factorio = new FactorioProcess(this.activeVersion.factorioPath, args.factorioArgs, this.activeVersion.nativeDebugger, args.env);
