@@ -546,7 +546,6 @@ local function caught(filter, user_handler)
       local top_is_api = info.what=="C" and info.nups > 0
       -- unhandled already got a `call in` on pCallWithStackTraceMessageHandler
       if top_is_api and filter~="unhandled" then
-        print("catch in "..rawscript.mod_name.." "..filter)
         DAstep.__dap.step(dispatch.getStepping())
       end
     end
