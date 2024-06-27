@@ -1,4 +1,5 @@
 import * as path from "path";
+import * as fs from "fs";
 import * as fsp from "fs/promises";
 import { forkTest } from "./util";
 import { setup, teardown, test, suite, suiteSetup } from "mocha";
@@ -7,7 +8,12 @@ import type { LaunchRequestArguments } from "../src/Debug/factorioModDebug";
 import chai, { expect } from "chai";
 import chaiAsPromised from "chai-as-promised";
 import type { DebugProtocol } from '@vscode/debugprotocol';
+
 chai.use(chaiAsPromised);
+
+function exists(file:fs.PathLike) {
+	return fsp.access(file, fs.constants.F_OK).then(()=>true).catch(()=>false);
+}
 
 suite('Debug Adapter', ()=>{
 	let dc: DebugClient;
@@ -38,8 +44,14 @@ suite('Debug Adapter', ()=>{
 		await fsp.mkdir(cwd, {recursive: true });
 		await fsp.copyFile(path.join(__dirname, "./empty-mod-settings.dat"), path.join(__dirname, "./factorio/mods/mod-settings.dat"));
 		await forkTest(fmtk, ["mods", "install", "minimal-no-base-mod"], {cwd: cwd});
-		await forkTest(fmtk, ["mods", "install", "--force", "debugadapter-tests"], {cwd: cwd});
-		await forkTest(fmtk, ["mods", "install", "--force", "debugadapter"], {cwd: cwd});
+
+		// tests have to be dir-like for breakpoints to match up!
+		if (!exists(path.join(cwd, "./debugadapter"))) {
+			await fsp.symlink(path.join(__dirname, "../mod"), path.join(cwd, "./debugadapter"), 'dir');
+		}
+		if (!exists(path.join(cwd, "./debugadapter-tests"))) {
+			await fsp.symlink(path.join(__dirname, "./mod"), path.join(cwd, "./debugadapter-tests"), 'dir');
+		}
 	});
 
 	setup(async ()=>{
