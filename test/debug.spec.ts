@@ -1,5 +1,7 @@
 import * as path from "path";
-import { setup, teardown, test, suite } from "mocha";
+import * as fsp from "fs/promises";
+import { forkTest } from "./util";
+import { setup, teardown, test, suite, suiteSetup } from "mocha";
 import { DebugClient } from "@vscode/debugadapter-testsupport";
 import type { LaunchRequestArguments } from "../src/Debug/factorioModDebug";
 import chai, { expect } from "chai";
@@ -9,6 +11,8 @@ chai.use(chaiAsPromised);
 
 suite('Debug Adapter', ()=>{
 	let dc: DebugClient;
+	const cwd = path.join(__dirname, "./factorio/mods");
+	const fmtk = path.join(__dirname, '../dist/fmtk.js');
 
 	function launch(args:Partial<LaunchRequestArguments>, testid?:string) {
 		return dc.launch(Object.assign({
@@ -30,9 +34,17 @@ suite('Debug Adapter', ()=>{
 		} as LaunchRequestArguments, args));
 	}
 
+	suiteSetup(async ()=>{
+		await fsp.mkdir(cwd, {recursive: true });
+		await fsp.copyFile(path.join(__dirname, "./empty-mod-settings.dat"), path.join(__dirname, "./factorio/mods/mod-settings.dat"));
+		await forkTest(fmtk, ["mods", "install", "minimal-no-base-mod"], {cwd: cwd});
+		await forkTest(fmtk, ["mods", "install", "--force", "debugadapter-tests"], {cwd: cwd});
+		await forkTest(fmtk, ["mods", "install", "--force", "debugadapter"], {cwd: cwd});
+	});
+
 	setup(async ()=>{
-		dc = new DebugClient('node', path.join(__dirname, '../dist/fmtk.js'), 'factoriomod', {
-			cwd: path.join(__dirname, "./factorio/mods"),
+		dc = new DebugClient('node', fmtk, 'factoriomod', {
+			cwd: cwd,
 			env: Object.assign({},
 				process.env,
 				{
