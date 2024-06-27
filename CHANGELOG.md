@@ -16,7 +16,6 @@
   * Plugin option `--ignore` to disable the plugin for certain files or folders
   * Plugin option `--clusterio-modules` to enable handling clusterio requires
   * Note that a bug in LuaLS 3.9.3 currently prevents passing more than one argument in some workspaces
-  * Automatically clean up wrong-workspace `userThirdParty` links when updating
 
 ## 1.1.43
 * Locale:
