@@ -30,6 +30,10 @@ Type definitions are also included for some of the libraries included in `__core
 
 The VS Code extension will automatically configure `"Lua.workspace.userThirdParty"` when installing this package, as well as updating `"Lua.workspace.library"` with a link to `/data` in the selected version.
 
+## Troubleshooting
+
+If these functions are not working properly, try re-running the version selector, or running `Factorio: Check Config` and resolving any warnings. If that still doesn't resolve the issue, delete all `Lua.*` settings in the workspace `settings.json` and re-run the version selector again.
+
 ## Plugin Features
 
 Because Factorio mods run in [several Lua VMs](https://lua-api.factorio.com/latest/auxiliary/data-lifecycle.html), some functions have cross-VM behavior that cannot be described fully with type definitions. We handle these by providing a plugin which transforms them into a more easily understood form before the Language Server sees them.
