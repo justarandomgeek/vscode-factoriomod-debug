@@ -170,7 +170,11 @@ export class FactorioVersionSelector {
 			// luals sets this, so the slashes might be wrong. check more leniently, and use the found path later for exclusion
 			const foundWorkspaceLibPath = library.find(l=>URI.file(l).fsPath === workspaceLibPath);
 			if (foundWorkspaceLibPath) {
-				this.output.info(`Lua.workspace.library: workspace library link OK (${foundWorkspaceLibPath})`);
+				if (ApplyInMemory) {
+					this.output.warn(`Lua.workspace.library: redundant workspace library link (${foundWorkspaceLibPath})`);
+				} else {
+					this.output.info(`Lua.workspace.library: workspace library link OK (${foundWorkspaceLibPath})`);
+				}
 			} else {
 				if (!ApplyInMemory) {
 					this.output.warn(`Lua.workspace.library: workspace library link missing! (${workspaceLibPath})`);
@@ -197,7 +201,11 @@ export class FactorioVersionSelector {
 		} else {
 			const workspacePluginPath = Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/plugin.lua").fsPath.replace(/[\\]/g, "/");
 			if (plugin === workspacePluginPath) {
-				this.output.info(`Lua.runtime.plugin: OK (${plugin})`);
+				if (ApplyInMemory) {
+					this.output.warn(`Lua.runtime.plugin: redundant workspace link (${plugin})`);
+				} else {
+					this.output.info(`Lua.runtime.plugin: OK (${plugin})`);
+				}
 			} else {
 				this.output.warn(`Lua.runtime.plugin: wrong plugin? (${plugin})`);
 			}
