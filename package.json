@@ -1,7 +1,7 @@
 {
   "name": "factoriomod-debug",
   "displayName": "Factorio Modding Tool Kit",
-  "version": "1.1.44",
+  "version": "1.1.45",
   "publisher": "justarandomgeek",
   "description": "Debug Tools for developing Factorio Mods",
   "author": {
