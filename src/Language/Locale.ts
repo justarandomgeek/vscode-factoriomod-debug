@@ -243,31 +243,32 @@ export class LocaleLanguageService {
 				}
 			} else if (line.trim().length > 0) {
 				const keyval = line.match(/^[ \r\t]*([^=]*)=(.*)$/d);
-				if (keyval) {
+				if (keyval && keyval[1]) {
 					const key = keyval[1];
 					if (sections.get(currentSection)!.has(key)) {
-						const previous = symbols
+						const existing = symbols
 							.filter(sym=>sym.name === currentSection && sym.kind === SymbolKind.Namespace)
-							.map(sym=>sym.children?.filter(sym=>sym.name === key)??[])
-							.reduce(
-								(a, b)=>a.concat(b),
+							.flatMap(sym=>sym.children?.filter(sym=>sym.name === key)??[])
+							.concat(
 								symbols.filter(sym=>sym.name === key && sym.kind === SymbolKind.String)
-							)
-							.reduce((syma, symb)=>syma.range.start.line < symb.range.start.line?syma:symb);
-						diags.push({
-							message: "Duplicate Key",
-							source: "factorio-locale",
-							severity: DiagnosticSeverity.Error,
-							code: "key.duplicate",
-							range: { start: { line: i, character: keyval.indices![1][0] }, end: { line: i, character: keyval.indices![1][1] }},
-							relatedInformation: this.hasDiagnosticRelatedInformationCapability ? [{
-								location: {
-									uri: textDocument.uri,
-									range: previous.range,
-								},
-								message: "First defined here",
-							}] : undefined,
-						});
+							);
+						if (existing.length > 0) {
+							const previous = existing.reduce((syma, symb)=>syma.range.start.line < symb.range.start.line?syma:symb);
+							diags.push({
+								message: "Duplicate Key",
+								source: "factorio-locale",
+								severity: DiagnosticSeverity.Error,
+								code: "key.duplicate",
+								range: { start: { line: i, character: keyval.indices![1][0] }, end: { line: i, character: keyval.indices![1][1] }},
+								relatedInformation: this.hasDiagnosticRelatedInformationCapability ? [{
+									location: {
+										uri: textDocument.uri,
+										range: previous.range,
+									},
+									message: "First defined here",
+								}] : undefined,
+							});
+						}
 					} else {
 						sections.get(currentSection)!.add(key);
 					}
