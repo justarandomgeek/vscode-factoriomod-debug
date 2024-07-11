@@ -124,6 +124,8 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	) {
 		super();
 
+		this.objectInfoChunks = bufferChunks(objectToLua(this.activeVersion.docs.generate_debuginfo()), 3500);
+
 		this.setDebuggerLinesStartAt1(true);
 		this.setDebuggerColumnsStartAt1(true);
 		this.setDebuggerPathFormat("uri");
@@ -1230,7 +1232,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		}
 	}
 
-	private readonly objectInfoChunks: Buffer[]=bufferChunks(objectToLua(this.activeVersion.docs.generate_debuginfo()), 3500);
+	private readonly objectInfoChunks: Buffer[];
 	private sendClassData() {
 		for (const chunk of this.objectInfoChunks) {
 			this.writeStdin(Buffer.concat([

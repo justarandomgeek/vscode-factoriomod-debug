@@ -652,7 +652,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			obj.notes?.map(note=>`**Note:** ${note}`)?.join("\n\n"),
 			obj.raises && (
 				`**Events:**\n${
-					obj.raises?.map(raised=>` * ${raised.optional?"May":"Will"} raise [${raised.name}](runtime:events::${raised.name}) ${{instantly: "instantly", current_tick: "later in the current tick", future_tick: "in a future tick"}[raised.timeframe]}.${raised.description?"\n"+raised.description:""}`,)?.join("\n\n") }`
+					obj.raises?.map(raised=>` * ${raised.optional?"May":"Will"} raise [${raised.name}](runtime:events::${raised.name}) ${{instantly: "instantly", current_tick: "later in the current tick", future_tick: "in a future tick"}[raised.timeframe]}.${raised.description?"\n"+raised.description:""}`)?.join("\n\n") }`
 			),
 			doclink && `[View Documentation](${doclink.scope}:${doclink.member}${doclink.part?"::"+doclink.part:""})`,
 			obj.examples?.map(example=>`### Example\n${example}`)?.join("\n\n"),

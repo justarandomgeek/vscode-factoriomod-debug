@@ -230,7 +230,7 @@ export async function addModRelease(name:string, packagestream:Buffer) {
 	const upload_url = await init_upload(name, "https://mods.factorio.com/api/v2/mods/releases/init_upload");
 
 	const file_form = new FormData();
-	file_form.append("file", new Blob([packagestream], {type: 'application/x-zip-compressed'}), `${name}.zip`,);
+	file_form.append("file", new Blob([packagestream], {type: 'application/x-zip-compressed'}), `${name}.zip`);
 	await post_form(file_form, upload_url) as {success:true};
 	console.log(`Published ${name}`);
 	return;

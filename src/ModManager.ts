@@ -90,7 +90,7 @@ export interface ModInstallResult {
 export async function getModInfo(name:string, full:true):Promise<ModPortalResult<true>>;
 export async function getModInfo(name:string, full?:false):Promise<ModPortalResult<false>>;
 export async function getModInfo(name:string, full?:boolean):Promise<ModPortalResult<boolean>> {
-	const result = await fetch(`https://mods.factorio.com/api/mods/${name}${full?"/full":""}`,);
+	const result = await fetch(`https://mods.factorio.com/api/mods/${name}${full?"/full":""}`);
 	if (!result.ok) {
 		throw new Error(result.statusText);
 	}

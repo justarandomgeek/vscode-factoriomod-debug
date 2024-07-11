@@ -14,7 +14,7 @@
   ],
   "engines": {
     "vscode": "^1.90.0",
-    "node": ">=18"
+    "node": ">20"
   },
   "icon": "images/factoriomod-debug-icon.png",
   "categories": [
@@ -53,14 +53,14 @@
     "@types/ini": "^1.3.34",
     "@types/inquirer": "^9.0.7",
     "@types/mocha": "^10.0.7",
-    "@types/node": "^18.19.39",
+    "@types/node": "^20.14.10",
     "@types/node-fetch": "^2.6.11",
     "@types/request": "^2.48.12",
     "@types/semver": "^7.5.8",
     "@types/vscode": "^1.90.0",
     "@types/vscode-webview": "^1.57.5",
-    "@typescript-eslint/eslint-plugin": "^5.62.0",
-    "@typescript-eslint/parser": "^5.62.0",
+    "@typescript-eslint/eslint-plugin": "^7.16.0",
+    "@typescript-eslint/parser": "^7.16.0",
     "@vscode/codicons": "^0.0.32",
     "@vscode/debugadapter": "^1.65.0",
     "@vscode/debugadapter-testsupport": "^1.65.0",
@@ -90,7 +90,7 @@
     "semver": "^7.6.2",
     "tree-kill": "^1.2.2",
     "ts-node": "^10.9.2",
-    "typescript": "^4.9.5",
+    "typescript": "^5.5.3",
     "vscode-languageclient": "^8.1.0",
     "vscode-languageserver": "^8.1.0",
     "vscode-languageserver-textdocument": "^1.0.11",
