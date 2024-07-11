@@ -70,11 +70,9 @@ export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArgum
 }
 
 class AllThreadsStoppedEvent extends StoppedEvent implements DebugProtocol.StoppedEvent {
-	//@ts-expect-error
-	body: DebugProtocol.StoppedEvent["body"];
+	declare body: DebugProtocol.StoppedEvent["body"];
 	constructor(reason: string, threadId?: number, exceptionText?: string) {
 		super(reason, threadId, exceptionText);
-		//@ts-expect-error
 		this.body.allThreadsStopped = true;
 	}
 }
