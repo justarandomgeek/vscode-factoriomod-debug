@@ -14,7 +14,6 @@ import type { VFile } from "vfile";
 import type { Root, Image, Link } from "mdast";
 import type { ModInfo } from "../vscode/ModPackageProvider";
 
-//@ts-ignore
 import readdirGlob from 'readdir-glob';
 
 export async function getPackageinfo() {

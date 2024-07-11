@@ -57,7 +57,7 @@ export class ScriptDatEditorProvider implements vscode.CustomReadonlyEditorProvi
 		webview.options = {
 			enableScripts: true,
 		};
-		//@ts-expect-error
+		//@ts-expect-error import
 		const html = <string>(await import("./ScriptDatWebview.html")).default;
 		webview.html = html
 			.replace(/\$cspSource\$/g, webview.cspSource)

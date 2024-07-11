@@ -9,7 +9,7 @@ export async function getLuaFiles() {
 	if (!addonLuaFiles) {
 
 		addonLuaFiles = [];
-		// @ts-ignore
+		// @ts-expect-error import
 		const glob = await import('../luals-addon/**/*.lua');
 		const files = glob.default;
 		const filenames = glob.filenames;

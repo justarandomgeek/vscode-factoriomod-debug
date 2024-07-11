@@ -18,7 +18,6 @@ import { ChangeLogLanguageService } from './ChangeLog';
 import { LocaleLanguageService } from "./Locale";
 import { URI } from 'vscode-uri';
 
-//@ts-ignore
 import readdirGlob from 'readdir-glob';
 import { LuaLanguageService } from './Lua';
 

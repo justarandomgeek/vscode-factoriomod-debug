@@ -73,7 +73,7 @@ export class ModSettingsEditorProvider implements vscode.CustomEditorProvider<Mo
 		webview.options = {
 			enableScripts: true,
 		};
-		//@ts-expect-error
+		//@ts-expect-error import
 		const html = <string>(await import("./ModSettingsWebview.html")).default;
 		webview.html = html
 			.replace(/\$cspSource\$/g, webview.cspSource)

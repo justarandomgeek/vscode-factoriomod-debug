@@ -8,7 +8,6 @@ import archiver from 'archiver';
 
 import type { ModInfo } from './src/vscode/ModPackageProvider';
 
-//@ts-ignore
 import readdirGlob from 'readdir-glob';
 
 function FactorioModPlugin():Plugin {
