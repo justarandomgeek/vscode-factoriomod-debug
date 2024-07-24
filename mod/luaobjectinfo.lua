@@ -7,6 +7,7 @@ local print = print
 local load = load
 local pairs = pairs
 local type = type
+local rawget = rawget
 local string = string
 local smatch = string.match
 local setmetatable = setmetatable
@@ -123,13 +124,13 @@ local function try_object_name(obj)
 
   local mt = dgetmetatable(obj)
   if not mt then return end
-  if mt.__metatable ~= "private" then return end
+  if rawget(mt, "__metatable") ~= "private" then return end
 
   -- don't check for __self=userdata becuase that is planned to be removed in the future
 
   -- LuaBindableObjects don't have `isluaobject`, so use `object_name` instead
   -- pcall in case it's still not a real LuaObject...
-  local success,object_name = pcall(mt.__index,obj,"object_name")
+  local success,object_name = pcall(rawget(mt, "__index"),obj,"object_name")
   if success then
     return object_name
   end
