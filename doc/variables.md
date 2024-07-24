@@ -13,6 +13,7 @@ By default, the metatable will be listed as a virtual member `<metatable>`.The d
 ---@field rawName? boolean
 ---@field rawValue? boolean
 ---@field virtual? boolean
+---@field readOnly? boolean
 ---@field ref? table|function @ Object to expand children of instead of this value
 ---@field fetchable? boolean @ if ref or value is function, treat as fetchable property instead of raw function
 ---@field extra? any @ Extra object to pass back to `__debugcontents`

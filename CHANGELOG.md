@@ -5,6 +5,7 @@
 ## 1.1.45
 * Debugger
   * Don't choke on metatables with broken metatables
+  * Add `readOnly` to `RenderOptions` for custom variable views
 * Locale:
   * Don't crash when diagnosing file with empty keys
 

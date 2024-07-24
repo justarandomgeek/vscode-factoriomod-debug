@@ -713,6 +713,7 @@ variables.knownMetatables = knownMetatables
 ---@field rawName? boolean @ if `k` is a string, display it as-is
 ---@field rawValue? boolean @ if `v` is a string, display it as-is
 ---@field virtual? boolean
+---@field readOnly? boolean
 ---@field ref? table|function @ Object to expand children of instead of this value
 ---@field fetchable? boolean @ if ref or value is function, treat as fetchable property instead of raw function
 ---@field extra? any @ Extra object to pass back to `__debugcontents`
@@ -918,6 +919,10 @@ function dispatch.__inner.variables(variablesReference,seq,filter,start,count)
             if opts and opts.virtual then
               newvar.presentationHint = newvar.presentationHint or {}
               newvar.presentationHint.kind="virtual"
+            end
+            if opts and opts.readOnly then
+              newvar.presentationHint = newvar.presentationHint or {}
+              newvar.presentationHint.attributes={"readOnly"}
             end
             vars[#vars + 1] = newvar
             firstk = k
