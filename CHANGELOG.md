@@ -8,6 +8,8 @@
   * Add `readOnly` to `RenderOptions` for custom variable views
 * Locale:
   * Don't crash when diagnosing file with empty keys
+* LuaLS library package:
+  * Remove hard-coded defines.prototype list, they're included in the json docs starting from Factorio 1.1.110
 
 ## 1.1.44
 * Debugger
