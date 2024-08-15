@@ -342,7 +342,7 @@ function math.ult(m, n) end
 ---This method can't be used outside of events or during loading. Calling it with non-integer arguments will floor them instead of resulting in an error.
 ---
 ---* `math.random()`: Returns a float in the range [0,1).
----* `math.random(n)`: Returns a integer in the range [1, n].
+---* `math.random(m)`: Returns a integer in the range [1, m].
 ---* `math.random(m, n)`: Returns a integer in the range [m, n].
 ---
 ---@overload fun():number
