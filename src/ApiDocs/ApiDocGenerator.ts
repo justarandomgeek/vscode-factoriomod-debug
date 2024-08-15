@@ -1,6 +1,6 @@
 import { overlay } from "./Overlay";
 import type { DocSettings } from "./DocSettings";
-import { LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSEnum, LuaLSEnumField, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSLiteral, LuaLSOperator, LuaLSOverload, LuaLSParam, LuaLSReturn, LuaLSTuple, LuaLSType, LuaLSTypeName, LuaLSUnion, to_lua_ident } from "./LuaLS";
+import { is_lua_ident, LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSEnum, LuaLSEnumField, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSLiteral, LuaLSOperator, LuaLSOverload, LuaLSParam, LuaLSReturn, LuaLSTuple, LuaLSType, LuaLSTypeName, LuaLSUnion, to_lua_ident } from "./LuaLS";
 
 function sort_by_order(a:{order:number}, b:{order:number}) {
 	return a.order - b.order;
@@ -100,6 +100,10 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		}
 		if (this.defines.has(member)) {
 			return `/defines.html#${member}`;
+		}
+		const matches = member.match(/defines\.prototypes\[\'(.+)\'\]/);
+		if (matches && this.defines.has(`defines.prototypes.${matches[1]}`)) {
+			return `/defines.html#defines.prototypes.${matches[1]}`;
 		}
 		console.warn(`Invalid Link: runtime:${member}${part}`);
 		return undefined;
@@ -350,13 +354,28 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		defines.description = format_description(undefined, {scope: "runtime", member: "defines"});
 		file.add(defines);
 
-		const generate = async (define:ApiDefine, name_prefix:string)=>{
-			const name = `${name_prefix}${define.name}`;
+		const join_name = (parent:string, name:string)=>{
+			if (is_lua_ident(name)) {
+				return `${parent}.${name}`;
+			} else {
+				return `${parent}['${name}']`;
+			}
+		};
+
+		const generate = async (define:ApiDefine, parent:string, parent_type:string, use_value?:LuaLSLiteral)=>{
+			const name = join_name(parent, define.name);
+			const type_name = `${parent_type}.${to_lua_ident(define.name)}`;
 			const description = format_description(this.collect_description(define, {scope: "runtime", member: name}));
+
+			if (name === "defines.prototypes") {
+				// don't bother with masked-type values for these...
+				use_value = new LuaLSLiteral(0);
+			}
+
 			//there aren't any with both values and subkeys for now,
 			//we'll deal with that if it ever happens...
 			if (define.values) {
-				file.add(new LuaLSEnum(name, define.values.map(v=>new LuaLSEnumField(v.name, new LuaLSTypeName(`${name}.${v.name}`), v.description)), description));
+				file.add(new LuaLSEnum(name, type_name, define.values.map(v=>new LuaLSEnumField(v.name, new LuaLSTypeName(`${type_name}.${to_lua_ident(v.name)}`), v.description, use_value)), description));
 			} else {
 				const lsclass = new LuaLSClass(name);
 				lsclass.global_name = name;
@@ -370,16 +389,15 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 				file.add(lsclass);
 
 				if (define.subkeys) {
-					const child_prefix = `${name}.`;
 					for (const subkey of define.subkeys) {
-						await generate(subkey, child_prefix);
+						await generate(subkey, name, type_name, use_value);
 					}
 				}
 			}
 		};
 
 		for (const define of this.docs.defines) {
-			await generate(define, "defines.");
+			await generate(define, "defines", "defines");
 		}
 		return file;
 	}

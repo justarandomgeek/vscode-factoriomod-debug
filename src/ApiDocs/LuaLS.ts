@@ -12,7 +12,7 @@ export function to_lua_ident(str:string) {
 	return escape_lua_keyword(str.replace(/[^a-zA-Z0-9]/g, "_").replace(/^([0-9])/, "_$1"));
 }
 
-function is_lua_ident(str:string) {
+export function is_lua_ident(str:string) {
 	return !!str.match(/^[a-zA-Z_][a-zA-Z_0-9]*$/);
 }
 
@@ -154,13 +154,14 @@ export class LuaLSAlias {
 export class LuaLSEnum {
 	constructor(
 		public readonly name:string,
+		public readonly type_name:string,
 		public readonly fields:ReadonlyArray<LuaLSEnumField>,
 		public readonly description?:Description,
 	) {}
 
 	async write(output:Writable) {
 		await comment_description(output, this.description);
-		output.write(`---@enum ${this.name}\n`);
+		output.write(`---@enum ${this.type_name}\n`);
 
 		output.write(`${this.name}={\n`);
 		for (const field of this.fields) {
@@ -175,12 +176,19 @@ export class LuaLSEnumField {
 		public readonly name:string,
 		public readonly typename:LuaLSTypeName,
 		public readonly description?:Description,
+		public readonly value?:LuaLSLiteral,
 	) {}
 
 	async write(output:Writable) {
 		await comment_description(output, this.description);
-		const name = is_lua_ident(this.name) ? this.name : `["${this.name}"]`;
-		output.write(`${name}=#{} --[[@as ${this.typename.format()}]],\n`);
+		const name = is_lua_ident(this.name) ? this.name : `['${this.name}']`;
+		output.write(`${name}=`);
+
+		if (this.value) {
+			output.write(`${this.value.format()},\n`);
+		} else {
+			output.write(`#{} --[[@as ${this.typename.format()} ]],\n`);
+		}
 	}
 }
 
