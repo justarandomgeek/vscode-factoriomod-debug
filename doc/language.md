@@ -81,7 +81,7 @@ parser_configs.factorio_locale = {
 }
 ```
 
-These provide only syntax parsing, not highlighting. Currently there are no concerete syntax highlight configurations for these parsers, but you can make your own! Consult `:h treesitter-highlight` for details. Basically you crate two files: `~/.config/nvim/afetr/queries/factorio_(changelog|locale)/highlights.scm`, which define what highlight groups are used for syntax nodes. You can inspect what a syntax node represents using `:InspectTree` on an open file.
+These provide only syntax parsing, not highlighting. Currently there are no concerete syntax highlight configurations for these parsers, but you can make your own! Consult `:h treesitter-highlight` for details. Basically you crate two files: `~/.config/nvim/afetr/queries/factorio_{changelog,locale}/highlights.scm`, which define what highlight groups are used for syntax nodes. You can inspect what a syntax node represents using `:InspectTree` on an open file.
 
 Here's a little example for bringing some highlight to changelog files:
 ```scm
