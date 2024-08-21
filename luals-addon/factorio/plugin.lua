@@ -174,10 +174,10 @@ args = args or {}
 ---@type table<string, true>
 local ignored_paths = {}
 for _, path in ipairs(args.ignore or {}) do
-  path = workspace.getAbsolutePath(workspace_uri, path) -- Returns a normalized path.
-  log_info(string.format("FMTK plugin --ignore %q resolved to %q", workspace_uri, path or "<nil>"))
-  if path then
-    ignored_paths[path] = true
+  local full_path = workspace.getAbsolutePath(workspace_uri, path) -- Returns a normalized path.
+  log_info(string.format("FMTK plugin --ignore %q resolved to %q", path, full_path or "<nil>"))
+  if full_path then
+    ignored_paths[full_path] = true
   end
 end
 
