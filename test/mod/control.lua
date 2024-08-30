@@ -21,6 +21,9 @@ function Test_A(t)
 	return setmetatable(t,test_meta_a)
 end
 
+---@generic K,V
+---@param lct LuaCustomTable<K,V>
+---@return V
 local function firstof(lct)
 	for key, value in pairs(lct) do
 		return value
