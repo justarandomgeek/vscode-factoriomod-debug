@@ -25,7 +25,16 @@ Example configuration for `lspconfig` achieving that:
 vim.filetype.add({
     -- Match by filename
     filename = {
-        ['changelog.txt'] = 'factorio-changelog'
+        -- Set custom filetype and indentation config of spaces, 2 per indent
+        ['changelog.txt'] = function(path, bufnr)
+            if vim.fs.find({ 'info.json' }, { path = vim.fs.dir(path)() }) then
+                vim.bo[bufnr].shiftwidth = 2
+                vim.bo[bufnr].tabstop = 2
+                vim.bo[bufnr].softtabstop = 2
+                vim.bo[bufnr].expandtab = true
+                return 'factorio-changelog'
+            end
+        end
     },
     -- Match by path pattern
     pattern = {
