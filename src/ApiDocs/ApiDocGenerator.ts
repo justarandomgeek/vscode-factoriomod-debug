@@ -236,15 +236,46 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			lsclass.parents.push(await this.LuaLS_type(overlay.adjust.class[aclass.name]?.generic_parent));
 		}
 
+		const attributesubclasses = new Map<string, LuaLSClass>();
+
+		/**
+		 * Applies a function to a set of newly created subclasses, or to a single class if there are no subclasses
+		 * @tparam oneclass The single class that may become a base class
+		 * @param newsubclasses New subclass names
+		 * @param allsubclasses Store of all new and previously created subclasses
+		 * @param fn Function to call for each class
+		 */
+		function apply_to_class_or_subclasses(oneclass:LuaLSClass, newsubclasses:string[]|undefined, allsubclasses:Map<string, LuaLSClass>, fn:(targetclass:LuaLSClass)=>void) {
+			let targetclasses:LuaLSClass[] = [];
+			if (newsubclasses && newsubclasses.length > 0) {
+				for (let subclassname of newsubclasses) {
+					if (!allsubclasses.has(subclassname)) {
+						let subclass = new LuaLSClass(oneclass.name + "." + subclassname);
+						subclass.parents=[new LuaLSTypeName(oneclass.name + ".base")];
+						allsubclasses.set(subclassname, subclass);
+					}
+					targetclasses.push(allsubclasses.get(subclassname)!);
+				}
+			}
+			if (targetclasses.length === 0) {
+				targetclasses.push(oneclass);
+			}
+			for (let targetclass of targetclasses) {
+				fn(targetclass);
+			}
+		}
+
 		for (const attribute of aclass.attributes) {
-			lsclass.add(new LuaLSField(
-				attribute.name,
-				await this.LuaLS_type(attribute.type, {
-					file, table_class_name: `${aclass.name}.${attribute.name}`, format_description,
-				}),
-				format_description(this.collect_description(attribute, { scope: "runtime", member: aclass.name, part: attribute.name })),
-				attribute.optional
-			));
+			apply_to_class_or_subclasses(lsclass, attribute.subclasses, attributesubclasses, async (targetclass)=>{
+				targetclass.add(new LuaLSField(
+					attribute.name,
+					await this.LuaLS_type(attribute.type, {
+						file, table_class_name: `${aclass.name}.${attribute.name}`, format_description,
+					}),
+					format_description(this.collect_description(attribute, { scope: "runtime", member: aclass.name, part: attribute.name })),
+					attribute.optional
+				));
+			});
 		}
 
 		for (const operator of aclass.operators) {
@@ -276,23 +307,55 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 					break;
 				}
 				default:
-					throw `Unkown operator: ${(<ApiOperator>operator).name}`;
+					throw `Unknown operator: ${(<ApiOperator>operator).name}`;
 			}
 		}
 
+		let methodsubclasses:Map<string, LuaLSClass>;
 		let funcclass = lsclass;
 		if (overlay.adjust.class[aclass.name]?.split_funcs) {
 			funcclass = new LuaLSClass(`${aclass.name}_funcs`);
-
-			file.add(funcclass);
-			lsclass.parents.push(new LuaLSTypeName(`${aclass.name}_funcs`));
+			methodsubclasses = new Map<string, LuaLSClass>();
+		} else {
+			methodsubclasses = attributesubclasses;
 		}
 
 		for (const method of aclass.methods) {
-			funcclass.add(await this.LuaLS_function(method, file, format_description, aclass.name));
+			apply_to_class_or_subclasses(funcclass, method.subclasses, methodsubclasses, async (targetclass)=>{
+				targetclass.add(await this.LuaLS_function(method, file, format_description, aclass.name));
+			});
+		}
+
+		const subclassmaps = new Map<LuaLSClass, Map<string, LuaLSClass>>();
+		subclassmaps.set(lsclass, attributesubclasses);
+		if (methodsubclasses !== attributesubclasses) {
+			subclassmaps.set(funcclass, methodsubclasses);
+		}
+		for (let [baseclass, subclassmap] of subclassmaps) {
+			if (subclassmap.size > 0) {
+				let allclassnames:LuaLSTypeName[] = [];
+				const allclassesalias = new LuaLSAlias(baseclass.name, new LuaLSUnion(allclassnames));
+				baseclass.name += ".base";
+				const allclasses = Array.from(subclassmap.values());
+				for (let c of allclasses.values()) {
+					allclassnames.push(new LuaLSTypeName(c.name));
+				}
+				allclassnames.push(new LuaLSTypeName(baseclass.name));
+				file.add(allclassesalias);
+			}
+		}
+
+		if (funcclass !== lsclass) {
+			file.add(funcclass);
+			lsclass.parents.push(new LuaLSTypeName(funcclass.name));
 		}
 
 		file.add(lsclass);
+		for (let subclassmap of subclassmaps.values()) {
+			for (let subclass of subclassmap.values()) {
+				file.add(subclass);
+			}
+		}
 		return file;
 	}
 
@@ -563,7 +626,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		}
 
 		if (type_data.variant_parameter_groups) {
-			const inners:LuaLSType[] = [];
+			const inners:LuaLSTypeName[] = [];
 			const innerunion = new LuaLSAlias(lsclass.name, new LuaLSUnion(inners));
 			file.add(innerunion);
 			lsclass.name += ".base";
@@ -674,12 +737,12 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			),
 			doclink && `[View Documentation](${doclink.scope}:${doclink.member}${doclink.part?"::"+doclink.part:""})`,
 			obj.examples?.map(example=>`### Example\n${example}`)?.join("\n\n"),
-			obj.subclasses && (
-				`_Can only be used if this is ${
-					obj.subclasses.length === 1 ? obj.subclasses[0] :
-					`${obj.subclasses.slice(0, -1).join(", ")} or ${obj.subclasses[obj.subclasses.length-1]}`
-				}_`
-			),
+			// obj.subclasses && (
+			// 	`_Can only be used if this is ${
+			// 		obj.subclasses.length === 1 ? obj.subclasses[0] :
+			// 		`${obj.subclasses.slice(0, -1).join(", ")} or ${obj.subclasses[obj.subclasses.length-1]}`
+			// 	}_`
+			// ),
 		].filter(s=>!!s).join("\n\n");
 	}
 }
