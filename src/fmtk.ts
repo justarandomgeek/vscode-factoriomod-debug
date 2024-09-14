@@ -11,9 +11,13 @@ export async function activate(context:ExtensionContext) {
 
 // When run from the command line, import `main` for CLI interface
 // When vscode forks external dap process, require.main is undefined...
-if (require.main === module || require.main === undefined ) {
+if (require.main === module || require.main === undefined
+	//@ts-expect-error - only defined when loaded as extension
+	&& !_VSCODE_PRODUCT_JSON
+) {
 	import("./cli/main");
 }
+
 
 // If neither of the above, we're being loaded as a library
 // so pass through the exports for the useful bits...
