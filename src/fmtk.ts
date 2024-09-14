@@ -10,11 +10,8 @@ export async function activate(context:ExtensionContext) {
 }
 
 // When run from the command line, import `main` for CLI interface
-// When vscode forks external dap process, require.main is undefined...
-if (require.main === module || require.main === undefined
-	//@ts-expect-error - only defined when loaded as extension
-	&& !_VSCODE_PRODUCT_JSON
-) {
+// vscode 1.94 and up has require.main === undefined, so detect module.parent instead...
+if (!module.parent) {
 	import("./cli/main");
 }
 
