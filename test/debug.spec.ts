@@ -5,7 +5,8 @@ import { forkTest } from "./util";
 import { setup, teardown, test, suite, suiteSetup } from "mocha";
 import { DebugClient } from "@vscode/debugadapter-testsupport";
 import type { LaunchRequestArguments } from "../src/Debug/factorioModDebug";
-import chai, { expect } from "chai";
+import * as chai from "chai";
+import { expect } from "chai";
 import chaiAsPromised from "chai-as-promised";
 import type { DebugProtocol } from '@vscode/debugprotocol';
 
