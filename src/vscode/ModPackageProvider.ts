@@ -482,7 +482,7 @@ class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>, 
 
 		this.subscriptions.push(
 			vscode.commands.registerCommand("factorio.datestamp", async (mp:ModPackage)=>{
-				const datestamptask = (await vscode.tasks.fetchTasks({type: "factorio"})).find(t=>t.definition.command = "datestamp" && t.definition.modname === mp.label)!;
+				const datestamptask = (await vscode.tasks.fetchTasks({type: "factorio"})).find(t=>t.definition.command === "datestamp" && t.definition.modname === mp.label)!;
 				await vscode.tasks.executeTask(datestamptask);
 			}));
 
