@@ -18,7 +18,7 @@ import { ChangeLogLanguageService } from './ChangeLog';
 import { LocaleLanguageService } from "./Locale";
 import { URI } from 'vscode-uri';
 
-import readdirGlob from 'readdir-glob';
+import { readdirGlob } from 'readdir-glob';
 import { LuaLanguageService } from './Lua';
 
 export async function runLanguageServer():Promise<void> {

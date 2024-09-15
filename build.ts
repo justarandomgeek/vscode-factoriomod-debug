@@ -34,6 +34,7 @@ function FactorioModPlugin():Plugin {
 				info.version = version;
 				await fsp.writeFile(path.join(args.path, "info.json"), JSON.stringify(info));
 				const files:string[] = [packagejsonPath, templatePath];
+				//@ts-expect-error cjs vs esm gone wrong here?
 				const globber = readdirGlob(args.path, {pattern: '**', nodir: true, ignore: ["*.template.json"]});
 				globber.on('match', (match:{ relative:string; absolute:string })=>{
 					files.push(match.absolute);

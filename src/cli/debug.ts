@@ -2,7 +2,7 @@ import * as os from "os";
 import * as fsp from 'fs/promises';
 import { program } from 'commander';
 
-import readdirGlob from 'readdir-glob';
+import { readdirGlob } from 'readdir-glob';
 
 import { URI, Utils } from 'vscode-uri';
 import { ActiveFactorioVersion, FactorioVersion } from "../vscode/FactorioVersion";
