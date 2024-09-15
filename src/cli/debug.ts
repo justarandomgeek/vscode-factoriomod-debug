@@ -7,7 +7,7 @@ import { readdirGlob } from 'readdir-glob';
 import { URI, Utils } from 'vscode-uri';
 import { ActiveFactorioVersion, FactorioVersion } from "../vscode/FactorioVersion";
 import { fsAccessor, getConfig } from "./util";
-
+import { ApiDocGenerator, FactorioModDebugSession } from '../fmtk';
 
 program.command("debug <factorioPath>")
 	.description("Launch a DAP debug session")
@@ -29,11 +29,9 @@ program.command("debug <factorioPath>")
 			"../../../doc-html/runtime-api.json"
 		);
 		const docsjson = await fsp.readFile(docsPath.fsPath, "utf8");
-		const { ApiDocGenerator } = await import('../ApiDocs/ApiDocGenerator');
 		const activeVersion = new ActiveFactorioVersion(fsAccessor, fv, new ApiDocGenerator(docsjson, await getConfig("doc", {}, true)));
 
 		// start a single session that communicates via stdin/stdout
-		const { FactorioModDebugSession } = await import('../Debug/factorioModDebug');
 		const session = new FactorioModDebugSession(activeVersion, fsAccessor, {
 			async findWorkspaceFiles(include) {
 				const found:URI[] = [];

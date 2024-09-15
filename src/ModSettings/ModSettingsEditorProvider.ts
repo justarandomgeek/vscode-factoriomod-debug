@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
-import { ModSettings, ModSettingsData } from "./ModSettings";
-import { BufferStream } from "../Util/BufferStream";
+import { BufferStream, ModSettings, ModSettingsData } from "../fmtk";
 import { BigIntReplacer, ModSettingsMessages, ToBigIntValue } from "./ModSettingsMessages";
 import { getNonce } from "../Util/WebviewNonce";
 

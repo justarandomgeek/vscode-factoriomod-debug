@@ -7,9 +7,8 @@ import { remark } from "remark";
 import { visit } from "unist-util-visit";
 import type { VFile } from "vfile";
 import type { Root, Link } from "mdast";
-import { ApiDocGenerator } from '../ApiDocs/ApiDocGenerator';
-import { ProtoDocGenerator } from '../ApiDocs/ProtoDocsGenerator';
-import { LuaLSAddon } from "../fmtk";
+
+import { ApiDocGenerator, ProtoDocGenerator, LuaLSAddon } from "../fmtk";
 
 
 program.command("luals-addon [outdir]")
