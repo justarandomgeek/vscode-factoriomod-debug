@@ -6,10 +6,8 @@ import { Duplex } from "stream";
 //TODO: figure out why and import a more sensible way
 //@ts-expect-error
 import * as _fmtk from "../dist/fmtk";
-import { BufferStream } from "../src/Util/BufferStream";
-import { MapVersion } from "../src/fmtk";
 const fmtk = _fmtk as typeof import("../src/fmtk");
-const { BufferSplitter, EncodingUtil, PropertyTree, PropertyTreeType } = fmtk;
+const { BufferSplitter, BufferStream, EncodingUtil, PropertyTree, PropertyTreeType, MapVersion } = fmtk;
 const { encodeVarInt } = EncodingUtil;
 class TestStream extends Duplex {
 	_write(chunk: string, _encoding: string, done: () => void) {

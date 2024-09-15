@@ -9,6 +9,7 @@ import type { VFile } from "vfile";
 import type { Root, Link } from "mdast";
 import { ApiDocGenerator } from '../ApiDocs/ApiDocGenerator';
 import { ProtoDocGenerator } from '../ApiDocs/ProtoDocsGenerator';
+import { LuaLSAddon } from "../fmtk";
 
 
 program.command("luals-addon [outdir]")
@@ -70,13 +71,12 @@ program.command("luals-addon [outdir]")
 				file.close();
 			}));
 
-		const lualsAddon = await import("../LuaLSAddon");
-		await Promise.all((await lualsAddon.getLuaFiles()).map(async (file)=>{
+		await Promise.all((await LuaLSAddon.getLuaFiles()).map(async (file)=>{
 			const filepath = path.join(outdir ?? process.cwd(), file.name);
 			await fsp.mkdir(path.dirname(filepath), { recursive: true });
 			return fsp.writeFile(filepath, Buffer.from(file.content));
 		}));
 
-		const config = await lualsAddon.getConfig(docs.application_version);
+		const config = await LuaLSAddon.getConfig(docs.application_version);
 		await fsp.writeFile(path.join(outdir ?? process.cwd(), config.name), Buffer.from(config.content));
 	});

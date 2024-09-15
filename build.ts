@@ -61,6 +61,21 @@ function FactorioModPlugin():Plugin {
 	};
 }
 
+function ResolveFMTKPlugin():Plugin {
+	return {
+		name: 'resolveFMTK',
+		setup(build) {
+			build.onResolve({ filter: /^(\.\.\/)+fmtk$/ }, args=>{
+				return {
+					path: "./fmtk",
+					external: true,
+					namespace: 'fmtk',
+				};
+			});
+		},
+	};
+}
+
 class Watcher {
 	private activeBuilds = 0;
 	onStart() {
@@ -102,11 +117,9 @@ const commonConfig:BuildOptions = {
 const mainConfig:BuildOptions = {
 	...commonConfig,
 	entryPoints: {
-		fmtk: "./src/fmtk.ts",
+		"fmtk": "./src/fmtk.ts",
+		"fmtk-cli": "./src/cli/main.ts",
 	},
-	external: [
-		"vscode",
-	],
 	loader: {
 		".html": "text",
 		".lua": "text",
@@ -118,6 +131,18 @@ const mainConfig:BuildOptions = {
 	plugins: [
 		ImportGlobPlugin(),
 		FactorioModPlugin(),
+		ResolveFMTKPlugin(),
+	],
+};
+
+
+const vscodeConfig:BuildOptions = {
+	...mainConfig,
+	entryPoints: {
+		"fmtk-vscode": "./src/vscode/extension.ts",
+	},
+	external: [
+		"vscode"
 	],
 };
 
@@ -148,6 +173,7 @@ program
 		if (options.watch) {
 			const watcher = new Watcher();
 			mainConfig.plugins!.push(watcher.plugin());
+			vscodeConfig.plugins!.push(watcher.plugin());
 			webviewConfig.plugins!.push(watcher.plugin());
 		}
 		const optionsConfig:BuildOptions = {
@@ -162,6 +188,10 @@ program
 					...optionsConfig,
 				}),
 				context({
+					...vscodeConfig,
+					...optionsConfig,
+				}),
+				context({
 					...webviewConfig,
 					...optionsConfig,
 				}),
@@ -171,6 +201,10 @@ program
 			const result = await Promise.all([
 				build({
 					...mainConfig,
+					...optionsConfig,
+				}),
+				build({
+					...vscodeConfig,
 					...optionsConfig,
 				}),
 				build({

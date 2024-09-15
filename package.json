@@ -35,7 +35,7 @@
     "typecheck-watch": "tsc -p tsconfig.json --noEmit --watch",
     "esbuild": "tsx ./build.ts",
     "watch": "npm run esbuild -- --watch",
-    "stats": "npm run esbuild -- --minify --meta && esbuild-visualizer --metadata ./out/meta_0.json --filename ./out/stats_0.html && esbuild-visualizer --metadata ./out/meta_1.json --filename ./out/stats_1.html",
+    "stats": "npm run esbuild -- --minify --meta && esbuild-visualizer --metadata ./out/meta_0.json --filename ./out/stats_0.html && esbuild-visualizer --metadata ./out/meta_1.json --filename ./out/stats_1.html && esbuild-visualizer --metadata ./out/meta_2.json --filename ./out/stats_2.html",
     "vscode:prepublish": "npm run prepare",
     "prepare": "rimraf dist && npm run esbuild -- --minify",
     "package": "vsce package",
@@ -99,9 +99,10 @@
   "extensionDependencies": [
     "sumneko.lua"
   ],
-  "main": "./dist/fmtk.js",
+  "main": "./dist/fmtk-vscode.js",
   "bin": {
-    "fmtk": "dist/fmtk.js"
+    "fmtk": "dist/fmtk-cli.js",
+    "factoriomod-debug": "dist/fmtk-cli.js"
   },
   "activationEvents": [
     "onDebug",

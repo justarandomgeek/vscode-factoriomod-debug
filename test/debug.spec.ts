@@ -19,7 +19,7 @@ function exists(file:fs.PathLike) {
 suite('Debug Adapter', ()=>{
 	let dc: DebugClient;
 	const cwd = path.join(__dirname, "./factorio/mods");
-	const fmtk = path.join(__dirname, '../dist/fmtk.js');
+	const fmtk = path.join(__dirname, '../dist/fmtk-cli.js');
 
 	function launch(args:Partial<LaunchRequestArguments>, testid?:string) {
 		return dc.launch(Object.assign({

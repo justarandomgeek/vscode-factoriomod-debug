@@ -5,7 +5,7 @@ import { default as fetch } from "node-fetch";
 import type { ModInfo } from './vscode/ModPackageProvider';
 import { version as bundleVersion } from "../package.json";
 
-export const BundledMods:{[name:string]:{version:string; zip():Promise<Uint8Array>}} = {
+const BundledMods:{[name:string]:{version:string; zip():Promise<Uint8Array>}} = {
 	["debugadapter"]: {
 		version: bundleVersion,
 		//@ts-expect-error UInt8Array from esbuild

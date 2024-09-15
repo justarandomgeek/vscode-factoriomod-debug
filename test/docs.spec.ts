@@ -3,7 +3,7 @@ import { test, suite } from "mocha";
 import { forkTest } from "./util";
 
 suite('CLI Docs', ()=>{
-	const fmtk = path.join(__dirname, '../dist/fmtk.js');
+	const fmtk = path.join(__dirname, '../dist/fmtk-cli.js');
 	const jsonpath = path.join(__dirname, "factorio/doc-html/runtime-api.json");
 	const protospath = path.join(__dirname, "factorio/doc-html/prototype-api.json");
 	const cwd = path.join(__dirname, "../");

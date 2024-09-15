@@ -238,6 +238,10 @@ class ModTaskProvider implements vscode.TaskProvider {
 		});
 	}
 
+	private getFMTKCLIPath() {
+		return this.context.asAbsolutePath("./dist/fmtk-cli.js");
+	}
+
 	private AdjustModsTask(def:AdjustModsDefinition) {
 		const args = [
 			"mods", "--modsPath", def.modsPath, "adjust",
@@ -254,7 +258,7 @@ class ModTaskProvider implements vscode.TaskProvider {
 		return new vscode.CustomExecution(async ()=>{
 			return new ModTaskPseudoterminal(async term=>{
 				await forkScript(term,
-					this.context.asAbsolutePath("./dist/fmtk.js"),
+					this.getFMTKCLIPath(),
 					args,
 					process.cwd());
 				term.close();
@@ -326,11 +330,15 @@ class ModPackage extends vscode.TreeItem {
 		this.scripts = modscript.package?.scripts;
 	}
 
+	private getFMTKCLIPath() {
+		return this.context.asAbsolutePath("./dist/fmtk-cli.js");
+	}
+
 	public RunTask(script:string, scriptArgs?:string[]) {
 		return new vscode.CustomExecution(async ()=>{
 			return new ModTaskPseudoterminal(async term=>{
 				await forkScript(term,
-					this.context.asAbsolutePath("./dist/fmtk.js"),
+					this.getFMTKCLIPath(),
 					["run", script, ...(scriptArgs??[])],
 					vscode.Uri.joinPath(this.resourceUri, "..").fsPath);
 				await this.Update();
@@ -343,7 +351,7 @@ class ModPackage extends vscode.TreeItem {
 		return new vscode.CustomExecution(async ()=>{
 			return new ModTaskPseudoterminal(async term=>{
 				await forkScript(term,
-					this.context.asAbsolutePath("./dist/fmtk.js"),
+					this.getFMTKCLIPath(),
 					["datestamp"],
 					vscode.Uri.joinPath(this.resourceUri, "..").fsPath);
 				await this.Update();
@@ -364,7 +372,7 @@ class ModPackage extends vscode.TreeItem {
 		return new vscode.CustomExecution(async ()=>{
 			return new ModTaskPseudoterminal(async term=>{
 				await forkScript(term,
-					this.context.asAbsolutePath("./dist/fmtk.js"),
+					this.getFMTKCLIPath(),
 					args,
 					vscode.Uri.joinPath(this.resourceUri, "..").fsPath);
 				await this.Update();
@@ -377,7 +385,7 @@ class ModPackage extends vscode.TreeItem {
 		return new vscode.CustomExecution(async ()=>{
 			return new ModTaskPseudoterminal(async term=>{
 				await forkScript(term,
-					this.context.asAbsolutePath("./dist/fmtk.js"),
+					this.getFMTKCLIPath(),
 					["version"],
 					vscode.Uri.joinPath(this.resourceUri, "..").fsPath);
 				await this.Update();
@@ -414,7 +422,7 @@ class ModPackage extends vscode.TreeItem {
 				const APIKeyReady = await this.keychain.ReadyAPIKey();
 				if (APIKeyReady) {
 					await forkScript(term,
-						this.context.asAbsolutePath("./dist/fmtk.js"),
+						this.getFMTKCLIPath(),
 						["upload", packagepath, this.label ],
 						vscode.Uri.joinPath(this.resourceUri, "..").fsPath,
 						(APIKeyReady.from!=="env")?{ FACTORIO_UPLOAD_API_KEY: APIKeyReady.key }:undefined);
@@ -429,7 +437,7 @@ class ModPackage extends vscode.TreeItem {
 		return new vscode.CustomExecution(async ()=>{
 			return new ModTaskPseudoterminal(async term=>{
 				await forkScript(term,
-					this.context.asAbsolutePath("./dist/fmtk.js"),
+					this.getFMTKCLIPath(),
 					["details"],
 					vscode.Uri.joinPath(this.resourceUri, "..").fsPath);
 				await this.Update();
@@ -444,7 +452,7 @@ class ModPackage extends vscode.TreeItem {
 				const APIKeyReady = await this.keychain.ReadyAPIKey();
 				if (APIKeyReady) {
 					await forkScript(term,
-						this.context.asAbsolutePath("./dist/fmtk.js"),
+						this.getFMTKCLIPath(),
 						["publish"],
 						vscode.Uri.joinPath(this.resourceUri, "..").fsPath,
 						(APIKeyReady.from!=="env")?{ FACTORIO_UPLOAD_API_KEY: APIKeyReady.key }:undefined);

@@ -1,6 +1,6 @@
 import { program } from 'commander';
 import inquirer from "inquirer";
-import { ModManager } from '../ModManager';
+import { ModManager } from '../fmtk';
 
 const modscommand = program.command("mods")
 	.description("Mod management commands")
