@@ -3,10 +3,9 @@ import * as os from 'os';
 import * as path from 'path';
 import { URI, Utils } from "vscode-uri";
 import type { DocSettings } from "../ApiDocs/DocSettings";
-import { ActiveFactorioVersion, FactorioVersion, substitutePathVariables } from './FactorioVersion';
 import { forkScript } from './ModPackageProvider';
 import { version as bundleVersion } from "../../package.json";
-import { ApiDocGenerator, LuaLSAddon } from "../fmtk";
+import { ActiveFactorioVersion, FactorioVersion, substitutePathVariables, ApiDocGenerator, LuaLSAddon } from "../fmtk";
 const fs = vscode.workspace.fs;
 
 const detectPaths:FactorioVersion[] = [

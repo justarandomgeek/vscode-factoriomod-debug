@@ -14,9 +14,8 @@ import { URI, Utils } from 'vscode-uri';
 import { bufferChunks, encodeBreakpoints, luaBlockQuote, objectToLua } from '../Util/EncodingUtil';
 import { FactorioProcess } from './FactorioProcess';
 import type { ModInfo } from '../vscode/ModPackageProvider';
-import { BufferStream, ModManager, ModSettings } from '../fmtk';
+import { ActiveFactorioVersion, BufferStream, ModManager, ModSettings } from '../fmtk';
 import { LuaFunction } from './LuaDisassembler';
-import type { ActiveFactorioVersion } from '../vscode/FactorioVersion';
 
 interface ModPaths{
 	uri: URI

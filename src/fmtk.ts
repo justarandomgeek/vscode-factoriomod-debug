@@ -11,3 +11,4 @@ export * from "./Util/BufferStream";
 export * from "./Util/BufferSplitter";
 export * from "./Util/PropertyTree";
 export * from "./Util/MapVersion";
+export * from "./vscode/FactorioVersion";
