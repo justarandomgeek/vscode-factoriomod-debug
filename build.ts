@@ -1,6 +1,6 @@
 import * as fsp from 'fs/promises';
 import * as path from 'path';
-import { build, BuildOptions, BuildResult, context, Plugin } from "esbuild";
+import { build, BuildOptions, BuildResult, context, Metafile, Plugin } from "esbuild";
 import ImportGlobPlugin from 'esbuild-plugin-import-glob';
 
 import { program } from 'commander';
@@ -213,7 +213,37 @@ program
 				}),
 			]);
 			if (options.meta) {
-				await Promise.all(result.map((result, i)=>fsp.writeFile(`./out/meta_${i}.json`, JSON.stringify(result.metafile))));
+				const metas = result.map(result=>result.metafile).filter(m=>!!m);
+				const merged:Metafile = {
+					inputs: {},
+					outputs: {},
+				};
+
+				for (const meta of metas) {
+					for (const key in meta.inputs) {
+						if (Object.prototype.hasOwnProperty.call(meta.inputs, key)) {
+							const input = meta.inputs[key];
+							if (merged.inputs[key]) {
+								merged.inputs[key].imports = merged.inputs[key].imports.concat(input.imports);
+							} else {
+								merged.inputs[key] = input;
+							}
+						}
+					}
+
+					for (const key in meta.outputs) {
+						if (Object.prototype.hasOwnProperty.call(meta.outputs, key)) {
+							const output = meta.outputs[key];
+							if (merged.outputs[key]) {
+								throw new Error("Duplicate Outputs");
+							} else {
+								merged.outputs[key] = output;
+							}
+						}
+					}
+				}
+
+				await fsp.writeFile(`./out/meta.json`, JSON.stringify(merged));
 			}
 		}
 	}).parseAsync();
