@@ -67,7 +67,7 @@ function ResolveFMTKPlugin():Plugin {
 		setup(build) {
 			build.onResolve({ filter: /^(\.\.\/)+fmtk$/ }, args=>{
 				return {
-					path: "./fmtk",
+					path: "./fmtk.js",
 					external: true,
 					namespace: 'fmtk',
 				};
