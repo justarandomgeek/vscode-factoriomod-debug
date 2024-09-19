@@ -61,6 +61,7 @@ function FactorioModPlugin():Plugin {
 	};
 }
 
+// this is just a hack to resolve imports for the main `fmtk` to its bundled self
 function ResolveFMTKPlugin():Plugin {
 	return {
 		name: 'resolveFMTK',
@@ -109,61 +110,65 @@ const commonConfig:BuildOptions = {
 	tsconfig: "./tsconfig.json",
 	bundle: true,
 	outdir: "dist",
-	//logLevel: "info",
 	sourcemap: true,
 	sourcesContent: false,
-};
-
-const mainConfig:BuildOptions = {
-	...commonConfig,
-	entryPoints: {
-		"fmtk": "./src/fmtk.ts",
-		"fmtk-cli": "./src/cli/main.ts",
-	},
+	platform: "node",
+	format: "cjs",
 	loader: {
 		".html": "text",
 		".lua": "text",
-	},
-	platform: "node",
-	format: "cjs",
-	// `module` first for jsonc-parser
-	mainFields: ['module', 'main'],
-	plugins: [
-		ImportGlobPlugin(),
-		FactorioModPlugin(),
-		ResolveFMTKPlugin(),
-	],
-};
-
-
-const vscodeConfig:BuildOptions = {
-	...mainConfig,
-	entryPoints: {
-		"fmtk-vscode": "./src/vscode/extension.ts",
-	},
-	external: [
-		"vscode"
-	],
-};
-
-const webviewConfig:BuildOptions = {
-	...commonConfig,
-	entryPoints: {
-		Flamegraph: "./src/Profile/Flamegraph.ts",
-		ModSettingsWebview: "./src/ModSettings/ModSettingsWebview.ts",
-		ScriptDatWebview: "./src/ScriptDat/ScriptDatWebview.ts",
-	},
-	external: [
-		"vscode-webview",
-	],
-	loader: {
 		".ttf": "copy",
 	},
-	platform: "browser",
-	format: "esm",
 	plugins: [
 	],
 };
+
+const configs:BuildOptions[] = [
+	{
+		...commonConfig,
+		entryPoints: {
+			"fmtk": "./src/fmtk.ts",
+		},
+		plugins: [
+			ImportGlobPlugin(),
+			FactorioModPlugin(),
+		],
+	},
+	{
+		...commonConfig,
+		entryPoints: {
+			"fmtk-cli": "./src/cli/main.ts",
+		},
+		plugins: [
+			ResolveFMTKPlugin(),
+		],
+	},
+	{
+		...commonConfig,
+		entryPoints: {
+			"fmtk-vscode": "./src/vscode/extension.ts",
+		},
+		external: [
+			"vscode"
+		],
+		plugins: [
+			ResolveFMTKPlugin(),
+		],
+	},
+	{
+		...commonConfig,
+		platform: "browser",
+		format: "esm",
+		entryPoints: {
+			Flamegraph: "./src/Profile/Flamegraph.ts",
+			ModSettingsWebview: "./src/ModSettings/ModSettingsWebview.ts",
+			ScriptDatWebview: "./src/ScriptDat/ScriptDatWebview.ts",
+		},
+		external: [
+			"vscode-webview",
+		],
+	},
+];
 
 program
 	.option("--watch")
@@ -172,9 +177,7 @@ program
 	.action(async (options:{watch?:boolean; meta?:boolean; minify?:boolean})=>{
 		if (options.watch) {
 			const watcher = new Watcher();
-			mainConfig.plugins!.push(watcher.plugin());
-			vscodeConfig.plugins!.push(watcher.plugin());
-			webviewConfig.plugins!.push(watcher.plugin());
+			configs.forEach(config=>config.plugins!.push(watcher.plugin()));
 		}
 		const optionsConfig:BuildOptions = {
 			metafile: options.meta,
@@ -182,36 +185,17 @@ program
 		};
 
 		if (options.watch) {
-			const contexts = await Promise.all([
-				context({
-					...mainConfig,
+			const contexts = await Promise.all(
+				configs.map(config=>context({
+					...config,
 					...optionsConfig,
-				}),
-				context({
-					...vscodeConfig,
-					...optionsConfig,
-				}),
-				context({
-					...webviewConfig,
-					...optionsConfig,
-				}),
-			]);
+				})));
 			await Promise.all(contexts.map(c=>c.watch()));
 		} else {
-			const result = await Promise.all([
-				build({
-					...mainConfig,
-					...optionsConfig,
-				}),
-				build({
-					...vscodeConfig,
-					...optionsConfig,
-				}),
-				build({
-					...webviewConfig,
-					...optionsConfig,
-				}),
-			]);
+			const result = await Promise.all(configs.map(config=>build({
+				...config,
+				...optionsConfig,
+			})));
 			if (options.meta) {
 				const metas = result.map(result=>result.metafile).filter(m=>!!m);
 				const merged:Metafile = {
