@@ -2,11 +2,11 @@
 ---@alias data.ModSettingSettingType ("startup")|("runtime-global")|("double-setting")|("runtime-per-user")
 
 ---[View Documentation](https://wiki.factorio.com/Tutorial:Mod_settings)
----@alias data.AnyModSetting data.ModBoolSetting|data.ModIntSetting|data.ModDoubleSetting|data.ModStringSetting|data.ModColorSetting
+---@alias data.AnyModSettingPrototype data.ModBoolSettingPrototype|data.ModIntSettingPrototype|data.ModDoubleSettingPrototype|data.ModStringSettingPrototype|data.ModColorSettingPrototype
 
 do
 ---[View Documentation](https://wiki.factorio.com/Tutorial:Mod_settings)
----@class data.ModSetting:data.PrototypeBase
+---@class data.ModSettingPrototype:data.PrototypeBase
 ---[View Documentation](https://wiki.factorio.com/Tutorial:Mod_settings#The_hidden_property)
 ---@field hidden? boolean
 ---[View Documentation](https://wiki.factorio.com/Tutorial:Mod_settings#The_setting_type_property)
@@ -17,7 +17,7 @@ end
 
 do
 ---[View Documentation](https://wiki.factorio.com/Tutorial:Mod_settings#bool-setting)
----@class data.ModBoolSetting:data.ModSetting
+---@class data.ModBoolSettingPrototype:data.ModSettingPrototype
 ---@field type "bool-setting"
 ---@field default_value boolean
 ---@field forced_value? boolean
@@ -27,7 +27,7 @@ end
 
 do
 ---[View Documentation](https://wiki.factorio.com/Tutorial:Mod_settings#int-setting)
----@class data.ModIntSetting:data.ModSetting
+---@class data.ModIntSettingPrototype:data.ModSettingPrototype
 ---@field type "int-setting"
 ---@field default_value int64
 ---@field minimum_value? int64
@@ -39,7 +39,7 @@ end
 
 do
 ---[View Documentation](https://wiki.factorio.com/Tutorial:Mod_settings#double-setting)
----@class data.ModDoubleSetting:data.ModSetting
+---@class data.ModDoubleSettingPrototype:data.ModSettingPrototype
 ---@field type "double-setting"
 ---@field default_value double
 ---@field minimum_value? double
@@ -51,7 +51,7 @@ end
 
 do
 ---[View Documentation](https://wiki.factorio.com/Tutorial:Mod_settings#string-setting)
----@class data.ModStringSetting:data.ModSetting
+---@class data.ModStringSettingPrototype:data.ModSettingPrototype
 ---@field type "string-setting"
 ---@field default_value string
 ---@field allow_blank? boolean
@@ -63,7 +63,7 @@ end
 
 do
 ---[View Documentation](https://wiki.factorio.com/Tutorial:Mod_settings#color-setting)
----@class data.ModColorSetting:data.ModSetting
+---@class data.ModColorSettingPrototype:data.ModSettingPrototype
 ---@field type "color-setting"
 ---@field default_value data.Color
 local data_ModBoolSetting={

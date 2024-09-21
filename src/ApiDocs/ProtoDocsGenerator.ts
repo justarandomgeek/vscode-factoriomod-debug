@@ -136,7 +136,7 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 		if (hasAny) {
 			extend.add(new LuaLSOverload(undefined, [
 				new LuaLSParam("self", new LuaLSTypeName("data")),
-				new LuaLSParam("otherdata", new LuaLSArray(new LuaLSTypeName("data.AnyModSetting"))),
+				new LuaLSParam("otherdata", new LuaLSArray(new LuaLSTypeName("data.AnyModSettingPrototype"))),
 			]));
 		}
 
