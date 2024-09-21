@@ -1,4 +1,4 @@
-import { LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSLiteral, LuaLSParam, LuaLSTuple, LuaLSType, LuaLSTypeName, LuaLSUnion } from "./LuaLS";
+import { LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSLiteral, LuaLSOverload, LuaLSParam, LuaLSTuple, LuaLSType, LuaLSTypeName, LuaLSUnion } from "./LuaLS";
 import type { DocSettings } from "./DocSettings";
 
 export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
@@ -127,11 +127,19 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 		const data = new LuaLSClass("data");
 		data.add(new LuaLSField("raw", new LuaLSTypeName("data.raw")));
 		data.add(new LuaLSField("is_demo", new LuaLSTypeName("boolean")));
-		const ptypename = this.concepts.has("AnyPrototype") ? "data.AnyPrototype" : "data.PrototypeBase";
+		const hasAny = this.concepts.has("AnyPrototype");
+		const ptypename = hasAny ? "data.AnyPrototype" : "data.PrototypeBase";
 		const extend = new LuaLSFunction("extend", [
 			new LuaLSParam("self", new LuaLSTypeName("data")),
-			new LuaLSParam("otherdata", new LuaLSArray(new LuaLSUnion([new LuaLSTypeName(ptypename), new LuaLSTypeName("data.AnyModSetting")]))),
+			new LuaLSParam("otherdata", new LuaLSArray(new LuaLSTypeName(ptypename))),
 		]);
+		if (hasAny) {
+			extend.add(new LuaLSOverload(undefined, [
+				new LuaLSParam("self", new LuaLSTypeName("data")),
+				new LuaLSParam("otherdata", new LuaLSArray(new LuaLSTypeName("data.AnyModSetting"))),
+			]));
+		}
+
 		data.add(extend);
 		data.global_name = "data";
 		file.add(data);
