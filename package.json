@@ -76,7 +76,7 @@
     "esbuild": "^0.23.1",
     "esbuild-plugin-import-glob": "^0.1.1",
     "esbuild-visualizer": "^0.6.0",
-    "eslint": "^9.10.0",
+    "eslint": "^9.11.0",
     "ini": "^5.0.0",
     "inquirer": "^11.0.2",
     "jsonc-parser": "^3.3.1",
