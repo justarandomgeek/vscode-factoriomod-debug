@@ -6,7 +6,7 @@ import path from 'path';
 import { visit } from "unist-util-visit";
 import { remark } from "remark";
 import { default as fetch, Headers, FormData, Blob } from "node-fetch";
-import { getModInfo, ModCategory, ModLicense, ModPortalImage } from "../ModManager";
+import { getModInfo, ModCategory, ModLicense, ModPortalImage } from "../fmtk";
 
 import type archiver from "archiver";
 import type { Edit } from "jsonc-parser";
@@ -14,7 +14,7 @@ import type { VFile } from "vfile";
 import type { Root, Image, Link } from "mdast";
 import type { ModInfo } from "../vscode/ModPackageProvider";
 
-import readdirGlob from 'readdir-glob';
+import { readdirGlob } from 'readdir-glob';
 
 export async function getPackageinfo() {
 	try {

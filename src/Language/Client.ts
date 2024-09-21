@@ -11,7 +11,7 @@ import {
 export function activate(context: ExtensionContext) {
 
 	const serverModule = context.asAbsolutePath(
-		path.join('dist', 'fmtk.js')
+		path.join('dist', 'fmtk-cli.js')
 	);
 	// The debug options for the server
 	// --inspect=6009: runs the server in Node's Inspector mode so VS Code can attach to the server for debugging

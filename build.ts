@@ -1,6 +1,6 @@
 import * as fsp from 'fs/promises';
 import * as path from 'path';
-import { build, BuildOptions, BuildResult, context, Plugin } from "esbuild";
+import { build, BuildOptions, BuildResult, context, Metafile, Plugin } from "esbuild";
 import ImportGlobPlugin from 'esbuild-plugin-import-glob';
 
 import { program } from 'commander';
@@ -34,6 +34,7 @@ function FactorioModPlugin():Plugin {
 				info.version = version;
 				await fsp.writeFile(path.join(args.path, "info.json"), JSON.stringify(info));
 				const files:string[] = [packagejsonPath, templatePath];
+				//@ts-expect-error cjs vs esm gone wrong here?
 				const globber = readdirGlob(args.path, {pattern: '**', nodir: true, ignore: ["*.template.json"]});
 				globber.on('match', (match:{ relative:string; absolute:string })=>{
 					files.push(match.absolute);
@@ -54,6 +55,22 @@ function FactorioModPlugin():Plugin {
 					loader: 'binary',
 					watchDirs: [ args.path ],
 					watchFiles: files,
+				};
+			});
+		},
+	};
+}
+
+// this is just a hack to resolve imports for the main `fmtk` to its bundled self
+function ResolveFMTKPlugin():Plugin {
+	return {
+		name: 'resolveFMTK',
+		setup(build) {
+			build.onResolve({ filter: /^(\.\.\/)+fmtk$/ }, args=>{
+				return {
+					path: "./fmtk.js",
+					external: true,
+					namespace: 'fmtk',
 				};
 			});
 		},
@@ -93,51 +110,65 @@ const commonConfig:BuildOptions = {
 	tsconfig: "./tsconfig.json",
 	bundle: true,
 	outdir: "dist",
-	//logLevel: "info",
 	sourcemap: true,
 	sourcesContent: false,
-};
-
-const mainConfig:BuildOptions = {
-	...commonConfig,
-	entryPoints: {
-		fmtk: "./src/fmtk.ts",
-	},
-	external: [
-		"vscode",
-	],
+	platform: "node",
+	format: "cjs",
 	loader: {
 		".html": "text",
 		".lua": "text",
+		".ttf": "copy",
 	},
-	platform: "node",
-	format: "cjs",
-	// `module` first for jsonc-parser
-	mainFields: ['module', 'main'],
 	plugins: [
-		ImportGlobPlugin(),
-		FactorioModPlugin(),
 	],
 };
 
-const webviewConfig:BuildOptions = {
-	...commonConfig,
-	entryPoints: {
-		Flamegraph: "./src/Profile/Flamegraph.ts",
-		ModSettingsWebview: "./src/ModSettings/ModSettingsWebview.ts",
-		ScriptDatWebview: "./src/ScriptDat/ScriptDatWebview.ts",
+const configs:BuildOptions[] = [
+	{
+		...commonConfig,
+		entryPoints: {
+			"fmtk": "./src/fmtk.ts",
+		},
+		plugins: [
+			ImportGlobPlugin(),
+			FactorioModPlugin(),
+		],
 	},
-	external: [
-		"vscode-webview",
-	],
-	loader: {
-		".ttf": "copy",
+	{
+		...commonConfig,
+		entryPoints: {
+			"fmtk-cli": "./src/cli/main.ts",
+		},
+		plugins: [
+			ResolveFMTKPlugin(),
+		],
 	},
-	platform: "browser",
-	format: "esm",
-	plugins: [
-	],
-};
+	{
+		...commonConfig,
+		entryPoints: {
+			"fmtk-vscode": "./src/vscode/extension.ts",
+		},
+		external: [
+			"vscode"
+		],
+		plugins: [
+			ResolveFMTKPlugin(),
+		],
+	},
+	{
+		...commonConfig,
+		platform: "browser",
+		format: "esm",
+		entryPoints: {
+			Flamegraph: "./src/Profile/Flamegraph.ts",
+			ModSettingsWebview: "./src/ModSettings/ModSettingsWebview.ts",
+			ScriptDatWebview: "./src/ScriptDat/ScriptDatWebview.ts",
+		},
+		external: [
+			"vscode-webview",
+		],
+	},
+];
 
 program
 	.option("--watch")
@@ -146,8 +177,7 @@ program
 	.action(async (options:{watch?:boolean; meta?:boolean; minify?:boolean})=>{
 		if (options.watch) {
 			const watcher = new Watcher();
-			mainConfig.plugins!.push(watcher.plugin());
-			webviewConfig.plugins!.push(watcher.plugin());
+			configs.forEach(config=>config.plugins!.push(watcher.plugin()));
 		}
 		const optionsConfig:BuildOptions = {
 			metafile: options.meta,
@@ -155,30 +185,49 @@ program
 		};
 
 		if (options.watch) {
-			const contexts = await Promise.all([
-				context({
-					...mainConfig,
+			const contexts = await Promise.all(
+				configs.map(config=>context({
+					...config,
 					...optionsConfig,
-				}),
-				context({
-					...webviewConfig,
-					...optionsConfig,
-				}),
-			]);
+				})));
 			await Promise.all(contexts.map(c=>c.watch()));
 		} else {
-			const result = await Promise.all([
-				build({
-					...mainConfig,
-					...optionsConfig,
-				}),
-				build({
-					...webviewConfig,
-					...optionsConfig,
-				}),
-			]);
+			const result = await Promise.all(configs.map(config=>build({
+				...config,
+				...optionsConfig,
+			})));
 			if (options.meta) {
-				await Promise.all(result.map((result, i)=>fsp.writeFile(`./out/meta_${i}.json`, JSON.stringify(result.metafile))));
+				const metas = result.map(result=>result.metafile).filter(m=>!!m);
+				const merged:Metafile = {
+					inputs: {},
+					outputs: {},
+				};
+
+				for (const meta of metas) {
+					for (const key in meta.inputs) {
+						if (Object.prototype.hasOwnProperty.call(meta.inputs, key)) {
+							const input = meta.inputs[key];
+							if (merged.inputs[key]) {
+								merged.inputs[key].imports = merged.inputs[key].imports.concat(input.imports);
+							} else {
+								merged.inputs[key] = input;
+							}
+						}
+					}
+
+					for (const key in meta.outputs) {
+						if (Object.prototype.hasOwnProperty.call(meta.outputs, key)) {
+							const output = meta.outputs[key];
+							if (merged.outputs[key]) {
+								throw new Error("Duplicate Outputs");
+							} else {
+								merged.outputs[key] = output;
+							}
+						}
+					}
+				}
+
+				await fsp.writeFile(`./out/meta.json`, JSON.stringify(merged));
 			}
 		}
 	}).parseAsync();

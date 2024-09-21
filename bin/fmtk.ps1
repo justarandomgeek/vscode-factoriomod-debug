@@ -11,17 +11,17 @@ $ret=0
 if (Test-Path "$basedir/node$exe") {
   # Support pipeline input
   if ($MyInvocation.ExpectingInput) {
-    $input | & "$basedir/node$exe"  "$basedir/../dist/fmtk.js" $args
+    $input | & "$basedir/node$exe"  "$basedir/../dist/fmtk-cli.js" $args
   } else {
-    & "$basedir/node$exe"  "$basedir/../dist/fmtk.js" $args
+    & "$basedir/node$exe"  "$basedir/../dist/fmtk-cli.js" $args
   }
   $ret=$LASTEXITCODE
 } else {
   # Support pipeline input
   if ($MyInvocation.ExpectingInput) {
-    $input | & "node$exe"  "$basedir/../dist/fmtk.js" $args
+    $input | & "node$exe"  "$basedir/../dist/fmtk-cli.js" $args
   } else {
-    & "node$exe"  "$basedir/../dist/fmtk.js" $args
+    & "node$exe"  "$basedir/../dist/fmtk-cli.js" $args
   }
   $ret=$LASTEXITCODE
 }

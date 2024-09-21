@@ -5,7 +5,7 @@ import { expect } from "chai";
 import { forkTest, forkTestFails } from "./util";
 
 suite('CLI Mod Settings', ()=>{
-	const fmtk = path.join(__dirname, '../dist/fmtk.js');
+	const fmtk = path.join(__dirname, '../dist/fmtk-cli.js');
 	const mods = path.join(__dirname, "./factorio/mod-tests");
 
 	suiteSetup(async ()=>{

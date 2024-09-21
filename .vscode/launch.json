@@ -95,7 +95,7 @@
 			"name": "Standalone Commands",
 			"type": "node",
 			"request": "launch",
-			"program": "${workspaceFolder}/dist/fmtk.js",
+			"program": "${workspaceFolder}/dist/fmtk-cli.js",
 			"args": [
 				"publish"
 			],
@@ -119,7 +119,7 @@
 			"name": "Standalone LuaLS Addon",
 			"type": "node",
 			"request": "launch",
-			"program": "${workspaceFolder}/dist/fmtk.js",
+			"program": "${workspaceFolder}/dist/fmtk-cli.js",
 			"cwd": "${workspaceFolder}",
 			"args": [
 				"sumneko-3rd",

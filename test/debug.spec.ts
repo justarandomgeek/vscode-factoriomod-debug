@@ -5,7 +5,8 @@ import { forkTest } from "./util";
 import { setup, teardown, test, suite, suiteSetup } from "mocha";
 import { DebugClient } from "@vscode/debugadapter-testsupport";
 import type { LaunchRequestArguments } from "../src/Debug/factorioModDebug";
-import chai, { expect } from "chai";
+import * as chai from "chai";
+import { expect } from "chai";
 import chaiAsPromised from "chai-as-promised";
 import type { DebugProtocol } from '@vscode/debugprotocol';
 
@@ -18,7 +19,7 @@ function exists(file:fs.PathLike) {
 suite('Debug Adapter', ()=>{
 	let dc: DebugClient;
 	const cwd = path.join(__dirname, "./factorio/mods");
-	const fmtk = path.join(__dirname, '../dist/fmtk.js');
+	const fmtk = path.join(__dirname, '../dist/fmtk-cli.js');
 
 	function launch(args:Partial<LaunchRequestArguments>, testid?:string) {
 		return dc.launch(Object.assign({

@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { program } from 'commander';
 import { displayName, version as bundleVersion } from "../../package.json";
 

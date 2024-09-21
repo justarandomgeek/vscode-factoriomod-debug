@@ -1,23 +1,14 @@
-#!/usr/bin/env node
-
-// When loaded by vscode, `activate` is called to load the extension code
-// This stub defers the actual loading until then, so no vscode deps are
-// required for standalone execution
-import type { ExtensionContext } from 'vscode';
-export async function activate(context:ExtensionContext) {
-	const extension = await import("./vscode/extension");
-	extension.activate(context);
-}
-
-// When run from the command line, import `main` for CLI interface
-// When vscode forks external dap process, require.main is undefined...
-if (require.main === module || require.main === undefined ) {
-	import("./cli/main");
-}
-
-// If neither of the above, we're being loaded as a library
-// so pass through the exports for the useful bits...
 export * as EncodingUtil from "./Util/EncodingUtil";
+export * as LuaLSAddon from "./LuaLSAddon";
+
+export * from "./ModManager";
+export * from "./ModSettings/ModSettings"
+export * from "./ApiDocs/ApiDocGenerator";
+export * from "./ApiDocs/ProtoDocsGenerator";
+export * from "./Debug/factorioModDebug";
+export * from "./ScriptDat/ScriptDat"
+export * from "./Util/BufferStream";
 export * from "./Util/BufferSplitter";
 export * from "./Util/PropertyTree";
 export * from "./Util/MapVersion";
+export * from "./vscode/FactorioVersion";

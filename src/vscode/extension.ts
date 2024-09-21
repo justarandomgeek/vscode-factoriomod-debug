@@ -1,6 +1,6 @@
 'use strict';
 import * as vscode from 'vscode';
-import { FactorioModDebugSession } from '../Debug/factorioModDebug';
+import { FactorioModDebugSession } from '../fmtk';
 import { activateModPackageProvider } from './ModPackageProvider';
 import { FactorioVersionSelector } from './VersionSelector';
 import { ProfileRenderer } from '../Profile/ProfileRenderer';

@@ -5,7 +5,7 @@ import { expect } from "chai";
 import { forkTest } from "./util";
 
 suite('CLI script.dat dump', ()=>{
-	const fmtk = path.join(__dirname, '../dist/fmtk.js');
+	const fmtk = path.join(__dirname, '../dist/fmtk-cli.js');
 
 	test('dump', async ()=>{
 		const result = await forkTest(fmtk,

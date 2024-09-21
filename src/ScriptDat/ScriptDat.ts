@@ -1,5 +1,4 @@
-import { BufferStream } from "../Util/BufferStream";
-import { MapVersion } from "../Util/MapVersion";
+import { BufferStream, MapVersion } from "../fmtk";
 
 export enum SavedLuaTypeTag {
 	Nil = 0,

@@ -150,11 +150,10 @@ local module_flags = {
   command_line = 1,
   global = 2,
   object_name = 4,
-  on_event = 8,
-  remote_add = 16,
-  remote_call = 32,
-  require = 64,
-  all = 127,
+  remote_add = 8,
+  remote_call = 16,
+  require = 32,
+  all = 63,
 }
 
 ---Always contains 1 element.\
@@ -318,8 +317,6 @@ command_line=true,
 global=true,
 ---Rearrangement of `obj.object_name == "LuaEntity"` for the language server to perform type narrowing, same as how `type()` works.
 object_name=true,
----Insertion of `@param` tag for inline event registrations, with support for flib and stdlib.
-on_event=true,
 ---Hacks for `remote.add_interface` to look like table assignments, allowing the remote_add hack to provide intellisense.
 remote_add=true,
 ---Hacks for `remote.call` to look like table indexes into a fake table with all found remote interfaces to provide intellisense.

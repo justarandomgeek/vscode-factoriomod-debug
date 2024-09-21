@@ -1,6 +1,6 @@
 {
 	"compilerOptions": {
-		"module": "commonjs",
+		"module": "ES2022",
 		"target": "es2022",
 
 		"noImplicitAny": true,
@@ -17,6 +17,7 @@
 		"noFallthroughCasesInSwitch": true,
 		"noImplicitReturns": true,
 		"esModuleInterop": true,
+		"moduleResolution": "Bundler",
 		"resolveJsonModule": true,
 		"lib": [
 			"ES2022",

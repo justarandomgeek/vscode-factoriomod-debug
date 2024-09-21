@@ -6,7 +6,7 @@ case `uname` in
 esac
 
 if [ -x "$basedir/node" ]; then
-  exec "$basedir/node"  "$basedir/../dist/fmtk.js" "$@"
+  exec "$basedir/node"  "$basedir/../dist/fmtk-cli.js" "$@"
 else
-  exec node  "$basedir/../dist/fmtk.js" "$@"
+  exec node  "$basedir/../dist/fmtk-cli.js" "$@"
 fi

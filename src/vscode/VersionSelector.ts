@@ -2,12 +2,10 @@ import * as vscode from 'vscode';
 import * as os from 'os';
 import * as path from 'path';
 import { URI, Utils } from "vscode-uri";
-import { ApiDocGenerator } from '../ApiDocs/ApiDocGenerator';
 import type { DocSettings } from "../ApiDocs/DocSettings";
-import { ActiveFactorioVersion, FactorioVersion, substitutePathVariables } from './FactorioVersion';
 import { forkScript } from './ModPackageProvider';
 import { version as bundleVersion } from "../../package.json";
-import { getLuaFiles } from '../LuaLSAddon';
+import { ActiveFactorioVersion, FactorioVersion, substitutePathVariables, ApiDocGenerator, LuaLSAddon } from "../fmtk";
 const fs = vscode.workspace.fs;
 
 const detectPaths:FactorioVersion[] = [
@@ -104,7 +102,7 @@ export class FactorioVersionSelector {
 			const config = JSON.parse(filecontent);
 			this.output.info(`Library bundle found in ${workspaceLibrary.fsPath}, generated from Factorio ${config.factorioVersion} with FMTK ${config.bundleVersion}`);
 
-			for (const file of await getLuaFiles()) {
+			for (const file of await LuaLSAddon.getLuaFiles()) {
 				try {
 					const local = (await fs.readFile(Utils.joinPath(workspaceLibrary, "sumneko-3rd", file.name))).toString();
 					if (local !== file.content) {
@@ -438,7 +436,7 @@ export class FactorioVersionSelector {
 
 		await forkScript(
 			{ close() {}, write(data) {} },
-			this.context.asAbsolutePath("./dist/fmtk.js"),
+			this.context.asAbsolutePath("./dist/fmtk-cli.js"),
 			docargs, sumneko3rd.fsPath);
 
 		const luaconfig = vscode.workspace.getConfiguration("Lua");

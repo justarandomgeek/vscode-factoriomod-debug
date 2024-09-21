@@ -13,7 +13,7 @@ function docItem(doc:TextDocument) {
 }
 
 suite("LSP", ()=>{
-	const fmtk = path.join(__dirname, '../dist/fmtk.js');
+	const fmtk = path.join(__dirname, '../dist/fmtk-cli.js');
 	const cwd = path.join(__dirname, "./mod");
 	let server:ChildProcess;
 	let clientConnection:ProtocolConnection;
