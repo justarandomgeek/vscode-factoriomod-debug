@@ -3,6 +3,10 @@
 [<img height='36' style='border:0px;height:36px;' src='https://az743702.vo.msecnd.net/cdn/kofi2.png?v=2' border='0' alt='Buy Me a Coffee at ko-fi.com'/>](https://ko-fi.com/X8X41IE4T)
 
 ## 1.1.46
+* Improved NVim setup docs (#132)
+* VSCode's migration to ESM interally breaks context detection and requires splitting the all-in-one bundle. Now separate bundles for cli/vscode/shared.
+* LuaLS library package:
+  * Add `data.ModSettingsPrototype` types for settings stage (#137)
 
 
 ## 1.1.45
