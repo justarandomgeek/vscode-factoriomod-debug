@@ -8,6 +8,8 @@
 * LuaLS library package:
   * Add `data.ModSettingsPrototype` types for settings stage (#137)
   * Add Support for Factorio JSON Docs v6 (Factorio >= 2.0)
+* Debugger
+  * Fix error when listing LuaObjects with `operator[]` but no `operator#`
 
 ## 1.1.45
 * Debugger

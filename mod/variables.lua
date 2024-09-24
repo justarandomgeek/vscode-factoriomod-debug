@@ -1079,14 +1079,17 @@ function dispatch.__inner.variables(variablesReference,seq,filter,start,count)
         if not keys then print("Missing keys for class " .. varRef.classname) end
         for key,keyprops in pairs(keys) do
           if keyprops.thisAsTable then
-            vars[#vars + 1] = {
-              name = "[]",
-              value = sformat("%d item%s", #object, #object~=1 and "s" or ""),
-              type = varRef.classname .. "[]",
-              variablesReference = variables.tableRef(object, keyprops.iterMode, false,nil,varRef.evalName),
-              indexedVariables = #object + 1,
-              presentationHint = { kind = "virtual", attributes = { "readOnly" } },
-            }
+            local lenok, len = pcall(function() return #object end)
+            if lenok then
+              vars[#vars + 1] = {
+                name = "[]",
+                value = sformat("%d item%s", len, len~=1 and "s" or ""),
+                type = varRef.classname .. "[]",
+                variablesReference = variables.tableRef(object, keyprops.iterMode, false,nil,varRef.evalName),
+                indexedVariables = len+1,
+                presentationHint = { kind = "virtual", attributes = { "readOnly" } },
+              }
+            end
           elseif keyprops.thisTranslated then
             ---@type string
             local value
