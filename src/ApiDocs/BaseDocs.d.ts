@@ -1,6 +1,6 @@
 type Extends<T, X> = T extends X ? T : never;
 
-type ApiVersions = 4|5;
+type ApiVersions = 4|5|6;
 
 interface BaseDocs<V extends ApiVersions = ApiVersions> {
 	readonly application:"factorio"

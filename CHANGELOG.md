@@ -7,7 +7,7 @@
 * VSCode's migration to ESM interally breaks context detection and requires splitting the all-in-one bundle. Now separate bundles for cli/vscode/shared.
 * LuaLS library package:
   * Add `data.ModSettingsPrototype` types for settings stage (#137)
-
+  * Add Support for Factorio JSON Docs v6 (Factorio >= 2.0)
 
 ## 1.1.45
 * Debugger

@@ -15,9 +15,9 @@ interface DocBasicMember<V extends ApiVersions = ApiVersions> {
 	readonly order: number
 	readonly description: string
 	readonly notes?: V extends 4 ? string[] : never
-	readonly lists?: V extends 5 ? string[] : never
+	readonly lists?: V extends 5|6 ? string[] : never
 	readonly examples?: string[]
-	readonly images?: V extends 5 ? DocImage[] : never
+	readonly images?: V extends 5|6 ? DocImage[] : never
 }
 
 interface ApiWithParameters<V extends ApiVersions = ApiVersions> {
@@ -37,7 +37,7 @@ interface ApiStructType {
 
 type ApiTupleType<V extends ApiVersions = ApiVersions> =
 	V extends 4 ? ApiTupleTypeV4 :
-	V extends 5 ? BaseTupleType<ApiType<V>> :
+	V extends 5|6 ? BaseTupleType<ApiType<V>> :
 	never;
 
 interface ApiTupleTypeV4 extends ApiWithParameters {
@@ -82,7 +82,7 @@ interface ApiParameterGroup<V extends ApiVersions = ApiVersions> extends DocBasi
 
 interface ApiEvent<V extends ApiVersions = ApiVersions> extends DocBasicMember<V> {
 	readonly data: ApiParameter<V>[]
-	readonly filter?: V extends 5 ? string : never
+	readonly filter?: V extends 5|6 ? string : never
 }
 
 interface ApiDefine<V extends ApiVersions = ApiVersions> extends DocBasicMember<V> {
@@ -114,8 +114,8 @@ interface ApiMethod<V extends ApiVersions = ApiVersions> extends DocBasicMember<
 	readonly takes_table: V extends 4 ? boolean : never
 	readonly table_is_optional?: V extends 4 ? boolean : never
 
-	readonly variadic_parameter?: V extends 5 ? ApiVariadicParameter<V> : never
-	readonly format: V extends 5 ? ApiMethodFormat : never
+	readonly variadic_parameter?: V extends 5|6 ? ApiVariadicParameter<V> : never
+	readonly format: V extends 5|6 ? ApiMethodFormat : never
 
 	readonly return_values: Omit<ApiParameter, "name">[]
 	readonly raises?: ApiEventRaised<V>[]
@@ -123,9 +123,11 @@ interface ApiMethod<V extends ApiVersions = ApiVersions> extends DocBasicMember<
 
 interface ApiAttribute<V extends ApiVersions = ApiVersions> extends DocBasicMember<V> {
 	readonly subclasses?: string[]
-	readonly type: ApiType
-	readonly read: boolean
-	readonly write: boolean
+	readonly type: V extends 4|5 ? ApiType<V> : never
+	readonly read: V extends 4|5 ? boolean : never
+	readonly write: V extends 4|5 ? boolean : never
+	readonly read_type: V extends 6 ? ApiType<V> : never
+	readonly write_type: V extends 6 ? ApiType<V> : never
 	readonly raises?: ApiEventRaised[]
 	readonly optional?: boolean
 }
@@ -144,6 +146,6 @@ interface ApiClass<V extends ApiVersions = ApiVersions> extends DocBasicMember<V
 	readonly attributes: ApiAttribute[]
 	readonly operators: ApiOperator<V>[]
 	readonly base_classes?: V extends 4 ? string[] : never
-	readonly parent?: V extends 5 ? string : never
+	readonly parent?: V extends 5|6 ? string : never
 	readonly abstract: boolean
 }
