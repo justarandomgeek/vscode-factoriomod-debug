@@ -739,7 +739,7 @@
       {
         "type": "factoriomod",
         "label": "Factorio Mod Debug",
-        "program": "./dist/fmtk.js",
+        "program": "./dist/fmtk-cli.js",
         "args": [
           "debug"
         ],
