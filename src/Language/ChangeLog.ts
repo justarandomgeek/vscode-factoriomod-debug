@@ -169,6 +169,8 @@ export class ChangeLogLanguageService {
 				} else {
 					seenStartLast = false;
 				}
+			} else if (changelog.length == 1 && line == "") {
+				// empty file is not an error, wait for some content before annotating a problem
 			} else {
 				diags.push({
 					message: "Line not in valid block",
