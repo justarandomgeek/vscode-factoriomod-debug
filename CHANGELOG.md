@@ -11,6 +11,7 @@
   * Support generating from online docs (cli only for now)
 * Debugger
   * Fix error when listing LuaObjects with `operator[]` but no `operator#`
+  * Fix error when calling `__DebugAdapter.print(nil)`
 
 ## 1.1.45
 * Debugger

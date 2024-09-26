@@ -86,7 +86,9 @@ function DAprint.print(expr,alsoLookIn,upStack,category,noexprs)
       expr = {expr}
     end
     local v = variables.create(nil,expr, nil)
-    printkeep[expr] = true
+    if expr then
+      printkeep[expr] = true
+    end
     result = v.value
     ref = v.variablesReference
   end
