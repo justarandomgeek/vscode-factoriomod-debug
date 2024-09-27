@@ -114,6 +114,8 @@ const commonConfig:BuildOptions = {
 	sourcesContent: false,
 	platform: "node",
 	format: "cjs",
+	// `module` first for jsonc-parser
+	mainFields: ['module', 'main'],
 	loader: {
 		".html": "text",
 		".lua": "text",
