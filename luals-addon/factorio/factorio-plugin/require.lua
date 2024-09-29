@@ -17,12 +17,18 @@ local function replace(_, text, diffs, args)
     ---Convert the mod name prefix if there is one
     name = name:gsub("^__(.-)__", "%1")
 
-    --- Clusterio modules are structured with their source in 'module/'. The loader rewrites this to
-    --- 'modules/plugin_name/', so the actual code needs to require("modules/plugin_name/file").
-    --- Do a back substitution here for everything except modules/clusterio, as the clusterio repo
+    --- Clusterio modules are structured with their source in 'plugin_name/module/'.
+    --- The loader rewrites this to 'modules/plugin_name/', so it appears as 'require("modules/plugin_name/file")'.
+    --- The loader also creates the file 'modules/plugin_name.lua' from 'plugin_name/module/module_exports.lua'
+    --- Do a back substitution of both changes for all paths except modules/clusterio, as the clusterio repo
     --- has its sources at 'packages/host/modules/clusterio/api.lua'.
     if args.clusterio_modules and not name:find("^modules/clusterio/") then
-      name = name:gsub("^modules/[^/]-/", "module/")
+      if name:find("^modules/[^/]-$") then
+        -- 'modules/plugin_name' -> 'modules/plugin_name/module_exports'
+        name = name .. "/module_exports"
+      end
+      -- 'modules/plugin_name/path/to/file' -> 'plugin_name/module/path/to/file'
+      name = name:gsub("^modules/([^/]-)/", "%1/module/")
     end
 
     ---If the path has slashes in it, it may also have an extension
