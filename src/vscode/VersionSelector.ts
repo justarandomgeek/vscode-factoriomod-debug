@@ -413,7 +413,7 @@ export class FactorioVersionSelector {
 		if (!activeVersion) { return; }
 		const workspaceLibrary = this.context.storageUri;
 		if (!workspaceLibrary) {
-			vscode.window.showErrorMessage("Unable to generate docs: cannot locate workspace library");
+			vscode.window.showErrorMessage("Unable to generate docs: no open workspace");
 			return;
 		}
 
