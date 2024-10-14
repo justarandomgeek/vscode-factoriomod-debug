@@ -63,11 +63,37 @@ function util.multiply_color(c1, n) end
 ---@return Color
 function util.get_color_with_alpha(color, alpha, normalized_alpha) end
 
----@param position Vector.1
+---@type {[defines.direction]:Vector}
+util.direction_vectors = {
+  [defines.direction.north]          = { 0, -1 },
+  [defines.direction.northnortheast] = { 1, -2 },
+  [defines.direction.northeast]      = { 1, -1 },
+  [defines.direction.eastnortheast]  = { 2, -1 },
+  [defines.direction.east]           = { 1,  0 },
+  [defines.direction.eastsoutheast]  = { 2,  1 },
+  [defines.direction.southeast]      = { 1,  1 },
+  [defines.direction.southsoutheast] = { 1,  2 },
+  [defines.direction.south]          = { 0,  1 },
+  [defines.direction.southsouthwest] = {-1,  2 },
+  [defines.direction.southwest]      = {-1,  1 },
+  [defines.direction.westsouthwest]  = {-2,  1 },
+  [defines.direction.west]           = {-1,  0 },
+  [defines.direction.westnorthwest]  = {-2, -1 },
+  [defines.direction.northwest]      = {-1, -1 },
+  [defines.direction.northnorthwest] = {-1, -2 },
+}
+
+---@param position Vector
 ---@param direction defines.direction
 ---@param distance number
----@return Vector.1
+---@return Vector
 function util.moveposition(position, direction, distance) end
+
+
+---@param position Vector
+---@param orientation number
+---@return Vector
+function util.rotate_position(position, orientation) end
 
 ---@param direction defines.direction
 ---@return defines.direction
@@ -80,12 +106,12 @@ function util.multiplystripes(count, stripes) end
 
 ---@param x number
 ---@param y number
----@return Vector.1
+---@return Vector
 function util.by_pixel(x, y) end
 
 ---@param x number
 ---@param y number
----@return Vector.1
+---@return Vector
 function util.by_pixel_hr(x, y) end
 
 ---@generic T: table
@@ -94,21 +120,21 @@ function util.by_pixel_hr(x, y) end
 ---@return T
 function util.foreach_sprite_definition(table_, fun_) end
 
----@param a Vector.1
----@param b Vector.1
----@return Vector.1
+---@param a Vector
+---@param b Vector
+---@return Vector
 function util.add_shift(a, b) end
 
 ---@generic T: table
----@param offset_ Vector.1
+---@param offset_ Vector
 ---@param table_ T
 ---@return T
 function util.add_shift_offset(offset_, table_) end
 
----@generic T: Vector.1
+---@generic T: Vector
 ---@param shift T
 ---@param scale number
----@return T|Vector.1
+---@return T|Vector
 function util.mul_shift(shift, scale) end
 
 ---@param amount number
@@ -159,9 +185,10 @@ util.split = function(inputstr, sep) end
 ---@return boolean
 util.string_starts_with = function(str, start) end
 
----@return LuaPlayer[]
----@deprecated
-util.online_players = function() end
+---@param str string
+---@param what string
+---@param with string
+util.string_replace = function(str, what, with) end
 
 ---@generic X: number, Lower: number, Upper: number
 ---@param x X
@@ -177,73 +204,97 @@ util.get_walkable_tile = function() end
 -- shift and tint to the entire second set.\
 -- This allows you to manipulate the entire second icons table in the same way as you would
 -- manipulate a single icon when adding to the icons table.
----@param icons1 table
----@param icons2 table
----@param inputs {["scale"]:number?, ["shift"]:Vector.1?, ["tint"]:Color?}
+---@param icons1 data.IconData[]
+---@param icons2 data.IconData[]
+---@param inputs {["scale"]:number?, ["shift"]:Vector?, ["tint"]:Color?}
 ---@param default_icon_size integer
----@return table
+---@return data.IconData[]
 function util.combine_icons(icons1, icons2, inputs, default_icon_size) end
 
 ---@param technology_icon string
----@return table[]
+---@return data.IconData[]
 function util.technology_icon_constant_damage(technology_icon) end
 
 ---@param technology_icon string
----@return table[]
+---@return data.IconData[]
 function util.technology_icon_constant_speed(technology_icon) end
 
 ---@param technology_icon string
----@return table[]
+---@return data.IconData[]
 function util.technology_icon_constant_movement_speed(technology_icon) end
 
 ---@param technology_icon string
----@return table[]
+---@return data.IconData[]
 function util.technology_icon_constant_range(technology_icon) end
 
 ---@param technology_icon string
----@return table[]
+---@return data.IconData[]
+function util.technology_icon_constant_planet(technology_icon) end
+
+---@param technology_icon string
+---@return data.IconData[]
 function util.technology_icon_constant_equipment(technology_icon) end
 
 ---@param technology_icon string
----@return table[]
+---@return data.IconData[]
 function util.technology_icon_constant_followers(technology_icon) end
 
 ---@param technology_icon string
----@return table[]
+---@return data.IconData[]
 function util.technology_icon_constant_capacity(technology_icon) end
 
 ---@param technology_icon string
----@return table[]
+---@return data.IconData[]
 function util.technology_icon_constant_stack_size(technology_icon) end
 
 ---@param technology_icon string
----@return table[]
+---@return data.IconData[]
 function util.technology_icon_constant_productivity(technology_icon) end
 
 ---@param technology_icon string
----@return table[]
+---@return data.IconData[]
+function util.technology_icon_constant_recipe_productivity(technology_icon) end
+
+---@param technology_icon string
+---@return data.IconData[]
 function util.technology_icon_constant_braking_force(technology_icon) end
 
 ---@param technology_icon string
----@return table[]
+---@return data.IconData[]
 function util.technology_icon_constant_mining(technology_icon) end
 
 ---@param energy string
 ---@return number
 function util.parse_energy(energy) end
 
----@param product table
+---@param product data.ProductPrototype
 ---@return number
 function util.product_amount(product) end
 
----@param animation_length uint
 ---@return table
-function util.empty_sprite(animation_length) end
+function util.empty_sprite() end
+
+---@param animation_length number
+---@return table
+function util.empty_animation(animation_length) end
+
+---@return table
+function util.empty_icon() end
 
 ---@generic L: table
 ---@param layer L
 ---@return L
 function util.draw_as_glow(layer) end
+
+---@generic T : table
+---@param path string
+---@param table T
+---@return T
+function util.sprite_load(path, table) end
+
+---@param spritesheets table[]
+---@return table[]
+function util.spritesheets_to_pictures(spritesheets) end
 
 -- Does not handle:
 --  - explicit tile filters in "selection-tool" items
@@ -263,5 +314,29 @@ util.remove_from_list = function(list, value) end
 ---@param list any[]
 ---@return {[any]: true}
 util.list_to_map = function(list) end
+
+---@param raw_product data.ProductPrototype
+---@return data.ProductPrototype
+util.normalize_recipe_product = function(raw_product) end
+
+---@param recipe data.RecipePrototype
+---@return data.ProductPrototype[]
+util.normalize_recipe_products = function(recipe) end
+
+---Returns the normalized main product or nil if the recipe defintion is invalid or there is no main product
+---@param recipe data.RecipePrototype
+---@param normalized_products data.ProductPrototype[]
+---@return data.ProductPrototype
+util.get_recipe_main_product = function(recipe, normalized_products) end
+
+gram = 1
+grams = gram
+kg = 1000*grams
+tons = 1000*kg
+second = 60
+minute = 60 * second
+hour = 60 * minute
+meter = 1
+kilometer = 1000
 
 return util
