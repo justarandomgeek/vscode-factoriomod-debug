@@ -7,13 +7,7 @@
     {
       "type":"object",
       "properties": {
-        "recipe_difficulty": {"type":"number"},
-        "technology_difficulty": {"type":"number"},
-        "technology_price_multiplier": {"type":"number"},
-        "research_queue_setting": {
-          "type":"string",
-          "enum": ["after-victory"]
-        }
+        "technology_price_multiplier": {"type":"number"}
       }
     },
     "pollution":

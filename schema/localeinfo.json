@@ -8,14 +8,9 @@
     "language-name": {
       "type":"string"
     },
-    "font": {
-      "type":"object",
-      "additionalProperties": {
-        "type":"array",
-        "items": {
-          "type":"string"
-        }
-      }
+    "completed": {
+      "type":"number",
+      "default": 100
     }
   }
 }

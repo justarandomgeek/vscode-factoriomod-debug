@@ -19,13 +19,13 @@
               "description": "$3",
               "version": "${4:0.0.0}",
               "author": "$5",
-              "factorio_version": "1.1"
+              "factorio_version": "2.0"
             }
         }
       ],
       "properties": {
         "factorio_version": {
-          "default": "1.1"
+          "default": "2.0"
         },
         "package": {
           "type":"object",

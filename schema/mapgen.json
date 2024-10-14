@@ -5,11 +5,11 @@
   "properties": {
     "terrain_segmentation": {
       "type":"number",
-      "description": "Inverse of map scale"
+      "description": "The inverse of 'water scale' in the map generator GUI."
     },
     "water":{
       "type":"number",
-      "description": "Multiplier for water 'coverage' - higher increases the water level.\nWater level = 10 * log2(this value)"
+      "description": "The equivalent to 'water coverage' in the map generator GUI. Higher coverage means more water in larger oceans.\nWater level = 10 * log2(this value)"
     },
     "width":{
       "type":"integer",

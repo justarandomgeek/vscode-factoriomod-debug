@@ -62,6 +62,12 @@
       "description": "optional one tick is 16ms in default speed, default value is 0. 0 means no minimum."
     },
 
+    "max_heartbeats_per_second": {
+      "type": "number",
+      "default": 60,
+      "description": "Network tick rate. Maximum rate game updates packets are sent at before bundling them together. Minimum value is 6, maximum value is 240."
+    },
+
     "ignore_player_limit_for_returning_players": {
       "type":"boolean",
       "description": "Players that played on this map already can join even when the max player limit was reached."
@@ -98,6 +104,12 @@
     "auto_pause": {
       "type":"boolean",
       "description": "Whether should the server be paused when no players are present."
+    },
+
+    "auto_pause_when_players_connect": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether should the server be paused when someone is connecting to the server."
     },
 
     "only_admins_can_pause_the_game": { "type":"boolean" },

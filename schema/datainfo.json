@@ -87,6 +87,35 @@
           }
         ]
       }
+    },
+    "auto-enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "rail_bridges_required": {
+      "type": "boolean",
+      "default": false
+    },
+    "space_travel_required": {
+      "type": "boolean",
+      "default": false
+    },
+    "spoiling_required": {
+      "type": "boolean",
+      "default": false
+    },
+    "freezing_required": {
+      "type": "boolean",
+      "default": false
+    },
+    "segmented_units_required": {
+      "type": "boolean",
+      "default": false
+    },
+    "expansion_shaders_required": {
+      "type": "boolean",
+      "default": false
     }
+
   }
 }
