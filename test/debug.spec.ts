@@ -27,7 +27,7 @@ suite('Debug Adapter', ()=>{
 			request: "launch",
 			adjustMods: {
 				"debugadapter-tests": true,
-				"minimal-no-base-mod": true,
+				//"minimal-no-base-mod": true,
 			},
 			adjustModSettings: [
 				{
@@ -37,14 +37,14 @@ suite('Debug Adapter', ()=>{
 				},
 			],
 			disableExtraMods: true,
-			allowDisableBaseMod: true,
+			//allowDisableBaseMod: true,
 		} as LaunchRequestArguments, args));
 	}
 
 	suiteSetup(async ()=>{
 		await fsp.mkdir(cwd, {recursive: true });
 		await fsp.copyFile(path.join(__dirname, "./empty-mod-settings.dat"), path.join(__dirname, "./factorio/mods/mod-settings.dat"));
-		await forkTest(fmtk, ["mods", "install", "minimal-no-base-mod"], {cwd: cwd});
+		//await forkTest(fmtk, ["mods", "install", "minimal-no-base-mod"], {cwd: cwd});
 
 		// tests have to be dir-like for breakpoints to match up!
 		if (!(await exists(path.join(cwd, "./debugadapter")))) {
