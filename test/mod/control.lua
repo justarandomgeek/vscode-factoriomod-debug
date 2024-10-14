@@ -30,10 +30,10 @@ local function firstof(lct)
 	end
 end
 
-function Make_Test_Global()
+function Make_Test_Storage()
 	local a = Test_A({id=1})
 	local b = {[{true}]=a}
-	global.test = {
+	storage.test = {
 		a,a,{},{[b]=b,[{1}]={2},[{}]={},},
 		1,2,3,true,false,"foo",
 		game.player,

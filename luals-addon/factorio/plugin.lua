@@ -23,7 +23,7 @@ end
 local arg_parser = require("factorio-plugin.arg-parser")
 local util = require("factorio-plugin.util")
 local require_module = require("factorio-plugin.require")
-local global = require("factorio-plugin.global")
+local storage = require("factorio-plugin.storage")
 local remote = require("factorio-plugin.remote")
 local object_name = require("factorio-plugin.object-name")
 local command_line = require("factorio-plugin.command-line")
@@ -211,7 +211,7 @@ function OnSetText(uri, text)
   command_line.replace(uri, text, diffs)
   -- The following replacements require other diffs to be created already
   -- to be able to check for their existence to prevent duplication/overlaps.
-  global.replace(uri, text, diffs)
+  storage.replace(uri, text, diffs)
 
   util.on_post_process_file()
 

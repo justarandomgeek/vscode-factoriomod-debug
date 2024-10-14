@@ -2,7 +2,7 @@
 
 FMTK provides a third party library package for the [sumneko.lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua) language server which provides various adaptations to Factorio's Lua environment. The VS Code extension will automatically install this when a Factorio version is selected, or it can be generated manually with `fmtk sumneko-3rd`.
 
-In addition to the docs (generated from [`runtime-api.json`](https://lua-api.factorio.com/latest/auxiliary/json-docs-runtime.html) and [`prototype-api.json`](https://lua-api.factorio.com/latest/auxiliary/json-docs-prototype.html)), this package includes several static library files, configuration settings and a luals plugin that enables enhanced handling of `require`, `global`, event handlers, and `remote` interfaces.
+In addition to the docs (generated from [`runtime-api.json`](https://lua-api.factorio.com/latest/auxiliary/json-docs-runtime.html) and [`prototype-api.json`](https://lua-api.factorio.com/latest/auxiliary/json-docs-prototype.html)), this package includes several static library files, configuration settings and a luals plugin that enables enhanced handling of `require`, `storage`, event handlers, and `remote` interfaces.
 
 ## API Type Definitions
 
@@ -67,9 +67,9 @@ The underscores are removed from these, allowing the Language Server to properly
 
 Additionally, in require paths with slashes, Factorio replaces any file extension with `.lua`. To match this, the extensions of any slashed paths are stripped, allowing the Language Server to correctly locate files with its default search pattern of `?.lua`. The second default of `?/init.lua` is removed from configuration, because factorio does not look for this.
 
-### `global`
+### `storage`
 
-Each mod has its own private version of [the global named `global`](https://lua-api.factorio.com/latest/auxiliary/global.html). To allow the Language Server to see this separation, `global` is renamed to `__modname__global` when used as the base variable in indexing or the target of assignment.
+Each mod has its own private version of [`storage`](https://lua-api.factorio.com/latest/auxiliary/storage.html). To allow the Language Server to see this separation, `storage` is renamed to `__modname__storage` when used as the base variable in indexing or the target of assignment.
 
 ### `remote` interfaces
 

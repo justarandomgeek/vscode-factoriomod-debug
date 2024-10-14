@@ -1,7 +1,7 @@
 --##
 
 local util = require("factorio-plugin.util")
-local global_module_flag = util.module_flags.global
+local storage_module_flag = util.module_flags.storage
 local workspace
 if not __plugin_dev then
   workspace = require("workspace")
@@ -22,7 +22,7 @@ do
   add_range("0", "9")
 end
 
----Rename `global` so we can tell them apart!
+---Rename `storage` so we can tell them apart!
 ---@param uri string @ The uri of file
 ---@param text string @ The content of file
 ---@param diffs Diff[] @ The diffs to add more diffs to
@@ -66,13 +66,13 @@ local function replace(uri, text, diffs)
       this_mod = this_mod.."__"..inner_type.."__"..inner_name
     end
     this_mod = this_mod:gsub("[^a-zA-Z0-9_]","_")
-    local global_name = "__"..this_mod.."__global"
+    local storage_name = "__"..this_mod.."__storage"
 
     util.reset_is_disabled_to_file_start()
     for finish, ignore_pos, ignore_char in
-      string.gmatch(text, "global%f[^a-zA-Z0-9_]()%s*()([=.%[]?)")--[[@as fun(): integer, integer, string]]
+      string.gmatch(text, "storage%f[^a-zA-Z0-9_]()%s*()([=.%[]?)")--[[@as fun(): integer, integer, string]]
     do
-      local start = finish - #"global"
+      local start = finish - #"storage"
       if identifier_char_lut[text:sub(start - 1, start - 1)] then goto continue end
 
       local preceding_start = start - 16
@@ -89,22 +89,22 @@ local function replace(uri, text, diffs)
       end
 
       if (ignore_char == "" and not preceding_text:find("=%s*$") and not preceding_text:find("%.%.%s*$"))
-        or util.is_disabled(start, global_module_flag)
+        or util.is_disabled(start, storage_module_flag)
       then
         goto continue
       end
 
       local before = text:sub(start - 1, start - 1)
       if before ~= "" then
-        -- Put the newline on a separate diff before the one replacing 'global',
+        -- Put the newline on a separate diff before the one replacing 'storage',
         -- otherwise hovers and syntax highlighting doesn't work.
         -- This can cause issues if there is already a diff for that character,
         -- which is why it's using add_or_append_diff.
         util.add_or_append_diff(diffs, start - 1, before, " --\n")
       end
-      util.add_diff(diffs, start, finish, global_name)
+      util.add_diff(diffs, start, finish, storage_name)
       if ignore_char == "" then
-        ignore_pos = finish -- Move it directly next to `global`, not past all the whitespace after it.
+        ignore_pos = finish -- Move it directly next to `storage`, not past all the whitespace after it.
       end
       -- Put the diagnostic after the '.' otherwise code completion/suggestions don't work.
       util.add_diff(diffs, ignore_pos, ignore_pos + #ignore_char, ignore_char.."---@diagnostic disable-line:undefined-global\n")

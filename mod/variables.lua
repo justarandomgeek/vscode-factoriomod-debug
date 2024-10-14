@@ -176,7 +176,7 @@ local env_opts={
   package = "builtin", require = "builtin",
 
   remote = "factorio", commands = "factorio", settings = "factorio", rcon = "factorio", rendering = "factorio",
-  script = "factorio", defines = "factorio", game = "factorio", global = "factorio", mods = "factorio", data = "factorio", util = "factorio",
+  script = "factorio", defines = "factorio", game = "factorio", storage = "factorio", mods = "factorio", data = "factorio", util = "factorio",
   log = "factorio", table_size = "factorio", localised_print = "factorio",
 
   ["<Lua Builtin Globals>"] = {rawName=true, rawValue=true, virtual=true, ref=env, extra="builtin"},

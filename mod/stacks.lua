@@ -168,12 +168,12 @@ function dispatch.__inner.scopes(i, tag, seq)
       -- Upvalues
       scopes[#scopes+1] = { name = "Upvalues", variablesReference = variables.scopeRef(i,"Upvalues"), expensive=false }
     end
-    -- Factorio `global`
-    if type(env.global) == "table" then
-      scopes[#scopes+1] = { name = "Factorio global", variablesReference = variables.tableRef(env.global), expensive=false }
+    -- Factorio `storage`
+    if type(env.storage) == "table" then
+      scopes[#scopes+1] = { name = "Storage", variablesReference = variables.tableRef(env.storage), expensive=false }
     end
     -- Lua Globals
-    scopes[#scopes+1] = { name = "Lua Globals", variablesReference = variables.tableRef(env), expensive=false }
+    scopes[#scopes+1] = { name = "Globals", variablesReference = variables.tableRef(env), expensive=false }
 
     json.response{seq=seq, body=scopes}
   else

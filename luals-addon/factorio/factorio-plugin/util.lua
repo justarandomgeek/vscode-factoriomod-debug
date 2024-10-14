@@ -148,7 +148,7 @@ end
 local module_flags = {
   none = 0,
   command_line = 1,
-  global = 2,
+  storage = 2,
   object_name = 4,
   remote_add = 8,
   remote_call = 16,
@@ -313,8 +313,8 @@ local module_name_intellisense = [[
 __plugin_dummy(({---@diagnostic disable-line:undefined-global
 ---Removal of `/c` and friends at the start of a line.
 command_line=true,
----Replacement of expressions involving `global` to help the language sever distinguish global tables between different mods.
-global=true,
+---Replacement of expressions involving `storage` to help the language sever distinguish storage tables between different mods.
+storage=true,
 ---Rearrangement of `obj.object_name == "LuaEntity"` for the language server to perform type narrowing, same as how `type()` works.
 object_name=true,
 ---Hacks for `remote.add_interface` to look like table assignments, allowing the remote_add hack to provide intellisense.

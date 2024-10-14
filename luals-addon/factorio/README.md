@@ -55,13 +55,13 @@ That means if there is a folder with the name `modname` it can now find the file
 
 (This might get improved to support folders with version numbers at the end. Zips may currently not even be possible with the extension, however it _might_ get support at some point too.)
 
-## Factorio global
+## Factorio storage
 
-If the language server sees multiple mods it can happen that it thinks your `global` contains keys/data it really doesn't because some other mod stores said data in global. For that reason the plugin tries its best to make `global` look like `__modname__global` to the language server.
+If the language server sees multiple mods it can happen that it thinks your `storage` contains keys/data it really doesn't because some other mod stores said data in `storage`. For that reason the plugin tries its best to make `storage` look like `__modname__storage` to the language server.
 
 ### Note
 
-In order to not touch the wrong things it only replaces those where `global` is followed by `.` (a dot), `[` (open square bracket) or `=` (equals).
+In order to not touch the wrong things it only replaces those where `storage` is followed by `.` (a dot), `[` (open square bracket) or `=` (equals).
 
 ## Remotes
 
@@ -144,11 +144,11 @@ For example
 ```lua
 /c game.print("Hello world!")
 /sc game.speed = 10
-/c __my_mod__ game.print(serpent.block(global.foo))
+/c __my_mod__ game.print(serpent.block(storage.foo))
 ```
 Would look something similar to this to the language server
 ```lua
 game.print("Hello world!")
 game.speed = 10
-game.print(serpent.block(global.foo))
+game.print(serpent.block(storage.foo))
 ```

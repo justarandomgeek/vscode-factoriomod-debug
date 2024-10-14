@@ -501,7 +501,7 @@ suite('Debug Adapter', ()=>{
 		expect(scopes.success);
 		expect(scopes.body.scopes).length(4);
 		expect(scopes.body.scopes.map(s=>s.name)).contains.members([
-			"Locals", "Upvalues", "Factorio global", "Lua Globals",
+			"Locals", "Upvalues", "Storage", "Globals",
 		]);
 
 		const localsref = scopes.body.scopes.find(s=>s.name==="Locals")!.variablesReference;
@@ -555,7 +555,7 @@ suite('Debug Adapter', ()=>{
 		expect(scopes.success);
 		expect(scopes.body.scopes).length(3);
 		expect(scopes.body.scopes.map(s=>s.name)).contains.members([
-			"Locals", "Upvalues", "Lua Globals",
+			"Locals", "Upvalues", "Globals",
 		]);
 
 		const localsref = scopes.body.scopes.find(s=>s.name==="Locals")!.variablesReference;
