@@ -47,10 +47,10 @@ suite('Debug Adapter', ()=>{
 		await forkTest(fmtk, ["mods", "install", "minimal-no-base-mod"], {cwd: cwd});
 
 		// tests have to be dir-like for breakpoints to match up!
-		if (!exists(path.join(cwd, "./debugadapter"))) {
+		if (!(await exists(path.join(cwd, "./debugadapter")))) {
 			await fsp.symlink(path.join(__dirname, "../mod"), path.join(cwd, "./debugadapter"), 'dir');
 		}
-		if (!exists(path.join(cwd, "./debugadapter-tests"))) {
+		if (!(await exists(path.join(cwd, "./debugadapter-tests")))) {
 			await fsp.symlink(path.join(__dirname, "./mod"), path.join(cwd, "./debugadapter-tests"), 'dir');
 		}
 	});
