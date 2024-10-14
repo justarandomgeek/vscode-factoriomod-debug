@@ -346,13 +346,10 @@
             ],
             "default": "latest"
           },
-          "factorio.workspace.library": {
-            "deprecationMessage": "Generated files are now placed in workspace private storage."
-          },
           "factorio.workspace.manageLibraryDataLinks": {
             "type": "boolean",
-            "default": true,
-            "description": "Automatically manage /data link in `\"Lua.workspace.library\"`."
+            "default": false,
+            "description": "Automatically manage /data link in `\"Lua.workspace.library\"`. Setting to false will remove the link if present."
           },
           "factorio.debug.env": {
             "type": "object",

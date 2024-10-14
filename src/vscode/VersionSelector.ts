@@ -467,19 +467,27 @@ export class FactorioVersionSelector {
 		// remove and re-add library links to force sumneko to update...
 		const factorioconfig = vscode.workspace.getConfiguration("factorio");
 
-		if (previous_active && factorioconfig.get("workspace.manageLibraryDataLinks", true)) {
+		if (previous_active) {
 			const oldroot = URI.file(await previous_active.dataPath());
 			removeLibraryPath(oldroot);
 		}
 
-		await luaconfig.update("workspace.library", library);
+		if (library.length === 0) {
+			await luaconfig.update("workspace.library", undefined);
+		} else {
+			await luaconfig.update("workspace.library", library);
+		}
 
 		if (factorioconfig.get("workspace.manageLibraryDataLinks", true)) {
 			const newroot = URI.file(await activeVersion.dataPath());
 			await addLibraryPath(newroot);
 		}
 
-		await luaconfig.update("workspace.library", library);
+		if (library.length === 0) {
+			await luaconfig.update("workspace.library", undefined);
+		} else {
+			await luaconfig.update("workspace.library", library);
+		}
 
 		let userThirdParty = luaconfig.get<string[]>("workspace.userThirdParty", []);
 		let hasUserThirdParty = false;

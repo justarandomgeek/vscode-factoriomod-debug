@@ -4,6 +4,8 @@
 
 ## 2.0.0
 * Pre-release for Factorio 2.0
+* LuaLS library package:
+  * `factorio.workspace.manageLibraryDataLinks` default changed to false, removes link when set to false
 
 
 ## 1.1.47

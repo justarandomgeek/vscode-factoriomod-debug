@@ -28,7 +28,7 @@ Type definitions are also included for some of the libraries included in `__core
 
 ## Configuration
 
-The VS Code extension will automatically configure `"Lua.workspace.userThirdParty"` when installing this package, as well as updating `"Lua.workspace.library"` with a link to `/data` in the selected version.
+The VS Code extension will automatically configure `"Lua.workspace.userThirdParty"` when installing this package. Additinally, you can optionally have `"Lua.workspace.library"` updated with a link to `/data` in the selected version, by setting `factorio.workspace.manageLibraryDataLinks: true`, but this is off by default to speed up workspace loading.
 
 ## Troubleshooting
 
