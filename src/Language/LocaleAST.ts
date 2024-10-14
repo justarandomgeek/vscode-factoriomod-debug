@@ -112,7 +112,7 @@ export interface Macro extends Parent {
 // [name=children]
 export interface RichText extends Parent {
 	type:"richtext"
-	name:"img"|"item"|"entity"|"technology"|"recipe"|"item-group"|"fluid"|"tile"|"virtual-signal"|"achievement"|"gps"|"special-item"|"armor"|"train"|"train-stop"|"tooltip"
+	name:"img"|"item"|"entity"|"technology"|"recipe"|"item-group"|"fluid"|"tile"|"virtual-signal"|"achievement"|"gps"|"special-item"|"armor"|"train"|"train-stop"|"tooltip"|"space-location"|"planet"|"quality"|"space-age"|"asteroid-chunk"|"tip"|"shortcut"|"space-platform"
 	children: (TextNode|Error)[]
 }
 
