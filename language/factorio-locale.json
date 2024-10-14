@@ -76,7 +76,7 @@
 
   "plural_for_param": {
     "prefix": ["plural","__plural_for_parameter"],
-    "body": "__plural_for_parameter_${1:1}_{$0}__"
+    "body": "__plural_for_parameter__${1:1}__{$0}__"
   },
 
   "rest": {

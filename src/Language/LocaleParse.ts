@@ -150,7 +150,7 @@ const macros:searchPattern<TextNode>[] = [
 		},
 	},
 	{
-		pattern: /__plural_for_parameter_([0-9]+)_\{(.*?)\}__/dy,
+		pattern: /__plural_for_parameter__([0-9]+)__\{(.*?)\}__/dy,
 		parse(matches, line, startcol) {
 			return {
 				type: "plural",
@@ -186,7 +186,7 @@ const macros:searchPattern<TextNode>[] = [
 		},
 	},
 	{
-		pattern: /__(CONTROL(?:_MODIFIER)?|ENTITY|ITEM|TILE|FLUID)__(.+?)__/dy,
+		pattern: /__(CONTROL(?:_MODIFIER)?|ENTITY|ITEM|TILE|FLUID|PLANET)__(.+?)__/dy,
 		parse(matches, line, startcol) {
 			return {
 				type: "macro",

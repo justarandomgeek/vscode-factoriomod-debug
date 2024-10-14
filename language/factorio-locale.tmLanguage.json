@@ -14,7 +14,7 @@
 				},
 				{
 					"name": "meta.plural.factorio-locale",
-					"match": "(__)(plural_for_parameter)(_)([0-9]+)(_\\{)(.*?)(\\}__)",
+					"match": "(__)(plural_for_parameter)(__)([0-9]+)(__\\{)(.*?)(\\}__)",
 					"captures": {
 						"1": {"name": "punctuation.definition.tag.begin.factorio-locale"},
 						"2": {"name": "support.function.plural.factorio-locale"},
@@ -88,7 +88,7 @@
 					}
 				},
 				{
-					"match": "(__)(CONTROL(?:_MODIFIER)?|ENTITY|ITEM|TILE|FLUID)(__)(.+?)(__)",
+					"match": "(__)(CONTROL(?:_MODIFIER)?|ENTITY|ITEM|TILE|FLUID|PLANET)(__)(.+?)(__)",
 					"captures": {
 						"1":{"name": "punctuation.definition.tag.begin.factorio-locale"},
 						"2":{"name": "entity.name.namespace.factorio-locale"},
@@ -168,7 +168,7 @@
 					"patterns": [{"include": "#localisedSegment"}]
 				},
 				{
-					"match": "(\\[)(img|(?:special-)?item(?:-group)?|entity|technology|recipe|fluid|tile|virtual-signal|achievement|gps|armor|train(?:-stop)?)(=)([^\\]]*)(\\])",
+					"match": "(\\[)(img|(?:special-)?item(?:-group)?|entity|technology|recipe|fluid|tile|virtual-signal|achievement|gps|armor|train(?:-stop)?|space-(?:location|platform)|planet|quality|asteroid-chunk|shortcut|(?:tool)tip)(=)([^\\]]*)(\\])",
 					"captures": {
 						"1":{"name": "punctuation.definition.tag.begin.factorio-locale"},
 						"2":{"name": "entity.name.tag.factorio-locale"},
@@ -178,6 +178,14 @@
 							"patterns": [{ "include": "#parameter" }]
 						},
 						"5":{"name": "punctuation.definition.tag.end.factorio-locale"}
+					}
+				},
+				{
+					"match": "(\\[)(space-age)(\\])",
+					"captures": {
+						"1":{"name": "punctuation.definition.tag.begin.factorio-locale"},
+						"2":{"name": "entity.name.tag.factorio-locale"},
+						"3":{"name": "punctuation.definition.tag.end.factorio-locale"}
 					}
 				}
 			]
