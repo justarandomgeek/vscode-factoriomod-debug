@@ -109,14 +109,26 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		return undefined;
 	}
 
-	private with_base_classes<T>(c:ApiClass, getter:(c:ApiClass)=>T) {
-		const own = getter(c);
-		const bases = c.base_classes
-			?.map(b=>this.classes.get(b))
-			.filter((b):b is ApiClass=>!!b)
-			.map(getter) ?? [];
+	private with_base_classes<T>(c:ApiClass, getter:(c:ApiClass)=>T[]):T[] {
+		const result:T[] = [];
 
-		return [own, ...bases].flat();
+		// own
+		result.push(...getter(c));
+
+		// parent (v5 v6)
+		if (c.parent) {
+			result.push(...getter(this.classes.get(c.parent)!));
+		}
+
+		// bases (v4)
+		if (c.base_classes) {
+			result.push(...c.base_classes
+				.map(b=>this.classes.get(b))
+				.filter((b):b is ApiClass=>!!b)
+				.flatMap(getter));
+		}
+
+		return result;
 	}
 
 	public generate_debuginfo() {

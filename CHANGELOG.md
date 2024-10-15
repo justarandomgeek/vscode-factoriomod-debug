@@ -6,8 +6,10 @@
 * Pre-release for Factorio 2.0
 * LuaLS library package:
   * `factorio.workspace.manageLibraryDataLinks` default changed to false, removes link when set to false
-* Locale:
+* Locale
   * `__plural_for_parameter_x_` -> `__plural_for_parameter__x__`, new tags for 2.0
+* Debugger
+  * Fix missing properties on some classes
 
 ## 1.1.47
 * Fix tasks broken by bundling changes

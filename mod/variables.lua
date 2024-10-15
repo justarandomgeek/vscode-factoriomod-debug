@@ -177,7 +177,7 @@ local env_opts={
 
   remote = "factorio", commands = "factorio", settings = "factorio", rcon = "factorio", rendering = "factorio",
   script = "factorio", defines = "factorio", game = "factorio", storage = "factorio", mods = "factorio", data = "factorio", util = "factorio",
-  log = "factorio", table_size = "factorio", localised_print = "factorio",
+  log = "factorio", table_size = "factorio", localised_print = "factorio", prototypes = "factorio", helpers = "factorio",
 
   ["<Lua Builtin Globals>"] = {rawName=true, rawValue=true, virtual=true, ref=env, extra="builtin"},
   ["<Factorio API>"] = {rawName=true, rawValue=true, virtual=true, ref=env, extra="factorio"},
