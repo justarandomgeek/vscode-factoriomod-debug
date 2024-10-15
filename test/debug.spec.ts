@@ -1,7 +1,7 @@
 import * as path from "path";
 import * as fs from "fs";
 import * as fsp from "fs/promises";
-import { forkTest } from "./util";
+//import { forkTest } from "./util";
 import { setup, teardown, test, suite, suiteSetup } from "mocha";
 import { DebugClient } from "@vscode/debugadapter-testsupport";
 import type { LaunchRequestArguments } from "../src/Debug/factorioModDebug";
