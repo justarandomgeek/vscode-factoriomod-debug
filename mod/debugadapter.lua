@@ -1,8 +1,3 @@
--- force canonical name require
-if ... ~= "__debugadapter__/debugadapter.lua" then
-  return require("__debugadapter__/debugadapter.lua")
-end
-
 if __Profiler then
   log{"", "Attempted to require debugadapter in ", script.mod_name, " with profile hook already installed"}
   return

@@ -1,10 +1,3 @@
-local require = require
--- force canonical name require to ensure only one instance of `refs`, `collectables`
-if ... ~= "__debugadapter__/variables.lua" then
-  return require("__debugadapter__/variables.lua")
-end
-
-
 local debug = debug
 local dgetregistry = debug.getregistry
 if data then
@@ -15,6 +8,7 @@ if data then
   if regvars then return regvars end
 end
 
+local require = require
 local dispatch = require("__debugadapter__/dispatch.lua")
 local luaObjectInfo = require("__debugadapter__/luaobjectinfo.lua")
 local normalizeLuaSource = require("__debugadapter__/normalizeLuaSource.lua")
