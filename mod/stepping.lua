@@ -86,11 +86,12 @@ local stepdepth = nil
 ---@type boolean
 local step_enabled = false
 
+local runningBreakDefault = 5000
 local runningBreak
 do
   local i = 0
   function runningBreak()
-    if i < (DAConfig.runningBreak or 5000) then
+    if i < (DAConfig.runningBreak or runningBreakDefault) then
       i = i + 1
       return false
     else
@@ -128,10 +129,10 @@ local function hook_rate(source)
     if step_instr then
       return "cr", 1
     else
-      return "clr", (DAConfig.runningBreak or 5000)
+      return "clr", (DAConfig.runningBreak or runningBreakDefault)
     end
   end
-  return "cr", (DAConfig.runningBreak or 5000)
+  return "cr", (DAConfig.runningBreak or runningBreakDefault)
 end
 
 ---@type table<string,true>

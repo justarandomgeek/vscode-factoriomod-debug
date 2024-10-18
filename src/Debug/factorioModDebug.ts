@@ -832,7 +832,11 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			this.sendResponse(response);
 		} else {
 			// sometimes vscode tries to ask too early?
-			this.sendErrorResponse(response, {format: "threads not ready now", id: 817});
+			// but an error or empy list prevents getting pause requests
+			response.body = {threads: [
+				{id:1, name:"thread"}
+			]}
+			this.sendResponse(response);
 		}
 	}
 
