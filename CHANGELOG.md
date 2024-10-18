@@ -5,6 +5,8 @@
 ## 2.0.1
 * LuaLS library package:
   * generate correct overloads for data.extend
+  * double-update `Lua.workspace.userThirdParty` when installing to trigger a library reload even if `Lua.workspace.library` was untouched
+
 ## 2.0.0
 * Pre-release for Factorio 2.0
 * LuaLS library package:
