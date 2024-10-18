@@ -22,6 +22,7 @@ local xpcall = xpcall
 local setmetatable = setmetatable
 local load = load
 local pindex = variables.pindex
+local helpers = helpers
 
 local env = _ENV
 local _ENV = nil
@@ -29,7 +30,7 @@ local _ENV = nil
 ---@class DebugAdapter.Evaluate
 local DAEval = {}
 
----Timed version of `pcall`. If `game.create_profiler()` is available, it will
+---Timed version of `pcall`. If `helpers.create_profiler()` is available, it will
 ---be used to measure the execution time of `f`. The timer or nil is added as an
 ---additional first return value, followed by `pcall`'s normal returns
 ---@param f function
@@ -37,10 +38,9 @@ local DAEval = {}
 ---@return boolean
 ---@return ...
 local function timedpcall(f)
-  local game = env.game
-  if game then
+  if helpers then
     ---@type LuaProfiler
-    local t = game.create_profiler()
+    local t = helpers.create_profiler()
     local res = {pcall(f)}
     t.stop()
     return t,tunpack(res)
@@ -501,10 +501,6 @@ function dispatch.__inner.evaluate(frameId,tag,context,expression,seq)
         evalresult.result = json.encode(result)
       end
     else
-      if context == "repl" then
-        ---@cast result DebugAdapter.CountedResult
-        result = result[1]
-      end
       ---@cast result any
       local outmesg = result
       local tmesg = type(result)

@@ -10,44 +10,15 @@ local print = print
 ---@type fun(ls:LocalisedString)
 local localised_print = localised_print
 local debug = debug
-local dgetmetatable = debug.getmetatable
 local string = string
 local mod_name = script.mod_name
 local pairs = pairs
-local type = type
 local remote = remote
+local helpers = helpers
+local create_profiler = helpers.create_profiler
 
 local env = _ENV
 local _ENV = nil
-
-local create_profiler
-do
-  local validLuaObjectTypes = {table=true,userdata=true}
-  local reg = debug.getregistry()
-
-  function create_profiler(stopped)
-    do
-      local game = env.game
-      if game then -- everywhere but main chunk or on_load
-        create_profiler = game.create_profiler
-        return create_profiler(stopped)
-      end
-    end
-
-    -- it's in the registery for on_load, but with whatever ref id was free
-    -- find it by its metatable, since that has a name on it at least...
-    -- DON'T DO THIS! THIS IS A HORRIBLE HACK!
-    local gmt = reg["LuaGameScript"] --[=[@as table?]=]
-    if gmt then -- but it's not there when instruments first run
-      for _,t in pairs(reg) do
-        if validLuaObjectTypes[type(t)] and dgetmetatable(t)==gmt then
-          create_profiler = (t--[=[@as LuaGameScript]=]).create_profiler
-          return create_profiler(stopped)
-        end
-      end
-    end
-  end
-end
 
 ---@class TimeAndCount
 ---@field count number
