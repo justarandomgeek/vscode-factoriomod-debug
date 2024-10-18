@@ -4,23 +4,15 @@
   "type": "object",
   "definitions": {
     "migration_item": {
-      "oneOf": [
-        {
-          "type":"array",
-          "items": {
-            "type":"array",
-            "items": {"type": "string"},
-            "minItems": 2,
-            "maxItems": 2,
-            "uniqueItems": true
-          }
-        },
-        {
-          "type": "string"
-        }
-      ]
+      "type":"array",
+      "items": {
+        "type":"array",
+        "items": {"type": "string"},
+        "minItems": 2,
+        "maxItems": 2,
+        "uniqueItems": true
+      }
     }
-
   },
   "properties": {
     "custom-input": { "$ref": "#/definitions/migration_item"},
