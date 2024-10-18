@@ -57,6 +57,9 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 		if (['prototypes', 'types'].includes(member)) {
 			return `/${member}.html${part}`;
 		}
+		if (['libraries', 'storage', 'migrations', 'data-lifecycle', 'prototype-tree', 'noise-expressions', 'instrument'].includes(member)) {
+			return `/auxiliary/${member}.html${part}`;
+		}
 		if (this.concepts.has(member)) {
 			return `/types/${member}.html${part}`;
 		}

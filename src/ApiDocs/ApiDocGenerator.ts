@@ -83,7 +83,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		if (member === 'builtin_types') {
 			return `/builtin-types.html${part}`;
 		}
-		if (['libraries', 'global', 'storage', 'migrations', 'data-lifecycle'].includes(member)) {
+		if (['libraries', 'storage', 'migrations', 'data-lifecycle', 'prototype-tree', 'noise-expressions', 'instrument'].includes(member)) {
 			return `/auxiliary/${member}.html${part}`;
 		}
 		if (this.concepts.has(member)) {
