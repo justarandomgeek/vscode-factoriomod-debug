@@ -87,7 +87,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			return `/auxiliary/${member}.html${part}`;
 		}
 		if (this.concepts.has(member)) {
-			return `/concepts.html#${member}`;
+			return `/concepts/${member}.html${part}`;
 		}
 		if (this.classes.has(member)) {
 			return `/classes/${member}.html${part}`;
