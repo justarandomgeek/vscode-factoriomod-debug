@@ -16,7 +16,7 @@
     // run debug config "Standalone LuaLS Addon" to generate out/docs
     "Lua.workspace.library": [
         "out/sumneko-3rd/factorio/library",
-        "d:\\factorio\\factoriogit\\data",
+        //"d:\\factorio\\factoriogit\\data",
     ],
     "Lua.runtime.plugin": ".vscode/lua/plugin.lua",
     "Lua.diagnostics.globals": [
