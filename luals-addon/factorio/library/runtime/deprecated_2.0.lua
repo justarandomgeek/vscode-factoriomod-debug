@@ -6,6 +6,10 @@ global = nil
 
 ---@class LuaGameScript
 local gamedep = {
+---@deprecated use `script.active_mods`
+---@see script.active_mods
+active_mods = nil,
+
 ---@deprecated use `helpers.table_to_json`
 ---@see helpers.table_to_json
 table_to_json = nil,
@@ -43,14 +47,9 @@ is_valid_sound_path = nil,
 ---@see helpers.is_valid_sprite_path
 is_valid_sprite_path = nil,
 
-
-
-
-
 ---@deprecated use `prototypes.get_entity_filtered`
 ---@see prototypes.get_entity_filtered
 get_filtered_entity_prototypes = nil,
-
 ---@deprecated use `prototypes.get_item_filtered`
 ---@see prototypes.get_item_filtered
 get_filtered_item_prototypes = nil,
