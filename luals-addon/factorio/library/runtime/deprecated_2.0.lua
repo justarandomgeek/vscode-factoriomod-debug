@@ -4,6 +4,14 @@
 ---@deprecated use `storage`
 global = nil
 
+---@class LuaBootstrap
+local scriptdep = {
+
+---@deprecated use `script.register_on_object_destroyed`
+---@see script.register_on_object_destroyed
+register_on_entity_destroyed = nil
+}
+
 ---@class LuaGameScript
 local gamedep = {
 ---@deprecated use `script.active_mods`
