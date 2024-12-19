@@ -406,7 +406,6 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	private async generate_LuaLS_events(format_description:DocDescriptionFormatter) {
 		const file = new LuaLSFile("runtime-api/events", this.docs.application_version);
 		const handlers = new LuaLSClass("event_handler.events");
-		handlers.exact = true;
 
 		for (const [_, event] of this.events) {
 			const lsevent = new LuaLSClass(`EventData.${event.name}`);
