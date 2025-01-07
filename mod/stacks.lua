@@ -85,7 +85,7 @@ function dispatch.__inner.stackTrace(startFrame, seq)
           if method == rcallptr then
             local _,interface = dgetlocal(i, 1)
             local _,func = dgetlocal(i, 2)
-            framename = "[remote to "..interface.."::"..func.."]"
+            framename = "[remote to "..variables.describe(interface).."::"..variables.describe(func).."]"
           end
         end
       end

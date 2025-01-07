@@ -5,6 +5,8 @@
 ## 2.0.6
 * LuaLS library package:
   * remove `(exact)` from generated class `event_handler.events`
+* Debugger:
+  * fix incorrect error when remote.call is called with invalid arguments
 
 ## 2.0.5
 * Changelog LSP:
