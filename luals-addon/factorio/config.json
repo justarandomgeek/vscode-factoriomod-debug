@@ -30,6 +30,7 @@
 		],
 		"Lua.diagnostics.disable": [
 			"lowercase-global"
-		]
+		],
+		"Lua.language.fixIndent": false
 	}
 }

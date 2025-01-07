@@ -5,6 +5,7 @@
 ## 2.0.6
 * LuaLS library package:
   * remove `(exact)` from generated class `event_handler.events`
+  * set `"Lua.language.fixIndent": false` by default due to bugs in LuaLS causing incorrect code deletions
 * Debugger:
   * fix incorrect error when remote.call is called with invalid arguments
 
