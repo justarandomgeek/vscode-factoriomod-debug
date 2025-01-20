@@ -1,4 +1,4 @@
----@meta sound-util
+---@meta
 
 ---Will create a list of sound definitions.
 ---

@@ -1,4 +1,4 @@
----@meta _
+---@meta
 
 ---@class event_handler
 ---@field events? event_handler.events
