@@ -1,6 +1,6 @@
 {
   "title": "Factorio Mod info.json",
-  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$schema": "https://json-schema.org/draft-07/schema",
   "allOf":[
     {
       "$ref": "datainfo.json"
