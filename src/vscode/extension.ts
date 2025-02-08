@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import { FactorioModDebugSession } from '../fmtk';
 import { activateModPackageProvider } from './ModPackageProvider';
 import { FactorioVersionSelector } from './VersionSelector';
+import { FSProvider } from './FSProvider';
 import { ProfileRenderer } from '../Profile/ProfileRenderer';
 import * as LanguageClient from "../Language/Client";
 import { ModSettingsEditorProvider } from '../ModSettings/ModSettingsEditorProvider';
@@ -16,8 +17,12 @@ export function activate(context: vscode.ExtensionContext) {
 
 	output.info(`FMTK ${version}`);
 	try {
+		output.info(`Registering FS Provider...`);
+		const fsprovider = new FSProvider();
+		context.subscriptions.push(vscode.workspace.registerFileSystemProvider('fmtk', fsprovider, {isCaseSensitive:true}));
+
 		output.info(`Registering Version Selector...`);
-		const versionSelector = new FactorioVersionSelector(context, output);
+		const versionSelector = new FactorioVersionSelector(context, output, fsprovider);
 
 		output.info(`Registering Debug Provider...`);
 		const provider = new FactorioModConfigurationProvider(versionSelector);

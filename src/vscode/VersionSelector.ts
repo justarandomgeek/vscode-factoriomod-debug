@@ -5,6 +5,7 @@ import { URI, Utils } from "vscode-uri";
 import { forkScript } from './ModPackageProvider';
 import { version as bundleVersion } from "../../package.json";
 import { ActiveFactorioVersion, FactorioVersion, substitutePathVariables, ApiDocGenerator, LuaLSAddon } from "../fmtk";
+import { FSProvider } from './FSProvider';
 const fs = vscode.workspace.fs;
 
 const detectPaths:FactorioVersion[] = [
@@ -21,6 +22,7 @@ export class FactorioVersionSelector {
 	constructor(
 		private context:vscode.ExtensionContext,
 		private output:vscode.LogOutputChannel,
+		private fsprovider:FSProvider
 	) {
 		this.bar = vscode.window.createStatusBarItem("factorio-version", vscode.StatusBarAlignment.Left, 10);
 		this.bar.name = "Factorio Version Selector";
