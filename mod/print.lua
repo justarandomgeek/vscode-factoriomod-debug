@@ -78,19 +78,26 @@ function DAprint.print(expr,alsoLookIn,upStack,category,noexprs)
       printkeep[vv] = true
       ref = v.variablesReference
     end
-  elseif texpr == "table" and (expr.object_name == "LuaProfiler" or (not getmetatable(expr) and #expr>=1 and type(expr[1])=="string")) then
+  elseif texpr == "table" and (not getmetatable(expr) and #expr>=1 and type(expr[1])=="string") then
     local tref,err = variables.translate(expr)
     result = tref or ("<"..err..">")
-  else
-    if texpr == "table" then
-      expr = {expr}
-    end
+
     local v = variables.create(nil,expr, nil)
-    if expr then
-      printkeep[expr] = true
-    end
+    ref = v.variablesReference
+  else
+    local v = variables.create(nil,expr, nil)
     result = v.value
     ref = v.variablesReference
+  end
+
+  if ref then
+    local wrap = {expr}
+    if expr then
+      printkeep[wrap] = true
+    end
+
+    local w = variables.create(nil,wrap, nil)
+    ref = w.variablesReference
   end
 
   local body = {
