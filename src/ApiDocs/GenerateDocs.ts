@@ -50,7 +50,7 @@ export async function GenerateDocs(docsjson:string, protosjson:string, write_fil
 	await Promise.all(
 		[
 			...await docs.generate_LuaLS_docs(format_description),
-			...pdocs?.generate_LuaLS_docs(format_description) ?? [],
+			...await pdocs.generate_LuaLS_docs(format_description),
 		].map(async plsfile=>{
 			const lsfile = await plsfile;
 			await write_file(path.join(libdir, lsfile.name+".lua"), (output)=>lsfile.write(output))

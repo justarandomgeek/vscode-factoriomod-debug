@@ -69,20 +69,22 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 		return undefined;
 	}
 
-	public generate_LuaLS_docs(
+	public async generate_LuaLS_docs(
 		format_description:DocDescriptionFormatter
-	):(LuaLSFile|Promise<LuaLSFile>)[] {
+	):Promise<(LuaLSFile|Promise<LuaLSFile>)[]> {
 		return [
-			this.generate_LuaLS_concepts(format_description),
-			this.generate_LuaLS_prototypes(format_description),
+			...(await this.generate_LuaLS_concepts(format_description)),
+			...(await this.generate_LuaLS_prototypes(format_description)),
 			this.generate_LuaLS_data(format_description),
 		];
 	}
 
-	private async generate_LuaLS_concepts(format_description:DocDescriptionFormatter): Promise<LuaLSFile> {
-		const file = new LuaLSFile("prototype-api/concepts", this.application_version);
+	private async generate_LuaLS_concepts(format_description:DocDescriptionFormatter): Promise<LuaLSFile[]> {
+		const files = []
+
 
 		for (const [_, concept] of this.concepts) {
+			const file = new LuaLSFile(`prototype-api/concepts/${concept.name}`, this.application_version);
 			if (concept.type === "builtin") {
 				continue;
 			}
@@ -120,9 +122,11 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 				}
 				file.add(new LuaLSAlias(this.type_prefix+concept.name, this.lua_proto_type(ptype, concept), concept.description));
 			}
+
+			files.push(file);
 		}
 
-		return file;
+		return files;
 	}
 
 	private generate_LuaLS_data(format_description:DocDescriptionFormatter): LuaLSFile {
@@ -163,11 +167,10 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 		return file;
 	}
 
-	private async generate_LuaLS_prototypes(format_description:DocDescriptionFormatter): Promise<LuaLSFile> {
-		const file = new LuaLSFile("prototype-api/prototypes", this.application_version);
-
+	private async generate_LuaLS_prototypes(format_description:DocDescriptionFormatter): Promise<LuaLSFile[]> {
+	const files = []
 		for (const [_, prototype] of this.prototypes) {
-
+			const file = new LuaLSFile(`prototype-api/prototypes/${prototype.name}`, this.application_version);
 			const lsproto = new LuaLSClass(this.type_prefix+prototype.name);
 			lsproto.exact = true;
 			lsproto.description = await format_description(prototype.description, { scope: "prototype", member: prototype.name });
@@ -199,8 +202,9 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 				));
 			}
 			file.add(lsproto);
+			files.push(file);
 		}
-		return file;
+		return files;
 	}
 
 	private lua_proto_type(type:ProtoType, parent?:ProtoConcept):LuaLSType {
