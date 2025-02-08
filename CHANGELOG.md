@@ -6,8 +6,11 @@
 * LuaLS library package:
   * remove `(exact)` from generated class `event_handler.events`
   * set `"Lua.language.fixIndent": false` by default due to bugs in LuaLS causing incorrect code deletions
+  * `sound-util` library (#171)
+  * `LuaObject` inherits from `userdata` (#170)
 * Debugger:
   * fix incorrect error when remote.call is called with invalid arguments
+  * fix incorrect nesting of values in Output events
 
 ## 2.0.5
 * Changelog LSP:
