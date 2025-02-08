@@ -515,14 +515,14 @@ export class FactorioVersionSelector {
 
 		let userThirdParty = luaconfig.get<string[]>("workspace.userThirdParty", []);
 
-		const path = Utils.joinPath(workspaceLibrary, "sumneko-3rd").fsPath;
+
 		// remove any mismatched entries and re-register the current one...
 		userThirdParty = userThirdParty.filter(s=>{
 			return !s.includes("justarandomgeek.factoriomod-debug");
 		});
 		// do the double-update on this to force luals to reload if we didn't actually change library links
 		await luaconfig.update("workspace.userThirdParty", userThirdParty);
-		userThirdParty.push(path);
+		userThirdParty.push(sumneko3rd.fsPath);
 		await luaconfig.update("workspace.userThirdParty", userThirdParty);
 
 		const checkThirdParty = luaconfig.get<string|undefined>("workspace.checkThirdParty");
