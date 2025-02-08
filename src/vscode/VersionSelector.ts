@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import * as os from 'os';
 import * as path from 'path';
 import { URI, Utils } from "vscode-uri";
-import type { DocSettings } from "../ApiDocs/DocSettings";
 import { forkScript } from './ModPackageProvider';
 import { version as bundleVersion } from "../../package.json";
 import { ActiveFactorioVersion, FactorioVersion, substitutePathVariables, ApiDocGenerator, LuaLSAddon } from "../fmtk";
@@ -406,9 +405,8 @@ export class FactorioVersionSelector {
 			docjson = (await fs.readFile(docpath)).toString();
 		}
 
-		const docsettings = await vscode.workspace.getConfiguration("factorio").get<DocSettings>("docs", {});
 		try {
-			return new ApiDocGenerator(docjson, docsettings);
+			return new ApiDocGenerator(docjson);
 		} catch (error) {
 			if (!throwOnError) { return; }
 			throw error;

@@ -1,5 +1,4 @@
 import { overlay } from "./Overlay";
-import type { DocSettings } from "./DocSettings";
 import { is_lua_ident, LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSEnum, LuaLSEnumField, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSLiteral, LuaLSOperator, LuaLSOverload, LuaLSParam, LuaLSReturn, LuaLSTuple, LuaLSType, LuaLSTypeName, LuaLSUnion, to_lua_ident } from "./LuaLS";
 
 function sort_by_order(a:{order:number}, b:{order:number}) {
@@ -16,7 +15,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 	private readonly defines:Set<string>;
 
-	constructor(docjson:string, docsettings:DocSettings) {
+	constructor(docjson:string) {
 		this.docs = JSON.parse(docjson);
 
 		if (this.docs.application !== "factorio") {

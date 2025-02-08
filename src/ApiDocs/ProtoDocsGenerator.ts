@@ -1,5 +1,4 @@
 import { LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSLiteral, LuaLSOverload, LuaLSParam, LuaLSTuple, LuaLSType, LuaLSTypeName, LuaLSUnion } from "./LuaLS";
-import type { DocSettings } from "./DocSettings";
 
 export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 	private readonly docs:ProtoDocs<V>;
@@ -10,7 +9,7 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 
 	private readonly type_prefix = "data.";
 
-	constructor(docjson:string, docsettings:DocSettings) {
+	constructor(docjson:string) {
 		this.docs = JSON.parse(docjson);
 
 		if (this.docs.application !== "factorio") {

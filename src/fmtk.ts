@@ -5,6 +5,7 @@ export * from "./ModManager";
 export * from "./ModSettings/ModSettings"
 export * from "./ApiDocs/ApiDocGenerator";
 export * from "./ApiDocs/ProtoDocsGenerator";
+export * from "./ApiDocs/GenerateDocs";
 export * from "./Debug/factorioModDebug";
 export * from "./ScriptDat/ScriptDat"
 export * from "./Util/BufferStream";
