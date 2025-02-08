@@ -120,11 +120,12 @@ export class FSProvider implements vscode.FileSystemProvider {
 		);
 	}
 
-	delete(uri: vscode.Uri): void {
+	delete(uri: vscode.Uri, options?:{silent?:boolean, recursive?:boolean}): void {
 		const dirname = uri.with({ path: path.posix.dirname(uri.path) });
 		const basename = path.posix.basename(uri.path);
-		const parent = this._lookupAsDirectory(dirname, false);
-		if (!parent.entries.has(basename)) {
+		const parent = this._lookupAsDirectory(dirname, options?.silent??false);
+		if (!parent || !parent.entries.has(basename)) {
+			if (options?.silent) { return; }
 			throw vscode.FileSystemError.FileNotFound(uri);
 		}
 		parent.entries.delete(basename);
