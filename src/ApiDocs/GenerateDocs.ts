@@ -46,14 +46,14 @@ export async function GenerateDocs(docsjson:string, protosjson:string, write_fil
 		return result;
 	};
 
-	const libdir = path.join("factorio", "library");
+	const libdir = path.posix.join("factorio", "library");
 	await Promise.all(
 		[
 			...await docs.generate_LuaLS_docs(format_description),
 			...await pdocs.generate_LuaLS_docs(format_description),
 		].map(async plsfile=>{
 			const lsfile = await plsfile;
-			await write_file(path.join(libdir, lsfile.name+".lua"), (output)=>lsfile.write(output))
+			await write_file(path.posix.join(libdir, lsfile.name+".lua"), (output)=>lsfile.write(output))
 		}));
 
 	await Promise.all((await LuaLSAddon.getLuaFiles()).map(async (file)=>{
