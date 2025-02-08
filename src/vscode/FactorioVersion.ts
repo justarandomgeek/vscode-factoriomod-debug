@@ -119,6 +119,10 @@ export class ActiveFactorioVersion {
 		]
 	}
 
+	public get onlineDocs() {
+		return this.fv.onlineDocs;
+	}
+
 	public get docsPath() {
 		return path.join(this.factorioPath,
 			this.fv.docsPath ? this.fv.docsPath :
