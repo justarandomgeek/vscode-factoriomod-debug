@@ -5,7 +5,7 @@ import { program } from 'commander';
 import { readdirGlob } from 'readdir-glob';
 
 import { URI, Utils } from 'vscode-uri';
-import { fsAccessor, getConfig } from "./util";
+import { fsAccessor } from "./util";
 import { ActiveFactorioVersion, FactorioVersion, ApiDocGenerator, FactorioModDebugSession } from '../fmtk';
 
 program.command("debug <factorioPath>")
@@ -28,7 +28,7 @@ program.command("debug <factorioPath>")
 			"../../../doc-html/runtime-api.json"
 		);
 		const docsjson = await fsp.readFile(docsPath.fsPath, "utf8");
-		const activeVersion = new ActiveFactorioVersion(fsAccessor, fv, new ApiDocGenerator(docsjson, await getConfig("doc", {}, true)));
+		const activeVersion = new ActiveFactorioVersion(fsAccessor, fv, new ApiDocGenerator(docsjson));
 
 		// start a single session that communicates via stdin/stdout
 		const session = new FactorioModDebugSession(activeVersion, fsAccessor, {
