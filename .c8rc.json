@@ -1,6 +1,6 @@
 {
 	"reporter": [ "html", "lcov", "text" ],
 	"exclude-after-remap": true,
-	"extension": [ ".ts", ".lua" ],
-	"include": ["**/*.ts", "**/*.lua", "!**/import-glob*/**"]
+	"extension": [ ".ts" ],
+	"include": ["**/*.ts", "!**/luals-addon/**"]
 }
