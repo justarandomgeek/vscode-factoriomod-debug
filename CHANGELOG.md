@@ -8,6 +8,7 @@
   * set `"Lua.language.fixIndent": false` by default due to bugs in LuaLS causing incorrect code deletions
   * `sound-util` library (#171)
   * `LuaObject` inherits from `userdata` (#170)
+  * Add `feature_flags` global var for data stage
 * Debugger:
   * fix incorrect error when remote.call is called with invalid arguments
   * fix incorrect nesting of values in Output events
