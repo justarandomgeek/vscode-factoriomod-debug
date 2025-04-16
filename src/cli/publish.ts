@@ -3,7 +3,8 @@ import * as fsp from 'fs/promises';
 import * as crypto from "crypto";
 import path from 'path';
 import { exec } from "child_process";
-import { program } from 'commander';
+import { commander } from '../cjs/fmtk-cjs-deps';
+const program = commander.program
 import type { ModInfo } from "../vscode/ModPackageProvider";
 import { getConfig } from "./util";
 

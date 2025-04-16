@@ -70,9 +70,9 @@ function ResolveFMTKPlugin():Plugin {
 	return {
 		name: 'resolveFMTK',
 		setup(build) {
-			build.onResolve({ filter: /^(\.\.\/)+fmtk$/ }, args=>{
+			build.onResolve({ filter: /^(\.\.\/)+cjs\/fmtk-cjs-deps$/ }, args=>{
 				return {
-					path: "./fmtk.js",
+					path: "./fmtk-cjs-deps.cjs",
 					external: true,
 					namespace: 'fmtk',
 				};
@@ -118,7 +118,7 @@ const commonConfig:BuildOptions = {
 	sourcesContent: false,
 	platform: "node",
 	format: "esm",
-	splitting: true,
+	splitting: undefined,
 	treeShaking: true,
 	// `module` first for jsonc-parser
 	mainFields: ['module', 'main'],
@@ -143,20 +143,34 @@ const configs:BuildOptions[] = [
 			// vscode isn't a real import, it's a special hook
 			"vscode",
 
-			// various still-partially-cjs packages?
-			"commander",
-			"@vscode/debugadapter",
-			"tree-kill",
-			"mute-stream",
-			"external-editor"
+			// shim some cjs deps...
+			"./cjs-mute-stream.cjs",
+			"./cjs-external-editor.cjs",
 		],
 		alias: {
-			"yoctocolors-cjs": "yoctocolors"
+			"yoctocolors-cjs": "yoctocolors",
+			"mute-stream": "./cjs-mute-stream.cjs",
+			"external-editor": "./cjs-external-editor.cjs",
 		},
 		plugins: [
+			ResolveFMTKPlugin(),
 			ImportGlobPlugin(),
 			FactorioModPlugin(),
 		],
+	},
+	{
+		// shim modules to load some cjs deps while the rest is in esm land
+		...commonConfig,
+		entryPoints: {
+			"fmtk-cjs-deps": "./src/cjs/fmtk-cjs-deps.ts",
+			"cjs-mute-stream": "./src/cjs/mute-stream.ts",
+			"cjs-external-editor": "./src/cjs/external-editor.ts",
+		},
+		outExtension: {
+			[".js"]: ".cjs",
+		},
+		format: 'cjs',
+		splitting: false,
 	},
 	{
 		...commonConfig,

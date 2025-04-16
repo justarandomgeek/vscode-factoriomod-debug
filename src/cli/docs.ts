@@ -1,6 +1,7 @@
 import * as fsp from 'fs/promises';
 import path from 'path';
-import { program } from 'commander';
+import { commander } from '../cjs/fmtk-cjs-deps';
+const program = commander.program
 import { default as fetch } from "node-fetch";
 import { createWriteStream } from 'fs';
 

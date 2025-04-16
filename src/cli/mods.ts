@@ -1,4 +1,5 @@
-import { program } from 'commander';
+import { commander } from '../cjs/fmtk-cjs-deps';
+const program = commander.program
 import * as inquirer from "@inquirer/prompts";
 import { ModManager } from '../fmtk';
 

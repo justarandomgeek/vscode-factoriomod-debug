@@ -1,5 +1,6 @@
 import * as fsp from 'fs/promises';
-import { program } from 'commander';
+import { commander } from '../cjs/fmtk-cjs-deps';
+const program = commander.program
 
 import { BufferStream, ScriptDat } from '../fmtk';
 

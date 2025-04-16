@@ -1,6 +1,7 @@
 import path from 'path';
 import * as fsp from 'fs/promises';
-import { program } from 'commander';
+import { commander } from '../cjs/fmtk-cjs-deps';
+const program = commander.program
 import { addModRelease } from "./tasks";
 
 program.command("upload <zipname> [name]")

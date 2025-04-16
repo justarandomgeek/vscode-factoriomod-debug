@@ -3,7 +3,7 @@ import { spawn, ChildProcess, SpawnOptions } from 'child_process';
 import { EventEmitter } from "events";
 import { BufferSplitter } from '../Util/BufferSplitter';
 import * as path from 'path';
-import treekill from 'tree-kill';
+import { treekill } from "../cjs/fmtk-cjs-deps";
 
 const stderrsplit = [Buffer.from("\n"), Buffer.from("lua_debug> ")];
 const stdoutsplit = [Buffer.from("\n"),

@@ -1,9 +1,12 @@
-import {
+import * as cjsdeps from "../cjs/fmtk-cjs-deps";
+
+const {
 	Logger, logger,
 	LoggingDebugSession,
 	StoppedEvent, OutputEvent,
-	Source, Module, ModuleEvent, InitializedEvent, Event, TerminatedEvent, LoadedSourceEvent, BreakpointEvent, InvalidatedEvent,
-} from '@vscode/debugadapter';
+	ModuleEvent, InitializedEvent, Event, TerminatedEvent, LoadedSourceEvent, BreakpointEvent, InvalidatedEvent,
+} = cjsdeps.debugadapter;
+
 import type { DebugProtocol } from '@vscode/debugprotocol';
 import * as path from 'path';
 import * as fsp from 'fs/promises';
@@ -597,7 +600,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 							return;
 						case "output":
 						{
-							const output = json as OutputEvent;
+							const output = json as DebugProtocol.OutputEvent;
 							if (!output.body.output.endsWith("\n")) {
 								output.body.output += "\n";
 							}
@@ -1051,13 +1054,13 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	private lines_by_source = new Map<number|string, number[]>();
 
-	private loadedSources:(Source&DebugProtocol.Source)[] = [];
+	private loadedSources:(DebugProtocol.Source)[] = [];
 
-	protected async loadedSourceEvent(loaded:{ source:Source&DebugProtocol.Source; dump?:Buffer }) {
+	protected async loadedSourceEvent(loaded:{ source:DebugProtocol.Source; dump?:Buffer }) {
 		const source = loaded.source;
 
 		if (loaded.dump) {
-			const dumpid = source.sourceReference ?? source.name;
+			const dumpid = (source.sourceReference ?? source.name)!;
 			let dump:LuaFunction;
 			dump = new LuaFunction(loaded.dump);
 
@@ -1236,7 +1239,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			return;
 		}
 
-		this.factorio?.writeStdin(Buffer.concat([s instanceof Buffer ? s : Buffer.from(s), Buffer.from("\n")]));
+		this.factorio?.writeStdin(Buffer.concat([s instanceof Buffer ? s : Buffer.from(s as string), Buffer.from("\n")]));
 	}
 
 	private async writeOrQueueStdin(s:string|Buffer, consumed?:Promise<void>, signal?:AbortSignal):Promise<boolean> {
@@ -1462,7 +1465,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			}
 		}
 		//TODO: another event to update it with levelpath for __level__ eventually?
-		this._modules.forEach((module:Module)=>{
+		this._modules.forEach((module:DebugProtocol.Module)=>{
 			this.sendEvent(new ModuleEvent('new', module));
 		});
 	}
