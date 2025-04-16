@@ -33,7 +33,7 @@
     "lint": "eslint src --ext ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "typecheck-watch": "tsc -p tsconfig.json --noEmit --watch",
-    "esbuild": "tsx ./build.ts",
+    "esbuild": "node ./build.ts",
     "watch": "npm run esbuild -- --watch",
     "stats": "npm run esbuild -- --minify --meta && esbuild-visualizer --metadata ./out/meta.json --filename ./out/stats.html",
     "vscode:prepublish": "npm run prepare",
@@ -88,7 +88,6 @@
     "rimraf": "^6.0.1",
     "semver": "^7.7.1",
     "tree-kill": "^1.2.2",
-    "tsx": "^4.19.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.30.1",
     "vscode-languageclient": "^9.0.1",
@@ -99,7 +98,8 @@
   "extensionDependencies": [
     "sumneko.lua"
   ],
-  "main": "./dist/fmtk-vscode.js",
+  "type": "module",
+  "main": "dist/fmtk-vscode.js",
   "bin": {
     "fmtk": "dist/fmtk-cli.js",
     "factoriomod-debug": "dist/fmtk-cli.js"

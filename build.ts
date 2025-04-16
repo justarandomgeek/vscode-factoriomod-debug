@@ -1,15 +1,18 @@
 import * as fsp from 'fs/promises';
 import * as path from 'path';
-import { build, BuildOptions, BuildResult, context, Metafile, Plugin } from "esbuild";
-import ImportGlobPlugin from 'esbuild-plugin-import-glob';
+import type { BuildOptions, BuildResult, Metafile, Plugin } from "esbuild";
+import { build, context, } from "esbuild";
+
+import {default as ImportGlob} from 'esbuild-plugin-import-glob';
+//@ts-expect-error this plugin's exports are broken...
+const ImportGlobPlugin = ImportGlob.default as typeof ImportGlob;
 
 import { program } from 'commander';
 import archiver from 'archiver';
 
 import type { ModInfo } from './src/vscode/ModPackageProvider';
 
-//@ts-expect-error cjs vs esm gone wrong here?
-import readdirGlob from 'readdir-glob';
+import { readdirGlob } from 'readdir-glob';
 
 function FactorioModPlugin():Plugin {
 	return {
@@ -31,7 +34,7 @@ function FactorioModPlugin():Plugin {
 
 				const archive = archiver('zip', { zlib: { level: 9 }});
 				const templatePath = path.join(args.path, "info.template.json");
-				const info = <ModInfo>JSON.parse(await fsp.readFile(templatePath, "utf8"));
+				const info = JSON.parse(await fsp.readFile(templatePath, "utf8")) as ModInfo;
 				info.version = version;
 				await fsp.writeFile(path.join(args.path, "info.json"), JSON.stringify(info));
 				const files:string[] = [packagejsonPath, templatePath];
@@ -114,7 +117,7 @@ const commonConfig:BuildOptions = {
 	sourcemap: true,
 	sourcesContent: false,
 	platform: "node",
-	format: "cjs",
+	format: "esm",
 	// `module` first for jsonc-parser
 	mainFields: ['module', 'main'],
 	loader: {
