@@ -16,6 +16,8 @@ import type { ModInfo } from "../vscode/ModPackageProvider";
 
 import { readdirGlob } from 'readdir-glob';
 
+import { TextDocument } from "../cjs/fmtk-cjs-deps";
+
 export async function getPackageinfo() {
 	try {
 		return JSON.parse(await fsp.readFile("info.json", "utf8")) as ModInfo;
@@ -94,7 +96,7 @@ export async function doPackageDatestamp(info:ModInfo): Promise<boolean> {
 	if (!content) {
 		console.log("No changelog.txt");
 	} else {
-		const { TextDocument } = await import("vscode-languageserver-textdocument");
+
 		const { ChangeLogLanguageService } = await import("../Language/ChangeLog");
 		const doc = TextDocument.create(uri.toString(), "factorio-changelog", 1, content);
 		const langserv = new ChangeLogLanguageService();

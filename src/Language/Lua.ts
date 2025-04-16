@@ -3,11 +3,11 @@ import {
 	CompletionItemKind,
 	CompletionParams,
 	DefinitionParams,
-} from 'vscode-languageserver/node';
+} from "../cjs/fmtk-cjs-deps";
 
 import type {
 	TextDocument,
-} from 'vscode-languageserver-textdocument';
+} from "../cjs/fmtk-cjs-deps";
 import type { LocaleLanguageService } from './Locale';
 
 export class LuaLanguageService {

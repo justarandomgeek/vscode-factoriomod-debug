@@ -7,11 +7,8 @@ import {
 	CodeAction,
 	CodeActionKind,
 	Range,
-} from 'vscode-languageserver/node';
-
-import type {
 	TextDocument,
-} from 'vscode-languageserver-textdocument';
+} from "../cjs/fmtk-cjs-deps";
 
 export class ChangeLogLanguageService {
 	public async validateTextDocument(textDocument: TextDocument): Promise<Diagnostic[]> {

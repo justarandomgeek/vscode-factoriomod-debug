@@ -8,11 +8,8 @@ import {
 	InitializeResult,
 	DocumentUri,
 	FileChangeType,
-} from 'vscode-languageserver/node';
-
-import {
 	TextDocument,
-} from 'vscode-languageserver-textdocument';
+} from '../cjs/fmtk-cjs-deps';
 
 import { ChangeLogLanguageService } from './ChangeLog';
 import { LocaleLanguageService } from "./Locale";
