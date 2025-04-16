@@ -1,5 +1,5 @@
 import { program } from 'commander';
-import inquirer from "inquirer";
+import * as inquirer from "@inquirer/prompts";
 import { ModManager } from '../fmtk';
 
 const modscommand = program.command("mods")
@@ -32,16 +32,16 @@ modscommand.command("install <modname>")
 		console.log(JSON.stringify(await manager.installMod(modname, {
 			origin: "any",
 			force: options.force,
-			credentialPrompt: async (username?:string)=>inquirer.prompt<{username:string;password:string}>([{
-				message: "Username:",
-				name: "username",
-				type: "input",
-				default: username,
-			}, {
-				message: "Password:",
-				name: "password",
-				type: "password",
-			}])})));
+			credentialPrompt: async (username?:string)=>{
+				username = await inquirer.input({
+					message: "Username:",
+					default: username,
+				});
+				const password = await inquirer.password({
+					message: "Password:",
+				});
+				return {username, password};
+			}})));
 	});
 modscommand.command("adjust <changes...>")
 	.description("Configure multiple mods at once: modname=true|false|x.y.z")

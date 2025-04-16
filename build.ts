@@ -118,6 +118,8 @@ const commonConfig:BuildOptions = {
 	sourcesContent: false,
 	platform: "node",
 	format: "esm",
+	splitting: true,
+	treeShaking: true,
 	// `module` first for jsonc-parser
 	mainFields: ['module', 'main'],
 	loader: {
@@ -134,6 +136,21 @@ const configs:BuildOptions[] = [
 		...commonConfig,
 		entryPoints: {
 			"fmtk": "./src/fmtk.ts",
+			"fmtk-cli": "./src/cli/main.ts",
+			"fmtk-vscode": "./src/vscode/extension.ts",
+		},
+		external: [
+			// vscode isn't a real import, it's a special hook
+			"vscode",
+
+			// various still-partially-cjs packages?
+			"commander",
+			"@vscode/debugadapter",
+			"tree-kill",
+			"mimer",
+		],
+		alias: {
+			"yoctocolors-cjs": "yoctocolors"
 		},
 		plugins: [
 			ImportGlobPlugin(),
@@ -142,29 +159,7 @@ const configs:BuildOptions[] = [
 	},
 	{
 		...commonConfig,
-		entryPoints: {
-			"fmtk-cli": "./src/cli/main.ts",
-		},
-		plugins: [
-			ResolveFMTKPlugin(),
-		],
-	},
-	{
-		...commonConfig,
-		entryPoints: {
-			"fmtk-vscode": "./src/vscode/extension.ts",
-		},
-		external: [
-			"vscode"
-		],
-		plugins: [
-			ResolveFMTKPlugin(),
-		],
-	},
-	{
-		...commonConfig,
 		platform: "browser",
-		format: "esm",
 		entryPoints: {
 			Flamegraph: "./src/Profile/Flamegraph.ts",
 			ModSettingsWebview: "./src/ModSettings/ModSettingsWebview.ts",
