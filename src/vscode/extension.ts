@@ -1,4 +1,3 @@
-'use strict';
 import * as vscode from 'vscode';
 import { FactorioModDebugSession } from '../fmtk';
 import { activateModPackageProvider } from './ModPackageProvider';
