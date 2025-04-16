@@ -7,8 +7,8 @@ import type { ModInstallResult } from "../src/ModManager";
 import { version } from "../package.json";
 
 suite('CLI Mod Manager', ()=>{
-	const fmtk = path.join(__dirname, '../dist/fmtk-cli.js');
-	const mods = path.join(__dirname, "./factorio/mod-tests");
+	const fmtk = path.join(import.meta.dirname, '../dist/fmtk-cli.js');
+	const mods = path.join(import.meta.dirname, "./factorio/mod-tests");
 
 	suiteSetup(async ()=>{
 		await fsp.mkdir(mods, {recursive: true});

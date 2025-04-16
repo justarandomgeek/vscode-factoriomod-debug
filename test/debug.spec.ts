@@ -18,8 +18,8 @@ function exists(file:fs.PathLike) {
 
 suite('Debug Adapter', ()=>{
 	let dc: DebugClient;
-	const cwd = path.join(__dirname, "./factorio/mods");
-	const fmtk = path.join(__dirname, '../dist/fmtk-cli.js');
+	const cwd = path.join(import.meta.dirname, "./factorio/mods");
+	const fmtk = path.join(import.meta.dirname, '../dist/fmtk-cli.js');
 
 	function launch(args:Partial<LaunchRequestArguments>, testid?:string) {
 		return dc.launch(Object.assign({
@@ -43,15 +43,15 @@ suite('Debug Adapter', ()=>{
 
 	suiteSetup(async ()=>{
 		await fsp.mkdir(cwd, {recursive: true });
-		await fsp.copyFile(path.join(__dirname, "./empty-mod-settings.dat"), path.join(__dirname, "./factorio/mods/mod-settings.dat"));
+		await fsp.copyFile(path.join(import.meta.dirname, "./empty-mod-settings.dat"), path.join(import.meta.dirname, "./factorio/mods/mod-settings.dat"));
 		//await forkTest(fmtk, ["mods", "install", "minimal-no-base-mod"], {cwd: cwd});
 
 		// tests have to be dir-like for breakpoints to match up!
 		if (!(await exists(path.join(cwd, "./debugadapter")))) {
-			await fsp.symlink(path.join(__dirname, "../mod"), path.join(cwd, "./debugadapter"), 'dir');
+			await fsp.symlink(path.join(import.meta.dirname, "../mod"), path.join(cwd, "./debugadapter"), 'dir');
 		}
 		if (!(await exists(path.join(cwd, "./debugadapter-tests")))) {
-			await fsp.symlink(path.join(__dirname, "./mod"), path.join(cwd, "./debugadapter-tests"), 'dir');
+			await fsp.symlink(path.join(import.meta.dirname, "./mod"), path.join(cwd, "./debugadapter-tests"), 'dir');
 		}
 	});
 
@@ -63,7 +63,7 @@ suite('Debug Adapter', ()=>{
 				{
 					FMTK_TEST_ARGV: JSON.stringify([
 						"debug",
-						path.join(__dirname, "./factorio/bin/x64/factorio.exe"),
+						path.join(import.meta.dirname, "./factorio/bin/x64/factorio.exe"),
 					]),
 				},
 			),
@@ -105,7 +105,7 @@ suite('Debug Adapter', ()=>{
 			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
 		});
 		await dc.waitForEvent('initialized');
-		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
+		let scriptpath = path.join(import.meta.dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
 		if (process.platform === 'win32') {
 			scriptpath = scriptpath[0].toLowerCase() + scriptpath.slice(1);
 		}
@@ -148,7 +148,7 @@ suite('Debug Adapter', ()=>{
 			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
 		});
 		await dc.waitForEvent('initialized');
-		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
+		let scriptpath = path.join(import.meta.dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
 		if (process.platform === 'win32') {
 			scriptpath = scriptpath[0].toLowerCase() + scriptpath.slice(1);
 		}
@@ -176,7 +176,7 @@ suite('Debug Adapter', ()=>{
 			hookSettings: true,
 		});
 		await dc.waitForEvent('initialized');
-		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/settings.lua");
+		let scriptpath = path.join(import.meta.dirname, "./factorio/mods/debugadapter-tests/settings.lua");
 		if (process.platform === 'win32') {
 			scriptpath = scriptpath[0].toLowerCase() + scriptpath.slice(1);
 		}
@@ -203,7 +203,7 @@ suite('Debug Adapter', ()=>{
 			hookSettings: true,
 		});
 		await dc.waitForEvent('initialized');
-		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/settings.lua");
+		let scriptpath = path.join(import.meta.dirname, "./factorio/mods/debugadapter-tests/settings.lua");
 		if (process.platform === 'win32') {
 			scriptpath = scriptpath[0].toLowerCase() + scriptpath.slice(1);
 		}
@@ -246,7 +246,7 @@ suite('Debug Adapter', ()=>{
 			hookData: true,
 		});
 		await dc.waitForEvent('initialized');
-		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/data.lua");
+		let scriptpath = path.join(import.meta.dirname, "./factorio/mods/debugadapter-tests/data.lua");
 		if (process.platform === 'win32') {
 			scriptpath = scriptpath[0].toLowerCase() + scriptpath.slice(1);
 		}
@@ -272,7 +272,7 @@ suite('Debug Adapter', ()=>{
 			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
 		});
 		await dc.waitForEvent('initialized');
-		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
+		let scriptpath = path.join(import.meta.dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
 		if (process.platform === 'win32') {
 			scriptpath = scriptpath[0].toLowerCase() + scriptpath.slice(1);
 		}
@@ -321,7 +321,7 @@ suite('Debug Adapter', ()=>{
 			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
 		});
 		await dc.waitForEvent('initialized');
-		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
+		let scriptpath = path.join(import.meta.dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
 		if (process.platform === 'win32') {
 			scriptpath = scriptpath[0].toLowerCase() + scriptpath.slice(1);
 		}
@@ -471,7 +471,7 @@ suite('Debug Adapter', ()=>{
 			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
 		});
 		await dc.waitForEvent('initialized');
-		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
+		let scriptpath = path.join(import.meta.dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
 		if (process.platform === 'win32') {
 			scriptpath = scriptpath[0].toLowerCase() + scriptpath.slice(1);
 		}
@@ -535,7 +535,7 @@ suite('Debug Adapter', ()=>{
 			hookData: true,
 		}, "scopes");
 		await dc.waitForEvent('initialized');
-		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/data.lua");
+		let scriptpath = path.join(import.meta.dirname, "./factorio/mods/debugadapter-tests/data.lua");
 		if (process.platform === 'win32') {
 			scriptpath = scriptpath[0].toLowerCase() + scriptpath.slice(1);
 		}
@@ -589,7 +589,7 @@ suite('Debug Adapter', ()=>{
 			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
 		});
 		await dc.waitForEvent('initialized');
-		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
+		let scriptpath = path.join(import.meta.dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
 		if (process.platform === 'win32') {
 			scriptpath = scriptpath[0].toLowerCase() + scriptpath.slice(1);
 		}
@@ -642,7 +642,7 @@ suite('Debug Adapter', ()=>{
 			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
 		});
 		await dc.waitForEvent('initialized');
-		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
+		let scriptpath = path.join(import.meta.dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
 		if (process.platform === 'win32') {
 			scriptpath = scriptpath[0].toLowerCase() + scriptpath.slice(1);
 		}
@@ -681,7 +681,7 @@ suite('Debug Adapter', ()=>{
 			runningTimeout: 30000,
 		});
 		await dc.waitForEvent('initialized');
-		let scriptpath = path.join(__dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
+		let scriptpath = path.join(import.meta.dirname, "./factorio/mods/debugadapter-tests/scenarios/run/control.lua");
 		if (process.platform === 'win32') {
 			scriptpath = scriptpath[0].toLowerCase() + scriptpath.slice(1);
 		}

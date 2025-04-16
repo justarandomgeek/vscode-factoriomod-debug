@@ -13,8 +13,8 @@ function docItem(doc:TextDocument) {
 }
 
 suite("LSP", ()=>{
-	const fmtk = path.join(__dirname, '../dist/fmtk-cli.js');
-	const cwd = path.join(__dirname, "./mod");
+	const fmtk = path.join(import.meta.dirname, '../dist/fmtk-cli.js');
+	const cwd = path.join(import.meta.dirname, "./mod");
 	let server:ChildProcess;
 	let clientConnection:ProtocolConnection;
 
@@ -91,7 +91,7 @@ suite("LSP", ()=>{
 		let doc:TextDocument;
 
 		setup(async function() {
-			const testfile = path.join(__dirname, "changelog", `${this.currentTest!.title}.txt`);
+			const testfile = path.join(import.meta.dirname, "changelog", `${this.currentTest!.title}.txt`);
 			doc = TextDocument.create(`test://${this.currentTest!.title}/changelog.txt`, "factorio-changelog", 1, await fsp.readFile(testfile, "utf8"));
 			await clientConnection.sendNotification(DidOpenTextDocumentNotification.type,
 				{ textDocument: docItem(doc) } as DidOpenTextDocumentParams);
@@ -253,7 +253,7 @@ suite("LSP", ()=>{
 		let doc:TextDocument;
 
 		setup(async function() {
-			const testfile = path.join(__dirname, "locale", `${this.currentTest!.title}.cfg`);
+			const testfile = path.join(import.meta.dirname, "locale", `${this.currentTest!.title}.cfg`);
 			doc = TextDocument.create(`test://${this.currentTest!.title}/locale/en/test.cfg`, "factorio-locale", 1, await fsp.readFile(testfile, "utf8"));
 			await clientConnection.sendNotification(DidOpenTextDocumentNotification.type,
 				{ textDocument: docItem(doc) } as DidOpenTextDocumentParams);

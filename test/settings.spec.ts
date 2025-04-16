@@ -5,12 +5,12 @@ import { expect } from "chai";
 import { forkTest, forkTestFails } from "./util";
 
 suite('CLI Mod Settings', ()=>{
-	const fmtk = path.join(__dirname, '../dist/fmtk-cli.js');
-	const mods = path.join(__dirname, "./factorio/mod-tests");
+	const fmtk = path.join(import.meta.dirname, '../dist/fmtk-cli.js');
+	const mods = path.join(import.meta.dirname, "./factorio/mod-tests");
 
 	suiteSetup(async ()=>{
 		await fsp.mkdir(mods, {recursive: true});
-		await fsp.copyFile(path.join(__dirname, "empty-mod-settings.dat"), path.join(mods, "mod-settings.dat"));
+		await fsp.copyFile(path.join(import.meta.dirname, "empty-mod-settings.dat"), path.join(mods, "mod-settings.dat"));
 	});
 
 	suiteTeardown(async ()=>{
