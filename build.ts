@@ -147,7 +147,8 @@ const configs:BuildOptions[] = [
 			"commander",
 			"@vscode/debugadapter",
 			"tree-kill",
-			"mimer",
+			"mute-stream",
+			"external-editor"
 		],
 		alias: {
 			"yoctocolors-cjs": "yoctocolors"

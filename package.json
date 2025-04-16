@@ -80,7 +80,7 @@
     "eslint": "^9.24.0",
     "ini": "^5.0.0",
     "jsonc-parser": "^3.3.1",
-    "mimer": "^2.0.2",
+    "mime": "^4.0.7",
     "mocha": "^11.1.0",
     "node-fetch": "^3.3.2",
     "readdir-glob": "^2.0.1",

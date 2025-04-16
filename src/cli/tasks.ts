@@ -1,6 +1,6 @@
 import * as fsp from 'fs/promises';
 import * as crypto from "crypto";
-import mimer from "mimer";
+import mime from "mime";
 import * as inquirer from "@inquirer/prompts"
 import path from 'path';
 import { visit } from "unist-util-visit";
@@ -237,7 +237,7 @@ export async function addModImage(name:string, image:Buffer, filename:string):Pr
 	const upload_url = await init_upload(name, "https://mods.factorio.com/api/v2/mods/images/add");
 
 	const image_form = new FormData();
-	image_form.append("image", new Blob([image], {type: mimer(filename)}), filename);
+	image_form.append("image", new Blob([image], {type: mime.getType(filename) ?? undefined}), filename);
 	return await post_form(image_form, upload_url) as ModPortalImage;
 }
 
