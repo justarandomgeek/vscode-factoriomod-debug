@@ -29,6 +29,7 @@ export async function getConfig(factorioVersion?:string) {
 	return {
 		name: "factorio/config.json",
 		content: JSON.stringify(Object.assign(
+			{},
 			await import("../luals-addon/factorio/config.json"),
 			{
 				bundleVersion: version,
