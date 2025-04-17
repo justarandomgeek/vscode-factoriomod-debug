@@ -1,1 +1,3 @@
-export * from 'vscode-languageclient/node';
+export {
+	LanguageClient, TransportKind
+} from 'vscode-languageclient/node';
