@@ -118,7 +118,6 @@ const commonConfig:BuildOptions = {
 	sourcesContent: false,
 	platform: "node",
 	format: "esm",
-	splitting: undefined,
 	treeShaking: true,
 	// `module` first for jsonc-parser
 	mainFields: ['module', 'main'],
@@ -139,15 +138,17 @@ const configs:BuildOptions[] = [
 			"fmtk-cli": "./src/cli/main.ts",
 			"fmtk-vscode": "./src/vscode/extension.ts",
 		},
+		splitting: true,
 		external: [
 			// vscode isn't a real import, it's a special hook
 			"vscode",
 
-			// shim some cjs deps...
+			// shim some cjs deps for inquirer...
 			"./cjs-mute-stream.cjs",
 			"./cjs-external-editor.cjs",
 		],
 		alias: {
+			// shim some cjs deps for inquirer...
 			"yoctocolors-cjs": "yoctocolors",
 			"mute-stream": "./cjs-mute-stream.cjs",
 			"external-editor": "./cjs-external-editor.cjs",
@@ -170,7 +171,6 @@ const configs:BuildOptions[] = [
 			[".js"]: ".cjs",
 		},
 		format: 'cjs',
-		splitting: false,
 	},
 	{
 		...commonConfig,
