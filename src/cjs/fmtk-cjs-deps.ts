@@ -24,5 +24,15 @@ export type {
 	InitializeResult,
 } from 'vscode-languageserver/node';
 
+export {
+	LanguageClient,
+	TransportKind,
+} from 'vscode-languageclient/node';
+
+export type {
+	LanguageClientOptions,
+	ServerOptions,
+} from 'vscode-languageclient/node';
+
 import treekill from 'tree-kill';
 export { treekill }

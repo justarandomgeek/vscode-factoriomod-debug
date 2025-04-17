@@ -3,10 +3,13 @@ import { workspace, ExtensionContext } from 'vscode';
 
 import {
 	LanguageClient,
+	TransportKind,
+} from '../cjs/fmtk-cjs-deps';
+
+import type {
 	LanguageClientOptions,
 	ServerOptions,
-	TransportKind,
-} from 'vscode-languageclient/node';
+} from '../cjs/fmtk-cjs-deps';
 
 export function activate(context: ExtensionContext) {
 

@@ -170,6 +170,9 @@ const configs:BuildOptions[] = [
 		outExtension: {
 			[".js"]: ".cjs",
 		},
+		external: [
+			"vscode",
+		],
 		format: 'cjs',
 	},
 	{
