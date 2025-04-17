@@ -118,7 +118,6 @@ const configs:BuildOptions[] = [
 	{
 		...commonConfig,
 		entryPoints: {
-			"fmtk": "./src/fmtk.ts",
 			"fmtk-cli": "./src/cli/main.ts",
 			"fmtk-vscode": "./src/vscode/extension.ts",
 		},

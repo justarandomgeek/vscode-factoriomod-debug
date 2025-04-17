@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { FactorioModDebugSession } from '../fmtk';
+import { FactorioModDebugSession } from '../Debug/factorioModDebug';
 import { activateModPackageProvider } from './ModPackageProvider';
 import { FactorioVersionSelector } from './VersionSelector';
 import { FSProvider } from './FSProvider';

@@ -1,6 +1,7 @@
 import * as fsp from 'fs/promises';
 import { program } from 'commander';
-import { BufferStream, ScriptDat } from '../fmtk';
+import { BufferStream } from '../Util/BufferStream';
+import { ScriptDat } from '../ScriptDat/ScriptDat';
 
 program.command("scriptdat <file>")
 	.description("Dump script.dat")

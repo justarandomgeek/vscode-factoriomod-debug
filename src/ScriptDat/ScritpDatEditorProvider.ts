@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { getNonce } from "../Util/WebviewNonce";
-import { BufferStream, ScriptDat } from "../fmtk";
+import { BufferStream } from '../Util/BufferStream';
+import { ScriptDat } from "../ScriptDat/ScriptDat";
 import { PartialSavedLuaValue, SavedLuaValueAsPartial, ScriptDatMessages } from "./ScriptDatMessages";
 
 export class ScriptDatEditorProvider implements vscode.CustomReadonlyEditorProvider<ScriptDatDocument> {

@@ -4,8 +4,10 @@ import { program } from 'commander';
 import { readdirGlob } from 'readdir-glob';
 
 import { URI, Utils } from 'vscode-uri';
-import { fsAccessor } from "./util";
-import { ActiveFactorioVersion, FactorioVersion, ApiDocGenerator, FactorioModDebugSession } from '../fmtk';
+import { fsAccessor } from './util';
+import { ActiveFactorioVersion, FactorioVersion, } from '../vscode/FactorioVersion'
+import { ApiDocGenerator } from '../ApiDocs/ApiDocGenerator';
+import { FactorioModDebugSession } from '../Debug/factorioModDebug';
 
 program.command("debug <factorioPath>")
 	.description("Launch a DAP debug session")

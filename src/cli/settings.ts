@@ -1,7 +1,8 @@
 import * as fsp from 'fs/promises';
 import { program } from 'commander';
 import { URI, Utils } from 'vscode-uri';
-import { BufferStream, ModSettings, ModSettingsValue } from '../fmtk';
+import { BufferStream } from "../Util/BufferStream";
+import { ModSettings, ModSettingsValue } from '../ModSettings/ModSettings';
 
 const settingscommand = program.command("settings")
 	.description("Edit mod settings")

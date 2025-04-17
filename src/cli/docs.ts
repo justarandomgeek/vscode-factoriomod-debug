@@ -4,7 +4,7 @@ import { program } from 'commander';
 import { default as fetch } from "node-fetch";
 import { createWriteStream } from 'fs';
 
-import { GenerateDocs } from "../fmtk";
+import { GenerateDocs } from '../ApiDocs/GenerateDocs';
 
 async function fetch_docs(url:string) {
 	const result = await fetch(url);

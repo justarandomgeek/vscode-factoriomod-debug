@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as semver from 'semver';
 import { fork } from 'child_process';
-import { BufferSplitter } from '../fmtk';
+import { BufferSplitter } from '../Util/BufferSplitter';
 import { Keychain } from './Keychain';
 import { platform, tmpdir } from 'os';
 import * as dot from "dot-object";

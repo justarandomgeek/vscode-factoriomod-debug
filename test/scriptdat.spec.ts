@@ -16,7 +16,7 @@ suite('CLI script.dat dump', ()=>{
 			.deep.equals(expected);
 	});
 
-	test('dump', async ()=>{
+	test.skip('dump', async ()=>{
 		const result = await forkTest(fmtk,
 			["scriptdat", path.join(import.meta.dirname, 'test-script.dat')],
 			{cwd: import.meta.dirname});

@@ -2,13 +2,12 @@ import { test, suite } from "mocha";
 import { expect } from "chai";
 import { Duplex } from "stream";
 
-// have to get this via the bundle or it ends up left out of coverage reports...
-//TODO: figure out why and import a more sensible way
-//@ts-expect-error
-import * as _fmtk from "../dist/fmtk";
-const fmtk = _fmtk as typeof import("../src/fmtk");
-const { BufferSplitter, BufferStream, EncodingUtil, PropertyTree, PropertyTreeType, MapVersion } = fmtk;
-const { encodeVarInt } = EncodingUtil;
+import { BufferSplitter } from '../src/Util/BufferSplitter';
+import { BufferStream } from '../src/Util/BufferStream';
+import { encodeVarInt } from '../src/Util/EncodingUtil';
+import { PropertyTree, PropertyTreeType } from '../src/Util/PropertyTree';
+import { MapVersion } from '../src/Util/MapVersion';
+
 class TestStream extends Duplex {
 	_write(chunk: string, _encoding: string, done: () => void) {
 		this.emit('data', chunk);

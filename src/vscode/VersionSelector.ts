@@ -4,7 +4,9 @@ import * as path from 'path';
 import { URI, Utils } from "vscode-uri";
 import { forkScript } from './ModPackageProvider';
 import { version as bundleVersion } from "../../package.json";
-import { ActiveFactorioVersion, FactorioVersion, substitutePathVariables, ApiDocGenerator, LuaLSAddon } from "../fmtk";
+import { ActiveFactorioVersion, FactorioVersion, substitutePathVariables } from "../vscode/FactorioVersion";
+import { ApiDocGenerator } from "../ApiDocs/ApiDocGenerator";
+import * as LuaLSAddon from "../LuaLSAddon";
 import { FSProvider } from './FSProvider';
 const fs = vscode.workspace.fs;
 
