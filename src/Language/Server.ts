@@ -6,10 +6,12 @@ import {
 	InitializeParams,
 	TextDocumentSyncKind,
 	InitializeResult,
-	DocumentUri,
 	FileChangeType,
+} from 'vscode-languageserver/node';
+import {
+	DocumentUri,
 	TextDocument,
-} from '../cjs/fmtk-cjs-deps';
+} from 'vscode-languageserver-textdocument';
 
 import { ChangeLogLanguageService } from './ChangeLog';
 import { LocaleLanguageService } from "./Locale";

@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
-import { commander } from '../cjs/fmtk-cjs-deps';
-const program = commander.program
+import { program } from 'commander';
 import { displayName, version as bundleVersion } from "../../package.json";
 
 import "./mods";

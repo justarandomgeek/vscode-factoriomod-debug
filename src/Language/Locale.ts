@@ -2,8 +2,8 @@ import {
 	CodeAction, CodeActionContext, CodeActionKind, Diagnostic,
 	DiagnosticSeverity, DocumentSymbol, SymbolKind, Range,
 	Color, ColorInformation, ColorPresentation, LocationLink,
-} from '../cjs/fmtk-cjs-deps';
-import type { DocumentUri, TextDocument } from '../cjs/fmtk-cjs-deps';
+} from 'vscode-languageserver/node';
+import type { DocumentUri, TextDocument } from 'vscode-languageserver-textdocument';
 
 import { visitParents } from 'unist-util-visit-parents';
 import { ParseLocale } from './LocaleParse';

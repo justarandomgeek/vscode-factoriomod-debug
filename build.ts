@@ -65,22 +65,6 @@ function FactorioModPlugin():Plugin {
 	};
 }
 
-// this is just a hack to resolve imports for the main `fmtk` to its bundled self
-function ResolveFMTKPlugin():Plugin {
-	return {
-		name: 'resolveFMTK',
-		setup(build) {
-			build.onResolve({ filter: /^(\.\.\/)+cjs\/fmtk-cjs-deps$/ }, args=>{
-				return {
-					path: "./fmtk-cjs-deps.cjs",
-					external: true,
-					namespace: 'fmtk',
-				};
-			});
-		},
-	};
-}
-
 class Watcher {
 	private activeBuilds = 0;
 	onStart() {
@@ -143,18 +127,29 @@ const configs:BuildOptions[] = [
 			// vscode isn't a real import, it's a special hook
 			"vscode",
 
-			// shim some cjs deps for inquirer...
+			// shim some cjs deps
+			"./cjs-commander.cjs",
+			"./cjs-debugadapter.cjs",
+			"./cjs-tree-kill.cjs",
 			"./cjs-mute-stream.cjs",
 			"./cjs-external-editor.cjs",
+			"./cjs-language-client-node.cjs",
+			"./cjs-language-server-node.cjs",
+			"./cjs-language-server-textdocument.cjs",
 		],
 		alias: {
-			// shim some cjs deps for inquirer...
+			// shim some cjs deps
 			"yoctocolors-cjs": "yoctocolors",
+			"commander": "./cjs-commander.cjs",
+			"@vscode/debugadapter": "./cjs-debugadapter.cjs",
+			"tree-kill": "./cjs-tree-kill.cjs",
 			"mute-stream": "./cjs-mute-stream.cjs",
 			"external-editor": "./cjs-external-editor.cjs",
+			"vscode-languageclient/node": "./cjs-language-client-node.cjs",
+			"vscode-languageserver/node": "./cjs-language-server-node.cjs",
+			"vscode-languageserver-textdocument": "./cjs-language-server-textdocument.cjs",
 		},
 		plugins: [
-			ResolveFMTKPlugin(),
 			ImportGlobPlugin(),
 			FactorioModPlugin(),
 		],
@@ -163,12 +158,17 @@ const configs:BuildOptions[] = [
 		// shim modules to load some cjs deps while the rest is in esm land
 		...commonConfig,
 		entryPoints: {
-			"fmtk-cjs-deps": "./src/cjs/fmtk-cjs-deps.ts",
+			"cjs-tree-kill": "./src/cjs/tree-kill.ts",
+			"cjs-commander": "./src/cjs/commander.ts",
+			"cjs-debugadapter": "./src/cjs/debugadapter.ts",
 			"cjs-mute-stream": "./src/cjs/mute-stream.ts",
 			"cjs-external-editor": "./src/cjs/external-editor.ts",
+			"cjs-language-client-node": "./src/cjs/language-client-node.ts",
+			"cjs-language-server-node": "./src/cjs/language-server-node.ts",
+			"cjs-language-server-textdocument": "./src/cjs/language-server-textdocument.ts",
 		},
 		outExtension: {
-			[".js"]: ".cjs",
+			".js": ".cjs",
 		},
 		external: [
 			"vscode",

@@ -1,5 +1,4 @@
-import { commander } from '../cjs/fmtk-cjs-deps';
-const program = commander.program
+import { program } from 'commander';
 import { runPackageScript, getPackageinfo } from "./tasks";
 
 program.command("run <script> [args...]")

@@ -16,7 +16,7 @@ import type { ModInfo } from "../vscode/ModPackageProvider";
 
 import { readdirGlob } from 'readdir-glob';
 
-import { TextDocument } from "../cjs/fmtk-cjs-deps";
+import { TextDocument } from 'vscode-languageserver-textdocument';
 
 export async function getPackageinfo() {
 	try {

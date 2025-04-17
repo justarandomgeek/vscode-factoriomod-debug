@@ -1,8 +1,6 @@
 import * as os from "os";
 import * as fsp from 'fs/promises';
-import { commander } from '../cjs/fmtk-cjs-deps';
-const program = commander.program
-
+import { program } from 'commander';
 import { readdirGlob } from 'readdir-glob';
 
 import { URI, Utils } from 'vscode-uri';

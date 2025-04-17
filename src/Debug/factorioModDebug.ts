@@ -1,11 +1,10 @@
-import * as cjsdeps from "../cjs/fmtk-cjs-deps";
-
-const {
+import {
 	Logger, logger,
 	LoggingDebugSession,
 	StoppedEvent, OutputEvent,
-	ModuleEvent, InitializedEvent, Event, TerminatedEvent, LoadedSourceEvent, BreakpointEvent, InvalidatedEvent,
-} = cjsdeps.debugadapter;
+	ModuleEvent, InitializedEvent, Event, TerminatedEvent, LoadedSourceEvent,
+	BreakpointEvent, InvalidatedEvent,
+} from '@vscode/debugadapter';
 
 import type { DebugProtocol } from '@vscode/debugprotocol';
 import * as path from 'path';

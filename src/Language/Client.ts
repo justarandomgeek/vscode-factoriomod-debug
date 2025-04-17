@@ -4,12 +4,12 @@ import { workspace, ExtensionContext } from 'vscode';
 import {
 	LanguageClient,
 	TransportKind,
-} from '../cjs/fmtk-cjs-deps';
+} from 'vscode-languageclient/node';
 
 import type {
 	LanguageClientOptions,
 	ServerOptions,
-} from '../cjs/fmtk-cjs-deps';
+} from 'vscode-languageclient/node';
 
 export function activate(context: ExtensionContext) {
 

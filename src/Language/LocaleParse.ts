@@ -1,7 +1,7 @@
 
 import assert from "assert";
 import type { Literal, Section, Root, Record, Text, TextNode, Macro, Escape, Comment, Error, PluralMatch, PluralOption, CommentGroup } from "./LocaleAST";
-import type { TextDocument } from '../cjs/fmtk-cjs-deps';
+import type { TextDocument } from 'vscode-languageserver-textdocument';
 
 // unist uses 1-based positions, but this is all for LSP, so it's all 0-based
 // still unist-compatible Nodes though to allow use of general matching utilities
