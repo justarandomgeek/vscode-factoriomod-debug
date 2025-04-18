@@ -133,7 +133,6 @@ const configs:BuildOptions[] = [
 			"./cjs-mute-stream.cjs",
 			"./cjs-language-client-node.cjs",
 			"./cjs-language-server-node.cjs",
-			"./cjs-language-server-textdocument.cjs",
 		],
 		alias: {
 			// shim some cjs deps
@@ -144,7 +143,6 @@ const configs:BuildOptions[] = [
 			"mute-stream": "./cjs-mute-stream.cjs",
 			"vscode-languageclient/node": "./cjs-language-client-node.cjs",
 			"vscode-languageserver/node": "./cjs-language-server-node.cjs",
-			"vscode-languageserver-textdocument": "./cjs-language-server-textdocument.cjs",
 		},
 		plugins: [
 			ImportGlobPlugin(),
@@ -161,7 +159,6 @@ const configs:BuildOptions[] = [
 			"cjs-mute-stream": "./src/cjs/mute-stream.ts",
 			"cjs-language-client-node": "./src/cjs/language-client-node.ts",
 			"cjs-language-server-node": "./src/cjs/language-server-node.ts",
-			"cjs-language-server-textdocument": "./src/cjs/language-server-textdocument.ts",
 		},
 		outExtension: {
 			".js": ".cjs",
