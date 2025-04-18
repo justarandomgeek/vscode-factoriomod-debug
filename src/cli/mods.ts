@@ -1,5 +1,6 @@
 import { program } from 'commander';
-import * as inquirer from "@inquirer/prompts";
+import { default as input_prompt } from "@inquirer/input";
+import { default as password_prompt } from "@inquirer/password";
 import { ModManager } from '../ModManager';
 
 const modscommand = program.command("mods")
@@ -33,11 +34,11 @@ modscommand.command("install <modname>")
 			origin: "any",
 			force: options.force,
 			credentialPrompt: async (username?:string)=>{
-				username = await inquirer.input({
+				username = await input_prompt({
 					message: "Username:",
 					default: username,
 				});
-				const password = await inquirer.password({
+				const password = await password_prompt({
 					message: "Password:",
 				});
 				return {username, password};

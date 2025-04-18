@@ -1,7 +1,7 @@
 import * as fsp from 'fs/promises';
 import * as crypto from "crypto";
 import mime from "mime";
-import * as inquirer from "@inquirer/prompts"
+import { default as password_prompt } from "@inquirer/password";
 import path from 'path';
 import { visit } from "unist-util-visit";
 import { remark } from "remark";
@@ -188,7 +188,7 @@ async function getAPIKey() {
 		return APIKey;
 	}
 
-	const key = await inquirer.password({
+	const key = await password_prompt({
 		message: "Mod Portal API Key:",
 	});
 

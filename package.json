@@ -44,7 +44,8 @@
     "test": "c8 mocha"
   },
   "devDependencies": {
-    "@inquirer/prompts": "^7.4.1",
+    "@inquirer/input": "^4.1.9",
+    "@inquirer/password": "^4.0.12",
     "@types/archiver": "^6.0.3",
     "@types/buffers": "^0.1.34",
     "@types/chai": "^5.2.1",
