@@ -1,8 +1,5 @@
-import {
-	CodeAction, CodeActionContext, CodeActionKind, Diagnostic,
-	DiagnosticSeverity, DocumentSymbol, SymbolKind, Range,
-	Color, ColorInformation, ColorPresentation, LocationLink,
-} from 'vscode-languageserver/node';
+import type { CodeAction, CodeActionContext, Diagnostic, DocumentSymbol, Range, Color, ColorInformation, ColorPresentation, LocationLink } from 'vscode-languageserver/node';
+import { CodeActionKind, DiagnosticSeverity, SymbolKind } from 'vscode-languageserver/node';
 import type { DocumentUri, TextDocument } from 'vscode-languageserver-textdocument';
 
 import { visitParents } from 'unist-util-visit-parents';

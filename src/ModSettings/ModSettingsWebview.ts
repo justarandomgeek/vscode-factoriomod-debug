@@ -2,9 +2,11 @@ import "./ModSettingsWebview.css";
 
 import type {} from "vscode-webview";
 import type { ModSettingsData, ModSettingsScopeName, ModSettingsValue } from "../ModSettings/ModSettings";
-import { BigIntReviver, FromBigIntValue, ModSettingsMessages } from "./ModSettingsMessages";
+import type { ModSettingsMessages } from "./ModSettingsMessages";
+import { BigIntReviver, FromBigIntValue } from "./ModSettingsMessages";
 
-import { provideVSCodeDesignSystem, vsCodeButton, vsCodeCheckbox, vsCodeTextField, TextField, Checkbox, Button, vsCodeDropdown, vsCodeOption, Dropdown, Option, vsCodePanelTab, vsCodePanelView, vsCodePanels } from "@vscode/webview-ui-toolkit";
+import type { TextField, Checkbox, Button, Dropdown, Option } from "@vscode/webview-ui-toolkit";
+import { provideVSCodeDesignSystem, vsCodeButton, vsCodeCheckbox, vsCodeTextField, vsCodeDropdown, vsCodeOption, vsCodePanelTab, vsCodePanelView, vsCodePanels } from "@vscode/webview-ui-toolkit";
 provideVSCodeDesignSystem().register(vsCodeButton(), vsCodePanelTab(), vsCodePanelView(), vsCodePanels(), vsCodeDropdown(), vsCodeOption(), vsCodeCheckbox(), vsCodeTextField());
 
 const vscode = acquireVsCodeApi();

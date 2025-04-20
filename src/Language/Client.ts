@@ -1,13 +1,9 @@
 import * as path from 'path';
-import { workspace, ExtensionContext } from 'vscode';
+import type { ExtensionContext } from 'vscode';
+import { workspace } from 'vscode';
 
-import {
-	LanguageClient,
-	TransportKind,
-
-	LanguageClientOptions,
-	ServerOptions,
-} from 'vscode-languageclient/node';
+import type { LanguageClientOptions, ServerOptions } from 'vscode-languageclient/node';
+import { LanguageClient, TransportKind } from 'vscode-languageclient/node';
 
 export function activate(context: ExtensionContext) {
 

@@ -38,8 +38,6 @@ export default tseslint.config([
 
 
 			"@stylistic/ts/semi": ["error"],
-			"no-duplicate-imports": "error",
-
 			"brace-style": ["error", "1tbs", {
 				allowSingleLine: true,
 			}],
@@ -86,5 +84,12 @@ export default tseslint.config([
 			"@typescript-eslint/no-explicit-any": "off",
 
 			"no-var": "error",
+
+			"@typescript-eslint/consistent-type-imports": ["error", {
+				disallowTypeAnnotations: true,
+				fixStyle: 'separate-type-imports',
+				prefer: 'type-imports',
+			}],
+			"@typescript-eslint/consistent-type-exports": "error",
 		},
 	}]);

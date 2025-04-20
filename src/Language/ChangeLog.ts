@@ -1,17 +1,6 @@
-import {
-	Diagnostic,
-	DiagnosticSeverity,
-	DocumentSymbol,
-	SymbolKind,
-	CodeActionContext,
-	CodeAction,
-	CodeActionKind,
-	Range,
-} from 'vscode-languageserver/node';
-
-import {
-	TextDocument,
-} from 'vscode-languageserver-textdocument';
+import type { Diagnostic, DocumentSymbol, CodeActionContext, CodeAction, Range } from 'vscode-languageserver/node';
+import { DiagnosticSeverity, SymbolKind, CodeActionKind } from 'vscode-languageserver/node';
+import type { TextDocument } from 'vscode-languageserver-textdocument';
 
 export class ChangeLogLanguageService {
 	public async validateTextDocument(textDocument: TextDocument): Promise<Diagnostic[]> {

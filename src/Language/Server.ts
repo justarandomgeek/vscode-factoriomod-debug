@@ -1,17 +1,8 @@
 import * as fsp from 'fs/promises';
-import {
-	createConnection,
-	TextDocuments,
-	ProposedFeatures,
-	InitializeParams,
-	TextDocumentSyncKind,
-	InitializeResult,
-	FileChangeType,
-} from 'vscode-languageserver/node';
-import {
-	DocumentUri,
-	TextDocument,
-} from 'vscode-languageserver-textdocument';
+import type { InitializeParams, InitializeResult } from 'vscode-languageserver/node';
+import { createConnection, TextDocuments, ProposedFeatures, TextDocumentSyncKind, FileChangeType } from 'vscode-languageserver/node';
+import type { DocumentUri } from 'vscode-languageserver-textdocument';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import { ChangeLogLanguageService } from './ChangeLog';
 import { LocaleLanguageService } from "./Locale";

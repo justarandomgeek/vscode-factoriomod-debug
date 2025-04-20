@@ -1,4 +1,5 @@
-import { LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSLiteral, LuaLSOverload, LuaLSParam, LuaLSTuple, LuaLSType, LuaLSTypeName, LuaLSUnion } from "./LuaLS";
+import type { LuaLSType } from "./LuaLS";
+import { LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSLiteral, LuaLSOverload, LuaLSParam, LuaLSTuple, LuaLSTypeName, LuaLSUnion } from "./LuaLS";
 
 export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 	private readonly docs:ProtoDocs<V>;

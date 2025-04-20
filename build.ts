@@ -1,7 +1,7 @@
 import * as fsp from 'fs/promises';
 import * as path from 'path';
 import type { BuildOptions, BuildResult, Metafile, Plugin } from "esbuild";
-import { build, context, } from "esbuild";
+import { build, context } from "esbuild";
 
 import {default as ImportGlob} from 'esbuild-plugin-import-glob';
 //@ts-expect-error this plugin's exports are broken...
@@ -83,12 +83,11 @@ class Watcher {
 	}
 
 	plugin():Plugin {
-		const _this = this;
 		return {
 			name: 'watcher',
-			setup(build) {
-				build.onStart(()=>{ return _this.onStart(); });
-				build.onEnd((result)=>{ return _this.onEnd(result); });
+			setup: (build)=>{
+				build.onStart(()=>{ return this.onStart(); });
+				build.onEnd((result)=>{ return this.onEnd(result); });
 			},
 		};
 	}

@@ -1,13 +1,7 @@
-import {
-	CompletionItem,
-	CompletionItemKind,
-	CompletionParams,
-	DefinitionParams,
-} from 'vscode-languageserver/node';
+import type { CompletionItem, CompletionParams, DefinitionParams } from 'vscode-languageserver/node';
+import { CompletionItemKind } from 'vscode-languageserver/node';
 
-import type {
-	TextDocument,
-} from 'vscode-languageserver-textdocument';
+import type { TextDocument } from 'vscode-languageserver-textdocument';
 import type { LocaleLanguageService } from './Locale';
 
 export class LuaLanguageService {

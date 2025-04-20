@@ -1,5 +1,6 @@
 
-import { spawn, ChildProcess, SpawnOptions } from 'child_process';
+import type { ChildProcess, SpawnOptions } from 'child_process';
+import { spawn } from 'child_process';
 import { EventEmitter } from "events";
 import { BufferSplitter } from '../Util/BufferSplitter';
 import * as path from 'path';
@@ -30,7 +31,7 @@ export class FactorioProcess extends EventEmitter {
 		} else {
 			this.factorio = spawn(factorioPath, factorioArgs, spawnOptions);
 		}
-		this.factorio.on("exit", (...args:any[])=>this.emit("exit", ...args));
+		this.factorio.on("exit", (code, signal)=>this.emit("exit", code, signal));
 
 		const stderr = new BufferSplitter(this.factorio.stderr!, stderrsplit);
 		stderr.on("segment", (chunk:Buffer)=>{

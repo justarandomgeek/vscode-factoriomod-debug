@@ -1,7 +1,9 @@
 import * as vscode from "vscode";
 import { BufferStream } from "../Util/BufferStream";
-import { ModSettings, ModSettingsData } from "../ModSettings/ModSettings";
-import { BigIntReplacer, ModSettingsMessages, ToBigIntValue } from "./ModSettingsMessages";
+import type { ModSettingsData } from "../ModSettings/ModSettings";
+import { ModSettings } from "../ModSettings/ModSettings";
+import type { ModSettingsMessages } from "./ModSettingsMessages";
+import { BigIntReplacer, ToBigIntValue } from "./ModSettingsMessages";
 import { getNonce } from "../Util/WebviewNonce";
 
 export class ModSettingsEditorProvider implements vscode.CustomEditorProvider<ModSettingsDocument> {

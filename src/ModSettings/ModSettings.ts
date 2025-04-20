@@ -1,4 +1,5 @@
-import { PropertyTree, PropertyTreeData, PropertyTreeType } from "../Util/PropertyTree";
+import type { PropertyTreeData } from "../Util/PropertyTree";
+import { PropertyTree, PropertyTreeType } from "../Util/PropertyTree";
 import type { BufferStream } from "../Util/BufferStream";
 import { MapVersion } from "../Util/MapVersion";
 import assert from "assert";
