@@ -4,9 +4,7 @@ import { workspace, ExtensionContext } from 'vscode';
 import {
 	LanguageClient,
 	TransportKind,
-} from 'vscode-languageclient/node';
 
-import type {
 	LanguageClientOptions,
 	ServerOptions,
 } from 'vscode-languageclient/node';

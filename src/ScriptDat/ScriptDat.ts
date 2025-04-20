@@ -543,11 +543,11 @@ export class ScriptDat {
 
 	private loadItemStackLocation(b:BufferStream) {
 		const standaloneStack = this.version.isBeyond(1, 2, 0, 33) ? b.readUInt8() : 0;
-		if (standaloneStack!==0) return {standaloneStack};
+		if (standaloneStack!==0) { return {standaloneStack}; }
 
 		const inventoryIndex = b.readUInt8();
 		const slotIndex = b.readUInt16LE();
-		return { inventoryIndex, slotIndex }
+		return { inventoryIndex, slotIndex };
 	}
 
 	private loadLuaItemStack(b:BufferStream) {
@@ -568,7 +568,7 @@ export class ScriptDat {
 				} else {
 					const inventoryIndex = b.readUInt8();
 					const slotIndex = b.readUInt16LE();
-					location = { inventoryIndex, slotIndex }
+					location = { inventoryIndex, slotIndex };
 				}
 				return { stacktype: LuaItemStackType[type], target, location};
 			}

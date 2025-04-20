@@ -17,5 +17,5 @@ build.ts
 todo
 .github
 **/*.pdn
-.eslintrc.json
+.eslint.config.ts
 tsconfig.json

@@ -2,7 +2,7 @@ import type { Readable } from "stream";
 import { EventEmitter } from "events";
 
 
-export type RangeSplitMatcher = {start:Buffer;end:Buffer}
+export type RangeSplitMatcher = {start:Buffer;end:Buffer};
 export type SplitMatcher = Buffer|RangeSplitMatcher;
 
 export class BufferSplitter extends EventEmitter {

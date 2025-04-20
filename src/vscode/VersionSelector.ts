@@ -252,15 +252,15 @@ export class FactorioVersionSelector {
 
 		const describeVersion = async (fv:FactorioVersion)=>{
 			if (fv.onlineDocs === true) {
-				return "latest"
+				return "latest";
 			}
 
 			if (fv.onlineDocs) {
-				return fv.onlineDocs
+				return fv.onlineDocs;
 			}
 
-			return (await this.tryJsonDocs(fv, false))?.application_version ?? "unknown"
-		}
+			return (await this.tryJsonDocs(fv, false))?.application_version ?? "unknown";
+		};
 
 		const qpresult = await vscode.window.showQuickPick(Promise.all([
 			...versions.map(async fv=>({

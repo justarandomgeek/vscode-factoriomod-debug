@@ -80,7 +80,7 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 	}
 
 	private async generate_LuaLS_concepts(format_description:DocDescriptionFormatter): Promise<LuaLSFile[]> {
-		const files = []
+		const files = [];
 
 
 		for (const [_, concept] of this.concepts) {
@@ -168,7 +168,7 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 	}
 
 	private async generate_LuaLS_prototypes(format_description:DocDescriptionFormatter): Promise<LuaLSFile[]> {
-	const files = []
+		const files = [];
 		for (const [_, prototype] of this.prototypes) {
 			const file = new LuaLSFile(`prototype-api/prototypes/${prototype.name}`, this.application_version);
 			const lsproto = new LuaLSClass(this.type_prefix+prototype.name);

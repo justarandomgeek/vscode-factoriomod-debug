@@ -430,12 +430,12 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 			const id = Number.parseInt(buff.subarray(3, split).toString().trim());
 			let buffer = buff.subarray(split+1);
-			let outbuffs = [];
+			const outbuffs = [];
 			let i = buffer.indexOf(0xef);
 			while (i>=0) {
 				if (buffer[i+1] >= 0xA0 && buffer[i+1] <= 0xa3 &&
 					buffer[i+2] >= 0x80 && buffer[i+2] <= 0xbf) {
-					let esc = buffer.subarray(i, i+4).toString("utf8").charCodeAt(0) - 0xf800;
+					const esc = buffer.subarray(i, i+4).toString("utf8").charCodeAt(0) - 0xf800;
 					outbuffs.push(buffer.subarray(0, i), Buffer.from([esc]));
 					buffer = buffer.subarray(i+3);
 				} else {
@@ -826,8 +826,8 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			// sometimes vscode tries to ask too early?
 			// but an error or empy list prevents getting pause requests
 			response.body = {threads: [
-				{id:1, name:"thread"}
-			]}
+				{id: 1, name: "thread"},
+			]};
 			this.sendResponse(response);
 		}
 	}
@@ -1063,8 +1063,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 		if (loaded.dump) {
 			const dumpid = (source.sourceReference ?? source.name)!;
-			let dump:LuaFunction;
-			dump = new LuaFunction(loaded.dump);
+			const dump = new LuaFunction(loaded.dump);
 
 			this.nextdump = dump.rebase(this.nextdump);
 

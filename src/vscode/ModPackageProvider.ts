@@ -214,7 +214,7 @@ class ModTaskProvider implements vscode.TaskProvider {
 
 	resolveTask(task: vscode.Task, token?: vscode.CancellationToken | undefined): vscode.ProviderResult<vscode.Task> {
 		if (task.definition.type === "factorio") {
-			let execution = this.resolveTaskExecution(task, token);
+			const execution = this.resolveTaskExecution(task, token);
 
 
 			return new vscode.Task(

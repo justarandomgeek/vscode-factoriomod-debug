@@ -1,2 +1,2 @@
 import treekill from 'tree-kill';
-export default treekill
+export default treekill;

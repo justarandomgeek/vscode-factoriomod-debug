@@ -27,7 +27,7 @@ function readPTreeString(b:BufferStream) {
 	if (empty) {
 		return "";
 	} else {
-		let size = b.readPackedUInt_8_32();
+		const size = b.readPackedUInt_8_32();
 		return b.readString(size);
 	}
 }
@@ -172,7 +172,7 @@ export abstract class PropertyTree {
 			}
 			case PropertyTreeType.dictionary:
 			{
-				let buffs = <Buffer[]>[];
+				const buffs = <Buffer[]>[];
 				for (const k in tree.value) {
 					if (Object.prototype.hasOwnProperty.call(tree.value, k)) {
 						const v = tree.value[k];

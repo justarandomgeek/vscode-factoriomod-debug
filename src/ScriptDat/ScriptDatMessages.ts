@@ -13,7 +13,7 @@ export type PartailSavedLuaTableValues = {
 }[];
 
 export interface ScriptDatMessages {
-	ready: {}
+	ready: object
 	init: {
 		readonly version: string
 		readonly data: {

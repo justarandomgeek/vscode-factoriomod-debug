@@ -43,6 +43,6 @@ program.command("luals-addon [outdir]")
 			await fsp.mkdir(path.dirname(filepath), { recursive: true });
 			const file = createWriteStream(filepath);
 			await write(file);
-			file.close;
-		})
+			file.close();
+		});
 	});

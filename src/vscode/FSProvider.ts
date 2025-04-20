@@ -71,7 +71,7 @@ export class FSProvider implements vscode.FileSystemProvider {
 		throw vscode.FileSystemError.FileNotFound();
 	}
 
-	writeFile(uri: vscode.Uri, content: Uint8Array, options: { create: boolean, overwrite: boolean }): void {
+	writeFile(uri: vscode.Uri, content: Uint8Array, options: { create: boolean; overwrite: boolean }): void {
 		const basename = path.posix.basename(uri.path);
 		const parent = this._lookupParentDirectory(uri);
 		let entry = parent.entries.get(basename);
@@ -120,7 +120,7 @@ export class FSProvider implements vscode.FileSystemProvider {
 		);
 	}
 
-	delete(uri: vscode.Uri, options?:{silent?:boolean, recursive?:boolean}): void {
+	delete(uri: vscode.Uri, options?:{silent?:boolean; recursive?:boolean}): void {
 		const dirname = uri.with({ path: path.posix.dirname(uri.path) });
 		const basename = path.posix.basename(uri.path);
 		const parent = this._lookupAsDirectory(dirname, options?.silent??false);
@@ -204,7 +204,7 @@ export class FSProvider implements vscode.FileSystemProvider {
 
 	watch(_resource: vscode.Uri): vscode.Disposable {
 		// ignore, fires for all changes...
-		return new vscode.Disposable(() => { });
+		return new vscode.Disposable(()=>{ });
 	}
 
 	private _fireSoon(...events: vscode.FileChangeEvent[]): void {
@@ -214,7 +214,7 @@ export class FSProvider implements vscode.FileSystemProvider {
 			clearTimeout(this._fireSoonHandle);
 		}
 
-		this._fireSoonHandle = setTimeout(() => {
+		this._fireSoonHandle = setTimeout(()=>{
 			this._emitter.fire(this._bufferedEvents);
 			this._bufferedEvents.length = 0;
 		}, 5);

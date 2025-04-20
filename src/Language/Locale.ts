@@ -178,7 +178,7 @@ export class LocaleLanguageService {
 		const symbols = this.onDocumentSymbol(textDocument);
 
 		let currentSection:string|undefined;
-		const sections = new Map<string|undefined, Set<String>>();
+		const sections = new Map<string|undefined, Set<string>>();
 		sections.set(undefined, new Set<string>());
 		for (let i = 0; i < locale.length; i++) {
 			const line = locale[i];
@@ -228,9 +228,9 @@ export class LocaleLanguageService {
 							}] : undefined,
 							code: "section.rootconflict",
 						});
-						sections.set(currentSection, new Set<String>());
+						sections.set(currentSection, new Set<string>());
 					} else {
-						sections.set(currentSection, new Set<String>());
+						sections.set(currentSection, new Set<string>());
 					}
 				} else {
 					diags.push({
@@ -423,7 +423,7 @@ export class LocaleLanguageService {
 			while (matches) {
 				//if (matches[1])
 				{
-					let color = colorFromString(matches[1]);
+					const color = colorFromString(matches[1]);
 					if (color) {
 						colors.push({
 							color: color,

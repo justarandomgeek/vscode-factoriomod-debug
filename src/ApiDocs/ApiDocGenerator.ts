@@ -238,7 +238,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		for (const attribute of aclass.attributes) {
 			lsclass.add(new LuaLSField(
 				attribute.name,
-				await this.LuaLS_type(attribute.write_type ?? attribute.read_type , {
+				await this.LuaLS_type(attribute.write_type ?? attribute.read_type, {
 					file, table_class_name: `${aclass.name}.${attribute.name}`, format_description,
 				}),
 				format_description(this.collect_description(attribute, { scope: "runtime", member: aclass.name, part: attribute.name })),
@@ -529,8 +529,8 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			));
 
 			for (const [_, event] of this.events) {
-				let eventtype = new LuaLSTypeName(`defines.events.${event.name}`);
-				let eventdata =  new LuaLSTypeName(`EventData.${event.name}`);
+				const eventtype = new LuaLSTypeName(`defines.events.${event.name}`);
+				const eventdata =  new LuaLSTypeName(`EventData.${event.name}`);
 
 				if (event.name === "CustomInputEvent") {
 					//handled separately
@@ -669,7 +669,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	}&({
 		readonly read: boolean
 		readonly write: boolean
-	}|{}), doclink?:DocLink, description?:string) {
+	}|object), doclink?:DocLink, description?:string) {
 		if (!description) {
 			description = obj.description;
 		}

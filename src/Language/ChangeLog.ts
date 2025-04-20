@@ -22,7 +22,7 @@ export class ChangeLogLanguageService {
 		let seenStartLast = false;
 		let seenDate = false;
 		let seenCategory = false;
-		let seenLines = new Map<string, Range>();
+		const seenLines = new Map<string, Range>();
 		for (let i = 0; i < changelog.length; i++) {
 			let line = changelog[i];
 			if (line.match(/^-+$/)) {
@@ -172,11 +172,11 @@ export class ChangeLogLanguageService {
 								{
 									message: "First defined here",
 									location: { range: seen, uri: textDocument.uri },
-								}
-							]
+								},
+							],
 						});
 					} else {
-						seenLines.set(line, { start: { line: i, character: 0 }, end: { line: i, character: line.length }})
+						seenLines.set(line, { start: { line: i, character: 0 }, end: { line: i, character: line.length }});
 					}
 
 				} else if (line.length > 0) {
@@ -191,7 +191,7 @@ export class ChangeLogLanguageService {
 				} else {
 					seenStartLast = false;
 				}
-			} else if (changelog.length == 1 && line == "") {
+			} else if (changelog.length === 1 && line === "") {
 				// empty file is not an error, wait for some content before annotating a problem
 			} else {
 				diags.push({

@@ -108,15 +108,15 @@ export class ActiveFactorioVersion {
 		if (this.fv.onlineDocs) {
 			return [
 				"luals-addon",
-				"-o", this.fv.onlineDocs === true ? "latest" : this.fv.onlineDocs
-			]
+				"-o", this.fv.onlineDocs === true ? "latest" : this.fv.onlineDocs,
+			];
 		}
 
 		return [
 			"luals-addon",
 			"-d", this.docsPath,
 			"-p", this.protosPath,
-		]
+		];
 	}
 
 	public get onlineDocs() {
@@ -181,7 +181,7 @@ export class ActiveFactorioVersion {
 
 	public async isPrototypeCacheEnabled() {
 		try {
-			let configIni = await this.configIni();
+			const configIni = await this.configIni();
 			return configIni.other?.["cache-prototype-data"];
 		} catch (error) {
 			return undefined;
@@ -199,7 +199,7 @@ export class ActiveFactorioVersion {
 
 	public async isMouseAutoCaptureDisabled() {
 		try {
-			let configIni = await this.configIni();
+			const configIni = await this.configIni();
 			return configIni.other?.["disable-mouse-auto-capture"];
 		} catch (error) {
 			return undefined;

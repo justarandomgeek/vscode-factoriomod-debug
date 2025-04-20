@@ -31,9 +31,10 @@ interface CallNode {
 	children: (LineNode|CallNode|TimeNode)[]
 }
 
-interface RootCallNode extends CallNode {
-	//TODO: event id or other entrypoint identification?
-}
+type RootCallNode = CallNode;
+//interface RootCallNode extends CallNode {
+//	//TODO: event id or other entrypoint identification?
+//}
 
 export class Profile2 {
 	private sources: string[] = [];
@@ -49,7 +50,7 @@ export class Profile2 {
 		};
 		let rootseen = false;
 
-		let calls:CallNode[]=[];
+		const calls:CallNode[]=[];
 		let line = NaN;
 		function addLineOrTime(time:number) {
 			if (!rootseen) { throw new Error("Events before first `call`"); }

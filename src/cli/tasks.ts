@@ -27,7 +27,7 @@ export async function getPackageinfo() {
 	}
 }
 
-export async function runPackageScript(scriptname:string, info:ModInfo, env?:{}, args?:string[]) {
+export async function runPackageScript(scriptname:string, info:ModInfo, env?:object, args?:string[]) {
 	const { spawn } = await import("child_process");
 	return new Promise<number>(async (resolve, reject)=>{
 		const script = info.package?.scripts?.[scriptname];
@@ -102,7 +102,7 @@ export async function doPackageDatestamp(info:ModInfo): Promise<boolean> {
 		const langserv = new ChangeLogLanguageService();
 		const syms = langserv.onDocumentSymbol(doc);
 
-		const current = syms?.find(sym=>sym.name.startsWith(info.version))!;
+		const current = syms?.find(sym=>sym.name.startsWith(info.version));
 		if (current) {
 			const date = current.children?.find(sym=>sym.name === "Date");
 			const newDate = new Date().toISOString().substring(0, 10);
@@ -200,7 +200,7 @@ async function getAPIKey() {
 	throw new Error("No API Key");
 }
 
-async function post_form<T extends {}>(form:FormData, url:string) {
+async function post_form<T extends object>(form:FormData, url:string) {
 	const APIKey = await getAPIKey();
 
 	const result = await fetch(url, {
@@ -274,11 +274,11 @@ export interface ModPortalDetailsEdit {
 export async function editModDetails(name:string, details:ModPortalDetailsEdit) {
 	const form = new FormData();
 	form.append("mod", name);
-	details.homepage !== undefined && form.append("homepage", details.homepage);
-	details.title !== undefined && form.append("title", details.title);
-	details.summary !== undefined && form.append("summary", details.summary);
-	details.description !== undefined && form.append("description", details.description);
-	details.faq !== undefined && form.append("faq", details.faq);
+	if (details.homepage !== undefined) { form.append("homepage", details.homepage); }
+	if (details.title !== undefined) { form.append("title", details.title); }
+	if (details.summary !== undefined) { form.append("summary", details.summary); }
+	if (details.description !== undefined) { form.append("description", details.description); }
+	if (details.faq !== undefined) { form.append("faq", details.faq); }
 
 	await post_form(form, "https://mods.factorio.com/api/v2/mods/edit_details").then(()=>{
 		console.log(`Details updated`);
@@ -345,7 +345,7 @@ async function processMarkdown(
 			// sync local images to portal
 			const imageNodes = new Map<string, Image[]>();
 			visit(tree, "image", (node:Image)=>{
-				let nodes = imageNodes.get(node.url);
+				const nodes = imageNodes.get(node.url);
 				if (nodes) {
 					nodes.push(node);
 				} else {

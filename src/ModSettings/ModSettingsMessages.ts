@@ -1,7 +1,7 @@
 import type { ModSettingsScopeName, ModSettingsValue } from "../ModSettings/ModSettings";
 
 export interface ModSettingsMessages {
-	ready: {}
+	ready: object
 	init: {
 		version: string
 		saves_ints: boolean

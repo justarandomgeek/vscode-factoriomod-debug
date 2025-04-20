@@ -310,7 +310,7 @@ export class Profile implements vscode.Disposable  {
 			}
 		);
 		const flameview = this.flamePanel.webview;
-		//@ts-expect-error
+		//@ts-expect-error esbuild import
 		const html = <string>(await import("./Flamegraph.html")).default;
 		flameview.html = html
 			.replace("$Flamegraph.css$", flameview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "/dist/Flamegraph.css")).toString())

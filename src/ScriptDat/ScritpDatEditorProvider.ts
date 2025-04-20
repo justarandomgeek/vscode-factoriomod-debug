@@ -147,7 +147,7 @@ export class ScriptDatDocument implements vscode.CustomDocument {
 	 */
 	public readonly onDidChangeContent = this._onDidChangeDocument.event;
 
-	private readonly _onDidChange = new vscode.EventEmitter<{}>();
+	private readonly _onDidChange = new vscode.EventEmitter<object>();
 	/**
 	 * Fired to tell VS Code that an edit has occurred in the document.
 	 *

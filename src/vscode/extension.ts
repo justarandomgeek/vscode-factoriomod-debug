@@ -18,7 +18,7 @@ export function activate(context: vscode.ExtensionContext) {
 	try {
 		output.info(`Registering FS Provider...`);
 		const fsprovider = new FSProvider();
-		context.subscriptions.push(vscode.workspace.registerFileSystemProvider('fmtk', fsprovider, {isCaseSensitive:true}));
+		context.subscriptions.push(vscode.workspace.registerFileSystemProvider('fmtk', fsprovider, {isCaseSensitive: true}));
 
 		output.info(`Registering Version Selector...`);
 		const versionSelector = new FactorioVersionSelector(context, output, fsprovider);

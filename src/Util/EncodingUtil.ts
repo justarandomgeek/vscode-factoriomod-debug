@@ -24,7 +24,9 @@ export function bufferChunks(buffer:Buffer, chunkSize:number) {
 	return result;
 }
 
-export function objectToLua(obj:string|number|boolean|{[k:string]:string|number|boolean|{}}) {
+type LuaConvertableObject = string|number|boolean|{[k:string]:string|number|boolean|LuaConvertableObject};
+
+export function objectToLua(obj:LuaConvertableObject) {
 	switch (typeof obj) {
 		case 'object':
 			const b = [Buffer.from("{")];
