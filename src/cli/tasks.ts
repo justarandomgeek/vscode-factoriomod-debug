@@ -30,7 +30,7 @@ export async function getPackageinfo() {
 
 export async function runPackageScript(scriptname:string, info:ModInfo, env?:object, args?:string[]) {
 	const { spawn } = await import("child_process");
-	return new Promise<number>(async (resolve, reject)=>{
+	return new Promise<number>((resolve, reject)=>{
 		const script = info.package?.scripts?.[scriptname];
 		if (script) {
 			const proc = spawn(`${script} ${(args??[]).join(" ")}`, {
@@ -49,7 +49,7 @@ export async function runPackageScript(scriptname:string, info:ModInfo, env?:obj
 				if (code !== null) {
 					resolve(code);
 				} else {
-					reject(signal);
+					reject(new Error(signal?.toString()));
 				}
 			});
 		} else {
@@ -60,7 +60,7 @@ export async function runPackageScript(scriptname:string, info:ModInfo, env?:obj
 
 export async function runPackageGitCommand(command:string, stdin?:string) {
 	const { spawn } = await import("child_process");
-	return new Promise<void>(async (resolve, reject)=>{
+	return new Promise<void>((resolve, reject)=>{
 		const proc = spawn(`git ${command}`, {
 			shell: true,
 			windowsHide: true,
@@ -77,9 +77,9 @@ export async function runPackageGitCommand(command:string, stdin?:string) {
 			if (code === 0) {
 				resolve();
 			} else if (code !== null) {
-				reject(code);
+				reject(new Error(`returned with code ${code}`));
 			} else {
-				reject(signal);
+				reject(new Error(signal?.toString()));
 			}
 		});
 	});
@@ -122,7 +122,7 @@ export async function doPackageDatestamp(info:ModInfo): Promise<boolean> {
 				};
 			}
 			content = applyEdits(content, [edit]);
-			fsp.writeFile("changelog.txt", content);
+			await fsp.writeFile("changelog.txt", content);
 			console.log(`Changelog section ${info.version} stamped ${newDate}`);
 		} else {
 			console.log(`No Changelog section for ${info.version}`);
@@ -220,7 +220,7 @@ async function init_upload(name:string, url:string) {
 	const init_form = new FormData();
 	init_form.append("mod", name);
 
-	const result = await post_form(init_form, url) as {upload_url:string};
+	const result = await post_form<{upload_url:string}>(init_form, url);
 	return result.upload_url;
 }
 
@@ -231,7 +231,7 @@ export async function addModRelease(name:string, packagestream:Buffer) {
 
 	const file_form = new FormData();
 	file_form.append("file", new Blob([packagestream], {type: 'application/x-zip-compressed'}), `${name}.zip`);
-	await post_form(file_form, upload_url) as {success:true};
+	await post_form<{success:true}>(file_form, upload_url);
 	console.log(`Published ${name}`);
 	return;
 }
@@ -241,7 +241,7 @@ export async function addModImage(name:string, image:Buffer, filename:string):Pr
 
 	const image_form = new FormData();
 	image_form.append("image", new Blob([image], {type: mime.getType(filename) ?? undefined}), filename);
-	return await post_form(image_form, upload_url) as ModPortalImage;
+	return await post_form<ModPortalImage>(image_form, upload_url);
 }
 
 export async function editModImages(name:string, images:string[]):Promise<ModPortalImage[]> {
@@ -249,10 +249,10 @@ export async function editModImages(name:string, images:string[]):Promise<ModPor
 	form.append("mod", name);
 	form.append("images", images.join(","));
 
-	const result = await post_form(
+	const result = await post_form<{success:true; images:ModPortalImage[]}>(
 		form,
 		"https://mods.factorio.com/api/v2/mods/images/edit"
-	) as {success:true; images:ModPortalImage[]};
+	);
 
 	return result.images;
 }
@@ -412,7 +412,7 @@ export async function doPackageDetails(info:ModInfo, options?:{
 				globber.on('match', (match:{ relative:string; absolute:string })=>{
 					files.push(match.absolute);
 				});
-				globber.on('error', (err:unknown)=>reject(err));
+				globber.on('error', (err)=>reject(err));
 				globber.on('end', ()=>resolve(files));
 			});
 			await Promise.all(files.sort().map(async (f)=>addGalleryImage(f, info.name, images, usedImageIDs)));

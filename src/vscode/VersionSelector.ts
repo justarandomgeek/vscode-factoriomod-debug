@@ -35,15 +35,15 @@ export class FactorioVersionSelector {
 		this.bar.show();
 		context.subscriptions.push(this.bar);
 
-		context.subscriptions.push(vscode.commands.registerCommand("factorio.selectVersion", this.selectVersionCommand, this));
-		context.subscriptions.push(vscode.commands.registerCommand("factorio.checkConfig", this.checkConfigCommand, this));
-		context.subscriptions.push(vscode.commands.registerCommand("factorio.disablePrototypeCache", this.disablePrototypeCacheCommand, this));
-		context.subscriptions.push(vscode.commands.registerCommand("factorio.disableMouseAutoCapture", this.disableMouseAutoCaptureCommand, this));
-		this.loadActiveVersion();
+		context.subscriptions.push(vscode.commands.registerCommand("factorio.selectVersion", ()=>this.selectVersionCommand()));
+		context.subscriptions.push(vscode.commands.registerCommand("factorio.checkConfig", ()=>this.checkConfigCommand()));
+		context.subscriptions.push(vscode.commands.registerCommand("factorio.disablePrototypeCache", ()=>this.disablePrototypeCacheCommand()));
+		context.subscriptions.push(vscode.commands.registerCommand("factorio.disableMouseAutoCapture", ()=>this.disableMouseAutoCaptureCommand()));
+		void this.loadActiveVersion();
 
 		context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(e=>{
 			if (e.affectsConfiguration("factorio.versions")) {
-				this.loadActiveVersion();
+				void this.loadActiveVersion();
 			}
 		}));
 	}
@@ -72,7 +72,7 @@ export class FactorioVersionSelector {
 		this._active_version = new ActiveFactorioVersion(vscode.workspace.fs, active_version, docs, vscode.workspace.workspaceFolders);
 		this.output.info(`Active Factorio version: ${active_version.name} (${docs.application_version})`);
 
-		this.checkDocs();
+		await this.checkDocs();
 	}
 
 	private async checkConfigCommand() {
@@ -435,13 +435,11 @@ export class FactorioVersionSelector {
 			if (config.factorioVersion !== activeVersion.docs.application_version ||
 				config.bundleVersion !== bundleVersion) {
 				// version tags mismatch, go ahead and regen...
-				this.generateDocs();
-				return;
+				return this.generateDocs();
 			}
 		} catch (error) {
 			// no config.json at all
-			this.generateDocs();
-			return;
+			return this.generateDocs();
 		}
 	}
 

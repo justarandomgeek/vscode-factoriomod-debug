@@ -6,10 +6,10 @@ export class ProfileRenderer {
 		private readonly context:vscode.ExtensionContext,
 	) {
 
-		context.subscriptions.push(vscode.debug.onDidStartDebugSession(this.onDidStartDebugSession, this));
+		context.subscriptions.push(vscode.debug.onDidStartDebugSession((e)=>this.onDidStartDebugSession(e), this));
 	}
 
-	private async onDidStartDebugSession(session:vscode.DebugSession) {
+	private onDidStartDebugSession(session:vscode.DebugSession) {
 		if (session.type === "factoriomod" && session.configuration.hookMode === "profile") {
 			new Profile(session.configuration.profileTree??true, this.context, session);
 		}

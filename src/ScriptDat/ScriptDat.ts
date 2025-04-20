@@ -552,7 +552,7 @@ export class ScriptDat {
 
 	private loadLuaItemStack(b:BufferStream) {
 
-		const type = this.version.isBeyond(1, 2, 0, 359) ? b.readUInt8() : b.readUInt32LE() as LuaItemStackType;
+		const type = (this.version.isBeyond(1, 2, 0, 359) ? b.readUInt8() : b.readUInt32LE()) as LuaItemStackType;
 		switch (type) {
 			case LuaItemStackType.None:
 				return { stacktype: LuaItemStackType[type] };

@@ -113,13 +113,14 @@ program.command("publish")
 		}
 
 		// build zip with <factorio.package>
-		const zipbuffer = await new Promise<Buffer>(async (resolve, reject)=>{
-			const zip = await doPackageZip(info);
-			const chunks:Buffer[] = [];
-			zip.on('data', (chunk)=>chunks.push(Buffer.from(chunk)));
-			zip.on('error', (err)=>reject(err));
-			zip.on('end', ()=>resolve(Buffer.concat(chunks)));
-			await zip.finalize();
+		const zipbuffer = await new Promise<Buffer>((resolve, reject)=>{
+			void doPackageZip(info).then((zip)=>{
+				const chunks:Buffer[] = [];
+				zip.on('data', (chunk)=>chunks.push(Buffer.from(chunk)));
+				zip.on('error', (err)=>reject(err));
+				zip.on('end', ()=>resolve(Buffer.concat(chunks)));
+				void zip.finalize();
+			});
 		});
 
 		if (info.package?.scripts?.publish) {
@@ -157,7 +158,7 @@ program.command("publish")
 				config.movedToCommitMessage.replace(/\$VERSION/g, newinfo.version).replace(/\$MODNAME/g, newinfo.name));
 
 			if (!info.package?.no_git_push) {
-				const upstream = await new Promise((resolve)=>{
+				const upstream:string|undefined = await new Promise((resolve)=>{
 					exec(`git config branch.${branchname}.remote`, (error, stdout)=>{
 						if (error && error.code !== 0) {
 							resolve(undefined);

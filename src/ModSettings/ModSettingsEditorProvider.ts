@@ -161,12 +161,8 @@ export class ModSettingsDocument implements vscode.CustomDocument {
 
 		return {
 			id: destination.toString(),
-			delete: async ()=>{
-				try {
-					await vscode.workspace.fs.delete(destination);
-				} catch {
-					// noop
-				}
+			delete: ()=>{
+				void vscode.workspace.fs.delete(destination);
 			},
 		};
 	}

@@ -198,7 +198,7 @@ function settingNode(key:string, value:ModSettingsValue):DocumentFragment {
 	return node;
 }
 
-window.addEventListener('message', async <K extends keyof ModSettingsMessages>(e:MessageEvent<ModSettingsMessageEventData<K>>)=>{
+window.addEventListener('message', <K extends keyof ModSettingsMessages>(e:MessageEvent<ModSettingsMessageEventData<K>>)=>{
 
 	const { type, body } = e.data;
 	switch (type) {

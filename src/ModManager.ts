@@ -78,7 +78,7 @@ type ModInstallOptions =  {
 	origin: "bundle"
 }|{
 	origin: "portal"|"any"
-	credentialPrompt():Promise<{username:string; password:string}>
+	credentialPrompt: ()=>Promise<{username:string; password:string}>
 });
 export interface ModInstallResult {
 	using:string

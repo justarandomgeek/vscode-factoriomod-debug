@@ -48,7 +48,7 @@ function FactorioModPlugin():Plugin {
 					globber.on('end', ()=>{
 						resolve();
 					});
-					globber.on('error', (err:unknown)=>{
+					globber.on('error', (err)=>{
 						reject(err);
 					});
 				});
@@ -181,7 +181,7 @@ const configs:BuildOptions[] = [
 	},
 ];
 
-program
+await program
 	.option("--watch")
 	.option("--meta")
 	.option("--minify")

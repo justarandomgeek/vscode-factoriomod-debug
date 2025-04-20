@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-misused-promises */
 import {
 	Logger, logger,
 	LoggingDebugSession,
@@ -189,7 +190,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		return this.terminate();
 	}
 
-	private async checkFactorioArgs(launchArgs: LaunchRequestArguments) {
+	private checkFactorioArgs(launchArgs: LaunchRequestArguments) {
 		const args = launchArgs.factorioArgs;
 		if (args) {
 			if (args.includes("--config")) {
@@ -308,7 +309,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			this.sendEvent(new OutputEvent(`using custom environment variables: ${JSON.stringify(args.env)}\n`, "console"));
 		}
 
-		if (!await this.checkFactorioArgs(args)) {
+		if (!this.checkFactorioArgs(args)) {
 			// terminate to actually stop the debug session
 			// sending an error response to vscode doesn't seem to to anything, so dont' bother?
 			this.sendEvent(new TerminatedEvent());
@@ -335,7 +336,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		}
 
 		const infos = await this.editorInterface.findWorkspaceFiles('**/info.json');
-		await Promise.all(infos.map(this.updateInfoJson, this));
+		await Promise.all(infos.map((uri)=>this.updateInfoJson(uri)));
 
 		if (!args.noDebug) {
 			if (args.useInstrumentMode ?? true) {
@@ -546,10 +547,9 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					const json = JSON.parse(mesg.slice(1), daprevive) as {event:string; body:any};
 					switch (json.event) {
 						case "source":
-							const lse = this.loadedSourceEvent(json.body);
 							const source = json.body.source;
 							if (this.breakPoints.has(source.sourceReference ?? source.name)) {
-								await lse;
+								this.loadedSourceEvent(json.body);
 							}
 							this.continue();
 							return;
@@ -716,7 +716,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		return debuggerPath;
 	}
 
-	protected async customRequest(command: string, response: DebugProtocol.Response, args: any, request?: DebugProtocol.Request | undefined) {
+	protected customRequest(command: string, response: DebugProtocol.Response, args: any, request?: DebugProtocol.Request) {
 		switch (command) {
 			case "x-Factorio-ConvertPath":
 				response.body = this.convertDebuggerPathToClient(args.path);
@@ -864,7 +864,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	}
 
-	protected async modulesRequest(response: DebugProtocol.ModulesResponse, args: DebugProtocol.ModulesArguments) {
+	protected modulesRequest(response: DebugProtocol.ModulesResponse, args: DebugProtocol.ModulesArguments) {
 		const modules = Array.from(this._modules.values());
 		response.body = { modules: modules };
 		this.sendResponse(response);
@@ -1058,7 +1058,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	private loadedSources:(DebugProtocol.Source)[] = [];
 
-	protected async loadedSourceEvent(loaded:{ source:DebugProtocol.Source; dump?:Buffer }) {
+	protected loadedSourceEvent(loaded:{ source:DebugProtocol.Source; dump?:Buffer }) {
 		const source = loaded.source;
 
 		if (loaded.dump) {
@@ -1097,7 +1097,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.sendEvent(new LoadedSourceEvent("new", source));
 	}
 
-	protected async disassembleRequest(response: DebugProtocol.DisassembleResponse, args: DebugProtocol.DisassembleArguments, request: DebugProtocol.DisassembleRequest) {
+	protected disassembleRequest(response: DebugProtocol.DisassembleResponse, args: DebugProtocol.DisassembleArguments, request: DebugProtocol.DisassembleRequest) {
 		const ref = parseInt(args.memoryReference);
 
 		const instrs:DebugProtocol.DisassembledInstruction[] = [];
@@ -1145,7 +1145,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.sendResponse(response);
 	}
 
-	protected async breakpointLocationsRequest(response: DebugProtocol.BreakpointLocationsResponse, args: DebugProtocol.BreakpointLocationsArguments, request: DebugProtocol.BreakpointLocationsRequest) {
+	protected breakpointLocationsRequest(response: DebugProtocol.BreakpointLocationsResponse, args: DebugProtocol.BreakpointLocationsArguments, request: DebugProtocol.BreakpointLocationsRequest) {
 		let sourceid = args.source.sourceReference ?? args.source.path;
 		if (sourceid) {
 			if (typeof sourceid === "string") {
@@ -1161,7 +1161,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.sendResponse(response);
 	}
 
-	protected async loadedSourcesRequest(response: DebugProtocol.LoadedSourcesResponse, args: DebugProtocol.LoadedSourcesArguments, request: DebugProtocol.LoadedSourcesRequest) {
+	protected loadedSourcesRequest(response: DebugProtocol.LoadedSourcesResponse, args: DebugProtocol.LoadedSourcesArguments, request: DebugProtocol.LoadedSourcesRequest) {
 		response.body = {sources: this.loadedSources};
 		this.sendResponse(response);
 	}
@@ -1256,7 +1256,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 	private async runQueuedStdin() {
 		if (this.stdinQueue.length > 0) {
-			for await (const b of this.stdinQueue) {
+			for (const b of this.stdinQueue) {
 				if (b.signal?.aborted) {
 					b.resolve(false);
 				} else {

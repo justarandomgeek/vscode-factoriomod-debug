@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await */
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as semver from 'semver';
@@ -79,7 +80,7 @@ function addBinToPath(path:string) {
 	return path;
 }
 
-export async function activateModPackageProvider(context:vscode.ExtensionContext) {
+export function activateModPackageProvider(context:vscode.ExtensionContext) {
 	if (vscode.workspace.workspaceFolders) {
 		const keychain = new Keychain(context.secrets);
 		context.subscriptions.push(vscode.commands.registerCommand("factorio.clearApiKey", async ()=>{
@@ -103,7 +104,7 @@ class ModTaskProvider implements vscode.TaskProvider {
 	) {}
 
 
-	provideTasks(token?: vscode.CancellationToken | undefined): vscode.ProviderResult<vscode.Task[]> {
+	provideTasks(token?: vscode.CancellationToken): vscode.ProviderResult<vscode.Task[]> {
 		const tasks:vscode.Task[] = [];
 
 		const latest = ModPackage.latestPackages(this.modPackages.values());
@@ -162,7 +163,7 @@ class ModTaskProvider implements vscode.TaskProvider {
 		return tasks;
 	}
 
-	resolveTaskExecution(task: vscode.Task, token?: vscode.CancellationToken | undefined) {
+	resolveTaskExecution(task: vscode.Task, token?: vscode.CancellationToken) {
 		if (task.definition.command === "adjustMods") {
 			if (!task.definition.adjustMods) {
 				return this.ConfigErrorTask(task.definition, "missing `adjustMods`");
@@ -212,7 +213,7 @@ class ModTaskProvider implements vscode.TaskProvider {
 		return this.ConfigErrorTask(task.definition, `mod "${task.definition.modname}" not found`);
 	}
 
-	resolveTask(task: vscode.Task, token?: vscode.CancellationToken | undefined): vscode.ProviderResult<vscode.Task> {
+	resolveTask(task: vscode.Task, token?: vscode.CancellationToken): vscode.ProviderResult<vscode.Task> {
 		if (task.definition.type === "factorio") {
 			const execution = this.resolveTaskExecution(task, token);
 
@@ -230,7 +231,7 @@ class ModTaskProvider implements vscode.TaskProvider {
 
 	private ConfigErrorTask(def:vscode.TaskDefinition, error:string): vscode.CustomExecution {
 		return new vscode.CustomExecution(async ()=>{
-			return new ModTaskPseudoterminal(async term=>{
+			return new ModTaskPseudoterminal(term=>{
 				term.write(error+"\n");
 				term.write(JSON.stringify(def, undefined, 2));
 				term.close();
@@ -290,7 +291,7 @@ class ModPackage extends vscode.TreeItem {
 		this.scripts = modscript.package?.scripts;
 	}
 
-	public static sort(a:ModPackage, b:ModPackage) {
+	public static sort(this:void, a:ModPackage, b:ModPackage) {
 		const namecomp = a.label.toLowerCase().localeCompare(b.label.toLowerCase());
 		if (namecomp !== 0) { return namecomp * 100; }
 
@@ -474,11 +475,11 @@ class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>, 
 		private readonly keychain:Keychain
 	) {
 		this.modPackages = new Map<string, ModPackage>();
-		vscode.workspace.findFiles('**/info.json').then(infos=>{ infos.forEach(this.updateInfoJson, this); });
+		vscode.workspace.findFiles('**/info.json').then(infos=>{ infos.forEach((uri)=>void this.updateInfoJson(uri)); });
 		const infoWatcher = vscode.workspace.createFileSystemWatcher('**/info.json');
-		this.subscriptions.push(infoWatcher.onDidChange(this.updateInfoJson, this));
-		this.subscriptions.push(infoWatcher.onDidCreate(this.updateInfoJson, this));
-		this.subscriptions.push(infoWatcher.onDidDelete(this.removeInfoJson, this));
+		this.subscriptions.push(infoWatcher.onDidChange((uri)=>this.updateInfoJson(uri)));
+		this.subscriptions.push(infoWatcher.onDidCreate((uri)=>this.updateInfoJson(uri)));
+		this.subscriptions.push(infoWatcher.onDidDelete((uri)=>this.removeInfoJson(uri)));
 		this.subscriptions.push(infoWatcher);
 
 		this.subscriptions.push(vscode.tasks.registerTaskProvider("factorio", new ModTaskProvider(this.context, this.modPackages)));
@@ -547,14 +548,14 @@ class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>, 
 		}
 		this._onDidChangeTreeData.fire(undefined);
 	}
-	private async removeInfoJson(uri: vscode.Uri) {
+	private removeInfoJson(uri: vscode.Uri) {
 		this.modPackages.delete(uri.toString());
 		this._onDidChangeTreeData.fire(undefined);
 	}
 	getTreeItem(element: vscode.TreeItem): vscode.TreeItem | Thenable<vscode.TreeItem> {
 		return element;
 	}
-	async getChildren(element?: vscode.TreeItem | undefined): Promise<vscode.TreeItem[]> {
+	async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
 		if (!element) {
 			const items: vscode.TreeItem[] = [];
 			if (this.modPackages) {
@@ -669,7 +670,8 @@ class ModTaskPseudoterminal implements vscode.Pseudoterminal {
 
 	constructor(private readonly runner:(term:ModTaskTerminal, token?:vscode.CancellationToken)=>void|Promise<void>) {}
 
-	async open(initialDimensions: vscode.TerminalDimensions | undefined): Promise<void> {
+	// eslint-disable-next-line @typescript-eslint/no-misused-promises
+	async open(initialDimensions: vscode.TerminalDimensions | undefined) {
 		const writeEmitter = this.writeEmitter;
 		const closeEmitter = this.closeEmitter;
 		await this.runner({

@@ -14,15 +14,15 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 		this.docs = JSON.parse(docjson);
 
 		if (this.docs.application !== "factorio") {
-			throw `Unknown application: ${this.docs.application}`;
+			throw new Error(`Unknown application: ${this.docs.application}`);
 		}
 
 		if (!(this.docs.api_version===6)) {
-			throw `Unsupported Prototype Docs JSON Version ${this.docs.api_version}`;
+			throw new Error(`Unsupported Prototype Docs JSON Version ${this.docs.api_version}`);
 		}
 
 		if (this.docs.stage !== "prototype") {
-			throw `Wrong stage: ${this.docs.stage}`;
+			throw new Error(`Wrong stage: ${this.docs.stage}`);
 		}
 
 		this.concepts = new Map(this.docs.types.map(c=>[c.name, c]));

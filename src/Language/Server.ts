@@ -50,7 +50,7 @@ export async function runLanguageServer():Promise<void> {
 		if (uri.scheme === "file") {
 			const globber = readdirGlob(uri.fsPath, {pattern: '**/locale/*/*.cfg'});
 			globber.on('match', (match:{ relative:string; absolute:string })=>{
-				scanFile(URI.file(match.absolute).toString());
+				void scanFile(URI.file(match.absolute).toString());
 			});
 			globber.on('error', (err:unknown)=>{
 				throw err;
@@ -124,25 +124,25 @@ export async function runLanguageServer():Promise<void> {
 	documents.onDidClose(event=>{
 		switch (event.document.languageId) {
 			case "factorio-locale":
-				connection.sendDiagnostics({ uri: event.document.uri, diagnostics: [] });
+				void connection.sendDiagnostics({ uri: event.document.uri, diagnostics: [] });
 				break;
 
 			case "factorio-changelog":
-				connection.sendDiagnostics({ uri: event.document.uri, diagnostics: [] });
+				void connection.sendDiagnostics({ uri: event.document.uri, diagnostics: [] });
 				break;
 		}
 	});
 
 	// The content of a text document has changed. This event is emitted
 	// when the text document first opened or when its content has changed.
-	documents.onDidChangeContent(async (change)=>{
+	documents.onDidChangeContent((change)=>{
 		switch (change.document.languageId) {
 			case "factorio-locale":
 				Locale.loadDocument(change.document);
-				connection.sendDiagnostics({ uri: change.document.uri, diagnostics: await Locale.validateTextDocument(change.document) });
+				void connection.sendDiagnostics({ uri: change.document.uri, diagnostics: Locale.validateTextDocument(change.document) });
 				break;
 			case "factorio-changelog":
-				connection.sendDiagnostics({ uri: change.document.uri, diagnostics: await ChangeLog.validateTextDocument(change.document) });
+				void connection.sendDiagnostics({ uri: change.document.uri, diagnostics: ChangeLog.validateTextDocument(change.document) });
 				break;
 		}
 	});
@@ -166,7 +166,7 @@ export async function runLanguageServer():Promise<void> {
 		return undefined;
 	});
 
-	connection.onDidChangeWatchedFiles(async (change)=>{
+	connection.onDidChangeWatchedFiles((change)=>{
 		for (const filechange of change.changes) {
 			switch (filechange.type) {
 				case FileChangeType.Deleted:
@@ -175,10 +175,11 @@ export async function runLanguageServer():Promise<void> {
 
 				case FileChangeType.Changed:
 				case FileChangeType.Created:
-					const document = await getDocument(filechange.uri);
-					if (document && document.languageId ==="factorio-locale") {
-						Locale.loadDocument(document);
-					}
+					void getDocument(filechange.uri).then((document)=>{
+						if (document && document.languageId ==="factorio-locale") {
+							Locale.loadDocument(document);
+						}
+					});
 					break;
 				default:
 					break;

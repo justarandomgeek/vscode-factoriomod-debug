@@ -15,7 +15,7 @@ settingscommand.command("list")
 		const modSettingsUri = Utils.joinPath(URI.file(settingscommand.opts().modsPath), "mod-settings.dat");
 		const settings = new ModSettings(new BufferStream(await fsp.readFile(modSettingsUri.fsPath)));
 		for (const setting of settings.list()) {
-			let valuetext = setting.value;
+			let valuetext:string;
 			switch (typeof setting.value) {
 				case "string":
 					valuetext = `"${setting.value}"`;
@@ -24,6 +24,7 @@ settingscommand.command("list")
 					valuetext = `Color(${setting.value.r}, ${setting.value.g}, ${setting.value.b}, ${setting.value.a})`;
 					break;
 				default:
+					valuetext = setting.value.toString();
 					break;
 			}
 

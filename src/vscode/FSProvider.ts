@@ -48,11 +48,11 @@ export class FSProvider implements vscode.FileSystemProvider {
 
 	// --- manage file metadata
 
-	async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
+	stat(uri: vscode.Uri): vscode.FileStat {
 		return this._lookup(uri, false);
 	}
 
-	async readDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
+	readDirectory(uri: vscode.Uri): [string, vscode.FileType][] {
 		const entry = this._lookupAsDirectory(uri, false);
 		const result: [string, vscode.FileType][] = [];
 		for (const [name, child] of entry.entries) {

@@ -95,7 +95,7 @@ const escapes:searchPattern<Escape>[] = [
 function parsePlural(text:Text):PluralOption[] {
 	return parsePatterns(text, "|").map((option)=>{
 		const split = option.value.indexOf("=");
-		const patterns = textNode(option.value.substring(0, split), option.range.start.line, option.range!.start.character);
+		const patterns = textNode(option.value.substring(0, split), option.range.start.line, option.range.start.character);
 		const text = textNode(option.value.substring(split+1), option.range.start.line, option.range.start.character+split+1);
 
 		return {
@@ -144,7 +144,7 @@ const macros:searchPattern<TextNode>[] = [
 			return {
 				type: "parameter",
 				value: parseInt(matches[1]),
-				range: span(line, startcol+matches.index!, matches[0].length),
+				range: span(line, startcol+matches.index, matches[0].length),
 				selectionRange: span(line, startcol+matches.indices![1][0], matches[1].length),
 			};
 		},
@@ -156,7 +156,7 @@ const macros:searchPattern<TextNode>[] = [
 				type: "plural",
 				value: parseInt(matches[1]),
 				children: parsePlural(textNode(matches[2], line, startcol+matches.indices![2][0])),
-				range: span(line, startcol+matches.index!, matches[0].length),
+				range: span(line, startcol+matches.index, matches[0].length),
 				selectionRange: span(line, startcol+matches.indices![1][0], matches[1].length),
 			};
 		},
@@ -168,7 +168,7 @@ const macros:searchPattern<TextNode>[] = [
 				type: "macro",
 				name: matches[1] as Macro["name"],
 				children: [],
-				range: span(line, startcol+matches.index!, matches[0].length),
+				range: span(line, startcol+matches.index, matches[0].length),
 				selectionRange: span(line, startcol+matches.indices![1][0], matches[1].length),
 			};
 		},
@@ -180,7 +180,7 @@ const macros:searchPattern<TextNode>[] = [
 				type: "macro",
 				name: matches[1] as Macro["name"],
 				children: [],
-				range: span(line, startcol+matches.index!, matches[0].length),
+				range: span(line, startcol+matches.index, matches[0].length),
 				selectionRange: span(line, startcol+matches.indices![1][0], matches[1].length),
 			};
 		},
@@ -192,7 +192,7 @@ const macros:searchPattern<TextNode>[] = [
 				type: "macro",
 				name: matches[1] as Macro["name"],
 				children: [literalNode("macro_argument", matches[2], line, startcol+matches.indices![2][0])],
-				range: span(line, startcol+matches.index!, matches[0].length),
+				range: span(line, startcol+matches.index, matches[0].length),
 				selectionRange: span(line, startcol+matches.indices![1][0], matches[1].length),
 			};
 		},
@@ -207,7 +207,7 @@ const macros:searchPattern<TextNode>[] = [
 					literalNode("macro_argument", matches[2], line, startcol+matches.indices![2][0]),
 					literalNode("macro_argument", matches[3], line, startcol+matches.indices![3][0]),
 				],
-				range: span(line, startcol+matches.index!, matches[0].length),
+				range: span(line, startcol+matches.index, matches[0].length),
 				selectionRange: span(line, startcol+matches.indices![1][0], matches[1].length),
 			};
 		},
@@ -219,7 +219,7 @@ const macros:searchPattern<TextNode>[] = [
 				type: "macro",
 				name: matches[1] as Macro["name"],
 				children: [literalNode("macro_argument", matches[2], line, startcol+matches.indices![1][0])],
-				range: span(line, startcol+matches.index!, matches[0].length),
+				range: span(line, startcol+matches.index, matches[0].length),
 				selectionRange: span(line, startcol+matches.indices![1][0], matches[1].length),
 			};
 		},

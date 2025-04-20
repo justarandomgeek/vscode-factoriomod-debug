@@ -27,6 +27,7 @@ interface ProtoConcept extends ProtoBasicMember {
 	readonly parent?: string
 	readonly abstract: boolean
 	readonly inline: boolean
+	// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
 	readonly type: "builtin"|ProtoType
 	readonly properties?: ProtoProperty[]
 }

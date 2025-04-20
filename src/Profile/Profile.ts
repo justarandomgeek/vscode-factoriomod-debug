@@ -208,8 +208,8 @@ export class Profile implements vscode.Disposable  {
 		private readonly context: vscode.ExtensionContext,
 		private readonly debug:vscode.DebugSession,
 	) {
-		this._disposables.push(vscode.debug.onDidReceiveDebugSessionCustomEvent(this.onCustomEvent, this));
-		this._disposables.push(vscode.debug.onDidTerminateDebugSession(this.onTerminate, this));
+		this._disposables.push(vscode.debug.onDidReceiveDebugSessionCustomEvent((e)=>this.onCustomEvent(e), this));
+		this._disposables.push(vscode.debug.onDidTerminateDebugSession((e)=>this.onTerminate(e), this));
 
 		this.timeDecorationType = vscode.window.createTextEditorDecorationType({
 			before: {
@@ -263,7 +263,7 @@ export class Profile implements vscode.Disposable  {
 		}));
 
 		if (withTree) {
-			this.createFlamePanel();
+			void this.createFlamePanel();
 		}
 	}
 

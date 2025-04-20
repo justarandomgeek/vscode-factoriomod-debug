@@ -20,15 +20,15 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		this.docs = JSON.parse(docjson);
 
 		if (this.docs.application !== "factorio") {
-			throw `Unknown application: ${this.docs.application}`;
+			throw new Error(`Unknown application: ${this.docs.application as string}`);
 		}
 
 		if (!(this.docs.api_version===6)) {
-			throw `Unsupported Runtime Docs JSON Version ${this.docs.api_version}`;
+			throw new Error(`Unsupported Runtime Docs JSON Version ${this.docs.api_version as number}`);
 		}
 
 		if (this.docs.stage !== "runtime") {
-			throw `Wrong stage: ${this.docs.stage}`;
+			throw new Error(`Wrong stage: ${this.docs.stage as string}`);
 		}
 
 		this.classes = new Map(this.docs.classes.map(c=>[c.name, c]));
@@ -276,7 +276,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 					break;
 				}
 				default:
-					throw `Unkown operator: ${(<ApiOperator>operator).name}`;
+					throw new Error(`Unkown operator: ${(<ApiOperator>operator).name}`);
 			}
 		}
 
@@ -440,7 +440,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		return file;
 	}
 
-	private async generate_LuaLS_LuaObjectNames() {
+	private generate_LuaLS_LuaObjectNames() {
 		const file = new LuaLSFile("runtime-api/LuaObjectNames", this.docs.application_version);
 		file.add(new LuaLSAlias("LuaObject.object_name", new LuaLSUnion(
 			this.docs.classes.filter(c=>!c.abstract).map(c=>new LuaLSLiteral(c.name))

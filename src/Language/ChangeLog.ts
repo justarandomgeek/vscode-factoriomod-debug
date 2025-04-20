@@ -3,7 +3,7 @@ import { DiagnosticSeverity, SymbolKind, CodeActionKind } from 'vscode-languages
 import type { TextDocument } from 'vscode-languageserver-textdocument';
 
 export class ChangeLogLanguageService {
-	public async validateTextDocument(textDocument: TextDocument): Promise<Diagnostic[]> {
+	public validateTextDocument(textDocument: TextDocument): Diagnostic[] {
 		const changelog = textDocument.getText().split(/\r?\n/);
 		const diags: Diagnostic[] = [];
 		const seenVersions = new Map<string, Range>();
@@ -267,7 +267,7 @@ export class ChangeLogLanguageService {
 
 					version!.range.end = range.end;
 					category!.range.end = range.end;
-					line!.range.end = range.end;
+					line.range.end = range.end;
 				}
 			}
 		}

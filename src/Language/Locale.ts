@@ -168,7 +168,7 @@ export class LocaleLanguageService {
 
 	public hasDiagnosticRelatedInformationCapability:boolean = false;
 
-	public async validateTextDocument(textDocument: TextDocument): Promise<Diagnostic[]> {
+	public validateTextDocument(textDocument: TextDocument): Diagnostic[] {
 		const locale = textDocument.getText().split(/\r?\n/);
 		const diags: Diagnostic[] = [];
 
@@ -370,7 +370,7 @@ export class LocaleLanguageService {
 					case "section.merge":
 					{
 						const dupediag = <DuplicateDefinitionDiagnostic>diag;
-						const insertAt = dupediag.data!.firstsym.range.end;
+						const insertAt = dupediag.data.firstsym.range.end;
 
 						const ca:CodeAction = {
 							title: "Merge Sections",
@@ -380,7 +380,7 @@ export class LocaleLanguageService {
 								changes: {
 									[document.uri]: [
 										{
-											range: dupediag.data!.newsym.range,
+											range: dupediag.data.newsym.range,
 											newText: "",
 
 										},
@@ -388,8 +388,8 @@ export class LocaleLanguageService {
 											range: {start: insertAt, end: insertAt},
 											newText: document.getText(
 												{
-													start: { line: dupediag.data!.newsym.selectionRange.end.line, character: dupediag.data!.newsym.selectionRange.end.character+1 },
-													end: dupediag.data!.newsym.range.end,
+													start: { line: dupediag.data.newsym.selectionRange.end.line, character: dupediag.data.newsym.selectionRange.end.character+1 },
+													end: dupediag.data.newsym.range.end,
 												},
 											),
 										},

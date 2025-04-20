@@ -69,7 +69,7 @@ export class ActiveFactorioVersion {
 					env: Object.assign({}, process.env, {SteamAppId: "427520"}),
 				},
 				(error, stdout, stderr)=>{
-					if (error) { reject(error); }
+					if (error) { reject(new Error(error.message) ); }
 
 					const version = stdout?.match(/^Version: ([0-9\.]+) /m);
 					if (version) {
@@ -232,7 +232,7 @@ export class ActiveFactorioVersion {
 	public async defaultModsPath() {
 		const configModsPath = (await this.configIni())?.path?.["write-data"];
 		if (!configModsPath) {
-			throw "path.write-data missing in config.ini";
+			throw new Error("path.write-data missing in config.ini");
 		}
 		return path.posix.normalize(path.resolve(this.translatePath(configModsPath), "mods"));
 	}
@@ -246,7 +246,7 @@ export class ActiveFactorioVersion {
 			};
 		})).path?.["read-data"];
 		if (!configDataPath) {
-			throw "path.read-data missing in config.ini";
+			throw new Error("path.read-data missing in config.ini");
 		}
 		return path.posix.normalize(this.translatePath(configDataPath));
 	}
@@ -258,7 +258,7 @@ export class ActiveFactorioVersion {
 	public async writeDataPath() {
 		const configDataPath = (await this.configIni()).path?.["write-data"];
 		if (!configDataPath) {
-			throw "path.write-data missing in config.ini";
+			throw new Error("path.write-data missing in config.ini");
 		}
 		return path.posix.normalize(this.translatePath(configDataPath));
 	}

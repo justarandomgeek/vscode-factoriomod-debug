@@ -29,7 +29,7 @@ if (process.env["FMTK_TEST_ARGV"]) {
 }
 
 
-program
+await program
 	.description(`${displayName} ${bundleVersion}`)
 	.addHelpCommand()
 	.showHelpAfterError()

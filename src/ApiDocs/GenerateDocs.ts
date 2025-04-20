@@ -9,7 +9,7 @@ import { ProtoDocGenerator } from './ProtoDocsGenerator';
 import * as LuaLSAddon from "../LuaLSAddon";
 
 
-export async function GenerateDocs(docsjson:string, protosjson:string, write_file:(subpath:string, write:(output:Writable)=>Promise<void>)=>Promise<void>) {
+export async function GenerateDocs(docsjson:string, protosjson:string, write_file:(subpath:string, write:(output:Writable)=>void|Promise<void>)=>Promise<void>) {
 	const docs = new ApiDocGenerator(docsjson);
 	const pdocs = new ProtoDocGenerator(protosjson);
 
@@ -24,7 +24,7 @@ export async function GenerateDocs(docsjson:string, protosjson:string, write_fil
 					}
 					break;
 				case 'prototype':
-					const plink = pdocs!.resolve_link(matches[2], matches[3]);
+					const plink = pdocs.resolve_link(matches[2], matches[3]);
 					if (plink) {
 						node.url = "https://lua-api.factorio.com/latest"+plink;
 					}
@@ -35,7 +35,7 @@ export async function GenerateDocs(docsjson:string, protosjson:string, write_fil
 
 	const descr = remark()
 		.use(function () {
-			return async function(tree:Root, file:VFile) {
+			return function(tree:Root, file:VFile) {
 				visit(tree, "link", resolve_link);
 			};
 		});
@@ -57,9 +57,9 @@ export async function GenerateDocs(docsjson:string, protosjson:string, write_fil
 		}));
 
 	await Promise.all((await LuaLSAddon.getLuaFiles()).map(async (file)=>{
-		await write_file(file.name, async (output)=>{ output.write(file.content); });
+		await write_file(file.name, (output)=>{ output.write(file.content); });
 	}));
 
 	const config = await LuaLSAddon.getConfig(docs.application_version);
-	await write_file(config.name, async (output)=>{ output.write(config.content); });
+	await write_file(config.name, (output)=>{ output.write(config.content); });
 }
