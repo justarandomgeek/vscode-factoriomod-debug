@@ -2,5 +2,5 @@
 	"reporter": [ "html", "lcov", "text" ],
 	"exclude-after-remap": true,
 	"extension": [ ".ts" ],
-	"include": ["**/*.ts", "!**/luals-addon/**"]
+	"include": ["**/*.ts"]
 }
