@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
 import {
 	Logger, logger,
 	LoggingDebugSession,
@@ -180,14 +179,14 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 
 
 
-	protected async terminateRequest(response: DebugProtocol.TerminateResponse, args: DebugProtocol.TerminateArguments) {
+	protected terminateRequest(response: DebugProtocol.TerminateResponse, args: DebugProtocol.TerminateArguments) {
 		this.sendResponse(response);
-		return this.terminate();
+		void this.terminate();
 	}
 
-	protected async disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments) {
+	protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments) {
 		this.sendResponse(response);
-		return this.terminate();
+		void this.terminate();
 	}
 
 	private checkFactorioArgs(launchArgs: LaunchRequestArguments) {
@@ -291,6 +290,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		}
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-misused-promises
 	protected async launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments) {
 
 		// make sure to 'Stop' the buffered logging if 'trace' is not set
@@ -637,7 +637,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			}
 		};
 
-		this.factorio.on("stdout", async (mesg:Buffer)=>{
+		this.factorio.on("stdout", (mesg:Buffer)=>{
 			if (mesg[0] === 0xEF && mesg[1] === 0xB7) {
 				switch (mesg[2]) {
 					case 0x90: //0xFDD0:
@@ -647,7 +647,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					case 0x96: //0xFDD6:
 					case 0x97: //0xFDD7:
 					case 0x98: //0xFDD8:
-						await dapmsg(mesg);
+						void dapmsg(mesg);
 						return;
 					case 0xA0: //0xFDE0: // profile line
 					case 0xA1: //0xFDE1: // profile call
@@ -814,6 +814,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		}
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-misused-promises
 	protected async threadsRequest(response: DebugProtocol.ThreadsResponse) {
 
 		if (this.inPrompt > 0) {
@@ -832,6 +833,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		}
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-misused-promises
 	protected async stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments) {
 
 		const startFrame = typeof args.startFrame === 'number' ? args.startFrame : 0;
@@ -870,6 +872,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.sendResponse(response);
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-misused-promises
 	protected async scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments) {
 		const scopes = new Promise<DebugProtocol.Scope[]>((resolve)=>{
 			this._responses.set(response.request_seq, resolve);
@@ -879,11 +882,13 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.sendResponse(response);
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-misused-promises
 	protected async variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments, request?: DebugProtocol.Request) {
 		let consume:resolver<void>;
 		const consumed = new Promise<void>((resolve)=>consume=resolve);
 		const ac = new AbortController();
 		const vars = await Promise.race([
+			// eslint-disable-next-line @typescript-eslint/no-misused-promises
 			new Promise<DebugProtocol.Variable[]>(async (resolve)=>{
 				this._responses.set(response.request_seq, resolve);
 				if (!await this.writeOrQueueStdin(
@@ -927,6 +932,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.sendResponse(response);
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-misused-promises
 	protected async setVariableRequest(response: DebugProtocol.SetVariableResponse, args: DebugProtocol.SetVariableArguments, request?: DebugProtocol.Request) {
 		const body = await new Promise<DebugProtocol.Variable>((resolve)=>{
 			this._responses.set(response.request_seq, resolve);
@@ -941,6 +947,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.sendResponse(response);
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-misused-promises
 	protected async evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments, request?: DebugProtocol.Request) {
 		let consume:resolver<void>;
 		const consumed = new Promise<void>((resolve)=>consume=resolve);
@@ -958,6 +965,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			"nil";
 		const expr = luaBlockQuote(Buffer.from(args.expression.replace(/\n/g, " ")));
 		const body = await Promise.race([
+			// eslint-disable-next-line @typescript-eslint/no-misused-promises
 			new Promise<EvaluateResponseBody>(async (resolve)=>{
 				this._responses.set(response.request_seq, resolve);
 				if (!await this.writeOrQueueStdin(
@@ -1166,6 +1174,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.sendResponse(response);
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-misused-promises
 	protected async sourceRequest(response: DebugProtocol.SourceResponse, args: DebugProtocol.SourceArguments): Promise<void> {
 		const ref = args.source?.sourceReference;
 		if (ref) {
@@ -1174,6 +1183,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			const consumed = new Promise<void>((resolve)=>consume=resolve);
 			const ac = new AbortController();
 			const body = await Promise.race([
+				// eslint-disable-next-line @typescript-eslint/no-misused-promises
 				new Promise<string|undefined>(async (resolve)=>{
 					this._responses.set(response.request_seq, resolve);
 					if (!await this.writeOrQueueStdin(

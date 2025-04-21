@@ -193,7 +193,7 @@ window.addEventListener('click', e=>{
 	}
 });
 
-window.addEventListener('message', async <K extends keyof ScriptDatMessages>(e:MessageEvent<ScriptDatMessageEventData<K>>)=>{
+window.addEventListener('message', <K extends keyof ScriptDatMessages>(e:MessageEvent<ScriptDatMessageEventData<K>>)=>{
 
 	const { type, body } = e.data;
 	switch (type) {

@@ -670,15 +670,21 @@ class ModTaskPseudoterminal implements vscode.Pseudoterminal {
 
 	constructor(private readonly runner:(term:ModTaskTerminal, token?:vscode.CancellationToken)=>void|Promise<void>) {}
 
-	// eslint-disable-next-line @typescript-eslint/no-misused-promises
-	async open(initialDimensions: vscode.TerminalDimensions | undefined) {
+
+	open(initialDimensions: vscode.TerminalDimensions | undefined) {
 		const writeEmitter = this.writeEmitter;
 		const closeEmitter = this.closeEmitter;
-		await this.runner({
+		const result = this.runner({
 			write: (data)=>writeEmitter.fire(data.replace(/\r?\n/g, "\r\n")),
 			close: ()=>closeEmitter.fire(),
 		}, this.tokensource.token);
-		closeEmitter.fire();
+		if (result) {
+			void result.finally(()=>{
+				closeEmitter.fire();
+			});
+		} else {
+			closeEmitter.fire();
+		}
 	}
 
 	close(): void {
