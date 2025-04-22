@@ -77,10 +77,10 @@ suite("LSP", ()=>{
 
 	suiteTeardown(async ()=>{
 		await clientConnection.sendRequest(ShutdownRequest.type);
+		await clientConnection.sendNotification(ExitNotification.type);
 		await new Promise<void>((resolve)=>{
 			server.once("exit", ()=>{ resolve(); });
 		});
-		await clientConnection.sendNotification(ExitNotification.type);
 		clientConnection.end();
 	});
 
