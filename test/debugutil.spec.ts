@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
 import { test, suite } from "mocha";
 import { expect } from "chai";
 import { Duplex } from "stream";

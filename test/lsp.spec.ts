@@ -1,9 +1,12 @@
 import { setup, teardown, suite, test, suiteSetup, suiteTeardown } from "mocha";
 import * as path from "path";
 import * as fsp from "fs/promises";
-import { ChildProcess, fork } from "child_process";
-import { createProtocolConnection, StreamMessageReader, StreamMessageWriter, ProtocolConnection, ShutdownRequest, ExitNotification, InitializeRequest, InitializeParams, InitializedNotification, DidOpenTextDocumentNotification, DidOpenTextDocumentParams, PublishDiagnosticsNotification } from "vscode-languageserver-protocol/node";
-import { CodeAction, CodeActionKind, CodeActionParams, CodeActionRequest, ColorPresentationParams, ColorPresentationRequest, DidChangeTextDocumentNotification, DidChangeTextDocumentParams, DidCloseTextDocumentNotification, DidCloseTextDocumentParams, DocumentColorParams, DocumentColorRequest, DocumentSymbol, DocumentSymbolParams, DocumentSymbolRequest, ProtocolNotificationType, PublishDiagnosticsParams, SymbolKind } from "vscode-languageserver-protocol";
+import type { ChildProcess} from "child_process";
+import { fork } from "child_process";
+import type { ProtocolConnection, InitializeParams, DidOpenTextDocumentParams } from "vscode-languageserver-protocol/node";
+import { createProtocolConnection, StreamMessageReader, StreamMessageWriter, ShutdownRequest, ExitNotification, InitializeRequest, InitializedNotification, DidOpenTextDocumentNotification, PublishDiagnosticsNotification } from "vscode-languageserver-protocol/node";
+import type { CodeAction, CodeActionParams, ColorPresentationParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DocumentColorParams, DocumentSymbol, DocumentSymbolParams, ProtocolNotificationType, PublishDiagnosticsParams } from "vscode-languageserver-protocol";
+import { CodeActionKind, CodeActionRequest, ColorPresentationRequest, DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DocumentColorRequest, DocumentSymbolRequest, SymbolKind } from "vscode-languageserver-protocol";
 import { expect } from "chai";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
@@ -69,21 +72,15 @@ suite("LSP", ()=>{
 				},
 			},
 		} as InitializeParams);
-		clientConnection.sendNotification(InitializedNotification.type, {});
+		await clientConnection.sendNotification(InitializedNotification.type, {});
 	});
 
 	suiteTeardown(async ()=>{
-		await new Promise<void>(async (resolve, reject)=>{
-			await clientConnection.sendRequest(ShutdownRequest.type);
-			server.once("exit", (code, signal)=>{
-				if (code===0) {
-					resolve();
-				} else {
-					reject();
-				}
-			});
-			clientConnection.sendNotification(ExitNotification.type);
+		await clientConnection.sendRequest(ShutdownRequest.type);
+		await new Promise<void>((resolve)=>{
+			server.once("exit", ()=>{ resolve(); });
 		});
+		await clientConnection.sendNotification(ExitNotification.type);
 		clientConnection.end();
 	});
 

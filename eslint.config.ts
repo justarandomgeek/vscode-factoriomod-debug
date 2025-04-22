@@ -1,8 +1,10 @@
+import { globalIgnores } from "eslint/config";
 import globals from "globals";
 import tseslint from 'typescript-eslint';
 import stylisticTs from '@stylistic/eslint-plugin-ts';
 
 export default tseslint.config([
+	globalIgnores(["dist", "coverage", "test/factorio"]),
 	...tseslint.configs.recommendedTypeChecked,
 	{
 		plugins: {
@@ -76,10 +78,6 @@ export default tseslint.config([
 			"no-redeclare": "off",
 			"@typescript-eslint/no-redeclare": "error",
 
-			"no-unused-expressions": ["error", {
-				allowShortCircuit: true,
-				allowTernary: true,
-			}],
 			"@typescript-eslint/no-unused-vars": "off",
 			"@typescript-eslint/no-explicit-any": "off",
 			"@typescript-eslint/no-unsafe-assignment": "off",

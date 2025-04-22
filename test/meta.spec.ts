@@ -3,7 +3,7 @@ import { expect } from "chai";
 import { engines, devDependencies } from "../package.json";
 
 suite('meta', ()=>{
-	test('vscode engine and types versions should match', async ()=>{
-		expect(engines.vscode).equals(devDependencies["@types/vscode"])
+	test('vscode engine and types versions should match', ()=>{
+		expect(engines.vscode).equals(devDependencies["@types/vscode"]);
 	});
 });

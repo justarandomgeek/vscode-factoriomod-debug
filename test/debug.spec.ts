@@ -90,7 +90,7 @@ suite('Debug Adapter', ()=>{
 		await dc.waitForEvent('terminated');
 	});
 
-	test("should reject launch args", async ()=>{
+	test("should reject launch args", ()=>{
 		expect(launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/terminate", "--config"],
 		})).eventually.throws();

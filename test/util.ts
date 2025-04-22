@@ -1,4 +1,5 @@
-import { fork, ForkOptions } from "child_process";
+import type { ForkOptions } from "child_process";
+import { fork } from "child_process";
 
 export interface ForkResult {
 	stdout: Buffer
