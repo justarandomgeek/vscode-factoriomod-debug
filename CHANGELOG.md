@@ -12,6 +12,8 @@
 * Debugger:
   * fix incorrect error when remote.call is called with invalid arguments
   * fix incorrect nesting of values in Output events
+  * `__DebugAdapter.restart()` api for code to request a session restart
+  * factorio custom-input `ctrl-shift-F5` to restart session from within factorio
 
 ## 2.0.5
 * Changelog LSP:

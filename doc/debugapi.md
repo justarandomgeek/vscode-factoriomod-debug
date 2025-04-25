@@ -24,6 +24,10 @@ If normal breakpoints are unusable for some reason, you can call `__DebugAdapter
 
 `__DebugAdapter.terminate()` can be used to terminate a debug session from mod code.
 
+## Restart Session
+
+`__DebugAdapter.restart()` can be used to restart a debug session from mod code.
+
 ## Simulate Events
 
 `__DebugAdapter.raise_event(event:defines.events|number|string,data:EventData,modname:string)` can be used to call event handlers directly for testing. `data` is not validated, so you must ensure it is a well-formed event payload for `event` yourself. All event and custom-input handlers are raisable, even those not raisable through `script`.

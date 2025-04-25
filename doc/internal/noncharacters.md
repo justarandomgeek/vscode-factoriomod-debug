@@ -67,6 +67,7 @@ PUA U+E000-U+F8FF also available for use?
 | EE 80 8D | E00D | ~~step~~                |         |
 | EE 80 8E | E00E | ~~breakpoint~~          |         |
 | EE 80 8F | E00F | ~~exception~~           |         |
+| EE 80 90 | E010 | restart                 |         |
 
 ## after FDD7 in buffer:
 

@@ -529,6 +529,16 @@ function DAstep.__pub.terminate()
 end
 unhooked[DAstep.__pub.terminate] = true
 
+---Restart a debug session from mod code
+---@public
+function DAstep.__pub.restart()
+  blockhook = true
+  dsethook()
+  print("\xEF\xB7\x90\xEE\x80\x90")
+  debugprompt()
+end
+unhooked[DAstep.__pub.restart] = true
+
 ---Generate handlers for pcall/xpcall wrappers
 ---@param filter string Where the exception was intercepted
 ---@param user_handler? function When used as xpcall, the exception will pass to this handler after continuing

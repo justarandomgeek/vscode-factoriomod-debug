@@ -538,6 +538,9 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 						case 0xE00C: // terminate
 							await this.terminate();
 							return;
+						case 0xE010: // restart
+							await this.terminate(true);
+							return;
 						default:
 							return;
 					}
@@ -1497,7 +1500,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 		this.writeStdin(Buffer.concat(changes));
 	}
 
-	private async terminate() {
+	private async terminate(restart?: boolean) {
 		this.factorio?.kill?.();
 		const modsPath = this.launchArgs?.modsPath;
 		if (modsPath) {
@@ -1515,7 +1518,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 				}
 			}
 		}
-		this.sendEvent(new TerminatedEvent());
+		this.sendEvent(new TerminatedEvent(restart));
 		// exit now if we're running standalone and collecting coverage data...
 		if (!this._isRunningInline() && process.env["NODE_V8_COVERAGE"]) { process.exit(); }
 	}
