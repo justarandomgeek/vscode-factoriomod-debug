@@ -11,6 +11,7 @@ out
 test
 coverage
 **/*.js.map
+**/*.cjs.map
 **/*.css.map
 node_modules
 build.ts
