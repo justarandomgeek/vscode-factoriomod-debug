@@ -111,6 +111,14 @@ const commonConfig:BuildOptions = {
 	},
 	plugins: [
 	],
+	banner: {
+		// https://github.com/evanw/esbuild/issues/1232#issuecomment-830677608
+		// shim `require` for cjs deps to load properly in esm-land
+		js: `
+		import {createRequire} from 'module'
+		const require = createRequire(import.meta.url)
+		`,
+	},
 };
 
 const configs:BuildOptions[] = [
@@ -124,48 +132,11 @@ const configs:BuildOptions[] = [
 		external: [
 			// vscode isn't a real import, it's a special hook
 			"vscode",
-
-			// shim some cjs deps
-			"./cjs-commander.cjs",
-			"./cjs-debugadapter.cjs",
-			"./cjs-tree-kill.cjs",
-			"./cjs-mute-stream.cjs",
-			"./cjs-language-client-node.cjs",
-			"./cjs-language-server-node.cjs",
 		],
-		alias: {
-			// shim some cjs deps
-			"yoctocolors-cjs": "yoctocolors",
-			"commander": "./cjs-commander.cjs",
-			"@vscode/debugadapter": "./cjs-debugadapter.cjs",
-			"tree-kill": "./cjs-tree-kill.cjs",
-			"mute-stream": "./cjs-mute-stream.cjs",
-			"vscode-languageclient/node": "./cjs-language-client-node.cjs",
-			"vscode-languageserver/node": "./cjs-language-server-node.cjs",
-		},
 		plugins: [
 			ImportGlobPlugin(),
 			FactorioModPlugin(),
 		],
-	},
-	{
-		// shim modules to load some cjs deps while the rest is in esm land
-		...commonConfig,
-		entryPoints: {
-			"cjs-tree-kill": "./src/cjs/tree-kill.ts",
-			"cjs-commander": "./src/cjs/commander.ts",
-			"cjs-debugadapter": "./src/cjs/debugadapter.ts",
-			"cjs-mute-stream": "./src/cjs/mute-stream.ts",
-			"cjs-language-client-node": "./src/cjs/language-client-node.ts",
-			"cjs-language-server-node": "./src/cjs/language-server-node.ts",
-		},
-		outExtension: {
-			".js": ".cjs",
-		},
-		external: [
-			"vscode",
-		],
-		format: 'cjs',
 	},
 	{
 		...commonConfig,
