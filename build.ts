@@ -111,14 +111,6 @@ const commonConfig:BuildOptions = {
 	},
 	plugins: [
 	],
-	banner: {
-		// https://github.com/evanw/esbuild/issues/1232#issuecomment-830677608
-		// shim `require` for cjs deps to load properly in esm-land
-		js: `
-		import {createRequire} from 'module'
-		const require = createRequire(import.meta.url)
-		`,
-	},
 };
 
 const configs:BuildOptions[] = [
@@ -133,6 +125,14 @@ const configs:BuildOptions[] = [
 			// vscode isn't a real import, it's a special hook
 			"vscode",
 		],
+		banner: {
+			// https://github.com/evanw/esbuild/issues/1232#issuecomment-830677608
+			// shim `require` for cjs deps to load properly in esm-land
+			js: `
+			import {createRequire} from 'module'
+			const require = createRequire(import.meta.url)
+			`,
+		},
 		plugins: [
 			ImportGlobPlugin(),
 			FactorioModPlugin(),
