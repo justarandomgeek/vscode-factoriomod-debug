@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import { assert } from "console";
 
-//@ts-expect-error esbuild import
 import html from "./Flamegraph.html";
 
 function NaN_safe_max(a:number, b:number):number {
@@ -314,7 +313,7 @@ export class Profile implements vscode.Disposable  {
 		);
 		const flameview = this.flamePanel.webview;
 
-		flameview.html = (html as string)
+		flameview.html = html
 			.replace("$Flamegraph.css$", flameview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "/dist/Flamegraph.css")).toString())
 			.replace("$Flamegraph.js$", flameview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "/dist/Flamegraph.js")).toString());
 

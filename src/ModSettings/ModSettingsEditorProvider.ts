@@ -6,7 +6,6 @@ import type { ModSettingsMessages } from "./ModSettingsMessages";
 import { BigIntReplacer, ToBigIntValue } from "./ModSettingsMessages";
 import { getNonce } from "../Util/WebviewNonce";
 
-//@ts-expect-error import
 import html from "./ModSettingsWebview.html";
 
 export class ModSettingsEditorProvider implements vscode.CustomEditorProvider<ModSettingsDocument> {
@@ -79,7 +78,7 @@ export class ModSettingsEditorProvider implements vscode.CustomEditorProvider<Mo
 			enableScripts: true,
 		};
 
-		webview.html = (html as string)
+		webview.html = html
 			.replace(/\$cspSource\$/g, webview.cspSource)
 			.replace(/\$nonce\$/g, getNonce())
 			.replace(/\$ModSettingsWebview\.css\$/g, webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "/dist/ModSettingsWebview.css")).toString())

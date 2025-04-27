@@ -5,11 +5,8 @@ import { default as fetch } from "node-fetch";
 import type { ModInfo } from './vscode/ModPackageProvider';
 import { version as bundleVersion } from "../package.json";
 
-//@ts-expect-error UInt8Array from esbuild
-import {default as mod} from "factoriomod:../mod";
-
-//@ts-expect-error UInt8Array from esbuild
-import {default as testmod} from "factoriomod:../test/mod";
+import mod from "factoriomod:../mod";
+import testmod from "factoriomod:../test/mod";
 
 const BundledMods:{[name:string]:{version:string; zip:Uint8Array}} = {
 	["debugadapter"]: {

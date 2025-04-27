@@ -3,7 +3,6 @@ let addonLuaFiles: { name: string; content: string }[];
 
 
 // zip together the two arrays of imports...
-// @ts-expect-error import
 import {default as files, filenames} from '../luals-addon/**/*.lua';
 
 export function getLuaFiles() {
@@ -13,7 +12,7 @@ export function getLuaFiles() {
 
 		for (let i = 0; i < files.length; i++) {
 			addonLuaFiles.push({
-				name: (filenames[i] as string).replace("../luals-addon/", ""),
+				name: filenames[i].replace("../luals-addon/", ""),
 				content: files[i].default,
 			});
 		}

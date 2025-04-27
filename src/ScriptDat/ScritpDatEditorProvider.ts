@@ -5,7 +5,6 @@ import { ScriptDat } from "../ScriptDat/ScriptDat";
 import type { PartialSavedLuaValue, ScriptDatMessages } from "./ScriptDatMessages";
 import { SavedLuaValueAsPartial } from "./ScriptDatMessages";
 
-//@ts-expect-error import
 import html from "./ScriptDatWebview.html";
 
 export class ScriptDatEditorProvider implements vscode.CustomReadonlyEditorProvider<ScriptDatDocument> {
@@ -62,7 +61,7 @@ export class ScriptDatEditorProvider implements vscode.CustomReadonlyEditorProvi
 			enableScripts: true,
 		};
 
-		webview.html = (html as string)
+		webview.html = html
 			.replace(/\$cspSource\$/g, webview.cspSource)
 			.replace(/\$nonce\$/g, getNonce())
 			.replace(/\$ScriptDatWebview\.css\$/g, webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "/dist/ScriptDatWebview.css")).toString())
