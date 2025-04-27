@@ -133,6 +133,14 @@ const configs:BuildOptions[] = [
 			const require = createRequire(import.meta.url)
 			`,
 		},
+		alias: {
+			// dedupe some packages in the bundle...
+			// (https://esbuild.github.io/analyze/ to see dupes)
+			"minimatch": "./node_modules/minimatch/dist/esm",
+			"readdir-glob": "./node_modules/readdir-glob/dist/esm",
+			"string_decoder": "string_decoder",
+			"safe-buffer": "safe-buffer",
+		},
 		plugins: [
 			ImportGlobPlugin(),
 			FactorioModPlugin(),
@@ -149,6 +157,10 @@ const configs:BuildOptions[] = [
 		external: [
 			"vscode-webview",
 		],
+		alias: {
+			// dedupe some packages in the bundle...
+			"tslib": "tslib",
+		},
 	},
 ];
 
