@@ -102,11 +102,6 @@ all functions from one object will have the same value in the first
 all instances of the same class::function will have the same value in the second
 third is the parent LuaObject of the specific api closure, to keep it from being disposed
 
-some API functions can raise events (or otherwise re-enter lua) before returning,
-so we want to recognize them to record the stack somewhere and indicate that it
-needs to be requested if something stops in the lower stack.
-
-
 ]]
 
 
