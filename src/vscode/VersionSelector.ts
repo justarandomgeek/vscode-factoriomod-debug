@@ -106,7 +106,7 @@ export class FactorioVersionSelector {
 			const config = JSON.parse(filecontent);
 			this.output.info(`Library bundle found in ${workspaceLibrary.fsPath}, generated from Factorio ${config.factorioVersion} with FMTK ${config.bundleVersion}`);
 
-			for (const file of await LuaLSAddon.getLuaFiles()) {
+			for (const file of LuaLSAddon.getLuaFiles()) {
 				try {
 					const local = (await fs.readFile(Utils.joinPath(workspaceLibrary, "sumneko-3rd", file.name))).toString();
 					if (local !== file.content) {

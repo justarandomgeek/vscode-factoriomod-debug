@@ -5,16 +5,20 @@ import { default as fetch } from "node-fetch";
 import type { ModInfo } from './vscode/ModPackageProvider';
 import { version as bundleVersion } from "../package.json";
 
-const BundledMods:{[name:string]:{version:string; zip():Promise<Uint8Array>}} = {
+//@ts-expect-error UInt8Array from esbuild
+import {default as mod} from "factoriomod:../mod";
+
+//@ts-expect-error UInt8Array from esbuild
+import {default as testmod} from "factoriomod:../test/mod";
+
+const BundledMods:{[name:string]:{version:string; zip:Uint8Array}} = {
 	["debugadapter"]: {
 		version: bundleVersion,
-		//@ts-expect-error UInt8Array from esbuild
-		zip: async()=>(await import("factoriomod:../mod")).default,
+		zip: mod,
 	},
 	["debugadapter-tests"]: {
 		version: bundleVersion,
-		//@ts-expect-error UInt8Array from esbuild
-		zip: async()=>(await import("factoriomod:../test/mod")).default,
+		zip: testmod,
 	},
 };
 
@@ -178,14 +182,12 @@ export class ModManager {
 
 		//TODO: proper version sorting/filtering
 		const lastrelease = modinfo.releases[modinfo.releases.length-1];
+		const cred = await this.getDownloadCredentials(options.credentialPrompt);
+		const download = await fetch(`https://mods.factorio.com/${lastrelease.download_url}?username=${cred.username}&token=${cred.token}`);
+		if (!download.ok) { throw new Error(download.statusText); }
 		return {
 			version: lastrelease.version,
-			zip: async ()=>{
-				const cred = await this.getDownloadCredentials(options.credentialPrompt);
-				const download = await fetch(`https://mods.factorio.com/${lastrelease.download_url}?username=${cred.username}&token=${cred.token}`);
-				if (!download.ok) { throw new Error(download.statusText); }
-				return download.body!;
-			},
+			zip: download.body!,
 		};
 	}
 
@@ -230,7 +232,7 @@ export class ModManager {
 		}
 
 		// install from provided zip
-		const written = fsp.writeFile(path.resolve(this.modsPath, `${name}_${version}.zip`), await bundle.zip());
+		const written = fsp.writeFile(path.resolve(this.modsPath, `${name}_${version}.zip`), bundle.zip);
 		let replaced:string|undefined;
 		if (!options.keepOld) {
 			const oldmods = (await fsp.readdir(this.modsPath, "utf8")).filter(

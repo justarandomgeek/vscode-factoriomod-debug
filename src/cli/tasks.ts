@@ -3,18 +3,23 @@ import * as crypto from "crypto";
 import mime from "mime";
 import { default as password_prompt } from "@inquirer/password";
 import path from 'path';
+import { spawn } from "child_process";
 import { visit } from "unist-util-visit";
 import { remark } from "remark";
 import { default as fetch, Headers, FormData, Blob } from "node-fetch";
 import type { ModCategory, ModLicense, ModPortalImage } from "../ModManager";
 import { getModInfo } from "../ModManager";
+import { ChangeLogLanguageService } from "../Language/ChangeLog";
 
-import type archiver from "archiver";
 import type { Edit } from "jsonc-parser";
 import type { VFile } from "vfile";
 import type { Root, Image, Link } from "mdast";
 import type { ModInfo } from "../vscode/ModPackageProvider";
 
+import { URI, Utils } from 'vscode-uri';
+import { applyEdits, modify } from "jsonc-parser";
+import archiver from "archiver";
+import semver from "semver";
 import { readdirGlob } from 'readdir-glob';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -29,7 +34,6 @@ export async function getPackageinfo() {
 }
 
 export async function runPackageScript(scriptname:string, info:ModInfo, env?:object, args?:string[]) {
-	const { spawn } = await import("child_process");
 	return new Promise<number>((resolve, reject)=>{
 		const script = info.package?.scripts?.[scriptname];
 		if (script) {
@@ -59,7 +63,6 @@ export async function runPackageScript(scriptname:string, info:ModInfo, env?:obj
 }
 
 export async function runPackageGitCommand(command:string, stdin?:string) {
-	const { spawn } = await import("child_process");
 	return new Promise<void>((resolve, reject)=>{
 		const proc = spawn(`git ${command}`, {
 			shell: true,
@@ -86,9 +89,6 @@ export async function runPackageGitCommand(command:string, stdin?:string) {
 }
 
 export async function doPackageDatestamp(info:ModInfo): Promise<boolean> {
-	const { URI, Utils } = await import('vscode-uri');
-	const jsoncparser = await import("jsonc-parser");
-	const { applyEdits } = jsoncparser;
 	const uri = Utils.joinPath(URI.file(process.cwd()), "changelog.txt");
 	let content:string|undefined;
 	try {
@@ -97,8 +97,6 @@ export async function doPackageDatestamp(info:ModInfo): Promise<boolean> {
 	if (!content) {
 		console.log("No changelog.txt");
 	} else {
-
-		const { ChangeLogLanguageService } = await import("../Language/ChangeLog");
 		const doc = TextDocument.create(uri.toString(), "factorio-changelog", 1, content);
 		const langserv = new ChangeLogLanguageService();
 		const syms = langserv.onDocumentSymbol(doc);
@@ -153,7 +151,6 @@ export async function doPackageZip(info:ModInfo): Promise<archiver.Archiver> {
 		}
 	}
 
-	const archiver = (await import("archiver")).default;
 	const archive = archiver('zip', { zlib: { level: 9 }});
 	archive.glob("**", {
 		cwd: process.cwd(),
@@ -446,11 +443,8 @@ export async function doPackageDetails(info:ModInfo, options?:{
 }
 
 export async function doPackageVersion(info:ModInfo, json:string) {
-	const semver = (await import('semver')).default;
-	const jsonc = await import("jsonc-parser");
-	const { applyEdits } = jsonc;
 	const newversion = semver.inc(info.version, 'patch', {"loose": true})!;
-	const edits = jsonc.modify(json, ["version"], newversion, {});
+	const edits = modify(json, ["version"], newversion, {});
 	await fsp.writeFile("info.json", applyEdits(json, edits));
 	info.version = newversion;
 

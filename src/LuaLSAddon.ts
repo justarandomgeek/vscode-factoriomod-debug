@@ -3,16 +3,13 @@ let addonLuaFiles: { name: string; content: string }[];
 
 
 // zip together the two arrays of imports...
+// @ts-expect-error import
+import {default as files, filenames} from '../luals-addon/**/*.lua';
 
-
-export async function getLuaFiles() {
+export function getLuaFiles() {
 	if (!addonLuaFiles) {
 
 		addonLuaFiles = [];
-		// @ts-expect-error import
-		const glob = await import('../luals-addon/**/*.lua');
-		const files = glob.default;
-		const filenames = glob.filenames;
 
 		for (let i = 0; i < files.length; i++) {
 			addonLuaFiles.push({
@@ -25,12 +22,14 @@ export async function getLuaFiles() {
 	return addonLuaFiles;
 }
 
-export async function getConfig(factorioVersion?:string) {
+import configjson from "../luals-addon/factorio/config.json";
+
+export function getConfig(factorioVersion?:string) {
 	return {
 		name: "factorio/config.json",
 		content: JSON.stringify(Object.assign(
 			{},
-			await import("../luals-addon/factorio/config.json"),
+			configjson,
 			{
 				bundleVersion: version,
 				factorioVersion: factorioVersion,

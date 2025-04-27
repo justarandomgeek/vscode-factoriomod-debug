@@ -56,10 +56,10 @@ export async function GenerateDocs(docsjson:string, protosjson:string, write_fil
 			await write_file(path.posix.join(libdir, lsfile.name+".lua"), (output)=>lsfile.write(output));
 		}));
 
-	await Promise.all((await LuaLSAddon.getLuaFiles()).map(async (file)=>{
+	await Promise.all(LuaLSAddon.getLuaFiles().map(async (file)=>{
 		await write_file(file.name, (output)=>{ output.write(file.content); });
 	}));
 
-	const config = await LuaLSAddon.getConfig(docs.application_version);
+	const config = LuaLSAddon.getConfig(docs.application_version);
 	await write_file(config.name, (output)=>{ output.write(config.content); });
 }

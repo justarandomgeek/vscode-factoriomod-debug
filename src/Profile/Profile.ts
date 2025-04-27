@@ -1,6 +1,9 @@
 import * as vscode from "vscode";
 import { assert } from "console";
 
+//@ts-expect-error esbuild import
+import html from "./Flamegraph.html";
+
 function NaN_safe_max(a:number, b:number):number {
 	if (isNaN(a)) { return b; }
 	if (isNaN(b)) { return a; }
@@ -295,7 +298,7 @@ export class Profile implements vscode.Disposable  {
 		}
 	}
 
-	private async createFlamePanel() {
+	private createFlamePanel() {
 		if (this.flamePanel) {
 			return;
 		}
@@ -310,9 +313,8 @@ export class Profile implements vscode.Disposable  {
 			}
 		);
 		const flameview = this.flamePanel.webview;
-		//@ts-expect-error esbuild import
-		const html = <string>(await import("./Flamegraph.html")).default;
-		flameview.html = html
+
+		flameview.html = (html as string)
 			.replace("$Flamegraph.css$", flameview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "/dist/Flamegraph.css")).toString())
 			.replace("$Flamegraph.js$", flameview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "/dist/Flamegraph.js")).toString());
 

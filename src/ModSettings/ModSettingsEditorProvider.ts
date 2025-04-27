@@ -6,6 +6,9 @@ import type { ModSettingsMessages } from "./ModSettingsMessages";
 import { BigIntReplacer, ToBigIntValue } from "./ModSettingsMessages";
 import { getNonce } from "../Util/WebviewNonce";
 
+//@ts-expect-error import
+import html from "./ModSettingsWebview.html";
+
 export class ModSettingsEditorProvider implements vscode.CustomEditorProvider<ModSettingsDocument> {
 
 	constructor(
@@ -68,16 +71,15 @@ export class ModSettingsEditorProvider implements vscode.CustomEditorProvider<Mo
 
 		return document;
 	}
-	async resolveCustomEditor(document: ModSettingsDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken) {
+	resolveCustomEditor(document: ModSettingsDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken) {
 
 		const webview = webviewPanel.webview;
 		this.webviews.set(document.uri.toString(), webviewPanel);
 		webview.options = {
 			enableScripts: true,
 		};
-		//@ts-expect-error import
-		const html = <string>(await import("./ModSettingsWebview.html")).default;
-		webview.html = html
+
+		webview.html = (html as string)
 			.replace(/\$cspSource\$/g, webview.cspSource)
 			.replace(/\$nonce\$/g, getNonce())
 			.replace(/\$ModSettingsWebview\.css\$/g, webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "/dist/ModSettingsWebview.css")).toString())
