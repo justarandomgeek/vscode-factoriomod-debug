@@ -86,8 +86,8 @@ class Watcher {
 		return {
 			name: 'watcher',
 			setup: (build)=>{
-				build.onStart(()=>{ return this.onStart(); });
-				build.onEnd((result)=>{ return this.onEnd(result); });
+				build.onStart(()=>{ this.onStart(); });
+				build.onEnd((result)=>{ this.onEnd(result); });
 			},
 		};
 	}

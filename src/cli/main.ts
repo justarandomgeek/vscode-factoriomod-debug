@@ -31,7 +31,7 @@ if (process.env["FMTK_TEST_ARGV"]) {
 
 await program
 	.description(`${displayName} ${bundleVersion}`)
-	.addHelpCommand()
+	.helpCommand("help")
 	.showHelpAfterError()
 	.showSuggestionAfterError()
 	// when launched by vscode-pretending-to-be-node this detects electron

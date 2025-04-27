@@ -1,5 +1,5 @@
 import type { PropertyTreeData } from "../Util/PropertyTree";
-import { PropertyTree, PropertyTreeType } from "../Util/PropertyTree";
+import { PropertyTreeType, loadPTree, savePTree } from "../Util/PropertyTree";
 import type { BufferStream } from "../Util/BufferStream";
 import { MapVersion } from "../Util/MapVersion";
 import assert from "assert";
@@ -26,7 +26,7 @@ export class ModSettings {
 
 	constructor(b:BufferStream) {
 		this.version = MapVersion.load(b.read(9));
-		const tree = PropertyTree.load(b);
+		const tree = loadPTree(b);
 		assert(tree.type===PropertyTreeType.dictionary);
 		const loading:ModSettingsData = {
 			["startup"]: {},
@@ -184,7 +184,7 @@ export class ModSettings {
 
 		return Buffer.concat([
 			this.version.save(),
-			PropertyTree.save(tree),
+			savePTree(tree),
 		]);
 	}
 

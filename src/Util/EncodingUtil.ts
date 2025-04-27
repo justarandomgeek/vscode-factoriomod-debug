@@ -18,7 +18,7 @@ export function bufferChunks(buffer:Buffer, chunkSize:number) {
 	let i = 0;
 
 	while (i < len) {
-		result.push(buffer.slice(i, i += chunkSize));
+		result.push(buffer.subarray(i, i += chunkSize));
 	}
 
 	return result;

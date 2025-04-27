@@ -95,5 +95,8 @@ export default tseslint.config([
 				prefer: 'type-imports',
 			}],
 			"@typescript-eslint/consistent-type-exports": "error",
+
+			"@typescript-eslint/no-deprecated": "error",
+			"@typescript-eslint/no-extraneous-class": "error",
 		},
 	}]);

@@ -35,7 +35,7 @@ export function activate(context: vscode.ExtensionContext) {
 		LanguageClient.activate(context);
 
 		output.info(`Registering Mod Package Provider...`);
-		void activateModPackageProvider(context);
+		activateModPackageProvider(context);
 
 		output.info(`Registering Profile Renderer...`);
 		new ProfileRenderer(context);

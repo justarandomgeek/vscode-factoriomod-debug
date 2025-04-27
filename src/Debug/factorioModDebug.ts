@@ -244,7 +244,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			}
 		}
 
-		if (os.platform() === "win32" && args.modsPath.startsWith("/")) { args.modsPath = args.modsPath.substr(1); }
+		if (os.platform() === "win32" && args.modsPath.startsWith("/")) { args.modsPath = args.modsPath.slice(1); }
 
 		args.modsPath = args.modsPath.replace(/\\/g, "/");
 		this.sendEvent(new OutputEvent(`using modsPath ${args.modsPath} (${modsPathSource})\n`, "console"));
@@ -1216,7 +1216,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	private async updateInfoJson(uri:URI) {
 		try {
 			let jsonpath = uri.path;
-			if (os.platform() === "win32" && jsonpath.startsWith("/")) { jsonpath = jsonpath.substr(1); }
+			if (os.platform() === "win32" && jsonpath.startsWith("/")) { jsonpath = jsonpath.slice(1); }
 			const jsonstr = Buffer.from(await this.fs.readFile(uri)).toString('utf8');
 			if (jsonstr) {
 				const moddata = JSON.parse(jsonstr);

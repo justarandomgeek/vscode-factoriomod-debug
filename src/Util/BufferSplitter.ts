@@ -28,9 +28,9 @@ export class BufferSplitter extends EventEmitter {
 					const match = this.matchers[indexes.indexOf(index)];
 					if (match instanceof Buffer) {
 						if (index > 0) {
-							this.emit("segment", this.buf.slice(0, index));
+							this.emit("segment", this.buf.subarray(0, index));
 						}
-						this.buf = this.buf.slice(index + match.length);
+						this.buf = this.buf.subarray(index + match.length);
 					} else {
 						const range = match as RangeSplitMatcher;
 						// split to [BEFORESTART] start [INSIDE] end [REST]
@@ -38,18 +38,18 @@ export class BufferSplitter extends EventEmitter {
 
 						// go ahead and pick out BEFORESTART and emit it
 						if (index > 0) {
-							this.emit("segment", this.buf.slice(0, index));
+							this.emit("segment", this.buf.subarray(0, index));
 							// adjust buffer to just before `start` in case we don't have end yet
 							// to ensure we get it again on next chunk
-							this.buf = this.buf.slice(index);
+							this.buf = this.buf.subarray(index);
 						}
 
 						// look for a matching `end`
 						const endindex = this.buf.indexOf(range.end, range.start.length);
 						if (endindex !== -1) {
 							// emit `INSIDE` and adjust buffer to follow
-							this.emit("segment", this.buf.slice(range.start.length, endindex));
-							this.buf = this.buf.slice(endindex+range.end.length);
+							this.emit("segment", this.buf.subarray(range.start.length, endindex));
+							this.buf = this.buf.subarray(endindex+range.end.length);
 						} else {
 							// return to wait for another chunk that might finish this...
 							return;
