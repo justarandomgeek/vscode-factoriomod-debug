@@ -9,6 +9,7 @@ import * as chai from "chai";
 import { expect } from "chai";
 import chaiAsPromised from "chai-as-promised";
 import type { DebugProtocol } from '@vscode/debugprotocol';
+import { forkTest } from "./util";
 
 chai.use(chaiAsPromised);
 
@@ -27,6 +28,7 @@ suite('Debug Adapter', ()=>{
 			request: "launch",
 			adjustMods: {
 				"debugadapter-tests": true,
+				"remove-animations": true,
 				//"minimal-no-base-mod": true,
 			},
 			adjustModSettings: [
@@ -44,6 +46,7 @@ suite('Debug Adapter', ()=>{
 	suiteSetup(async ()=>{
 		await fsp.mkdir(cwd, {recursive: true });
 		await fsp.copyFile(path.join(import.meta.dirname, "./empty-mod-settings.dat"), path.join(import.meta.dirname, "./factorio/mods/mod-settings.dat"));
+		await forkTest(fmtk, ["mods", "install", "remove-animations"], {cwd: cwd});
 		//await forkTest(fmtk, ["mods", "install", "minimal-no-base-mod"], {cwd: cwd});
 
 		// tests have to be dir-like for breakpoints to match up!
