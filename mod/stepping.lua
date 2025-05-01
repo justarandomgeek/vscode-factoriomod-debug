@@ -377,21 +377,6 @@ do
       end
 
     elseif event == "return" then
-      if info.what == "main" and info.source == "@__core__/lualib/noise.lua" then
-        local i,k,v
-        i = 0
-        repeat
-          i = i + 1
-          k,v = dgetlocal(2,i)
-        until not k or k == "noise_expression_metatable"
-        if v then
-          require("__debugadapter__/noise.lua")(v)
-          DAprint.print("installed noise expression hook", nil, nil, "console")
-        else
-          DAprint.print("failed to install noise expression hook", nil, nil, "console")
-        end
-      end
-
       local parent = dgetinfo(3,"Slu")
       if rawscript and step_enabled then
         local info_is_api = info.what=="C" and info.nups > 0
