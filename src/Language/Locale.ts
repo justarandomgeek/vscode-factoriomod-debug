@@ -306,12 +306,8 @@ export class LocaleLanguageService {
 	}
 
 	public clearDocument(uri:DocumentUri) {
-		if (this.definitions.has(uri)) {
-			this.definitions.delete(uri);
-		}
-		if (this.documentTrees.has(uri)) {
-			this.documentTrees.delete(uri);
-		}
+		this.definitions.delete(uri);
+		this.documentTrees.delete(uri);
 	}
 
 	public clearFolder(uri:DocumentUri) {

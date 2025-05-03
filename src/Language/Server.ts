@@ -29,10 +29,15 @@ export async function runLanguageServer():Promise<void> {
 		if (document) { return document; }
 
 		const docuri = URI.parse(uri);
-		if (docuri.scheme === "file" && docuri.path.endsWith(".cfg")) {
-			//TODO: proper language detection. for now we're only loading locale offline...
-			document = TextDocument.create(uri, "factorio-locale", 1, await fsp.readFile(docuri.fsPath, "utf8"));
-			return document;
+		if (docuri.scheme === "file") {
+			if (docuri.path.endsWith(".cfg")) {
+				document = TextDocument.create(uri, "factorio-locale", 1, await fsp.readFile(docuri.fsPath, "utf8"));
+				return document;
+			}
+			if (docuri.path.endsWith("changelog.txt")) {
+				document = TextDocument.create(uri, "factorio-changelog", 1, await fsp.readFile(docuri.fsPath, "utf8"));
+				return document;
+			}
 		}
 
 		return undefined;
@@ -40,15 +45,22 @@ export async function runLanguageServer():Promise<void> {
 
 	async function scanFile(file:DocumentUri) {
 		const document = await getDocument(file);
-		if (document && document.languageId === "factorio-locale") {
-			Locale.loadDocument(document);
+		if (document) {
+			switch (document.languageId) {
+				case "factorio-locale":
+					Locale.loadDocument(document);
+					break;
+				case "factorio-changelog":
+					ChangeLog.loadDocument(document);
+					break;
+			}
 		}
 	}
 
 	async function scanWorkspaceFolder(folder:DocumentUri) {
 		const uri = URI.parse(folder);
 		if (uri.scheme === "file") {
-			const globber = readdirGlob(uri.fsPath, {pattern: '**/locale/*/*.cfg'});
+			const globber = readdirGlob(uri.fsPath, {pattern: ['**/locale/*/*.cfg', '**/changelog.txt']});
 			globber.on('match', (match:{ relative:string; absolute:string })=>{
 				void scanFile(URI.file(match.absolute).toString());
 			});
@@ -113,6 +125,7 @@ export async function runLanguageServer():Promise<void> {
 			connection.workspace.onDidChangeWorkspaceFolders(async (event)=>{
 				for (const removed of event.removed) {
 					Locale.clearFolder(removed.uri);
+					ChangeLog.clearFolder(removed.uri);
 				}
 				for (const added of event.added) {
 					await scanWorkspaceFolder(added.uri);
@@ -142,7 +155,8 @@ export async function runLanguageServer():Promise<void> {
 				void connection.sendDiagnostics({ uri: change.document.uri, diagnostics: Locale.validateTextDocument(change.document) });
 				break;
 			case "factorio-changelog":
-				void connection.sendDiagnostics({ uri: change.document.uri, diagnostics: ChangeLog.validateTextDocument(change.document) });
+				ChangeLog.loadDocument(change.document);
+				void connection.sendDiagnostics({ uri: change.document.uri, diagnostics: ChangeLog.diagnose(change.document.uri) });
 				break;
 		}
 	});
@@ -171,13 +185,21 @@ export async function runLanguageServer():Promise<void> {
 			switch (filechange.type) {
 				case FileChangeType.Deleted:
 					Locale.clearDocument(filechange.uri);
+					ChangeLog.clearDocument(filechange.uri);
 					break;
 
 				case FileChangeType.Changed:
 				case FileChangeType.Created:
 					void getDocument(filechange.uri).then((document)=>{
-						if (document && document.languageId ==="factorio-locale") {
-							Locale.loadDocument(document);
+						if (document) {
+							switch (document.languageId) {
+								case "factorio-locale":
+									Locale.loadDocument(document);
+									break;
+								case "factorio-changelog":
+									ChangeLog.loadDocument(document);
+									break;
+							}
 						}
 					});
 					break;

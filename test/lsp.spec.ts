@@ -6,7 +6,7 @@ import { fork } from "child_process";
 import type { ProtocolConnection, InitializeParams, DidOpenTextDocumentParams } from "vscode-languageserver-protocol/node";
 import { createProtocolConnection, StreamMessageReader, StreamMessageWriter, ShutdownRequest, ExitNotification, InitializeRequest, InitializedNotification, DidOpenTextDocumentNotification, PublishDiagnosticsNotification } from "vscode-languageserver-protocol/node";
 import type { CodeAction, CodeActionParams, ColorPresentationParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DocumentColorParams, DocumentSymbol, DocumentSymbolParams, ProtocolNotificationType, PublishDiagnosticsParams } from "vscode-languageserver-protocol";
-import { CodeActionKind, CodeActionRequest, ColorPresentationRequest, DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DocumentColorRequest, DocumentSymbolRequest, SymbolKind } from "vscode-languageserver-protocol";
+import { CodeActionKind, CodeActionRequest, ColorPresentationRequest, DiagnosticSeverity, DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DocumentColorRequest, DocumentSymbolRequest, SymbolKind } from "vscode-languageserver-protocol";
 import { expect } from "chai";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
@@ -103,130 +103,44 @@ suite("LSP", ()=>{
 			expect(diags.diagnostics).length(0);
 		});
 
+		test("../factorio/data/changelog", async function() {
+			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
+			expect(diags.uri).equals(doc.uri);
+			expect(diags.diagnostics.filter(d=>d.severity===DiagnosticSeverity.Error)).length(0);
+		});
+
 		test("valid", async function() {
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
 			expect(diags.uri).equals(doc.uri);
 			expect(diags.diagnostics).length(0);
 		});
 
-		test("separator-length", async function() {
-			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(1);
-			expect(diags.diagnostics[0].code).equals("separator.fixlength");
+		function singleDiagTest(diagname:string, andFix?:boolean) {
+			return async function() {
+				const diags = await waitForNotification(PublishDiagnosticsNotification.type);
+				expect(diags.uri).equals(doc.uri);
+				expect(diags.diagnostics).length(1);
+				expect(diags.diagnostics[0].code).equals(diagname);
 
-			await singleCodeActionShouldFix(doc, diags);
-		});
+				if (andFix) { await singleCodeActionShouldFix(doc, diags); }
+			};
+		}
 
-		test("separator-eof", async function() {
-			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(1);
-			expect(diags.diagnostics[0].code).equals("separator.remove");
-
-			await singleCodeActionShouldFix(doc, diags);
-		});
-
-		test("version-missing", async function() {
-			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(1);
-			expect(diags.diagnostics[0].code).equals("version.insert");
-
-
-			await singleCodeActionShouldFix(doc, diags);
-		});
-
-		test("version-duplicate", async function() {
-			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(1);
-			expect(diags.diagnostics[0].code).equals("version.duplicate");
-		});
-
-		test("version-format", async function() {
-			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(1);
-			expect(diags.diagnostics[0].code).equals("version.format");
-		});
-
-		test("separator-missing", async function() {
-			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(1);
-			expect(diags.diagnostics[0].code).equals("separator.insert");
-
-			await singleCodeActionShouldFix(doc, diags);
-		});
-
-		test("date-duplicate", async function() {
-			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(1);
-			expect(diags.diagnostics[0].code).equals("date.duplicate");
-		});
-
-		test("date-placement", async function() {
-			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(1);
-			expect(diags.diagnostics[0].code).equals("date.placement");
-		});
-
-		test("category-end", async function() {
-			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(1);
-			expect(diags.diagnostics[0].code).equals("category.fixend");
-
-			await singleCodeActionShouldFix(doc, diags);
-		});
-
-		test("category-nonstandard", async function() {
-			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(1);
-			expect(diags.diagnostics[0].code).equals("category.nonstandard");
-		});
-
-		test("category-none", async function() {
-			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(1);
-			expect(diags.diagnostics[0].code).equals("category.insert");
-
-			await singleCodeActionShouldFix(doc, diags);
-		});
-
-		test("line-blank", async function() {
-			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(1);
-			expect(diags.diagnostics[0].code).equals("other.blank");
-		});
-
-
-		test("line-duplicate", async function() {
-			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(1);
-			expect(diags.diagnostics[0].code).equals("other.duplicate");
-		});
-
-		test("line-format", async function() {
-			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(1);
-			expect(diags.diagnostics[0].code).equals("other.unknown");
-		});
-
-		test("line-noblock", async function() {
-			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(1);
-			expect(diags.diagnostics[0].code).equals("other.noblock");
-		});
+		test("separator-length", singleDiagTest("separator.length", true));
+		test("separator-eof", singleDiagTest("separator.remove", true));
+		test("version-missing", singleDiagTest("version.insert", true));
+		test("version-duplicate", singleDiagTest("version.duplicate"));
+		test("version-format", singleDiagTest("version.value"));
+		test("separator-missing", singleDiagTest("separator.insert", true));
+		test("date-duplicate", singleDiagTest("date.remove", true));
+		test("date-placement", singleDiagTest("date.placement"));
+		test("category-prefix", singleDiagTest("category.prefix", true));
+		test("category-suffix", singleDiagTest("category.suffix", true));
+		test("category-nonstandard", singleDiagTest("category.nonstandard"));
+		test("category-none", singleDiagTest("category.insert", true));
+		test("line-blank", singleDiagTest("entry.empty"));
+		test("line-duplicate", singleDiagTest("entry.duplicate"));
+		test("line-format", singleDiagTest("entry.prefix", true));
 
 		test("symbols", async function() {
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);

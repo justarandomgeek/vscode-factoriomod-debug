@@ -1,198 +1,34 @@
 import type { Diagnostic, DocumentSymbol, CodeActionContext, CodeAction, Range } from 'vscode-languageserver/node';
-import { DiagnosticSeverity, SymbolKind, CodeActionKind } from 'vscode-languageserver/node';
-import type { TextDocument } from 'vscode-languageserver-textdocument';
+import { SymbolKind, CodeActionKind } from 'vscode-languageserver/node';
+import type { DocumentUri, TextDocument } from 'vscode-languageserver-textdocument';
+import { ParseChangeLog } from './ChangeLog/Parse';
+import type { Root } from './ChangeLog/AST';
+import { diagnose } from './ChangeLog/Diagnose';
 
 export class ChangeLogLanguageService {
-	public validateTextDocument(textDocument: TextDocument): Diagnostic[] {
-		const changelog = textDocument.getText().split(/\r?\n/);
-		const diags: Diagnostic[] = [];
-		const seenVersions = new Map<string, Range>();
-		let seenStart = false;
-		let seenStartLast = false;
-		let seenDate = false;
-		let seenCategory = false;
-		const seenLines = new Map<string, Range>();
-		for (let i = 0; i < changelog.length; i++) {
-			let line = changelog[i];
-			if (line.match(/^-+$/)) {
-				if (line.length !== 99) {
-					diags.push({
-						message: "Separator line is incorrect length",
-						code: "separator.fixlength",
-						source: "factorio-changelog",
-						severity: DiagnosticSeverity.Error,
-						range: { start: { line: i, character: 0 }, end: { line: i, character: line.length }},
-					});
-				}
-				line = changelog[++i];
-				if (!line) {
-					diags.push({
-						message: "Unexpected separator line at end of file",
-						code: "separator.remove",
-						source: "factorio-changelog",
-						severity: DiagnosticSeverity.Error,
-						range: { start: { line: i-1, character: 0 }, end: { line: i-1, character: changelog[i-1].length }},
-					});
-				} else if (!line.startsWith("Version: ")) {
-					diags.push({
-						message: "Expected version on first line of block",
-						code: "version.insert",
-						source: "factorio-changelog",
-						severity: DiagnosticSeverity.Error,
-						range: { start: { line: i, character: 0 }, end: { line: i, character: line.length }},
-					});
-				} else if (!line.match(/^Version: \d+.\d+(.\d+)?/)) {
-					diags.push({
-						message: "Expected at least two numbers in version string",
-						code: "version.format",
-						source: "factorio-changelog",
-						severity: DiagnosticSeverity.Error,
-						range: { start: { line: i, character: 9 }, end: { line: i, character: line.length }},
-					});
-				} else {
-					if (seenVersions.has(line)) {
-						diags.push({
-							message: "Duplicate Version",
-							code: "version.duplicate",
-							source: "factorio-changelog",
-							severity: DiagnosticSeverity.Error,
-							range: { start: { line: i, character: 9 }, end: { line: i, character: line.length }},
-							relatedInformation: [
-								{
-									message: "First defined here",
-									location: { range: seenVersions.get(line)!, uri: textDocument.uri },
-								},
-							],
-						});
-					} else {
-						seenVersions.set(line, { start: { line: i, character: 9 }, end: { line: i, character: line.length }});
-					}
-				}
-				seenStart = true;
-				seenStartLast = true;
-				seenDate = false;
-				seenCategory = false;
-				seenLines.clear();
-			} else if (seenStart) {
-				if (line.startsWith("Version: ")) {
-					diags.push({
-						message: "Duplicate version line - missing separator?",
-						code: "separator.insert",
-						source: "factorio-changelog",
-						severity: DiagnosticSeverity.Error,
-						range: { start: { line: i, character: 0 }, end: { line: i, character: line.length }},
-					});
-					seenStartLast = true;
-					seenDate = false;
-					seenCategory = false;
-				} else if (line.startsWith("Date: ")) {
-					if (seenDate) {
-						diags.push({
-							message: "Duplicate date line",
-							code: "date.duplicate",
-							source: "factorio-changelog",
-							severity: DiagnosticSeverity.Error,
-							range: { start: { line: i, character: 0 }, end: { line: i, character: line.length }},
-						});
-					} else if (!seenStartLast) {
-						diags.push({
-							message: "Date line not immediately after version line",
-							code: "date.placement",
-							source: "factorio-changelog",
-							severity: DiagnosticSeverity.Warning,
-							range: { start: { line: i, character: 0 }, end: { line: i, character: line.length }},
-						});
-						seenDate = true;
-					} else {
-						seenDate = true;
-					}
-					seenStartLast = false;
-				} else if (line.match(/^  [^ ]/)) {
-					seenStartLast = false;
-					seenCategory = true;
-					if (!line.endsWith(":")) {
-						diags.push({
-							message: "Category line must end with :",
-							code: "category.fixend",
-							source: "factorio-changelog",
-							severity: DiagnosticSeverity.Error,
-							range: { start: { line: i, character: line.length-1 }, end: { line: i, character: line.length }},
-						});
-					}
-					if (!line.match(/^  (((Major|Minor) )?Features|Graphics|Sounds|Optimizations|(Combat )?Balancing|Circuit Network|Changes|Bugfixes|Modding|Scripting|Gui|Control|Translation|Debug|Ease of use|Info|Locale|Compatibility|Other):?$/)) {
-						diags.push({
-							message: "Non-standard category names will be placed after \"All\"",
-							code: "category.nonstandard",
-							source: "factorio-changelog",
-							severity: DiagnosticSeverity.Hint,
-							range: { start: { line: i, character: 2 }, end: { line: i, character: line.length-1 }},
-						});
-					}
-				} else if (line.match(/^    [- ]($| )/)) {
-					seenStartLast = false;
-					if (!seenCategory) {
-						diags.push({
-							message: "Entry not in category",
-							code: "category.insert",
-							source: "factorio-changelog",
-							severity: DiagnosticSeverity.Error,
-							range: { start: { line: i, character: 0 }, end: { line: i, character: line.length }},
-						});
-					}
-					if (line.length === 5 || line.length === 6) {
-						diags.push({
-							message: "Blank entry line",
-							code: "other.blank",
-							source: "factorio-changelog",
-							severity: DiagnosticSeverity.Error,
-							range: { start: { line: i, character: 0 }, end: { line: i, character: line.length }},
-						});
-					}
+	readonly documentTrees:Map<DocumentUri, Root> = new Map();
 
-					const seen = seenLines.get(line);
-					if (seen) {
-						diags.push({
-							message: "Duplicate entry",
-							code: "other.duplicate",
-							source: "factorio-changelog",
-							severity: DiagnosticSeverity.Error,
-							range: { start: { line: i, character: 0 }, end: { line: i, character: line.length }},
-							relatedInformation: [
-								{
-									message: "First defined here",
-									location: { range: seen, uri: textDocument.uri },
-								},
-							],
-						});
-					} else {
-						seenLines.set(line, { start: { line: i, character: 0 }, end: { line: i, character: line.length }});
-					}
+	public loadDocument(document: TextDocument) {
+		const tree = ParseChangeLog(document);
+		this.documentTrees.set(document.uri, tree);
+	}
 
-				} else if (line.length > 0) {
-					seenStartLast = false;
-					diags.push({
-						message: "Unrecognized line format",
-						code: "other.unknown",
-						source: "factorio-changelog",
-						severity: DiagnosticSeverity.Error,
-						range: { start: { line: i, character: 0 }, end: { line: i, character: line.length }},
-					});
-				} else {
-					seenStartLast = false;
-				}
-			} else if (changelog.length === 1 && line === "") {
-				// empty file is not an error, wait for some content before annotating a problem
-			} else {
-				diags.push({
-					message: "Line not in valid block",
-					code: "other.noblock",
-					source: "factorio-changelog",
-					severity: DiagnosticSeverity.Error,
-					range: { start: { line: i, character: 0 }, end: { line: i, character: line.length }},
-				});
+	public clearDocument(uri:DocumentUri) {
+		this.documentTrees.delete(uri);
+	}
+
+	public clearFolder(uri:DocumentUri) {
+		for (const key of this.documentTrees.keys()) {
+			if (key.startsWith(uri)) {
+				this.documentTrees.delete(key);
 			}
 		}
-		return diags;
+	}
+
+	public diagnose(uri:DocumentUri):Diagnostic[] {
+		const tree = this.documentTrees.get(uri);
+		if (!tree) { return []; }
+		return diagnose(tree, uri);
 	}
 
 	public onDocumentSymbol(document: TextDocument): DocumentSymbol[] {
@@ -275,128 +111,191 @@ export class ChangeLogLanguageService {
 	}
 
 	public onCodeAction(document: TextDocument, range: Range, context: CodeActionContext): CodeAction[] {
-		if (document.languageId === "factorio-changelog") {
-			return context.diagnostics.filter(diag=>!!diag.code).map((diag)=>{
-				switch (diag.code) {
-					case "separator.fixlength":
-					{
-						const ca:CodeAction = {
-							title: "Fix separator Length",
-							kind: CodeActionKind.QuickFix + ".separator.fixlength",
-							diagnostics: [diag],
-							edit: {
-								changes: {
-									[document.uri]: [
-										{
-											range: diag.range,
-											newText: "---------------------------------------------------------------------------------------------------",
-										},
-									],
-								},
+		if (document.languageId !== "factorio-changelog") { return []; }
+		return context.diagnostics.flatMap(diag=>{
+			if (!diag.code) { return []; }
+			switch (diag.code) {
+				case "separator.length":
+				{
+					const ca:CodeAction = {
+						title: "Fix separator length",
+						kind: CodeActionKind.QuickFix + ".separator.length",
+						diagnostics: [diag],
+						edit: {
+							changes: {
+								[document.uri]: [
+									{
+										range: diag.range,
+										newText: "---------------------------------------------------------------------------------------------------",
+									},
+								],
 							},
-						};
-						return ca;
-					}
-					case "separator.insert":
-					{
-						const ca:CodeAction = {
-							title: "Insert separator",
-							kind: CodeActionKind.QuickFix + ".separator.insert",
-							diagnostics: [diag],
-							edit: {
-								changes: {
-									[document.uri]: [
-										{
-											range: { start: diag.range.start, end: diag.range.start },
-											newText: "---------------------------------------------------------------------------------------------------\n",
-										},
-									],
-								},
-							},
-						};
-						return ca;
-					}
-					case "separator.remove":
-					{
-						const ca:CodeAction = {
-							title: "Remove separator",
-							kind: CodeActionKind.QuickFix + ".separator.remove",
-							diagnostics: [diag],
-							edit: {
-								changes: {
-									[document.uri]: [
-										{
-											range: diag.range,
-											newText: "",
-										},
-									],
-								},
-							},
-						};
-						return ca;
-					}
-					case "version.insert":
-					{
-						const ca:CodeAction = {
-							title: "Insert version",
-							kind: CodeActionKind.QuickFix + ".version.insert",
-							diagnostics: [diag],
-							edit: {
-								changes: {
-									[document.uri]: [
-										{
-											range: { start: diag.range.start, end: diag.range.start },
-											newText: "Version: 0.0.0\n",
-										},
-									],
-								},
-							},
-						};
-						return ca;
-					}
-					case "category.fixend":
-					{
-						const ca:CodeAction = {
-							title: "Insert :",
-							kind: CodeActionKind.QuickFix + ".category.fixend",
-							diagnostics: [diag],
-							edit: {
-								changes: {
-									[document.uri]: [
-										{
-											range: { start: diag.range.end, end: diag.range.end },
-											newText: ":",
-										},
-									],
-								},
-							},
-						};
-						return ca;
-					}
-					case "category.insert":
-					{
-						const ca:CodeAction = {
-							title: "Insert Category",
-							kind: CodeActionKind.QuickFix + ".category.insert",
-							diagnostics: [diag],
-							edit: {
-								changes: {
-									[document.uri]: [
-										{
-											range: { start: diag.range.start, end: diag.range.start },
-											newText: "  Changes:\n",
-										},
-									],
-								},
-							},
-						};
-						return ca;
-					}
-					default:
-						return undefined;
+						},
+					};
+					return ca;
 				}
-			}).filter((ca):ca is CodeAction=>!!ca);
-		}
-		return [];
+				case "separator.insert":
+				{
+					const ca:CodeAction = {
+						title: "Insert separator",
+						kind: CodeActionKind.QuickFix + ".separator.insert",
+						diagnostics: [diag],
+						edit: {
+							changes: {
+								[document.uri]: [
+									{
+										range: { start: diag.range.start, end: diag.range.start },
+										newText: "---------------------------------------------------------------------------------------------------\n",
+									},
+								],
+							},
+						},
+					};
+					return ca;
+				}
+				case "separator.remove":
+				{
+					const ca:CodeAction = {
+						title: "Remove separator",
+						kind: CodeActionKind.QuickFix + ".separator.remove",
+						diagnostics: [diag],
+						edit: {
+							changes: {
+								[document.uri]: [
+									{
+										range: diag.range,
+										newText: "",
+									},
+								],
+							},
+						},
+					};
+					return ca;
+				}
+				case "version.insert":
+				{
+					const ca:CodeAction = {
+						title: "Insert version",
+						kind: CodeActionKind.QuickFix + ".version.insert",
+						diagnostics: [diag],
+						edit: {
+							changes: {
+								[document.uri]: [
+									{
+										range: { start: diag.range.start, end: diag.range.start },
+										newText: "Version: 0.0.0\n",
+									},
+								],
+							},
+						},
+					};
+					return ca;
+				}
+				case "date.remove":
+				{
+					const ca:CodeAction = {
+						title: "Remove date",
+						kind: CodeActionKind.QuickFix + ".date.remove",
+						diagnostics: [diag],
+						edit: {
+							changes: {
+								[document.uri]: [
+									{
+										range: {
+											start: diag.range.start,
+											end: {
+												line: diag.range.start.line+1,
+												character: 0,
+											},
+										},
+										newText: "",
+									},
+								],
+							},
+						},
+					};
+					return ca;
+				}
+				case "category.prefix":
+				{
+					const ca:CodeAction = {
+						title: "Fix Prefix",
+						kind: CodeActionKind.QuickFix + ".category.prefix",
+						diagnostics: [diag],
+						edit: {
+							changes: {
+								[document.uri]: [
+									{
+										range: diag.range,
+										newText: "  ",
+									},
+								],
+							},
+						},
+					};
+					return ca;
+				}
+				case "category.suffix":
+				{
+					const ca:CodeAction = {
+						title: "Fix Suffix",
+						kind: CodeActionKind.QuickFix + ".category.suffix",
+						diagnostics: [diag],
+						edit: {
+							changes: {
+								[document.uri]: [
+									{
+										range: diag.range,
+										newText: ":",
+									},
+								],
+							},
+						},
+					};
+					return ca;
+				}
+				case "category.insert":
+				{
+					const ca:CodeAction = {
+						title: "Insert Category",
+						kind: CodeActionKind.QuickFix + ".category.insert",
+						diagnostics: [diag],
+						edit: {
+							changes: {
+								[document.uri]: [
+									{
+										range: { start: diag.range.start, end: diag.range.start },
+										newText: "  Changes:\n",
+									},
+								],
+							},
+						},
+					};
+					return ca;
+				}
+				case "entry.prefix":
+				{
+					const prefix = '    ' + ('  '.repeat(diag.data?.rank ?? 0)) + '- ';
+					const ca:CodeAction = {
+						title: "Fix Prefix",
+						kind: CodeActionKind.QuickFix + ".entry.prefix",
+						diagnostics: [diag],
+						edit: {
+							changes: {
+								[document.uri]: [
+									{
+										range: diag.range,
+										newText: prefix,
+									},
+								],
+							},
+						},
+					};
+					return ca;
+				}
+				default:
+					return [];
+			}
+		});
 	}
 }

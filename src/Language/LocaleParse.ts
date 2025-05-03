@@ -1,30 +1,8 @@
 
 import assert from "assert";
-import type { Literal, Section, Root, Record, Text, TextNode, Macro, Escape, Comment, Error, PluralMatch, PluralOption, CommentGroup } from "./LocaleAST";
+import { literalNode, span } from "./ASTUtil";
+import type { Section, Root, Record, Text, TextNode, Macro, Escape, Comment, Error, PluralMatch, PluralOption, CommentGroup } from "./LocaleAST";
 import type { TextDocument } from 'vscode-languageserver-textdocument';
-
-// unist uses 1-based positions, but this is all for LSP, so it's all 0-based
-// still unist-compatible Nodes though to allow use of general matching utilities
-
-function span(line:number, startcol:number, length:number) {
-	return {
-		start: { line: line, character: startcol },
-		end: { line: line, character: startcol+length },
-	};
-}
-
-function literalNode<T extends Literal&{value:string}>(
-	type:T["type"], value:string, line:number, startcol:number,
-	extra?:Omit<T, "type"|"value"|"range"|"selectionRange">
-): T {
-	return {
-		type: type,
-		value: value,
-		range: span(line, startcol, value.length),
-		selectionRange: span(line, startcol, value.length),
-		...extra,
-	} as T;
-}
 
 function textNode(value:string, line:number, startcol:number):Text {
 	return literalNode("text", value, line, startcol);

@@ -1,19 +1,4 @@
-import type * as unist from "unist";
-import type { Range } from "vscode-languageclient";
-
-export interface Node extends Omit<unist.Node, "position"> {
-	range: Range
-	selectionRange: Range
-}
-
-export interface Literal extends Omit<unist.Literal, "position">, Node {
-
-}
-
-export interface Parent extends Omit<unist.Parent, "position">, Node {
-	children: Node[]
-}
-
+import type { Node, Literal, Parent } from "./ASTUtil";
 
 // The whole document
 export interface Root extends Parent {
