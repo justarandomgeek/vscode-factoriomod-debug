@@ -16,6 +16,7 @@
   * fix incorrect nesting of values in Output events
   * `__DebugAdapter.restart()` api for code to request a session restart
   * factorio custom-input `ctrl-shift-F5` to restart session from within factorio
+  * fix incorrect error handling when hitting and error while stepping over in data stage
 * JSON Schema:
   * Fix some regex validations to correctly match the whole value
 

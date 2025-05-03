@@ -565,7 +565,7 @@ local function caught(filter, user_handler)
         while func do
           stepdepth = stepdepth - 1
           -- a known entrypoint
-          if DAstep.getEntryLabel(func.func) then break end
+          if rawscript and DAstep.getEntryLabel(func.func) then break end
           -- a tailcall with parent is_api (likely re-entrant stack + entrypoint tailcalled)
           if func.istailcall then
             local parent = dgetinfo(i+1, "Su")
