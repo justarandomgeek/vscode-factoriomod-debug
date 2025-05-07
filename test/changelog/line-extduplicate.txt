@@ -1,5 +1,8 @@
 ---------------------------------------------------------------------------------------------------
- Version : 1.0.0
+Version: 0.0.4
 Date: someday
   Changes:
-    - some stuff
+    - did the red thing
+      it was a long thing
+    - did the blue thing
+      it was a long thing

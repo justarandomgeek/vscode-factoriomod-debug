@@ -130,17 +130,23 @@ suite("LSP", ()=>{
 		test("separator-eof", singleDiagTest("separator.remove", true));
 		test("version-missing", singleDiagTest("version.insert", true));
 		test("version-duplicate", singleDiagTest("version.duplicate"));
-		test("version-format", singleDiagTest("version.value"));
+		test("version-valformat", singleDiagTest("version.value"));
+		test("version-format", singleDiagTest("version.format"));
+		test("version-order", singleDiagTest("version.order"));
 		test("separator-missing", singleDiagTest("separator.insert", true));
 		test("date-duplicate", singleDiagTest("date.remove", true));
 		test("date-placement", singleDiagTest("date.placement"));
+		test("date-format", singleDiagTest("date.format"));
 		test("category-prefix", singleDiagTest("category.prefix", true));
 		test("category-suffix", singleDiagTest("category.suffix", true));
 		test("category-nonstandard", singleDiagTest("category.nonstandard"));
 		test("category-none", singleDiagTest("category.insert", true));
 		test("line-blank", singleDiagTest("entry.empty"));
 		test("line-duplicate", singleDiagTest("entry.duplicate"));
+		test("line-extduplicate", singleDiagTest("entry.duplicate"));
+		test("line-nesting", singleDiagTest("entry.prefix"));
 		test("line-format", singleDiagTest("entry.prefix", true));
+		test("line-extformat", singleDiagTest("entryext.prefix", true));
 
 		test("symbols", async function() {
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);

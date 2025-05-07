@@ -121,6 +121,7 @@ export class ChangeLogLanguageService {
 						title: "Fix separator length",
 						kind: CodeActionKind.QuickFix + ".separator.length",
 						diagnostics: [diag],
+						isPreferred: true,
 						edit: {
 							changes: {
 								[document.uri]: [
@@ -140,6 +141,7 @@ export class ChangeLogLanguageService {
 						title: "Insert separator",
 						kind: CodeActionKind.QuickFix + ".separator.insert",
 						diagnostics: [diag],
+						isPreferred: true,
 						edit: {
 							changes: {
 								[document.uri]: [
@@ -159,11 +161,18 @@ export class ChangeLogLanguageService {
 						title: "Remove separator",
 						kind: CodeActionKind.QuickFix + ".separator.remove",
 						diagnostics: [diag],
+						isPreferred: true,
 						edit: {
 							changes: {
 								[document.uri]: [
 									{
-										range: diag.range,
+										range: {
+											start: diag.range.start,
+											end: {
+												line: diag.range.start.line+1,
+												character: 0,
+											},
+										},
 										newText: "",
 									},
 								],
@@ -178,6 +187,7 @@ export class ChangeLogLanguageService {
 						title: "Insert version",
 						kind: CodeActionKind.QuickFix + ".version.insert",
 						diagnostics: [diag],
+						isPreferred: true,
 						edit: {
 							changes: {
 								[document.uri]: [
@@ -197,6 +207,7 @@ export class ChangeLogLanguageService {
 						title: "Remove date",
 						kind: CodeActionKind.QuickFix + ".date.remove",
 						diagnostics: [diag],
+						isPreferred: true,
 						edit: {
 							changes: {
 								[document.uri]: [
@@ -222,6 +233,7 @@ export class ChangeLogLanguageService {
 						title: "Fix Prefix",
 						kind: CodeActionKind.QuickFix + ".category.prefix",
 						diagnostics: [diag],
+						isPreferred: true,
 						edit: {
 							changes: {
 								[document.uri]: [
@@ -241,6 +253,7 @@ export class ChangeLogLanguageService {
 						title: "Fix Suffix",
 						kind: CodeActionKind.QuickFix + ".category.suffix",
 						diagnostics: [diag],
+						isPreferred: true,
 						edit: {
 							changes: {
 								[document.uri]: [
@@ -260,6 +273,7 @@ export class ChangeLogLanguageService {
 						title: "Insert Category",
 						kind: CodeActionKind.QuickFix + ".category.insert",
 						diagnostics: [diag],
+						isPreferred: true,
 						edit: {
 							changes: {
 								[document.uri]: [
@@ -280,6 +294,28 @@ export class ChangeLogLanguageService {
 						title: "Fix Prefix",
 						kind: CodeActionKind.QuickFix + ".entry.prefix",
 						diagnostics: [diag],
+						isPreferred: true,
+						edit: {
+							changes: {
+								[document.uri]: [
+									{
+										range: diag.range,
+										newText: prefix,
+									},
+								],
+							},
+						},
+					};
+					return ca;
+				}
+				case "entryext.prefix":
+				{
+					const prefix = '      ';
+					const ca:CodeAction = {
+						title: "Fix Prefix",
+						kind: CodeActionKind.QuickFix + ".entryext.prefix",
+						diagnostics: [diag],
+						isPreferred: true,
 						edit: {
 							changes: {
 								[document.uri]: [
