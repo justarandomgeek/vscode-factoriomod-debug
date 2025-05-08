@@ -171,13 +171,19 @@ suite("LSP", ()=>{
 			expect(diags.diagnostics).length(0);
 
 			const tree = ChangeLog.parse(doc);
-			const edit = ChangeLog.setDate(tree, "1.0.0", "today")!;
 
 			const oldText = doc.getText();
-			const newText = TextDocument.applyEdits(doc, [edit]);
+			const newText = TextDocument.applyEdits(doc, [
+				ChangeLog.setDate(tree, "1.0.0", "today")!,
+				ChangeLog.setDate(tree, "1.0.1", "tomorrow")!,
+			]);
 			expect(oldText).not.equals(newText);
 			expect(oldText).not.contains("today");
+			expect(oldText).not.contains("tomorrow");
+			expect(oldText).contains("????");
 			expect(newText).contains("today");
+			expect(newText).contains("tomorrow");
+			expect(newText).not.contains("????");
 			TextDocument.update(doc, [{text: newText}], doc.version+1);
 			await clientConnection.sendNotification(DidChangeTextDocumentNotification.type, {
 				contentChanges: [{text: newText}],
