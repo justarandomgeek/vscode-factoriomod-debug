@@ -136,8 +136,8 @@ const configs:BuildOptions[] = [
 		alias: {
 			// dedupe some packages in the bundle...
 			// (https://esbuild.github.io/analyze/ to see dupes)
-			"minimatch": "./node_modules/minimatch/dist/esm",
-			"readdir-glob": "./node_modules/readdir-glob/dist/esm",
+			"minimatch": "minimatch", // esm/cjs dupe. used as cjs by languageclient
+			"readdir-glob": "readdir-glob", // still esm/cjs dupe, but forcing esm breaks `archiver`
 			"string_decoder": "string_decoder",
 			"safe-buffer": "safe-buffer",
 		},
