@@ -3,7 +3,7 @@ import type { DateLine, Category, Entry, Root, Section, VersionLine, EntryExt, S
 import type { TextDocument } from 'vscode-languageserver-textdocument';
 import { visitParents } from "unist-util-visit-parents";
 
-export function ParseChangeLog(doc:TextDocument):Root {
+export function parse(doc:TextDocument):Root {
 	const root:Root = {
 		type: "root",
 		children: [],

@@ -1,15 +1,73 @@
 import type { Diagnostic, DocumentSymbol, CodeActionContext, CodeAction, Range } from 'vscode-languageserver/node';
 import { SymbolKind, CodeActionKind } from 'vscode-languageserver/node';
-import type { DocumentUri, TextDocument } from 'vscode-languageserver-textdocument';
-import { ParseChangeLog } from './ChangeLog/Parse';
-import type { Root } from './ChangeLog/AST';
+import type { DocumentUri, TextDocument, TextEdit } from 'vscode-languageserver-textdocument';
+import { parse } from './ChangeLog/Parse';
+import type { DateLine, Root, Section, VersionLine } from './ChangeLog/AST';
 import { diagnose } from './ChangeLog/Diagnose';
+
+// for convenience in non-LSP consumers
+export { parse, diagnose };
+
+function findVersion(section:Section):VersionLine|undefined {
+	for (const node of section.children) {
+		if (node.type === "version") {
+			return node;
+		}
+	}
+	return undefined;
+}
+
+function findDate(section:Section):DateLine|undefined {
+	for (const node of section.children) {
+		if (node.type === "date") {
+			return node;
+		}
+	}
+	return undefined;
+}
+
+function findSection(root:Root, forVersion:string):Section|undefined {
+	for (const section of root.children) {
+		if (section.type === "section") {
+			const version = findVersion(section);
+			if (version?.value === forVersion) {
+				return section;
+			}
+		}
+	}
+	return undefined;
+}
+
+export function setDate(root:Root, forVersion:string, newdate:string):TextEdit|undefined {
+	const section = findSection(root, forVersion);
+	if (section) {
+		const date = findDate(section);
+		if (date) {
+			// adjust the value of the existing node...
+			return {
+				range: date.selectionRange,
+				newText: newdate,
+			};
+		} else {
+			// add after version...
+			const version = findVersion(section)!;
+			return {
+				range: {
+					start: version.range.end,
+					end: version.range.end,
+				},
+				newText: `\nDate: ${newdate}`,
+			};
+		}
+	}
+	return undefined;
+}
 
 export class ChangeLogLanguageService {
 	readonly documentTrees:Map<DocumentUri, Root> = new Map();
 
 	public loadDocument(document: TextDocument) {
-		const tree = ParseChangeLog(document);
+		const tree = parse(document);
 		this.documentTrees.set(document.uri, tree);
 	}
 

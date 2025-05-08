@@ -9,7 +9,7 @@ import type { CodeAction, CodeActionParams, ColorPresentationParams, DidChangeTe
 import { CodeActionKind, CodeActionRequest, ColorPresentationRequest, DiagnosticSeverity, DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DocumentColorRequest, DocumentSymbolRequest, SymbolKind } from "vscode-languageserver-protocol";
 import { expect } from "chai";
 import { TextDocument } from "vscode-languageserver-textdocument";
-
+import * as ChangeLog from "../src/Language/ChangeLog";
 
 function docItem(doc:TextDocument) {
 	return { uri: doc.uri, languageId: doc.languageId, version: doc.version, text: doc.getText() };
@@ -162,6 +162,31 @@ suite("LSP", ()=>{
 				});
 				expect(symbol.name).oneOf(['0.0.1', '0.0.2', '0.0.3', '0.0.4']);
 			}
+		});
+
+		test("date-setdate", async function() {
+			// valid to start...
+			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
+			expect(diags.uri).equals(doc.uri);
+			expect(diags.diagnostics).length(0);
+
+			const tree = ChangeLog.parse(doc);
+			const edit = ChangeLog.setDate(tree, "1.0.0", "today")!;
+
+			const oldText = doc.getText();
+			const newText = TextDocument.applyEdits(doc, [edit]);
+			expect(oldText).not.equals(newText);
+			expect(oldText).not.contains("today");
+			expect(newText).contains("today");
+			TextDocument.update(doc, [{text: newText}], doc.version+1);
+			await clientConnection.sendNotification(DidChangeTextDocumentNotification.type, {
+				contentChanges: [{text: newText}],
+				textDocument: { uri: doc.uri, version: doc.version },
+			} as DidChangeTextDocumentParams);
+
+			const afterdiags = await waitForNotification(PublishDiagnosticsNotification.type);
+			expect(afterdiags.uri).equals(doc.uri);
+			expect(afterdiags.diagnostics).length(0);
 		});
 
 	});

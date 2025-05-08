@@ -9,9 +9,8 @@ import { remark } from "remark";
 import { default as fetch, Headers, FormData, Blob } from "node-fetch";
 import type { ModCategory, ModLicense, ModPortalImage } from "../ModManager";
 import { getModInfo } from "../ModManager";
-import { ChangeLogLanguageService } from "../Language/ChangeLog";
+import * as ChangeLog from "../Language/ChangeLog";
 
-import type { Edit } from "jsonc-parser";
 import type { VFile } from "vfile";
 import type { Root, Image, Link } from "mdast";
 import type { ModInfo } from "../vscode/ModPackageProvider";
@@ -97,30 +96,13 @@ export async function doPackageDatestamp(info:ModInfo): Promise<boolean> {
 	if (!content) {
 		console.log("No changelog.txt");
 	} else {
+		const newDate = new Date().toISOString().substring(0, 10);
 		const doc = TextDocument.create(uri.toString(), "factorio-changelog", 1, content);
-		const langserv = new ChangeLogLanguageService();
-		const syms = langserv.onDocumentSymbol(doc);
-
-		const current = syms?.find(sym=>sym.name.startsWith(info.version));
-		if (current) {
-			const date = current.children?.find(sym=>sym.name === "Date");
-			const newDate = new Date().toISOString().substring(0, 10);
-			let edit:Edit;
-			if (date) {
-				edit = {
-					content: newDate,
-					offset: doc.offsetAt(date.selectionRange.start),
-					length: date.selectionRange.end.character - date.selectionRange.start.character,
-				};
-			} else {
-				edit = {
-					content: `\nDate: ${newDate}`,
-					offset: doc.offsetAt(current.selectionRange.end),
-					length: 0,
-				};
-			}
-			content = applyEdits(content, [edit]);
-			await fsp.writeFile("changelog.txt", content);
+		const tree = ChangeLog.parse(doc);
+		const edit = ChangeLog.setDate(tree, info.version, newDate);
+		if (edit) {
+			const newText = TextDocument.applyEdits(doc, [edit]);
+			await fsp.writeFile("changelog.txt", newText);
 			console.log(`Changelog section ${info.version} stamped ${newDate}`);
 		} else {
 			console.log(`No Changelog section for ${info.version}`);
