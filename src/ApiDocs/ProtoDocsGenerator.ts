@@ -113,8 +113,11 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 			if (!simple) {
 				let ptype = concept.type;
 				if (concept.name ==="AnyPrototype" && typeof ptype === "object" && ptype.complex_type === "union") {
+					const exclude = [ "MapGenPresets", "GuiStyle" ];
 					const options = ptype.options.filter(o=>{
-						return typeof o === "object" ? !(o.complex_type === "type" && o.value==="MapGenPresets") : o !== "MapGenPresets";
+						return typeof o === "object" ?
+							!(o.complex_type === "type" && typeof o.value === "string" && exclude.includes(o.value)):
+							!exclude.includes(o);
 					});
 					ptype = {
 						complex_type: "union",

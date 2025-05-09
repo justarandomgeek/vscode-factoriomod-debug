@@ -11,6 +11,7 @@
   * `sound-util` library (#171)
   * `LuaObject` inherits from `userdata` (#170)
   * Add `feature_flags` global var for data stage
+  * Omit `GuiStyle` from `AnyPrototype`, to reduce incorrect type deduction on data:extend's argument
 * Debugger:
   * fix incorrect error when remote.call is called with invalid arguments
   * fix incorrect nesting of values in Output events
