@@ -20,6 +20,8 @@
   * fix incorrect error handling when hitting and error while stepping over in data stage
 * JSON Schema:
   * Fix some regex validations to correctly match the whole value
+* Changelog LSP:
+  * Complete rewrite. Improved diagnostics and auto-fixes.
 
 ## 2.0.5
 * Changelog LSP:
