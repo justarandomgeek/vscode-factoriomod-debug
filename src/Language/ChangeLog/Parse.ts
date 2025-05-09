@@ -3,6 +3,7 @@ import type { DateLine, Category, Entry, Root, Section, VersionLine, EntryExt, S
 import type { TextDocument } from 'vscode-languageserver-textdocument';
 import { visitParents } from "unist-util-visit-parents";
 
+
 export function parse(doc:TextDocument):Root {
 	const root:Root = {
 		type: "root",
@@ -179,7 +180,16 @@ export function parse(doc:TextDocument):Root {
 		}
 	});
 
-	//TODO: fixup range ends of nodes with children
+	//fixup range ends of nodes with children
+	visitParents(root, (node, ancestors)=>{
+		const end = node.range.end;
+		for (const ancestor of ancestors) {
+			const aend = ancestor.range.end;
+			if (end.line > aend.line || (end.line === aend.line && end.character > aend.character)) {
+				ancestor.range.end = end;
+			}
+		}
+	});
 
 	return root;
 }

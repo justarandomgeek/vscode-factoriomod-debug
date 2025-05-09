@@ -2,7 +2,7 @@ import type { Diagnostic, DocumentSymbol, CodeActionContext, CodeAction, Range }
 import { SymbolKind, CodeActionKind } from 'vscode-languageserver/node';
 import type { DocumentUri, TextDocument, TextEdit } from 'vscode-languageserver-textdocument';
 import { parse } from './ChangeLog/Parse';
-import type { DateLine, Root, Section, VersionLine } from './ChangeLog/AST';
+import type { Category, DateLine, Entry, EntryExt, Root, Section, VersionLine } from './ChangeLog/AST';
 import { diagnose } from './ChangeLog/Diagnose';
 
 // for convenience in non-LSP consumers
@@ -89,82 +89,67 @@ export class ChangeLogLanguageService {
 		return diagnose(tree, uri);
 	}
 
+	private entrySymbol(entry:Entry|EntryExt): DocumentSymbol {
+		return {
+			name: entry.value || "<empty>",
+			detail: "",
+			kind: SymbolKind.String,
+			range: entry.range,
+			selectionRange: entry.selectionRange,
+			children: (entry.type === "entry") ? entry.children.map(n=>this.entrySymbol(n)) : [],
+		};
+	}
+
+	private categorySymbol(category:Category): DocumentSymbol {
+		return {
+			name: category.value || "<empty>",
+			detail: "",
+			kind: SymbolKind.Class,
+			range: category.range,
+			selectionRange: category.selectionRange,
+			children: category.children.filter(n=>n.type==="entry").map(n=>this.entrySymbol(n)),
+		};
+	}
+
+	private dateSymbol(date:DateLine): DocumentSymbol {
+		return {
+			name: "Date",
+			detail: date.value,
+			kind: SymbolKind.Property,
+			range: date.range,
+			selectionRange: date.selectionRange,
+		};
+	}
+
 	public onDocumentSymbol(document: TextDocument): DocumentSymbol[] {
+		const tree = this.documentTrees.get(document.uri);
+		if (!tree) { return []; }
+
 		const symbols: DocumentSymbol[] = [];
-		let version: DocumentSymbol | undefined;
-		let category: DocumentSymbol | undefined;
-		let line: DocumentSymbol | undefined;
-		for (let i = 0; i < document.lineCount; i++) {
-			const range = {start: { line: i, character: 0 }, end: { line: i, character: Infinity} };
-			const text = document.getText(range).replace(/(\r\n)|\r|\n$/, "");
-			range.end.character = text.length;
-			if (text.match(/^Version: .+$/)) {
-				version = {
-					name: text.substring(9),
+
+		for (const section of tree.children) {
+			if (section.type === "section") {
+				const version = findVersion(section);
+				if (!version) { continue; }
+				const date = findDate(section);
+
+				const children = section.children.filter(n=>n.type==="category").map(n=>this.categorySymbol(n));
+
+				if (date) {
+					children.unshift(this.dateSymbol(date));
+				}
+
+				symbols.push({
+					name: version.value || "<empty>",
 					detail: "",
 					kind: SymbolKind.Namespace,
-					range: {start: { line: i-1, character: 0 }, end: { line: i, character: text.length} },
-					selectionRange: {start: { line: i, character: 9 }, end: { line: i, character: text.length} },
-					children: [],
-				};
-				symbols.push(version);
-				category = undefined;
-				line = undefined;
-			} else if (text.match(/^Date: .+$/)) {
-				if (version) {
-					version.children!.push({
-						name: "Date",
-						detail: text.substring(6),
-						kind: SymbolKind.Property,
-						range: range,
-						selectionRange: {start: { line: i, character: 6 }, end: { line: i, character: text.length} },
-					});
-					version.range.end = range.end;
-				}
-			} else if (text.match(/^  [^ ]+:$/)) {
-				if (version) {
-					category = {
-						name: text.substring(2, text.length - 1),
-						detail: "",
-						kind: SymbolKind.Class,
-						range: range,
-						selectionRange: {start: { line: i, character: 2 }, end: { line: i, character: text.length-1} },
-						children: [],
-					};
-					version.children!.push(category);
-					version.range.end = range.end;
-					line = undefined;
-				}
-			} else if (text.match(/^    - .+$/)) {
-				if (category) {
-					line = {
-						name: text.substring(6),
-						detail: "",
-						kind: SymbolKind.String,
-						range: range,
-						selectionRange: {start: { line: i, character: 6 }, end: { line: i, character: text.length} },
-						children: [],
-					};
-					category.children!.push(line);
-					version!.range.end = range.end;
-					category.range.end = range.end;
-				}
-			} else if (text.match(/^      .+$/)) {
-				if (line) {
-					line.children!.push({
-						name: text.substring(6),
-						detail: "",
-						kind: SymbolKind.String,
-						range: range,
-						selectionRange: {start: { line: i, character: 6 }, end: { line: i, character: text.length} },
-					});
-
-					version!.range.end = range.end;
-					category!.range.end = range.end;
-					line.range.end = range.end;
-				}
+					range: section.range,
+					selectionRange: version.selectionRange,
+					children: children,
+				});
 			}
 		}
+
 		return symbols;
 	}
 
