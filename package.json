@@ -13,7 +13,7 @@
     "multi-root ready"
   ],
   "engines": {
-    "vscode": "^1.99.1",
+    "vscode": "^1.100.0",
     "node": ">20"
   },
   "icon": "images/factoriomod-debug-icon.png",
@@ -62,7 +62,7 @@
     "@types/readdir-glob": "^1.1.5",
     "@types/request": "^2.48.12",
     "@types/semver": "^7.7.0",
-    "@types/vscode": "^1.99.1",
+    "@types/vscode": "^1.100.0",
     "@types/vscode-webview": "^1.57.5",
     "@vscode/codicons": "^0.0.36",
     "@vscode/debugadapter": "^1.68.0",
