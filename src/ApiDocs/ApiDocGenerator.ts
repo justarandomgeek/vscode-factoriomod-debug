@@ -80,9 +80,6 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		if (['classes', 'events', 'concepts', 'defines'].includes(member)) {
 			return `/${member}.html${part}`;
 		}
-		if (member === 'builtin_types') {
-			return `/builtin-types.html${part}`;
-		}
 		if (['libraries', 'storage', 'migrations', 'data-lifecycle', 'prototype-tree', 'noise-expressions', 'instrument', 'item-weight'].includes(member)) {
 			return `/auxiliary/${member}.html${part}`;
 		}
