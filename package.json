@@ -44,8 +44,8 @@
     "test": "c8 mocha"
   },
   "devDependencies": {
-    "@inquirer/input": "^4.1.9",
-    "@inquirer/password": "^4.0.12",
+    "@inquirer/input": "^4.1.10",
+    "@inquirer/password": "^4.0.13",
     "@stylistic/eslint-plugin-ts": "^4.2.0",
     "@types/archiver": "^6.0.3",
     "@types/buffers": "^0.1.34",
