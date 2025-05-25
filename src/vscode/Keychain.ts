@@ -14,7 +14,10 @@ export class Keychain {
 			let key = await this.secrets.get("factorio-uploadmods");
 			if (key) {
 				if (setnew) {
-					setnew = (await vscode.window.showInformationMessage("Key already present. Replace it?", "Yes", "No")) === "Yes";
+					setnew = (await vscode.window.showInformationMessage(
+						"Key already present. Replace it?",
+						{ modal: true },
+						"Yes", "No")) === "Yes";
 				}
 				if (!setnew) { return {from: "secrets", key }; }
 			}
