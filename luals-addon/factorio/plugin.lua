@@ -25,7 +25,6 @@ local util = require("factorio-plugin.util")
 local require_module = require("factorio-plugin.require")
 local storage = require("factorio-plugin.storage")
 local remote = require("factorio-plugin.remote")
-local object_name = require("factorio-plugin.object-name")
 local command_line = require("factorio-plugin.command-line")
 
 ---@class Diff
@@ -207,7 +206,6 @@ function OnSetText(uri, text)
 
   require_module.replace(uri, text, diffs, args)
   remote.replace(uri, text, diffs)
-  object_name.replace(uri, text, diffs)
   command_line.replace(uri, text, diffs)
   -- The following replacements require other diffs to be created already
   -- to be able to check for their existence to prevent duplication/overlaps.

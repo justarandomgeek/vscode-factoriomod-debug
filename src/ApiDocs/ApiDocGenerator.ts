@@ -227,18 +227,22 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		lsclass.description = format_description(this.collect_description(aclass, { scope: "runtime", member: aclass.name }));
 
 		lsclass.parents = aclass.parent ? [new LuaLSTypeName(aclass.parent)] :
-			[ new LuaLSTypeName("LuaObject") ];
+			[ new LuaLSTypeName("LuaObject.base") ];
 		lsclass.generic_args = overlay.adjust.class[aclass.name]?.generic_params;
 		if (overlay.adjust.class[aclass.name]?.generic_parent) {
 			lsclass.parents.push(await this.LuaLS_type(overlay.adjust.class[aclass.name]?.generic_parent));
 		}
 
 		for (const attribute of aclass.attributes) {
-			lsclass.add(new LuaLSField(
-				attribute.name,
+			const type =
+				(attribute.name === "object_name") ? new LuaLSLiteral(aclass.name):
 				await this.LuaLS_type(attribute.write_type ?? attribute.read_type, {
 					file, table_class_name: `${aclass.name}.${attribute.name}`, format_description,
-				}),
+				});
+
+			lsclass.add(new LuaLSField(
+				attribute.name,
+				type,
 				format_description(this.collect_description(attribute, { scope: "runtime", member: aclass.name, part: attribute.name })),
 				attribute.optional
 			));
@@ -441,6 +445,9 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		const file = new LuaLSFile("runtime-api/LuaObjectNames", this.docs.application_version);
 		file.add(new LuaLSAlias("LuaObject.object_name", new LuaLSUnion(
 			this.docs.classes.filter(c=>!c.abstract).map(c=>new LuaLSLiteral(c.name))
+		)));
+		file.add(new LuaLSAlias("LuaObject", new LuaLSUnion(
+			this.docs.classes.filter(c=>!c.abstract).map(c=>new LuaLSTypeName(c.name))
 		)));
 		return file;
 	}

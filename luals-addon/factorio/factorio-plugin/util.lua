@@ -315,8 +315,6 @@ __plugin_dummy(({---@diagnostic disable-line:undefined-global
 command_line=true,
 ---Replacement of expressions involving `storage` to help the language sever distinguish storage tables between different mods.
 storage=true,
----Rearrangement of `obj.object_name == "LuaEntity"` for the language server to perform type narrowing, same as how `type()` works.
-object_name=true,
 ---Hacks for `remote.add_interface` to look like table assignments, allowing the remote_add hack to provide intellisense.
 remote_add=true,
 ---Hacks for `remote.call` to look like table indexes into a fake table with all found remote interfaces to provide intellisense.

@@ -14,9 +14,6 @@
 		"Lua.runtime.path": [
 			"?.lua"
 		],
-		"Lua.runtime.special": {
-			"__object_name": "type"
-		},
 		"Lua.runtime.builtin": {
 			"io":"disable",
 			"os":"disable",
