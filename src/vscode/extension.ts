@@ -69,6 +69,7 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 		if (await activeVersion.isPrototypeCacheEnabled()) {
 			const pcache = await vscode.window.showWarningMessage(
 				"Prototype Caching is enabled, which usually conflicts with the final portion of debugger initialization (which occurs in settings stage).",
+				{ modal: true }, // modal to cut through Do Not Disturb, or else it looks like nothing is happening...
 				"Disable in config.ini", "Continue anyway"
 			);
 			if (pcache === "Disable in config.ini") {
