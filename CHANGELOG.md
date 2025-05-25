@@ -5,6 +5,7 @@
 ## 2.0.6
 * VSCode:
   * Migrate extension to ESM. Requires VSCode >=1.100
+  * Changed some required prompts to modal, so they cut through Do Not Disturb instead of appearing to do nothing
 * LuaLS library package:
   * remove `(exact)` from generated class `event_handler.events`
   * set `"Lua.language.fixIndent": false` by default due to bugs in LuaLS causing incorrect code deletions
