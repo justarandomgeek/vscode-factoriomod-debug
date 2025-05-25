@@ -14,6 +14,7 @@
   * Add `feature_flags` global var for data stage
   * Omit `GuiStyle` from `AnyPrototype`, to reduce incorrect type deduction on data:extend's argument
   * `LuaObject`s now narrow on `object_name` without plugin assistance
+  * include string builtin event name overloads for `on_event`, and fields in `event_handler.events`
 * Debugger:
   * fix incorrect error when remote.call is called with invalid arguments
   * fix incorrect nesting of values in Output events
