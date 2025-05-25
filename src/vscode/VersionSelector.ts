@@ -226,7 +226,7 @@ export class FactorioVersionSelector {
 
 	private async selectVersionCommand() {
 		if (vscode.debug.activeDebugSession?.type==="factoriomod") {
-			vscode.window.showInformationMessage("Cannot select Factorio version while debugging.");
+			vscode.window.showErrorMessage("Cannot select Factorio version while debugging.");
 			return;
 		}
 		const config = vscode.workspace.getConfiguration("factorio");
