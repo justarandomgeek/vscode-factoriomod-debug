@@ -189,10 +189,23 @@ async function post_form<T extends object>(form:FormData, url:string) {
 		headers: new Headers({"Authorization": `Bearer ${APIKey}`}),
 	});
 	if (!result.ok) {
-		const error = await result.json() as PortalError;
-		throw new Error(error.message);
+		let message:string;
+		try {
+			const error = await result.json() as PortalError;
+			message = error.message;
+		} catch (e) {
+			const error = await result.text();
+			message = `Unexpected non-json error response:\n${error}\n`;
+		}
+		throw new Error(message);
 	}
-	return await result.json() as T;
+	try {
+		return await result.json() as T;
+	} catch (e) {
+		const error = await result.text();
+		throw new Error(`Unexpected non-json success response:\n${error}\n`);
+	}
+
 }
 
 async function init_upload(name:string, url:string) {
