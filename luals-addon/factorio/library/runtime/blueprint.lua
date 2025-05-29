@@ -1,5 +1,26 @@
 ---@meta _
 
+-- extra fields not listed in the json docs...
+
+---@class BlueprintEntity
+---@field orientation? number
+---@field recipe? string
+---@field inventory? {bar?:number, filters?:InventoryFilter[] }
+---@field bar? number
+---@field filters? InventoryFilter[]
+---@field type? "input"|"output"
+---@field input_priority? "left"|"right"
+---@field output_priority? "left"|"right"
+---@field filter? string
+---@field filter_mode? "whitelist"|"blacklist"
+---@field override_stack_size? number
+---@field request_filters? LogisticFilter[]
+---@field request_from_buffers? boolean
+---@field parameters? ProgrammableSpeakerParameters
+---@field alert_parameters? ProgrammableSpeakerAlertParameters
+---@field color? Color
+---@field station? string
+
 ---@class BlueprintCircuitConnection
 
 ---@class BlueprintControlBehavior

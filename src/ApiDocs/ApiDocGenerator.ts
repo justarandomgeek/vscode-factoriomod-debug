@@ -573,7 +573,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	// method table params and table/tuple complex_types
 	private async LuaLS_table_type(type_data:ApiWithParameters, file:LuaLSFile,  table_class_name:string, format_description:DocDescriptionFormatter, parents?:LuaLSType[]):Promise<LuaLSTypeName> {
 		const lsclass = new LuaLSClass(table_class_name);
-		lsclass.exact = true;
+		lsclass.exact = overlay.adjust.table[table_class_name]?.exact ?? true;
 		lsclass.parents = parents;
 		file.add(lsclass);
 
