@@ -377,17 +377,18 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			//there aren't any with both values and subkeys for now,
 			//we'll deal with that if it ever happens...
 			if (define.values) {
-				file.add(new LuaLSEnum(name, type_name, define.values.map(v=>new LuaLSEnumField(v.name, new LuaLSTypeName(`${type_name}.${to_lua_ident(v.name)}`), v.description, use_value)), description));
+				file.add(new LuaLSEnum(name, type_name,
+					define.values.map(v=>{
+						const field_description = v.description.replace(/^deprecated,?/i, "@deprecated");
+						const field_type = new LuaLSTypeName(`${type_name}.${to_lua_ident(v.name)}`);
+						const field = new LuaLSEnumField(v.name, field_type, field_description, use_value);
+						return field;
+					}),
+					description));
 			} else {
 				const lsclass = new LuaLSClass(name);
 				lsclass.global_name = name;
 				lsclass.description = description;
-				const adjust = overlay.adjust.define[name];
-				if (adjust?.owntype) {
-					lsclass.parents = [
-						new LuaLSTypeName(`__${name}`),
-					];
-				}
 				file.add(lsclass);
 
 				if (define.subkeys) {

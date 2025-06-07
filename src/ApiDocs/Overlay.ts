@@ -11,9 +11,6 @@ export const overlay:{
 			index_key?: ApiType
 			split_funcs?: boolean
 		} }
-		define: { [name:string]: {
-			owntype?:boolean
-		}}
 	}
 } = {
 	adjust: {
@@ -41,11 +38,6 @@ export const overlay:{
 					],
 				},
 				split_funcs: true,
-			},
-		},
-		define: {
-			"defines.prototypes": {
-				owntype: true,
 			},
 		},
 	},
