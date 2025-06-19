@@ -86,7 +86,7 @@
     "jiti": "^2.4.2",
     "jsonc-parser": "^3.3.1",
     "mime": "^4.0.7",
-    "mocha": "^11.7.0",
+    "mocha": "11.5.0",
     "node-fetch": "^3.3.2",
     "readdir-glob": "^2.0.1",
     "remark": "^15.0.1",
