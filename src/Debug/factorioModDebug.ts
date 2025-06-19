@@ -114,7 +114,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 	 * We configure the default implementation of a debug adapter here.
 	 */
 	public constructor(
-		private readonly activeVersion: Pick<ActiveFactorioVersion, "getBinaryVersion"|"configPathIsOverriden"|"defaultModsPath"|"configPath"|"dataPath"|"writeDataPath"|"factorioPath"|"nativeDebugger"|"docs">,
+		private readonly activeVersion: ActiveFactorioVersion,
 		private readonly fs: Pick<vscode.FileSystem, "readFile"|"writeFile"|"stat">,
 		private readonly editorInterface: {
 			readonly findWorkspaceFiles: (pattern:string)=>Thenable<vscode.Uri[]>
@@ -379,7 +379,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			await this.fs.writeFile(modSettingsUri, settings.save());
 		}
 
-		this.factorio = new FactorioProcess(this.activeVersion.factorioPath, args.factorioArgs, this.activeVersion.nativeDebugger, args.env);
+		this.factorio = new FactorioProcess(this.activeVersion.factorioPath, args.factorioArgs, args.env);
 
 		this.factorio.on("exit", (code:number|null, signal:string)=>{
 			if (code) {

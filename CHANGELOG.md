@@ -3,6 +3,11 @@
 [<img height='36' style='border:0px;height:36px;' src='https://az743702.vo.msecnd.net/cdn/kofi2.png?v=2' border='0' alt='Buy Me a Coffee at ko-fi.com'/>](https://ko-fi.com/X8X41IE4T)
 
 ## 2.0.7
+* VSCode:
+  * Support online-docs-only options in version selector
+    * Active status no longer recorded in settings
+    * Autodetected and Online-only versons need not be listed in settings to be selected
+
 
 ## 2.0.6
 * VSCode:

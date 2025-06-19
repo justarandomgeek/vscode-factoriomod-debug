@@ -6,19 +6,27 @@ import { URI } from "vscode-uri";
 import type { ApiDocGenerator } from '../ApiDocs/ApiDocGenerator';
 import { execFile } from 'child_process';
 
+
+// requires at least one of `factorioPath` or `onlineDocs`
 export interface FactorioVersion {
 	name: string
-	active?: true
 
-	factorioPath: string
+	// debug options
+	factorioPath?: string
 	configPath?: string
+	nativeDAP?: boolean
 
+	// docs options
 	onlineDocs?: boolean|string
 	docsPath?: string
 	protosPath?: string
 
-	nativeDebugger?: string
-	nativeDAP?: boolean
+	/** @deprecated */
+	active?: boolean
+}
+
+export interface LocalFactorioVersion extends FactorioVersion {
+	factorioPath: string
 }
 
 
@@ -100,7 +108,14 @@ export class ActiveFactorioVersion {
 		return this.fv.name;
 	}
 
+	public get onlineOnly() {
+		return !this.fv.factorioPath;
+	}
+
 	public get factorioPath() {
+		if (!this.fv.factorioPath) {
+			throw new Error("No factorioPath");
+		}
 		return substitutePathVariables(this.fv.factorioPath, this.workspaceFolders);
 	}
 
@@ -119,11 +134,7 @@ export class ActiveFactorioVersion {
 		];
 	}
 
-	public get onlineDocs() {
-		return this.fv.onlineDocs;
-	}
-
-	public get docsPath() {
+	private get docsPath() {
 		return path.join(this.factorioPath,
 			this.fv.docsPath ? this.fv.docsPath :
 			(os.platform() === "darwin") ? "../../doc-html/runtime-api.json" :
@@ -131,7 +142,7 @@ export class ActiveFactorioVersion {
 		);
 	}
 
-	public get protosPath() {
+	private get protosPath() {
 		return path.join(this.factorioPath,
 			this.fv.protosPath ? this.fv.protosPath :
 			this.fv.docsPath ? path.join(this.fv.docsPath, "../prototype-api.json") :
@@ -159,10 +170,6 @@ export class ActiveFactorioVersion {
 		}
 		// try for a config.ini in systemwritepath
 		return this.translatePath("__PATH__system-write-data__/config/config.ini");
-	}
-
-	public get nativeDebugger() {
-		return this.fv.nativeDebugger && substitutePathVariables(this.fv.nativeDebugger, this.workspaceFolders);
 	}
 
 	public get nativeDAP() {
@@ -296,9 +303,10 @@ export class ActiveFactorioVersion {
 		const fv = this.fv;
 		return fv.name === other.name &&
 			fv.factorioPath === other.factorioPath &&
-			fv.nativeDebugger === other.nativeDebugger &&
+			fv.configPath === other.configPath &&
+			fv.nativeDAP === other.nativeDAP &&
+			fv.onlineDocs === other.onlineDocs &&
 			fv.docsPath === other.docsPath &&
-			fv.protosPath === other.protosPath &&
-			fv.configPath === other.configPath;
+			fv.protosPath === other.protosPath;
 	}
 }

@@ -17,7 +17,7 @@ export class FactorioProcess extends EventEmitter {
 	private readonly factorio: ChildProcess;
 	private readonly hasNativeDebug?: boolean;
 
-	constructor(factorioPath:string, factorioArgs:string[], nativeDebugger?:string, env?:NodeJS.ProcessEnv) {
+	constructor(factorioPath:string, factorioArgs:string[], env?:NodeJS.ProcessEnv) {
 		super();
 		const spawnOptions: SpawnOptions = {
 			cwd: path.dirname(factorioPath),
@@ -25,12 +25,8 @@ export class FactorioProcess extends EventEmitter {
 			env: Object.assign({}, process.env, env, {SteamAppId: "427520"}),
 		};
 
-		if (nativeDebugger) {
-			this.hasNativeDebug = true;
-			this.factorio = spawn(nativeDebugger, [factorioPath, ...factorioArgs], spawnOptions);
-		} else {
-			this.factorio = spawn(factorioPath, factorioArgs, spawnOptions);
-		}
+		this.factorio = spawn(factorioPath, factorioArgs, spawnOptions);
+
 		this.factorio.on("exit", (code, signal)=>this.emit("exit", code, signal));
 
 		const stderr = new BufferSplitter(this.factorio.stderr!, stderrsplit);

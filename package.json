@@ -291,9 +291,26 @@
             "description": "Factorio installations configured for use with debugging and profiling.",
             "items": {
               "type": "object",
-              "required": [
-                "name",
-                "factorioPath"
+              "required": [ "name" ],
+              "anyOf": [
+                { "required": [ "onlineDocs" ] },
+                {
+                  "required": [ "factorioPath" ],
+                  "properties": {
+                    "configPath": {
+                      "type": "string",
+                      "description": "Path to Factorio config.ini file."
+                    },
+                    "docsPath": {
+                      "type": "string",
+                      "description": "Path to runtime-api.json, must be relative to factorioPath."
+                    },
+                    "protosPath": {
+                      "type": "string",
+                      "description": "Path to prototype-api.json, must be relative to factorioPath."
+                    }
+                  }
+                }
               ],
               "properties": {
                 "name": {
@@ -301,7 +318,7 @@
                   "description": "Display name for this installation"
                 },
                 "active": {
-                  "const": true
+                  "deprecationMessage": "Active status is no longer marked in settings"
                 },
                 "factorioPath": {
                   "type": "string",
@@ -316,31 +333,12 @@
                     "${workspaceFolder}/factorio/bin/x64/factorio"
                   ]
                 },
-                "configPath": {
-                  "type": "string",
-                  "description": "Path to Factorio config.ini file."
-                },
                 "onlineDocs": {
                   "type": [
                     "boolean",
                     "string"
                   ],
                   "description": "Use online docs, version id or `true` for `latest`"
-                },
-                "docsPath": {
-                  "type": "string",
-                  "description": "Path to runtime-api.json, must be relative to factorioPath."
-                },
-                "protosPath": {
-                  "type": "string",
-                  "description": "Path to prototype-api.json, must be relative to factorioPath."
-                },
-                "nativeDebugger": {
-                  "type": "string",
-                  "description": "Native debugger to launch factorio with",
-                  "examples": [
-                    "vsjitdebugger.exe"
-                  ]
                 }
               }
             }

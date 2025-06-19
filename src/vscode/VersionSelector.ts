@@ -4,20 +4,29 @@ import * as path from 'path';
 import { URI, Utils } from "vscode-uri";
 import { forkScript } from './ModPackageProvider';
 import { version as bundleVersion } from "../../package.json";
-import type { FactorioVersion} from "../vscode/FactorioVersion";
+import type { FactorioVersion, LocalFactorioVersion } from "../vscode/FactorioVersion";
 import { ActiveFactorioVersion, substitutePathVariables } from "../vscode/FactorioVersion";
 import { ApiDocGenerator } from "../ApiDocs/ApiDocGenerator";
 import * as LuaLSAddon from "../LuaLSAddon";
 import type { FSProvider } from './FSProvider';
 const fs = vscode.workspace.fs;
 
-const detectPaths:FactorioVersion[] = [
+const detectPaths:LocalFactorioVersion[] = [
 	{name: "Steam", factorioPath: "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Factorio\\bin\\x64\\factorio.exe"},
 	{name: "System", factorioPath: "C:\\Program Files\\Factorio\\bin\\x64\\factorio.exe"},
 	{name: "Steam", factorioPath: "~/Library/Application Support/Steam/steamapps/common/Factorio/factorio.app/Contents/MacOS/factorio"},
 	{name: "System", factorioPath: "/Applications/factorio.app/Contents/MacOS/factorio"},
 	{name: "Home", factorioPath: "~/.factorio/bin/x64/factorio"},
 ];
+
+const onlineLatest:FactorioVersion = {
+	name: "Online Latest",
+	onlineDocs: true,
+};
+const onlineStable:FactorioVersion = {
+	name: "Online Stable",
+	onlineDocs: "stable",
+};
 
 export class FactorioVersionSelector {
 	private readonly bar:vscode.StatusBarItem;
@@ -39,32 +48,41 @@ export class FactorioVersionSelector {
 		context.subscriptions.push(vscode.commands.registerCommand("factorio.checkConfig", ()=>this.checkConfigCommand()));
 		context.subscriptions.push(vscode.commands.registerCommand("factorio.disablePrototypeCache", ()=>this.disablePrototypeCacheCommand()));
 		context.subscriptions.push(vscode.commands.registerCommand("factorio.disableMouseAutoCapture", ()=>this.disableMouseAutoCaptureCommand()));
-		void this.loadActiveVersion();
 
-		context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(e=>{
-			if (e.affectsConfiguration("factorio.versions")) {
-				void this.loadActiveVersion();
-			}
-		}));
+		void this.migrateActiveVersion().then(()=>this.loadActiveVersion());
 	}
 
-	private async loadActiveVersion() {
+	private async migrateActiveVersion() {
+		// already have one in new storage...
+		if (this.context.workspaceState.get<FactorioVersion>("active_version")) { return; }
+
 		const config = vscode.workspace.getConfiguration("factorio");
 		const versions = config.get<FactorioVersion[]>("versions", []);
 
-		const active_version = versions.find(fv=>fv.active);
+		// eslint-disable-next-line @typescript-eslint/no-deprecated
+		const old_active_version = versions.find(fv=>fv.active);
+		if (old_active_version) {
+			// eslint-disable-next-line @typescript-eslint/no-deprecated
+			versions.forEach(fv=>delete fv.active);
+
+			await this.context.workspaceState.update("active_version", old_active_version);
+			await config.update("versions", versions);
+		}
+	}
+
+	private async loadActiveVersion() {
+		const active_version = this.context.workspaceState.get<FactorioVersion>("active_version");
 		// no active version in settings...
 		if (!active_version) { return; }
 
-		// active version in settings is already active live
-		if (this._active_version && this._active_version.is(active_version)) { return; }
+		//TODO: try to guess? fallback to online-only?
+		// but probably don't want to clutter up every workspace ever opened!
 
-		const docs =  await this.tryJsonDocs(active_version);
+		const docs =  await this.tryJsonDocs(active_version).catch(()=>undefined);
 
 		// can't activate without docs...
 		if (!docs) {
-			delete active_version.active;
-			config.update("versions", versions);
+			await this.context.workspaceState.update("active_version", undefined);
 			return;
 		}
 
@@ -84,15 +102,21 @@ export class FactorioVersionSelector {
 			return;
 		}
 		this.output.info(`Active Factorio Version:`);
-		this.output.info(`Binary: ${await activeVersion.getBinaryVersion().catch((reason)=>reason.toString())}`);
+		if (activeVersion.onlineOnly) {
+			this.output.info(`Online Only`);
+		} else {
+			this.output.info(`Binary: ${await activeVersion.getBinaryVersion().catch((reason)=>reason.toString())}`);
+		}
 		this.output.info(`Runtime JSON: ${activeVersion.docs.application_version}`);
 
-		if (await activeVersion.isPrototypeCacheEnabled()) {
-			this.output.warn(`Prototype Cache is enabled!`);
-		}
+		if (!activeVersion.onlineOnly) {
+			if (await activeVersion.isPrototypeCacheEnabled()) {
+				this.output.warn(`Prototype Cache is enabled!`);
+			}
 
-		if (await activeVersion.isMouseAutoCaptureDisabled()) {
-			this.output.info(`Mouse Auto Capture is disabled`);
+			if (await activeVersion.isMouseAutoCaptureDisabled()) {
+				this.output.info(`Mouse Auto Capture is disabled`);
+			}
 		}
 
 		const workspaceLibrary = this.context.storageUri;
@@ -163,17 +187,22 @@ export class FactorioVersionSelector {
 		if (!library) {
 			this.output.warn(`Lua.workspace.library not present!`);
 		} else {
-			const dataPath = URI.file(await activeVersion.dataPath()).fsPath;
-			if (library.includes(dataPath)) {
-				this.output.info(`Lua.workspace.library: /data link OK (${dataPath})`);
-			} else if (manageLibraryDataLinks) {
-				this.output.warn(`Lua.workspace.library: /data link missing! (${dataPath})`);
+			const knownLibs:string[] = [];
+			if (!activeVersion.onlineOnly) {
+				const dataPath = URI.file(await activeVersion.dataPath()).fsPath;
+				knownLibs.push(dataPath);
+				if (library.includes(dataPath)) {
+					this.output.info(`Lua.workspace.library: /data link OK (${dataPath})`);
+				} else if (manageLibraryDataLinks) {
+					this.output.warn(`Lua.workspace.library: /data link missing! (${dataPath})`);
+				}
 			}
 
 			const workspaceLibPath = Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/library").fsPath;
 			// luals sets this, so the slashes might be wrong. check more leniently, and use the found path later for exclusion
 			const foundWorkspaceLibPath = library.find(l=>URI.file(l).fsPath === workspaceLibPath);
 			if (foundWorkspaceLibPath) {
+				knownLibs.push(foundWorkspaceLibPath);
 				if (ApplyInMemory) {
 					this.output.warn(`Lua.workspace.library: redundant workspace library link (${foundWorkspaceLibPath})`);
 				} else {
@@ -185,7 +214,7 @@ export class FactorioVersionSelector {
 				}
 			}
 
-			const otherLibs = library.filter(s=>!([dataPath, foundWorkspaceLibPath].includes(s)));
+			const otherLibs = library.filter(s=>!(knownLibs.includes(s)));
 			for (const other of otherLibs) {
 				if (other.match(/justarandomgeek\.factoriomod\-debug[\\\/]sumneko\-3rd[\\\/]factorio[\\\/]library$/)) {
 					this.output.warn(`Lua.workspace.library: stale workspace link? (${other})`);
@@ -217,11 +246,19 @@ export class FactorioVersionSelector {
 	}
 
 	private async disablePrototypeCacheCommand() {
-		return (await this.getActiveVersion())?.disablePrototypeCache();
+		const activeVersion = await this.getActiveVersion();
+		if (activeVersion?.onlineOnly) {
+			throw new Error("Select a local Factorio install to debug");
+		}
+		return activeVersion?.disablePrototypeCache();
 	}
 
 	private async disableMouseAutoCaptureCommand() {
-		return (await this.getActiveVersion())?.disableMouseAutoCapture();
+		const activeVersion = await this.getActiveVersion();
+		if (activeVersion?.onlineOnly) {
+			throw new Error("Select a local Factorio install to debug");
+		}
+		return activeVersion?.disableMouseAutoCapture();
 	}
 
 	private async selectVersionCommand() {
@@ -249,7 +286,7 @@ export class FactorioVersionSelector {
 					} catch (error) {
 						return undefined;
 					}
-				}))).filter((v):v is FactorioVersion=>!!v);
+				}))).filter((v)=>!!v);
 
 		const describeVersion = async (fv:FactorioVersion)=>{
 			if (fv.onlineDocs === true) {
@@ -260,26 +297,48 @@ export class FactorioVersionSelector {
 				return fv.onlineDocs;
 			}
 
-			return (await this.tryJsonDocs(fv, false))?.application_version ?? "unknown";
+			return (await this.tryJsonDocs(fv).catch(()=>undefined))?.application_version ?? "unknown";
 		};
 
 		const qpresult = await vscode.window.showQuickPick(Promise.all([
+			{
+				kind: vscode.QuickPickItemKind.Separator,
+				label: "settings",
+			},
 			...versions.map(async fv=>({
 				fv: fv,
 				label: fv.name,
 				description: await describeVersion(fv),
 				detail: fv.factorioPath,
-				picked: fv.active,
 			})),
+			{
+				kind: vscode.QuickPickItemKind.Separator,
+				label: "autodetected",
+			},
 			...detectedVersions.map(async fv=>({
 				fv: fv,
-				label: `${fv.name} (autodetected)`,
+				label: fv.name,
 				description: await describeVersion(fv),
 				detail: fv.factorioPath,
 			})),
 			{
+				fv: onlineLatest,
+				label: onlineLatest.name,
+				description: await describeVersion(onlineLatest),
+			},
+			{
+				fv: onlineStable,
+				label: onlineStable.name,
+				description: await describeVersion(onlineStable),
+			},
+			{
+				kind: vscode.QuickPickItemKind.Separator,
+				label: "",
+			},
+			{
 				fv: undefined,
-				label: "Select other version...",
+				label: "Select another install locaton...",
+				picked: false,
 			},
 		]),
 		{title: "Select Factorio Version"});
@@ -288,7 +347,7 @@ export class FactorioVersionSelector {
 		let active_version = qpresult.fv;
 
 		// check that the factorio binary referenced by qpresult.fv really still exists
-		if (active_version) {
+		if (active_version?.factorioPath) {
 			let found = false;
 			try {
 				const stat = await fs.stat(URI.file(substitutePathVariables(active_version.factorioPath, vscode.workspace.workspaceFolders)));
@@ -312,6 +371,7 @@ export class FactorioVersionSelector {
 			}
 		}
 
+		let add_to_settings = false;
 		if (!active_version) {
 			// file picker for undiscovered factorios
 			const factorioPath = await vscode.window.showOpenDialog({
@@ -333,13 +393,19 @@ export class FactorioVersionSelector {
 				name: newName,
 				factorioPath: factorioPath[0].fsPath,
 			};
+			add_to_settings = true;
 		}
 
 		// check for docs json
 		let docs;
 		try {
-			docs = await this.tryJsonDocs(active_version, true);
+			docs = await this.tryJsonDocs(active_version);
 		} catch (error) {
+			if (!active_version.factorioPath) {
+				vscode.window.showErrorMessage(`Unable to read online docs: ${error}`);
+				return;
+			}
+
 			if ("Select alternate location" !== await vscode.window.showErrorMessage(`Unable to read JSON docs: ${error}`, "Select alternate location", "Cancel")) {
 				return;
 			}
@@ -354,23 +420,20 @@ export class FactorioVersionSelector {
 			if (!file) { return; }
 			active_version.docsPath = path.relative(substitutePathVariables(active_version.factorioPath, vscode.workspace.workspaceFolders), file[0].fsPath);
 			try {
-				docs = await this.tryJsonDocs(active_version, true);
+				docs = await this.tryJsonDocs(active_version);
 			} catch (error) {
 				vscode.window.showErrorMessage(`Unable to read JSON docs: ${error}`);
 				return;
 			}
 		}
 
-		// if selected isn't in `versions`, put it in
-		if (!versions.includes(active_version)) {
+		// mark selected as `active`
+		await this.context.workspaceState.update("active_version", active_version);
+		if (add_to_settings) {
 			versions.push(active_version);
+			config.update("versions", versions);
 		}
 
-		// mark selected as `active`
-		versions.forEach(fv=>delete fv.active);
-		active_version.active = true;
-
-		config.update("versions", versions);
 		this.bar.text = `Factorio ${docs.application_version} (${active_version.name})`;
 		const previous_active = this._active_version;
 		this._active_version = new ActiveFactorioVersion(vscode.workspace.fs, active_version, docs, vscode.workspace.workspaceFolders);
@@ -387,9 +450,7 @@ export class FactorioVersionSelector {
 		return this._active_version;
 	}
 
-	private async tryJsonDocs(fv:FactorioVersion, throwOnError?:false): Promise<ApiDocGenerator|undefined>;
-	private async tryJsonDocs(fv:FactorioVersion, throwOnError:true) : Promise<ApiDocGenerator>;
-	private async tryJsonDocs(fv:FactorioVersion, throwOnError?:boolean) {
+	private async tryJsonDocs(fv:FactorioVersion) : Promise<ApiDocGenerator> {
 		let docjson:string;
 		if (fv.onlineDocs) {
 			const version = fv.onlineDocs === true ? "latest" : fv.onlineDocs;
@@ -397,30 +458,23 @@ export class FactorioVersionSelector {
 			const url = `https://lua-api.factorio.com/${version}/runtime-api.json`;
 			const result = await fetch(url);
 			if (!result.ok) {
-				if (!throwOnError) { return; }
 				throw new Error(`Error fetching ${url} : ${result.statusText}`);
 			}
 			docjson = await result.text();
 		} else {
+			if (!fv.factorioPath) {
+				throw new Error(`Invalid Config: requires at least one of factorioPath or onlineDocs in ${fv.name}`);
+			}
 			const docpath = Utils.joinPath(URI.file(substitutePathVariables(fv.factorioPath, vscode.workspace.workspaceFolders)),
 				fv.docsPath ? fv.docsPath :
 				(os.platform() === "darwin") ? "../../doc-html/runtime-api.json" :
 				"../../../doc-html/runtime-api.json"
 			);
-			try {
-				docjson = (await fs.readFile(docpath)).toString();
-			} catch (error) {
-				if (!throwOnError) { return; }
-				throw error;
-			}
+			// readFile can throw, let it...
+			docjson = (await fs.readFile(docpath)).toString();
 		}
-
-		try {
-			return new ApiDocGenerator(docjson);
-		} catch (error) {
-			if (!throwOnError) { return; }
-			throw error;
-		}
+		// doc gen might throw if invalid file, just let it...
+		return new ApiDocGenerator(docjson);
 	}
 
 	private async checkDocs() {
@@ -497,7 +551,7 @@ export class FactorioVersionSelector {
 		// remove and re-add library links to force sumneko to update...
 		const factorioconfig = vscode.workspace.getConfiguration("factorio");
 
-		if (previous_active) {
+		if (previous_active && !previous_active.onlineOnly) {
 			const oldroot = URI.file(await previous_active.dataPath());
 			removeLibraryPath(oldroot);
 		}

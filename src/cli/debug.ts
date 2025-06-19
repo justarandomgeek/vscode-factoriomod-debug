@@ -5,7 +5,7 @@ import { readdirGlob } from 'readdir-glob';
 
 import { URI, Utils } from 'vscode-uri';
 import { fsAccessor } from './util';
-import type { FactorioVersion } from '../vscode/FactorioVersion';
+import type { LocalFactorioVersion } from '../vscode/FactorioVersion';
 import { ActiveFactorioVersion } from '../vscode/FactorioVersion';
 import { ApiDocGenerator } from '../ApiDocs/ApiDocGenerator';
 import { FactorioModDebugSession } from '../Debug/factorioModDebug';
@@ -15,14 +15,12 @@ program.command("debug <factorioPath>")
 	.option("-d, --docs <docsPath>", "path to runtime-api.json")
 	.option("-c, --config <configPath>", "path to config.ini")
 	.option("-w, --workspace <workspacePath...>", "path to workspace folders")
-	.option("-n, --nativeDebugger <nativeDebugger>")
 	.action(async (factorioPath:string, options:{docs?:string; config?:string; workspace?:string[]; nativeDebugger?:string})=>{
-		const fv: FactorioVersion = {
+		const fv: LocalFactorioVersion = {
 			name: "standalone",
 			factorioPath: factorioPath,
 			configPath: options.config,
 			docsPath: options.docs,
-			nativeDebugger: options.nativeDebugger,
 		};
 		const docsPath = Utils.joinPath(URI.file(factorioPath),
 			fv.docsPath ? fv.docsPath :

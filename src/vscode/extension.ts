@@ -96,6 +96,9 @@ class DebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
 	async createDebugAdapterDescriptor(session: vscode.DebugSession, executable: vscode.DebugAdapterExecutable) {
 		const activeVersion = await this.versionSelector.getActiveVersion();
 		if (!activeVersion) { return; }
+		if (activeVersion.onlineOnly) {
+			throw new Error("Select a local Factorio install to debug");
+		}
 
 		if (activeVersion.nativeDAP) {
 			return new vscode.DebugAdapterExecutable(activeVersion.factorioPath, ["--dap"]);
