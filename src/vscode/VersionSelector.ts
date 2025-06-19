@@ -248,7 +248,7 @@ export class FactorioVersionSelector {
 	private async disablePrototypeCacheCommand() {
 		const activeVersion = await this.getActiveVersion();
 		if (activeVersion?.onlineOnly) {
-			throw new Error("Select a local Factorio install to debug");
+			throw new Error("Select a local Factorio install to edit config");
 		}
 		return activeVersion?.disablePrototypeCache();
 	}
@@ -256,7 +256,7 @@ export class FactorioVersionSelector {
 	private async disableMouseAutoCaptureCommand() {
 		const activeVersion = await this.getActiveVersion();
 		if (activeVersion?.onlineOnly) {
-			throw new Error("Select a local Factorio install to debug");
+			throw new Error("Select a local Factorio install to edit config");
 		}
 		return activeVersion?.disableMouseAutoCapture();
 	}
