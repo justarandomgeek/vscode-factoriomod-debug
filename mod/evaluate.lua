@@ -23,6 +23,7 @@ local setmetatable = setmetatable
 local load = load
 local pindex = variables.pindex
 local helpers = helpers
+local script = script
 
 local env = _ENV
 local _ENV = nil
@@ -38,7 +39,7 @@ local DAEval = {}
 ---@return boolean
 ---@return ...
 local function timedpcall(f)
-  if helpers then
+  if script then
     ---@type LuaProfiler
     local t = helpers.create_profiler()
     local res = {pcall(f)}

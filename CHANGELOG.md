@@ -7,7 +7,8 @@
   * Support online-docs-only options in version selector
     * Active status no longer recorded in settings
     * Autodetected and Online-only versons need not be listed in settings to be selected
-
+* Debugger:
+  * Fixed that debug console would attempt to use `helpers.create_profiler` time commands in data stage
 
 ## 2.0.6
 * VSCode:
