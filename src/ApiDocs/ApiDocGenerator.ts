@@ -144,6 +144,8 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 					hasValid = true;
 				} else if (attribute.name === "object_name") {
 					// I don't list `object_name` at all, only for looking up the right types...
+				} else if (c.name === "LuaEntity" && attribute.name === "crafting_speed" && this.application_version.match(/2\.0\.5[67]/)) {
+					// reading LuaEntity::crafting_speed crashes on .56/.57, so hide it
 				} else {
 					if (attribute.read_type) {
 						cc[attribute.name] = {};

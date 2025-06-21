@@ -9,6 +9,7 @@
     * Autodetected and Online-only versons need not be listed in settings to be selected
 * Debugger:
   * Fixed that debug console would attempt to use `helpers.create_profiler` time commands in data stage
+  * Hide LuaEntity::crafting_speed in factorio 2.0.56/57 due to a crash
 
 ## 2.0.6
 * VSCode:
