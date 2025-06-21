@@ -19,3 +19,4 @@ todo
 **/*.pdn
 .eslint.config.ts
 tsconfig.json
+**/*.vsix
