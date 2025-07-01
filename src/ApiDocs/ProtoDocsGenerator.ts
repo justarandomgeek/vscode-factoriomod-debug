@@ -217,6 +217,9 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 				switch (type) {
 					case "bool":
 						return new LuaLSTypeName("boolean");
+					case "table":
+					case "number":
+					case "nil":
 					case "boolean":
 					case "string":
 					case "float":

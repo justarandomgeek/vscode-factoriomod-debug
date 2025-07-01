@@ -5,6 +5,8 @@
 ## 2.0.8
 * Debugger:
   * Add missing locale for Restart Session control
+* LuaLS library package:
+  * Fix incorrectly generating types `data.number` and `data.table` in prototype docs
 
 ## 2.0.7
 * VSCode:
