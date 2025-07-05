@@ -80,7 +80,8 @@ local function replace(uri, text, diffs)
       local dot_pos = preceding_text:match("()%.%s*$")
       if dot_pos then
         dot_pos = preceding_start + dot_pos - 1
-        if text:sub(dot_pos - 1, dot_pos - 1) ~= "." -- If it's a concat, keep it.
+        if not util.is_disabled(dot_pos, storage_module_flag)
+          and text:sub(dot_pos - 1, dot_pos - 1) ~= "." -- If it's a concat, keep it.
           and text:sub(dot_pos - 2, dot_pos - 1) ~= "_G" -- Keep indexes into _G
           and text:sub(dot_pos - 4, dot_pos - 1) ~= "_ENV" -- and _ENV
         then

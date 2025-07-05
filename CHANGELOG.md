@@ -7,6 +7,7 @@
   * Add missing locale for Restart Session control
 * LuaLS library package:
   * Fix incorrectly generating types `data.number` and `data.table` in prototype docs
+  * Fix comments ending with a dot on the line before `storage` making the plugin not transform it into the mod specific `storage`
 
 ## 2.0.7
 * VSCode:
