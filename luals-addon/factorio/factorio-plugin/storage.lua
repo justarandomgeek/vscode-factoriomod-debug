@@ -75,7 +75,8 @@ local function replace(uri, text, diffs)
       local start = finish - #"storage"
       if identifier_char_lut[text:sub(start - 1, start - 1)] then goto continue end
 
-      local preceding_start = start - 16
+      -- Negative indexes would make it start at the back of the string. No no, very bad.
+      local preceding_start = math.max(1, start - 16)
       local preceding_text = text:sub(preceding_start, start - 1)
       local dot_pos = preceding_text:match("()%.%s*$")
       if dot_pos then
