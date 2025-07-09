@@ -5,6 +5,7 @@
 ## 2.0.8
 * Debugger:
   * Add missing locale for Restart Session control
+  * Fix incorrectly not firing Loaded Sources events when no breakpoints in file
 * LuaLS library package:
   * Fix incorrectly generating types `data.number` and `data.table` in prototype docs
   * Fix comments ending with a dot on the line before `storage` making the plugin not transform it into the mod specific `storage`

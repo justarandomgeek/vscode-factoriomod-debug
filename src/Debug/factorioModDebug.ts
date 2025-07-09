@@ -550,10 +550,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 					const json = JSON.parse(mesg.slice(1), daprevive) as {event:string; body:any};
 					switch (json.event) {
 						case "source":
-							const source = json.body.source;
-							if (this.breakPoints.has(source.sourceReference ?? source.name)) {
-								this.loadedSourceEvent(json.body);
-							}
+							this.loadedSourceEvent(json.body);
 							this.continue();
 							return;
 						case "running":
