@@ -188,22 +188,23 @@ async function post_form<T extends object>(form:FormData, url:string) {
 		body: form,
 		headers: new Headers({"Authorization": `Bearer ${APIKey}`}),
 	});
+	let response_body:string|undefined;
 	if (!result.ok) {
 		let message:string;
 		try {
-			const error = await result.json() as PortalError;
+			response_body = await result.text();
+			const error = JSON.parse(response_body) as PortalError;
 			message = error.message;
 		} catch (e) {
-			const error = await result.text();
-			message = `Unexpected non-json error response:\n${error}\n`;
+			message = `Unexpected non-json error response:\n${response_body}\n`;
 		}
 		throw new Error(message);
 	}
 	try {
-		return await result.json() as T;
+		response_body = await result.text();
+		return JSON.parse(response_body) as T;
 	} catch (e) {
-		const error = await result.text();
-		throw new Error(`Unexpected non-json success response:\n${error}\n`);
+		throw new Error(`Unexpected non-json success response:\n${response_body}\n`);
 	}
 
 }
