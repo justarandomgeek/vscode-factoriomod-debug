@@ -14,11 +14,15 @@
       }
     }
   },
+  "additionalProperties": false,
   "properties": {
     "custom-input": { "$ref": "#/definitions/migration_item"},
     "equipment-grid": { "$ref": "#/definitions/migration_item"},
     "entity": { "$ref": "#/definitions/migration_item"},
+    "particle": { "$ref": "#/definitions/migration_item"},
     "item": { "$ref": "#/definitions/migration_item"},
+    "collision-layer": { "$ref": "#/definitions/migration_item"},
+    "airborne-pollutant": { "$ref": "#/definitions/migration_item"},
     "tile": { "$ref": "#/definitions/migration_item"},
     "decorative": { "$ref": "#/definitions/migration_item"},
     "recipe-category": { "$ref": "#/definitions/migration_item"},
@@ -30,7 +34,7 @@
     "fuel-category": { "$ref": "#/definitions/migration_item"},
     "resource-category": { "$ref": "#/definitions/migration_item"},
     "technology": { "$ref": "#/definitions/migration_item"},
-    "noise-layer": { "$ref": "#/definitions/migration_item"},
+    "noise-function": { "$ref": "#/definitions/migration_item"},
     "noise-expression": { "$ref": "#/definitions/migration_item"},
     "autoplace-control": { "$ref": "#/definitions/migration_item"},
     "equipment": { "$ref": "#/definitions/migration_item"},
@@ -41,7 +45,18 @@
     "equipment-category": { "$ref": "#/definitions/migration_item"},
     "mod-setting": { "$ref": "#/definitions/migration_item"},
     "trivial-smoke": { "$ref": "#/definitions/migration_item"},
+    "asteroid-chunk": { "$ref": "#/definitions/migration_item"},
+    "quality": { "$ref": "#/definitions/migration_item"},
+    "surface-property" : { "$ref": "#/definitions/migration_item"},
+    "procession-layer-inheritance-group": { "$ref": "#/definitions/migration_item"},
+    "procession": { "$ref": "#/definitions/migration_item"},
+    "space-location": { "$ref": "#/definitions/migration_item"},
+    "space-connection": { "$ref": "#/definitions/migration_item"},
+    "active-trigger": { "$ref": "#/definitions/migration_item"},
     "shortcut": { "$ref": "#/definitions/migration_item"},
-    "quality": { "$ref": "#/definitions/migration_item"}
+    "burner-usage": { "$ref": "#/definitions/migration_item"},
+    "surface": { "$ref": "#/definitions/migration_item"},
+    "mod-data": { "$ref": "#/definitions/migration_item"},
+    "custom-event": { "$ref": "#/definitions/migration_item"}
   }
 }
