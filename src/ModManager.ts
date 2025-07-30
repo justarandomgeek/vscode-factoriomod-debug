@@ -1,6 +1,5 @@
 import * as fsp from 'fs/promises';
 import * as path from 'path';
-import { default as fetch } from "node-fetch";
 
 import type { ModInfo } from './vscode/ModPackageProvider';
 import { version as bundleVersion } from "../package.json";
@@ -184,7 +183,7 @@ export class ModManager {
 		if (!download.ok) { throw new Error(download.statusText); }
 		return {
 			version: lastrelease.version,
-			zip: download.body!,
+			zip: await download.bytes(),
 		};
 	}
 

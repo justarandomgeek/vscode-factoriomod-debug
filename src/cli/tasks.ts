@@ -6,7 +6,6 @@ import path from 'path';
 import { spawn } from "child_process";
 import { visit } from "unist-util-visit";
 import { remark } from "remark";
-import { default as fetch, Headers, FormData, Blob } from "node-fetch";
 import type { ModCategory, ModLicense, ModPortalImage } from "../ModManager";
 import { getModInfo } from "../ModManager";
 import * as ChangeLog from "../Language/ChangeLog";
@@ -223,7 +222,7 @@ export async function addModRelease(name:string, packagestream:Buffer) {
 	const upload_url = await init_upload(name, "https://mods.factorio.com/api/v2/mods/releases/init_upload");
 
 	const file_form = new FormData();
-	file_form.append("file", new Blob([packagestream], {type: 'application/x-zip-compressed'}), `${name}.zip`);
+	file_form.append("file", new Blob([Uint8Array.from(packagestream)], {type: 'application/x-zip-compressed'}), `${name}.zip`);
 	await post_form<{success:true}>(file_form, upload_url);
 	console.log(`Published ${name}`);
 	return;
@@ -233,7 +232,7 @@ export async function addModImage(name:string, image:Buffer, filename:string):Pr
 	const upload_url = await init_upload(name, "https://mods.factorio.com/api/v2/mods/images/add");
 
 	const image_form = new FormData();
-	image_form.append("image", new Blob([image], {type: mime.getType(filename) ?? undefined}), filename);
+	image_form.append("image", new Blob([Uint8Array.from(image)], {type: mime.getType(filename) ?? undefined}), filename);
 	return await post_form<ModPortalImage>(image_form, upload_url);
 }
 

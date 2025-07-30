@@ -1,7 +1,6 @@
 import * as fsp from 'fs/promises';
 import path from 'path';
 import { program } from 'commander';
-import { default as fetch } from "node-fetch";
 import { createWriteStream } from 'fs';
 
 import { GenerateDocs } from '../ApiDocs/GenerateDocs';
