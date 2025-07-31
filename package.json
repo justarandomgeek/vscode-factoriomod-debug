@@ -63,7 +63,7 @@
     "@types/semver": "^7.7.0",
     "@types/vscode": "^1.102.0",
     "@types/vscode-webview": "^1.57.5",
-    "@vscode/codicons": "^0.0.38",
+    "@vscode/codicons": "^0.0.39",
     "@vscode/debugadapter": "^1.68.0",
     "@vscode/debugadapter-testsupport": "^1.68.0",
     "@vscode/vsce": "^3.6.0",
