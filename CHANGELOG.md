@@ -5,6 +5,9 @@
 ## 2.0.9
 * JSON Schema:
   * Added several missing types to migration schema, warn on unknown types
+* Tasks:
+  * Don't escape `&` in markdown files
+
 ## 2.0.8
 * Debugger:
   * Add missing locale for Restart Session control
