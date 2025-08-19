@@ -97,7 +97,7 @@
 			"request": "launch",
 			"program": "${workspaceFolder}/dist/fmtk-cli.js",
 			"args": [
-				"publish"
+				"details"
 			],
 			// env file with FACTORIO_UPLOAD_API_KEY for uploads
 			"envFile": "${workspaceFolder}/test/.env",

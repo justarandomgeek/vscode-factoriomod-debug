@@ -41,7 +41,8 @@
     "package": "vsce package",
     "publish-vscode": "vsce publish",
     "publish-vscode-prerelease": "vsce publish --pre-release",
-    "test": "c8 mocha"
+    "test": "c8 mocha",
+    "postinstall": "node ./postinstall.ts"
   },
   "devDependencies": {
     "@inquirer/input": "^4.2.1",
@@ -86,6 +87,7 @@
     "jsonc-parser": "^3.3.1",
     "mime": "^4.0.7",
     "mocha": "11.6.0",
+    "patch-package": "^8.0.0",
     "readdir-glob": "^2.0.1",
     "remark": "^15.0.1",
     "rimraf": "^6.0.1",
