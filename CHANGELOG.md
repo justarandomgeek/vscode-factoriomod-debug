@@ -7,6 +7,8 @@
   * Added several missing types to migration schema, warn on unknown types
 * Tasks:
   * Don't escape `&` in markdown files
+* LuaLS library package:
+  * Add `feature_flags` global var for data stage (for real this time)
 
 ## 2.0.8
 * Debugger:
