@@ -116,6 +116,15 @@
                 }
               }
             },
+            "datestamp_format": {
+              "type": "string",
+              "description": "A format string for `datetime` to use when date stamping the changelog. See https://www.npmjs.com/package/dateformat. Named format `factorioDate` for 'dd. mm. yyyy' like factorio's changelog. Default `isoDate`.",
+              "examples": [
+                "isoDate",
+                "factorioDate"
+              ],
+              "default": "isoDate"
+            },
             "no_git_push": {
               "type":"boolean",
               "description": "Don't automatically `git push` in Publish"

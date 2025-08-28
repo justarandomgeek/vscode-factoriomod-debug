@@ -49,6 +49,7 @@ export interface ModInfo {
 			base_url?:string
 			url_match?:string
 		}
+		datestamp_format?: string
 		no_git_push?: boolean
 		no_git_tag?: boolean
 		git_publish_branch?: string|null

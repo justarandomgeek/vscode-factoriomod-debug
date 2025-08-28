@@ -7,6 +7,9 @@
   * Added several missing types to migration schema, warn on unknown types
 * Tasks:
   * Don't escape `&` in markdown files
+  * Use [dateformat](https://www.npmjs.com/package/dateformat) for generating changelog datestamps
+    * `package.datestamp_format` to set the format to anything supported by `dateformat` (default `isoDate`)
+    * named format `factorioDate` to match factorio's `dd. mm. yyyy`
 * LuaLS library package:
   * Add `feature_flags` global var for data stage (for real this time)
 

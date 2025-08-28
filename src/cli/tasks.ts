@@ -6,6 +6,7 @@ import path from 'path';
 import { spawn } from "child_process";
 import { visit } from "unist-util-visit";
 import { remark } from "remark";
+import { default as dateformat, masks as dateformatmasks } from "dateformat";
 import type { ModCategory, ModLicense, ModPortalImage } from "../ModManager";
 import { getModInfo } from "../ModManager";
 import * as ChangeLog from "../Language/ChangeLog";
@@ -86,6 +87,8 @@ export async function runPackageGitCommand(command:string, stdin?:string) {
 	});
 }
 
+dateformatmasks.factorioDate = "dd. mm. yyyy";
+
 export async function doPackageDatestamp(info:ModInfo): Promise<boolean> {
 	const uri = Utils.joinPath(URI.file(process.cwd()), "changelog.txt");
 	let content:string|undefined;
@@ -95,7 +98,7 @@ export async function doPackageDatestamp(info:ModInfo): Promise<boolean> {
 	if (!content) {
 		console.log("No changelog.txt");
 	} else {
-		const newDate = new Date().toISOString().substring(0, 10);
+		const newDate = dateformat(new Date(), info.package?.datestamp_format ?? "isoDate");
 		const doc = TextDocument.create(uri.toString(), "factorio-changelog", 1, content);
 		const tree = ChangeLog.parse(doc);
 		const edit = ChangeLog.setDate(tree, info.version, newDate);
