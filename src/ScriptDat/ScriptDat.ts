@@ -128,7 +128,7 @@ export enum LuaObjectType {
 	LuaFontPrototype = 69,
 	LuaQualityPrototype = 70,
 	LuaSpaceLocationPrototype = 71,
-	LuaPlanetType = 72,
+	LuaPlanet = 72,
 	LuaUndoRedoStackType = 73,
 	LuaSurfacePropertyPrototype = 74,
 	LuaCustomEventPrototype = 75,
@@ -304,7 +304,7 @@ export class ScriptDat {
 				return { type, id: thisgcid, value: Object.assign({type: ltypename}, data)};
 			}
 			default:
-				throw new Error(`Invalid type ${type} in saved lua value`);
+				throw new Error(`Invalid type ${typetag} in saved lua value`);
 		}
 	}
 
@@ -433,6 +433,16 @@ export class ScriptDat {
 				return { position, surface };
 			}
 			case LuaObjectType.LuaGuiElement:
+			{
+				if (this.version.isBeyond(1, 2, 0, 415)) {
+					const id = b.readUInt32LE();
+					return { id };
+				} else {
+					const player = b.readUInt32LE();
+					const index = b.readUInt32LE();
+					return { player, index };
+				}
+			}
 			case LuaObjectType.LuaStyle:
 			{
 				const player = b.readUInt32LE();
@@ -532,6 +542,9 @@ export class ScriptDat {
 				return this.loadLuaControlBehavior(b);
 			case LuaObjectType.LuaFlowStatistics:
 				return this.loadLuaFlowStatistics(b);
+			case LuaObjectType.LuaPlanet:
+				const target = b.readUInt32LE();
+				return { target };
 
 			case LuaObjectType.LuaStructMapSettings:
 				throw new Error(`LuaObject of type ${ltype} cannot have been saved`);
@@ -627,16 +640,31 @@ export class ScriptDat {
 			case LuaFlowStatisticsType.FluidProduction:
 			case LuaFlowStatisticsType.KillCount:
 			case LuaFlowStatisticsType.EntityBuild:
+			{
+				let surface
+				if (this.version.isBeyond(1, 2, 0, 360)) {
+					surface = b.readPackedUInt_8_32();
+				}
 				const force = b.readUInt8();
-				return {flow: LuaFlowStatisticsType[type], force};
-
+				return {flow: LuaFlowStatisticsType[type], force, surface};
+			}
 			case LuaFlowStatisticsType.ElectricNetwork:
+			{
 				const target = b.readUInt32LE();
-				return {flow: LuaFlowStatisticsType[type], target};
-
+				let surface
+				if (this.version.isBeyond(2, 0, 48, 4)) {
+					surface = b.readPackedUInt_8_32();
+				}
+				return {flow: LuaFlowStatisticsType[type], target, surface};
+			}
 			case LuaFlowStatisticsType.Pollution:
-				return {flow: LuaFlowStatisticsType[type] };
-
+			{
+				let surface
+				if (this.version.isBeyond(1, 2, 0, 360)) {
+					surface = b.readPackedUInt_8_32();
+				}
+				return {flow: LuaFlowStatisticsType[type], surface };
+			}
 			default:
 				throw new Error(`Unknown LuaFlowStatistics type ${type}`);
 		}
