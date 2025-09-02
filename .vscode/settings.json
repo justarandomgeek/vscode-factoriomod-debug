@@ -67,12 +67,12 @@
     ],
     "nodejs-testing.concurrency": 1,
     "nodejs-testing.debugOptions": {
-			"autoAttachChildProcesses": true,
-			"resolveSourceMapLocations": [
-				"!**/node_modules/**",
-			],
-			"skipFiles": [
-				"<node_internals>/**"
-			],
-		}
+        "autoAttachChildProcesses": true,
+        "resolveSourceMapLocations": [
+            "!**/node_modules/**",
+        ],
+        "skipFiles": [
+            "<node_internals>/**"
+        ],
+    },
 }
