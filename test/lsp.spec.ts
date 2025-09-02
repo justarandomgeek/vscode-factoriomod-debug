@@ -1,14 +1,14 @@
 import { suite, test, before, after, beforeEach, afterEach } from "node:test";
+import assert from 'node:assert/strict';
 import * as path from "path";
 import * as fsp from "fs/promises";
-import type { ChildProcess} from "child_process";
+import type { ChildProcess } from "child_process";
 import { fork } from "child_process";
 import type { ProtocolConnection, InitializeParams, DidOpenTextDocumentParams } from "vscode-languageserver-protocol";
 import { StreamMessageReader, StreamMessageWriter } from "vscode-languageserver-protocol/node.js";
 import { createProtocolConnection, ShutdownRequest, ExitNotification, InitializeRequest, InitializedNotification, DidOpenTextDocumentNotification, PublishDiagnosticsNotification } from "vscode-languageserver-protocol";
 import type { CodeAction, CodeActionParams, ColorPresentationParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DocumentColorParams, DocumentSymbol, DocumentSymbolParams, ProtocolNotificationType, PublishDiagnosticsParams } from "vscode-languageserver-protocol";
 import { CodeActionKind, CodeActionRequest, ColorPresentationRequest, DiagnosticSeverity, DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DocumentColorRequest, DocumentSymbolRequest, SymbolKind } from "vscode-languageserver-protocol";
-import { expect } from "chai";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import * as ChangeLog from "../src/Language/ChangeLog.ts";
 
@@ -39,13 +39,13 @@ await suite("LSP", async ()=>{
 				diagnostics: diags.diagnostics,
 			},
 		} as CodeActionParams) as CodeAction[];
-		expect(actions).length(1);
-		expect(actions[0].kind).equals(CodeActionKind.QuickFix + "." + diags.diagnostics[0].code);
+		assert.equal(actions.length, 1);
+		assert.equal(actions[0].kind, CodeActionKind.QuickFix + "." + diags.diagnostics[0].code);
 
 		const edits = actions[0].edit!.changes![doc.uri];
 		const oldText = doc.getText();
 		const newText = TextDocument.applyEdits(doc, edits);
-		expect(oldText).not.equals(newText);
+		assert.notEqual(oldText, newText);
 		TextDocument.update(doc, [{text: newText}], doc.version+1);
 		await clientConnection.sendNotification(DidChangeTextDocumentNotification.type, {
 			contentChanges: [{text: newText}],
@@ -53,8 +53,8 @@ await suite("LSP", async ()=>{
 		} as DidChangeTextDocumentParams);
 
 		const afterdiags = await waitForNotification(PublishDiagnosticsNotification.type);
-		expect(afterdiags.uri).equals(doc.uri);
-		expect(afterdiags.diagnostics).length(0);
+		assert.equal(afterdiags.uri, doc.uri);
+		assert.equal(afterdiags.diagnostics.length, 0);
 	}
 
 	before(async ()=>{
@@ -100,28 +100,28 @@ await suite("LSP", async ()=>{
 				{ textDocument: docItem(doc) } as DidCloseTextDocumentParams);
 			// and catch the diag clear for that doc
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(0);
+			assert.equal(diags.uri, doc.uri);
+			assert.equal(diags.diagnostics.length, 0);
 		});
 
 		await test("../factorio/data/changelog", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics.filter(d=>d.severity===DiagnosticSeverity.Error)).length(0);
+			assert.equal(diags.uri, doc.uri);
+			assert.equal(diags.diagnostics.filter(d=>d.severity===DiagnosticSeverity.Error).length, 0);
 		});
 
 		await test("valid", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(0);
+			assert.equal(diags.uri, doc.uri);
+			assert.equal(diags.diagnostics.length, 0);
 		});
 
 		function singleDiagTest(diagname:string, andFix?:boolean) {
 			return async ()=>{
 				const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-				expect(diags.uri).equals(doc.uri);
-				expect(diags.diagnostics).length(1);
-				expect(diags.diagnostics[0].code).equals(diagname);
+				assert.equal(diags.uri, doc.uri);
+				assert.equal(diags.diagnostics.length, 1);
+				assert.equal(diags.diagnostics[0].code, diagname);
 
 				if (andFix) { await singleCodeActionShouldFix(doc, diags); }
 			};
@@ -151,25 +151,23 @@ await suite("LSP", async ()=>{
 
 		await test("symbols", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(0);
+			assert.equal(diags.uri, doc.uri);
+			assert.equal(diags.diagnostics.length, 0);
 
 			const symbols = <DocumentSymbol[]> await clientConnection.sendRequest(DocumentSymbolRequest.type, { textDocument: docItem(doc) } as DocumentSymbolParams);
-			expect(symbols).length(4);
+			assert.equal(symbols.length, 4);
 			for (const symbol of symbols) {
-				expect(symbol).includes({
-					detail: '',
-					kind: SymbolKind.Namespace,
-				});
-				expect(symbol.name).oneOf(['0.0.1', '0.0.2', '0.0.3', '0.0.4']);
+				assert.equal(symbol.detail, '');
+				assert.equal(symbol.kind, SymbolKind.Namespace);
+				assert(['0.0.1', '0.0.2', '0.0.3', '0.0.4'].includes(symbol.name));
 			}
 		});
 
 		await test("date-setdate", async ()=>{
 			// valid to start...
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(0);
+			assert.equal(diags.uri, doc.uri);
+			assert.equal(diags.diagnostics.length, 0);
 
 			const tree = ChangeLog.parse(doc);
 
@@ -178,13 +176,13 @@ await suite("LSP", async ()=>{
 				ChangeLog.setDate(tree, "1.0.0", "today")!,
 				ChangeLog.setDate(tree, "1.0.1", "tomorrow")!,
 			]);
-			expect(oldText).not.equals(newText);
-			expect(oldText).not.contains("today");
-			expect(oldText).not.contains("tomorrow");
-			expect(oldText).contains("????");
-			expect(newText).contains("today");
-			expect(newText).contains("tomorrow");
-			expect(newText).not.contains("????");
+			assert.notEqual(oldText, newText);
+			assert(!oldText.includes("today"));
+			assert(!oldText.includes("tomorrow"));
+			assert(oldText.includes("????"));
+			assert(newText.includes("today"));
+			assert(newText.includes("tomorrow"));
+			assert(!newText.includes("????"));
 			TextDocument.update(doc, [{text: newText}], doc.version+1);
 			await clientConnection.sendNotification(DidChangeTextDocumentNotification.type, {
 				contentChanges: [{text: newText}],
@@ -192,8 +190,8 @@ await suite("LSP", async ()=>{
 			} as DidChangeTextDocumentParams);
 
 			const afterdiags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(afterdiags.uri).equals(doc.uri);
-			expect(afterdiags.diagnostics).length(0);
+			assert.equal(afterdiags.uri, doc.uri);
+			assert.equal(afterdiags.diagnostics.length, 0);
 		});
 
 	});
@@ -213,98 +211,96 @@ await suite("LSP", async ()=>{
 				{ textDocument: docItem(doc) } as DidCloseTextDocumentParams);
 			// and catch the diag clear for that doc
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(0);
+			assert.equal(diags.uri, doc.uri);
+			assert.equal(diags.diagnostics.length, 0);
 		});
 
 		await test("valid", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(0);
+			assert.equal(diags.uri, doc.uri);
+			assert.equal(diags.diagnostics.length, 0);
 		});
 
 		await test("section-merge", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(1);
-			expect(diags.diagnostics[0].code).equals("section.merge");
+			assert.equal(diags.uri, doc.uri);
+			assert.equal(diags.diagnostics.length, 1);
+			assert.equal(diags.diagnostics[0].code, "section.merge");
 
 			await singleCodeActionShouldFix(doc, diags);
 		});
 
 		await test("section-rootconflict", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(1);
-			expect(diags.diagnostics[0].code).equals("section.rootconflict");
+			assert.equal(diags.uri, doc.uri);
+			assert.equal(diags.diagnostics.length, 1);
+			assert.equal(diags.diagnostics[0].code, "section.rootconflict");
 		});
 
 		await test("section-emptyname", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(1);
-			expect(diags.diagnostics[0].code).equals("section.invalid");
+			assert.equal(diags.uri, doc.uri);
+			assert.equal(diags.diagnostics.length, 1);
+			assert.equal(diags.diagnostics[0].code, "section.invalid");
 
 			const symbols = <DocumentSymbol[]> await clientConnection.sendRequest(DocumentSymbolRequest.type, { textDocument: docItem(doc) } as DocumentSymbolParams);
-			expect(symbols).length(1);
-			expect(symbols[0]).includes({
-				detail: '',
-				kind: SymbolKind.Namespace,
-			});
-			expect(symbols[0].name);
+			assert.equal(symbols.length, 1);
+			assert.equal(symbols[0].detail, '');
+			assert.equal(symbols[0].kind, SymbolKind.Namespace);
+			assert(symbols[0].name);
 		});
 
 		await test("section-invalid", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(1);
-			expect(diags.diagnostics[0].code).equals("section.invalid");
+			assert.equal(diags.uri, doc.uri);
+			assert.equal(diags.diagnostics.length, 1);
+			assert.equal(diags.diagnostics[0].code, "section.invalid");
 		});
 
 		await test("key-duplicate", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(1);
-			expect(diags.diagnostics[0].code).equals("key.duplicate");
+			assert.equal(diags.uri, doc.uri);
+			assert.equal(diags.diagnostics.length, 1);
+			assert.equal(diags.diagnostics[0].code, "key.duplicate");
 		});
 
 		await test("key-empty", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(1);
-			expect(diags.diagnostics[0].code).equals("key.invalid");
+			assert.equal(diags.uri, doc.uri);
+			assert.equal(diags.diagnostics.length, 1);
+			assert.equal(diags.diagnostics[0].code, "key.invalid");
 		});
 
 		await test("key-invalid", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(1);
-			expect(diags.diagnostics[0].code).equals("key.invalid");
+			assert.equal(diags.uri, doc.uri);
+			assert.equal(diags.diagnostics.length, 1);
+			assert.equal(diags.diagnostics[0].code, "key.invalid");
 		});
 
 		await test("key-whitespace-end", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(1);
-			expect(diags.diagnostics[0].code).equals("key.whitespace-end");
+			assert.equal(diags.uri, doc.uri);
+			assert.equal(diags.diagnostics.length, 1);
+			assert.equal(diags.diagnostics[0].code, "key.whitespace-end");
 		});
 
 		await test("color", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			expect(diags.uri).equals(doc.uri);
-			expect(diags.diagnostics).length(0);
+			assert.equal(diags.uri, doc.uri);
+			assert.equal(diags.diagnostics.length, 0);
 
 			const colors = await clientConnection.sendRequest(DocumentColorRequest.type, {
 				textDocument: {uri: doc.uri},
 			} as DocumentColorParams);
-			expect(colors).length(1);
+			assert.equal(colors.length, 1);
 
 			const pres = await clientConnection.sendRequest(ColorPresentationRequest.type, {
 				textDocument: {uri: doc.uri},
 				...colors[0],
 			} as ColorPresentationParams);
-			expect(pres).length(4);
-			expect(pres.map(p=>p.label)).contains.members(['red', '#ff2a23', '255, 42, 35', '1, 0.166, 0.141']);
+			assert.equal(pres.length, 4);
+			assert.deepEqual(pres.map(p=>p.label), ['red', '#ff2a23', '255, 42, 35', '1, 0.166, 0.141']);
 		});
 
 	});
