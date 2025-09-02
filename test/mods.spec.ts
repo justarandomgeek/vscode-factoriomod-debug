@@ -1,7 +1,7 @@
 import * as path from "path";
 import * as fsp from "fs/promises";
 import { test, suite, before, after } from "node:test";
-import { expect } from "chai";
+import assert from 'node:assert/strict';
 import { forkTest } from "./util.ts";
 import type { ModInstallResult } from "../src/ModManager";
 import {default as packagejson} from "../package.json" assert { type: "json" };
@@ -21,13 +21,13 @@ await suite('CLI Mod Manager', async ()=>{
 	await test('install debugadapter from bundle', async ()=>{
 		const result = await forkTest(fmtk, ["mods", "install", "--force", "debugadapter"], {cwd: mods});
 		const jsonresult = JSON.parse(result.stdout.toString("utf8")) as ModInstallResult;
-		expect(jsonresult.from).equals("installed");
+		assert.equal(jsonresult.from, "installed");
 	});
 
 	await test('match debugadapter from existing zip', async ()=>{
 		const result = await forkTest(fmtk, ["mods", "install", "debugadapter"], {cwd: mods});
 		const jsonresult = JSON.parse(result.stdout.toString("utf8")) as ModInstallResult;
-		expect(jsonresult.from).equals("existing");
+		assert.equal(jsonresult.from, "existing");
 	});
 
 	await test('match debugadapter from existing folder', async ()=>{
@@ -39,7 +39,7 @@ await suite('CLI Mod Manager', async ()=>{
 			}));
 		const result = await forkTest(fmtk, ["mods", "install", "debugadapter"], {cwd: mods});
 		const jsonresult = JSON.parse(result.stdout.toString("utf8")) as ModInstallResult;
-		expect(jsonresult.from).equals("folder");
+		assert.equal(jsonresult.from, "folder");
 		await fsp.rm(path.join(mods, "debugadapter"), {recursive: true});
 	});
 
@@ -53,7 +53,7 @@ await suite('CLI Mod Manager', async ()=>{
 			}));
 		const result = await forkTest(fmtk, ["mods", "install", "debugadapter"], {cwd: mods});
 		const jsonresult = JSON.parse(result.stdout.toString("utf8")) as ModInstallResult;
-		expect(jsonresult.from).equals("versioned_folder");
+		assert.equal(jsonresult.from, "versioned_folder");
 		await fsp.rm(path.join(mods, name), {recursive: true});
 	});
 
@@ -61,14 +61,14 @@ await suite('CLI Mod Manager', async ()=>{
 		await fsp.writeFile(path.join(mods, "debugadapter-tests_0.0.0.zip"), "");
 		const result = await forkTest(fmtk, ["mods", "install", "debugadapter-tests"], {cwd: mods});
 		const jsonresult = JSON.parse(result.stdout.toString("utf8")) as ModInstallResult;
-		expect(jsonresult.from).equals("installed");
-		expect(jsonresult.replaced).equals("0.0.0");
+		assert.equal(jsonresult.from, "installed");
+		assert.equal(jsonresult.replaced, "0.0.0");
 	});
 
 	await test('install jargtestmod from portal', async ()=>{
 		const result = await forkTest(fmtk, ["mods", "install", "--force", "jargtestmod"], {cwd: mods});
 		const jsonresult = JSON.parse(result.stdout.toString("utf8")) as ModInstallResult;
-		expect(jsonresult.from).equals("installed");
+		assert.equal(jsonresult.from, "installed");
 	});
 
 	await test('enable debugadapter', async ()=>{
