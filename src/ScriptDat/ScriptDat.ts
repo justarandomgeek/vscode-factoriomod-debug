@@ -323,6 +323,8 @@ export class ScriptDat {
 			case LuaObjectType.LuaLogisticCell:
 			case LuaObjectType.LuaRailPath:
 			case LuaObjectType.LuaAISettings:
+			case LuaObjectType.LuaPlanet:
+			case LuaObjectType.LuaRenderObject:
 			{
 				const target = b.readUInt32LE();
 				return { target };
@@ -542,9 +544,6 @@ export class ScriptDat {
 				return this.loadLuaControlBehavior(b);
 			case LuaObjectType.LuaFlowStatistics:
 				return this.loadLuaFlowStatistics(b);
-			case LuaObjectType.LuaPlanet:
-				const target = b.readUInt32LE();
-				return { target };
 
 			case LuaObjectType.LuaStructMapSettings:
 				throw new Error(`LuaObject of type ${ltype} cannot have been saved`);
