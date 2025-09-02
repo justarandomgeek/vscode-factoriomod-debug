@@ -1,18 +1,11 @@
-/* eslint-disable @typescript-eslint/no-unused-expressions */
 import { test, suite } from "node:test";
 import assert from 'node:assert/strict';
-import * as chai from "chai";
-import { expect } from "chai";
-import chaiAsPromised from "chai-as-promised";
 import { Duplex } from "stream";
-
 import { BufferSplitter } from '../src/Util/BufferSplitter.ts';
 import { BufferStream } from '../src/Util/BufferStream.ts';
 import { encodeVarInt } from '../src/Util/EncodingUtil.ts';
 import { PropertyTreeType, loadPTree, savePTree } from '../src/Util/PropertyTree.ts';
 import { MapVersion } from '../src/Util/MapVersion.ts';
-
-chai.use(chaiAsPromised);
 
 class TestStream extends Duplex {
 	_write(chunk: string, _encoding: string, done: () => void) {
@@ -233,27 +226,48 @@ await suite('PropertyTree', async ()=>{
 	});
 });
 
-await test('MapVersion', ()=>{
-	expect(MapVersion.load(Buffer.from([1, 0, 2, 0, 3, 0, 4, 0, 5])))
-		.instanceOf(MapVersion)
-		.include({ main: 1, major: 2, minor: 3, patch: 4, branch: 5 });
-
-	expect(new MapVersion(1, 2, 3, 4, 5).save()).deep.equals(Buffer.from([1, 0, 2, 0, 3, 0, 4, 0, 5]));
-
-	expect(new MapVersion(1, 2, 3, 4, 0).format()).equals("1.2.3-4");
-
-	expect(new MapVersion(1, 2, 3, 4, 0).isBeyond(1, 2, 3, 3)).is.true;
-	expect(new MapVersion(1, 2, 3, 4, 0).isBeyond(1, 2, 3, 4)).is.true;
-	expect(new MapVersion(1, 2, 3, 4, 0).isBeyond(1, 2, 3, 5)).is.false;
-
-	expect(new MapVersion(1, 2, 3, 4, 0).isBeyond(1, 2, 2, 0)).is.true;
-	expect(new MapVersion(1, 2, 3, 4, 0).isBeyond(1, 2, 4, 0)).is.false;
-
-	expect(new MapVersion(1, 2, 3, 4, 0).isBeyond(1, 1, 0, 0)).is.true;
-	expect(new MapVersion(1, 2, 3, 4, 0).isBeyond(1, 3, 0, 0)).is.false;
-
-	expect(new MapVersion(1, 2, 3, 4, 0).isBeyond(0, 99, 0, 0)).is.true;
-	expect(new MapVersion(1, 2, 3, 4, 0).isBeyond(2, 0, 0, 0)).is.false;
-
-	expect(new MapVersion(2, 0, 0, 0, 0).isBeyond(1, 2, 3, 4)).is.true;
+await suite('MapVersion', async()=>{
+	await test('load', ()=>{
+		assert.deepEqual(
+			MapVersion.load(Buffer.from([1, 0, 2, 0, 3, 0, 4, 0, 5])),
+			new MapVersion(1, 2, 3, 4, 5));
+	});
+	await test('save', ()=>{
+		assert.deepEqual(
+			new MapVersion(1, 2, 3, 4, 5).save(),
+			Buffer.from([1, 0, 2, 0, 3, 0, 4, 0, 5]));
+	});
+	await test('format', ()=>{
+		assert.equal(new MapVersion(1, 2, 3, 4, 0).format(), "1.2.3-4");
+	});
+	await test('1.2.3-4 (0) >= 1.2.3-3', ()=>{
+		assert(new MapVersion(1, 2, 3, 4, 0).isBeyond(1, 2, 3, 3));
+	});
+	await test('1.2.3-4 (0) >= 1.2.3-4', ()=>{
+		assert(new MapVersion(1, 2, 3, 4, 0).isBeyond(1, 2, 3, 4));
+	});
+	await test('1.2.3-4 (0) !>= 1.2.3-5', ()=>{
+		assert(!new MapVersion(1, 2, 3, 4, 0).isBeyond(1, 2, 3, 5));
+	});
+	await test('1.2.3-4 (0) >= 1.2.2-0', ()=>{
+		assert(new MapVersion(1, 2, 3, 4, 0).isBeyond(1, 2, 2, 0));
+	});
+	await test('1.2.3-4 (0) !>= 1.2.4-0', ()=>{
+		assert(!new MapVersion(1, 2, 3, 4, 0).isBeyond(1, 2, 4, 0));
+	});
+	await test('1.2.3-4 (0) >= 1.1.0-0', ()=>{
+		assert(new MapVersion(1, 2, 3, 4, 0).isBeyond(1, 1, 0, 0));
+	});
+	await test('1.2.3-4 (0) !>= 1.3.0-0', ()=>{
+		assert(!new MapVersion(1, 2, 3, 4, 0).isBeyond(1, 3, 0, 0));
+	});
+	await test('1.2.3-4 (0) >= 0.99.0-0', ()=>{
+		assert(new MapVersion(1, 2, 3, 4, 0).isBeyond(0, 99, 0, 0));
+	});
+	await test('1.2.3-4 (0) !>= 2.0.0-0', ()=>{
+		assert(!new MapVersion(1, 2, 3, 4, 0).isBeyond(2, 0, 0, 0));
+	});
+	await test('2.0.0-0 (0) >= 1.2.3-4', ()=>{
+		assert(new MapVersion(2, 0, 0, 0, 0).isBeyond(1, 2, 3, 4));
+	});
 });
