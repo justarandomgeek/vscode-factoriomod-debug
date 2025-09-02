@@ -1,6 +1,6 @@
 {
 	"compilerOptions": {
-		"module": "ES2022",
+		"module": "preserve",
 		"target": "es2022",
 
 		"noImplicitAny": true,
