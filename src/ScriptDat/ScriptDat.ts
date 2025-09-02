@@ -640,7 +640,7 @@ export class ScriptDat {
 			case LuaFlowStatisticsType.KillCount:
 			case LuaFlowStatisticsType.EntityBuild:
 			{
-				let surface
+				let surface;
 				if (this.version.isBeyond(1, 2, 0, 360)) {
 					surface = b.readPackedUInt_8_32();
 				}
@@ -650,7 +650,7 @@ export class ScriptDat {
 			case LuaFlowStatisticsType.ElectricNetwork:
 			{
 				const target = b.readUInt32LE();
-				let surface
+				let surface;
 				if (this.version.isBeyond(2, 0, 48, 4)) {
 					surface = b.readPackedUInt_8_32();
 				}
@@ -658,7 +658,7 @@ export class ScriptDat {
 			}
 			case LuaFlowStatisticsType.Pollution:
 			{
-				let surface
+				let surface;
 				if (this.version.isBeyond(1, 2, 0, 360)) {
 					surface = b.readPackedUInt_8_32();
 				}
