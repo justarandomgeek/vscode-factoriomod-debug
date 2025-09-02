@@ -314,7 +314,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			// sending an error response to vscode doesn't seem to to anything, so dont' bother?
 			this.sendEvent(new TerminatedEvent());
 			this.sendErrorResponse(response, 1);
-			if (!this._isRunningInline()) { process.exit(1); }
+			this.shutdown();
 			return;
 		}
 		if (!await this.resolveModsPath(args)) {
@@ -322,7 +322,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			// sending an error response to vscode doesn't seem to to anything, so dont' bother?
 			this.sendEvent(new TerminatedEvent());
 			this.sendErrorResponse(response, 1);
-			if (!this._isRunningInline()) { process.exit(1); }
+			this.shutdown();
 			return;
 		}
 		try {
@@ -331,7 +331,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			this.sendEvent(new OutputEvent(`Error setting up mods: ${error}\n`, "console"));
 			this.sendEvent(new TerminatedEvent());
 			this.sendErrorResponse(response, 1);
-			if (!this._isRunningInline()) { process.exit(1); }
+			this.shutdown();
 			return;
 		}
 
