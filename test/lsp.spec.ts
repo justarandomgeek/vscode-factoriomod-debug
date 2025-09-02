@@ -1,21 +1,22 @@
-import { setup, teardown, suite, test, suiteSetup, suiteTeardown } from "mocha";
+import { suite, test, before, after, beforeEach, afterEach } from "node:test";
 import * as path from "path";
 import * as fsp from "fs/promises";
 import type { ChildProcess} from "child_process";
 import { fork } from "child_process";
-import type { ProtocolConnection, InitializeParams, DidOpenTextDocumentParams } from "vscode-languageserver-protocol/node";
-import { createProtocolConnection, StreamMessageReader, StreamMessageWriter, ShutdownRequest, ExitNotification, InitializeRequest, InitializedNotification, DidOpenTextDocumentNotification, PublishDiagnosticsNotification } from "vscode-languageserver-protocol/node";
+import type { ProtocolConnection, InitializeParams, DidOpenTextDocumentParams } from "vscode-languageserver-protocol";
+import { StreamMessageReader, StreamMessageWriter } from "vscode-languageserver-protocol/node.js";
+import { createProtocolConnection, ShutdownRequest, ExitNotification, InitializeRequest, InitializedNotification, DidOpenTextDocumentNotification, PublishDiagnosticsNotification } from "vscode-languageserver-protocol";
 import type { CodeAction, CodeActionParams, ColorPresentationParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DocumentColorParams, DocumentSymbol, DocumentSymbolParams, ProtocolNotificationType, PublishDiagnosticsParams } from "vscode-languageserver-protocol";
 import { CodeActionKind, CodeActionRequest, ColorPresentationRequest, DiagnosticSeverity, DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DocumentColorRequest, DocumentSymbolRequest, SymbolKind } from "vscode-languageserver-protocol";
 import { expect } from "chai";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import * as ChangeLog from "../src/Language/ChangeLog";
+import * as ChangeLog from "../src/Language/ChangeLog.ts";
 
 function docItem(doc:TextDocument) {
 	return { uri: doc.uri, languageId: doc.languageId, version: doc.version, text: doc.getText() };
 }
 
-suite("LSP", ()=>{
+await suite("LSP", async ()=>{
 	const fmtk = path.join(import.meta.dirname, '../dist/fmtk-cli.js');
 	const cwd = path.join(import.meta.dirname, "./mod");
 	let server:ChildProcess;
@@ -56,7 +57,7 @@ suite("LSP", ()=>{
 		expect(afterdiags.diagnostics).length(0);
 	}
 
-	suiteSetup(async ()=>{
+	before(async ()=>{
 		server = fork(fmtk, ["lsp", "--stdio"], {cwd: cwd, stdio: "pipe"});
 		clientConnection = createProtocolConnection(
 			new StreamMessageReader(server.stdout!),
@@ -75,7 +76,7 @@ suite("LSP", ()=>{
 		await clientConnection.sendNotification(InitializedNotification.type, {});
 	});
 
-	suiteTeardown(async ()=>{
+	after(async ()=>{
 		await clientConnection.sendRequest(ShutdownRequest.type);
 		await clientConnection.sendNotification(ExitNotification.type);
 		await new Promise<void>((resolve)=>{
@@ -84,17 +85,17 @@ suite("LSP", ()=>{
 		clientConnection.end();
 	});
 
-	suite("Changelog", ()=>{
+	await suite("Changelog", async ()=>{
 		let doc:TextDocument;
 
-		setup(async function() {
-			const testfile = path.join(import.meta.dirname, "changelog", `${this.currentTest!.title}.txt`);
-			doc = TextDocument.create(`test://${this.currentTest!.title}/changelog.txt`, "factorio-changelog", 1, await fsp.readFile(testfile, "utf8"));
+		beforeEach(async (t)=>{
+			const testfile = path.join(import.meta.dirname, "changelog", `${t.name}.txt`);
+			doc = TextDocument.create(`test://${t.name}/changelog.txt`, "factorio-changelog", 1, await fsp.readFile(testfile, "utf8"));
 			await clientConnection.sendNotification(DidOpenTextDocumentNotification.type,
 				{ textDocument: docItem(doc) } as DidOpenTextDocumentParams);
 		});
 
-		teardown(async function() {
+		afterEach(async ()=>{
 			await clientConnection.sendNotification(DidCloseTextDocumentNotification.type,
 				{ textDocument: docItem(doc) } as DidCloseTextDocumentParams);
 			// and catch the diag clear for that doc
@@ -103,20 +104,20 @@ suite("LSP", ()=>{
 			expect(diags.diagnostics).length(0);
 		});
 
-		test("../factorio/data/changelog", async function() {
+		await test("../factorio/data/changelog", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
 			expect(diags.uri).equals(doc.uri);
 			expect(diags.diagnostics.filter(d=>d.severity===DiagnosticSeverity.Error)).length(0);
 		});
 
-		test("valid", async function() {
+		await test("valid", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
 			expect(diags.uri).equals(doc.uri);
 			expect(diags.diagnostics).length(0);
 		});
 
 		function singleDiagTest(diagname:string, andFix?:boolean) {
-			return async function() {
+			return async ()=>{
 				const diags = await waitForNotification(PublishDiagnosticsNotification.type);
 				expect(diags.uri).equals(doc.uri);
 				expect(diags.diagnostics).length(1);
@@ -126,29 +127,29 @@ suite("LSP", ()=>{
 			};
 		}
 
-		test("separator-length", singleDiagTest("separator.length", true));
-		test("separator-eof", singleDiagTest("separator.remove", true));
-		test("version-missing", singleDiagTest("version.insert", true));
-		test("version-duplicate", singleDiagTest("version.duplicate"));
-		test("version-valformat", singleDiagTest("version.value"));
-		test("version-format", singleDiagTest("version.format"));
-		test("version-order", singleDiagTest("version.order"));
-		test("separator-missing", singleDiagTest("separator.insert", true));
-		test("date-duplicate", singleDiagTest("date.remove", true));
-		test("date-placement", singleDiagTest("date.placement"));
-		test("date-format", singleDiagTest("date.format"));
-		test("category-prefix", singleDiagTest("category.prefix", true));
-		test("category-suffix", singleDiagTest("category.suffix", true));
-		test("category-nonstandard", singleDiagTest("category.nonstandard"));
-		test("category-none", singleDiagTest("category.insert", true));
-		test("line-blank", singleDiagTest("entry.empty"));
-		test("line-duplicate", singleDiagTest("entry.duplicate"));
-		test("line-extduplicate", singleDiagTest("entry.duplicate"));
-		test("line-nesting", singleDiagTest("entry.prefix"));
-		test("line-format", singleDiagTest("entry.prefix", true));
-		test("line-extformat", singleDiagTest("entryext.prefix", true));
+		await test("separator-length", singleDiagTest("separator.length", true));
+		await test("separator-eof", singleDiagTest("separator.remove", true));
+		await test("version-missing", singleDiagTest("version.insert", true));
+		await test("version-duplicate", singleDiagTest("version.duplicate"));
+		await test("version-valformat", singleDiagTest("version.value"));
+		await test("version-format", singleDiagTest("version.format"));
+		await test("version-order", singleDiagTest("version.order"));
+		await test("separator-missing", singleDiagTest("separator.insert", true));
+		await test("date-duplicate", singleDiagTest("date.remove", true));
+		await test("date-placement", singleDiagTest("date.placement"));
+		await test("date-format", singleDiagTest("date.format"));
+		await test("category-prefix", singleDiagTest("category.prefix", true));
+		await test("category-suffix", singleDiagTest("category.suffix", true));
+		await test("category-nonstandard", singleDiagTest("category.nonstandard"));
+		await test("category-none", singleDiagTest("category.insert", true));
+		await test("line-blank", singleDiagTest("entry.empty"));
+		await test("line-duplicate", singleDiagTest("entry.duplicate"));
+		await test("line-extduplicate", singleDiagTest("entry.duplicate"));
+		await test("line-nesting", singleDiagTest("entry.prefix"));
+		await test("line-format", singleDiagTest("entry.prefix", true));
+		await test("line-extformat", singleDiagTest("entryext.prefix", true));
 
-		test("symbols", async function() {
+		await test("symbols", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
 			expect(diags.uri).equals(doc.uri);
 			expect(diags.diagnostics).length(0);
@@ -164,7 +165,7 @@ suite("LSP", ()=>{
 			}
 		});
 
-		test("date-setdate", async function() {
+		await test("date-setdate", async ()=>{
 			// valid to start...
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
 			expect(diags.uri).equals(doc.uri);
@@ -197,17 +198,17 @@ suite("LSP", ()=>{
 
 	});
 
-	suite("Locale", ()=>{
+	await suite("Locale", async ()=>{
 		let doc:TextDocument;
 
-		setup(async function() {
-			const testfile = path.join(import.meta.dirname, "locale", `${this.currentTest!.title}.cfg`);
-			doc = TextDocument.create(`test://${this.currentTest!.title}/locale/en/test.cfg`, "factorio-locale", 1, await fsp.readFile(testfile, "utf8"));
+		beforeEach(async (t)=>{
+			const testfile = path.join(import.meta.dirname, "locale", `${t.name}.cfg`);
+			doc = TextDocument.create(`test://${t.name}/locale/en/test.cfg`, "factorio-locale", 1, await fsp.readFile(testfile, "utf8"));
 			await clientConnection.sendNotification(DidOpenTextDocumentNotification.type,
 				{ textDocument: docItem(doc) } as DidOpenTextDocumentParams);
 		});
 
-		teardown(async function() {
+		afterEach(async ()=>{
 			await clientConnection.sendNotification(DidCloseTextDocumentNotification.type,
 				{ textDocument: docItem(doc) } as DidCloseTextDocumentParams);
 			// and catch the diag clear for that doc
@@ -216,13 +217,13 @@ suite("LSP", ()=>{
 			expect(diags.diagnostics).length(0);
 		});
 
-		test("valid", async function() {
+		await test("valid", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
 			expect(diags.uri).equals(doc.uri);
 			expect(diags.diagnostics).length(0);
 		});
 
-		test("section-merge", async function() {
+		await test("section-merge", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
 			expect(diags.uri).equals(doc.uri);
 			expect(diags.diagnostics).length(1);
@@ -231,14 +232,14 @@ suite("LSP", ()=>{
 			await singleCodeActionShouldFix(doc, diags);
 		});
 
-		test("section-rootconflict", async function() {
+		await test("section-rootconflict", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
 			expect(diags.uri).equals(doc.uri);
 			expect(diags.diagnostics).length(1);
 			expect(diags.diagnostics[0].code).equals("section.rootconflict");
 		});
 
-		test("section-emptyname", async function() {
+		await test("section-emptyname", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
 			expect(diags.uri).equals(doc.uri);
 			expect(diags.diagnostics).length(1);
@@ -253,42 +254,42 @@ suite("LSP", ()=>{
 			expect(symbols[0].name);
 		});
 
-		test("section-invalid", async function() {
+		await test("section-invalid", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
 			expect(diags.uri).equals(doc.uri);
 			expect(diags.diagnostics).length(1);
 			expect(diags.diagnostics[0].code).equals("section.invalid");
 		});
 
-		test("key-duplicate", async function() {
+		await test("key-duplicate", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
 			expect(diags.uri).equals(doc.uri);
 			expect(diags.diagnostics).length(1);
 			expect(diags.diagnostics[0].code).equals("key.duplicate");
 		});
 
-		test("key-empty", async function() {
+		await test("key-empty", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
 			expect(diags.uri).equals(doc.uri);
 			expect(diags.diagnostics).length(1);
 			expect(diags.diagnostics[0].code).equals("key.invalid");
 		});
 
-		test("key-invalid", async function() {
+		await test("key-invalid", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
 			expect(diags.uri).equals(doc.uri);
 			expect(diags.diagnostics).length(1);
 			expect(diags.diagnostics[0].code).equals("key.invalid");
 		});
 
-		test("key-whitespace-end", async function() {
+		await test("key-whitespace-end", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
 			expect(diags.uri).equals(doc.uri);
 			expect(diags.diagnostics).length(1);
 			expect(diags.diagnostics[0].code).equals("key.whitespace-end");
 		});
 
-		test("color", async function() {
+		await test("color", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
 			expect(diags.uri).equals(doc.uri);
 			expect(diags.diagnostics).length(0);

@@ -1,5 +1,5 @@
-import { literalNode, span } from "../ASTUtil";
-import type { DateLine, Category, Entry, Root, Section, VersionLine, EntryExt, SeparatorLine, Error } from "./AST";
+import { literalNode, span } from "../ASTUtil.ts";
+import type { DateLine, Category, Entry, Root, Section, VersionLine, EntryExt, SeparatorLine, Error } from "./AST.ts";
 import type { TextDocument } from 'vscode-languageserver-textdocument';
 import { visitParents } from "unist-util-visit-parents";
 

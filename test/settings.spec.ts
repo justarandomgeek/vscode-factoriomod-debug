@@ -1,28 +1,28 @@
 import * as path from "path";
 import * as fsp from "fs/promises";
-import { test, suite, suiteSetup, suiteTeardown } from "mocha";
+import { test, suite, before, after } from "node:test";
 import { expect } from "chai";
-import { forkTest, forkTestFails } from "./util";
+import { forkTest, forkTestFails } from "./util.ts";
 
-suite('CLI Mod Settings', ()=>{
+await suite('CLI Mod Settings', async ()=>{
 	const fmtk = path.join(import.meta.dirname, '../dist/fmtk-cli.js');
 	const mods = path.join(import.meta.dirname, "./factorio/mod-tests");
 
-	suiteSetup(async ()=>{
+	before(async ()=>{
 		await fsp.mkdir(mods, {recursive: true});
 		await fsp.copyFile(path.join(import.meta.dirname, "empty-mod-settings.dat"), path.join(mods, "mod-settings.dat"));
 	});
 
-	suiteTeardown(async ()=>{
+	after(async ()=>{
 		await fsp.rm(mods, {recursive: true});
 	});
 
-	test('list empty', async ()=>{
+	await test('list empty', async ()=>{
 		const result = await forkTest(fmtk, ["settings", "list"], {cwd: mods});
 		expect(result.stdout).equals(null);
 	});
 
-	test('set bool', async ()=>{
+	await test('set bool', async ()=>{
 		await forkTest(fmtk, ["settings", "set", "startup", "test", "true"], {cwd: mods});
 		let result = await forkTest(fmtk, ["settings", "get", "startup", "test"], {cwd: mods});
 		expect(result.stdout);
@@ -46,7 +46,7 @@ suite('CLI Mod Settings', ()=>{
 		await forkTestFails(fmtk, ["settings", "set", "startup", "test", "--type", "bool", "oops"], {cwd: mods});
 	});
 
-	test('set number', async ()=>{
+	await test('set number', async ()=>{
 		await forkTest(fmtk, ["settings", "set", "startup", "test", "42"], {cwd: mods});
 		let result = await forkTest(fmtk, ["settings", "get", "startup", "test"], {cwd: mods});
 		expect(result.stdout);
@@ -60,7 +60,7 @@ suite('CLI Mod Settings', ()=>{
 		await forkTestFails(fmtk, ["settings", "set", "startup", "test", "--type", "number", "oops"], {cwd: mods});
 	});
 
-	test('set string', async ()=>{
+	await test('set string', async ()=>{
 		await forkTest(fmtk, ["settings", "set", "startup", "test", "asdf"], {cwd: mods});
 		let result = await forkTest(fmtk, ["settings", "get", "startup", "test"], {cwd: mods});
 		expect(result.stdout);
@@ -72,7 +72,7 @@ suite('CLI Mod Settings', ()=>{
 		expect(result.stdout.toString()).equals("\"true\"\n");
 	});
 
-	test('set color', async ()=>{
+	await test('set color', async ()=>{
 		await forkTest(fmtk, ["settings", "set", "startup", "test", "--type", "color", "(0.5, 0.25, 0.125)"], {cwd: mods});
 		let result = await forkTest(fmtk, ["settings", "get", "startup", "test"], {cwd: mods});
 		expect(result.stdout);
@@ -96,18 +96,18 @@ suite('CLI Mod Settings', ()=>{
 		await forkTestFails(fmtk, ["settings", "set", "startup", "test", "--type", "color", "oops"], {cwd: mods});
 	});
 
-	test('error on bad type', async ()=>{
+	await test('error on bad type', async ()=>{
 		await forkTestFails(fmtk, ["settings", "set", "startup", "test", "--type", "oops", "oops"], {cwd: mods});
 	});
 
-	test('unset', async ()=>{
+	await test('unset', async ()=>{
 		await forkTest(fmtk, ["settings", "unset", "startup", "test"], {cwd: mods});
 		const result = await forkTest(fmtk, ["settings", "get", "startup", "test"], {cwd: mods});
 		expect(result.stdout);
 		expect(result.stdout.toString()).equals("undefined\n");
 	});
 
-	test('list', async ()=>{
+	await test('list', async ()=>{
 		// make sure it's still empty to start with...
 		const result1 = await forkTest(fmtk, ["settings", "list"], {cwd: mods});
 		expect(result1.stdout).equals(null);
@@ -120,7 +120,7 @@ suite('CLI Mod Settings', ()=>{
 		expect(result2.stdout.toString()).equals("startup test-1 123\nruntime-global test-2 true\nruntime-per-user test-3 \"asdf\"\nruntime-per-user test-4 Color(1, 1, 1, 1)\n");
 	});
 
-	test('error on bad scopes', async ()=>{
+	await test('error on bad scopes', async ()=>{
 		await forkTestFails(fmtk, ["settings", "get", "badscope", "test"], {cwd: mods});
 		await forkTestFails(fmtk, ["settings", "set", "badscope", "test", "value"], {cwd: mods});
 		await forkTestFails(fmtk, ["settings", "unset", "badscope", "test"], {cwd: mods});

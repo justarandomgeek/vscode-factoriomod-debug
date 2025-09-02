@@ -1,13 +1,13 @@
 import * as path from "path";
 import * as fsp from "fs/promises";
-import { test, suite } from "mocha";
+import { test, suite } from "node:test";
 import { expect } from "chai";
-import { forkTest } from "./util";
+import { forkTest } from "./util.ts";
 
-suite('CLI script.dat dump', ()=>{
+await suite('CLI script.dat dump', async ()=>{
 	const fmtk = path.join(import.meta.dirname, '../dist/fmtk-cli.js');
 
-	test('dump 1.1', async ()=>{
+	await test('dump 1.1', async ()=>{
 		const result = await forkTest(fmtk,
 			["scriptdat", path.join(import.meta.dirname, 'test-script_1.1.dat')],
 			{cwd: import.meta.dirname});
@@ -16,7 +16,7 @@ suite('CLI script.dat dump', ()=>{
 			.deep.equals(expected);
 	});
 
-	test.skip('dump', async ()=>{
+	await test.skip('dump', async ()=>{
 		const result = await forkTest(fmtk,
 			["scriptdat", path.join(import.meta.dirname, 'test-script.dat')],
 			{cwd: import.meta.dirname});

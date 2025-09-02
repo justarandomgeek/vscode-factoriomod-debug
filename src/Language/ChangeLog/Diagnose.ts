@@ -1,8 +1,8 @@
-import type { Diagnostic } from 'vscode-languageserver/node';
-import { DiagnosticSeverity } from 'vscode-languageserver/node';
+import type { Diagnostic } from 'vscode-languageserver';
+import { DiagnosticSeverity } from 'vscode-languageserver';
 
-import type { Parent } from "../ASTUtil";
-import type { EntryExt, allNodes, Entry, Root, VersionLine, Category } from "./AST";
+import type { Parent } from "../ASTUtil.ts";
+import type { EntryExt, allNodes, Entry, Root, VersionLine, Category } from "./AST.ts";
 
 import { visit } from "unist-util-visit";
 import type { DocumentUri } from 'vscode-languageserver-textdocument';

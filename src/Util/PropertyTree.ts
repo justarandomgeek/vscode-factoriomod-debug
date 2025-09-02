@@ -47,7 +47,7 @@ export function loadPTree(b:BufferStream) : PropertyTreeData {
 		case PropertyTreeType.list:
 		{
 			const count = b.readUInt32LE();
-			const arr = <PropertyTreeData[]>[];
+			const arr:PropertyTreeData[] = [];
 			for (let i = 0; i < count; i++) {
 				readPTreeString(b);
 				const value = loadPTree(b);
@@ -169,7 +169,7 @@ export function savePTree(tree:PropertyTreeData):Buffer {
 		}
 		case PropertyTreeType.dictionary:
 		{
-			const buffs = <Buffer[]>[];
+			const buffs:Buffer[] = [];
 			for (const k in tree.value) {
 				if (Object.prototype.hasOwnProperty.call(tree.value, k)) {
 					const v = tree.value[k];

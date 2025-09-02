@@ -1,15 +1,14 @@
 import * as path from "path";
 import * as fs from "fs";
 import * as fsp from "fs/promises";
-//import { forkTest } from "./util";
-import { setup, teardown, test, suite, suiteSetup } from "mocha";
+import { test, suite, before, beforeEach, afterEach } from "node:test";
 import { DebugClient } from "@vscode/debugadapter-testsupport";
-import type { LaunchRequestArguments } from "../src/Debug/factorioModDebug";
+import type { LaunchRequestArguments } from "../src/Debug/factorioModDebug.ts";
 import * as chai from "chai";
 import { expect } from "chai";
 import chaiAsPromised from "chai-as-promised";
 import type { DebugProtocol } from '@vscode/debugprotocol';
-import { forkTest } from "./util";
+import { forkTest } from "./util.ts";
 
 chai.use(chaiAsPromised);
 
@@ -17,7 +16,9 @@ function exists(file:fs.PathLike) {
 	return fsp.access(file, fs.constants.F_OK).then(()=>true).catch(()=>false);
 }
 
-suite('Debug Adapter', ()=>{
+const timeout = 60000;
+
+await suite('Debug Adapter', async ()=>{
 	let dc: DebugClient;
 	const cwd = path.join(import.meta.dirname, "./factorio/mods");
 	const fmtk = path.join(import.meta.dirname, '../dist/fmtk-cli.js');
@@ -43,7 +44,7 @@ suite('Debug Adapter', ()=>{
 		} as LaunchRequestArguments, args));
 	}
 
-	suiteSetup(async ()=>{
+	before(async ()=>{
 		await fsp.mkdir(cwd, {recursive: true });
 		await fsp.copyFile(path.join(import.meta.dirname, "./empty-mod-settings.dat"), path.join(import.meta.dirname, "./factorio/mods/mod-settings.dat"));
 		await forkTest(fmtk, ["mods", "install", "remove-animations"], {cwd: cwd});
@@ -58,7 +59,7 @@ suite('Debug Adapter', ()=>{
 		}
 	});
 
-	setup(async ()=>{
+	beforeEach(async ()=>{
 		dc = new DebugClient('node', fmtk, 'factoriomod', {
 			cwd: cwd,
 			env: Object.assign({},
@@ -74,18 +75,14 @@ suite('Debug Adapter', ()=>{
 			detached: true,
 		});
 		await dc.start();
-		// long timeouts because we're loading factorio...
-		dc.defaultTimeout = 30000;
-		// or fake "socket" to disable timeouts
-		//(dc as any)._socket = { end: ()=>{} };
+		dc.defaultTimeout = timeout;
 	});
 
-	teardown(async ()=>{
-		// stop() kills it, which breaks coverage reporting...
+	afterEach(async ()=>{
 		//await dc.stop();
 	});
 
-	test('should launch', async ()=>{
+	await test('should launch', { timeout }, async ()=>{
 		await launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/terminate"],
 		});
@@ -93,7 +90,7 @@ suite('Debug Adapter', ()=>{
 		await dc.waitForEvent('terminated');
 	});
 
-	test("should reject launch args", ()=>{
+	await test("should reject launch args", { timeout }, ()=>{
 		expect(launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/terminate", "--config"],
 		})).eventually.throws();
@@ -103,7 +100,7 @@ suite('Debug Adapter', ()=>{
 		})).eventually.throws();
 	});
 
-	test('should stop at breakpoint and step', async ()=>{
+	await test('should stop at breakpoint and step', { timeout }, async ()=>{
 		await launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
 		});
@@ -146,7 +143,7 @@ suite('Debug Adapter', ()=>{
 		await dc.terminateRequest();
 	});
 
-	test('should adjust EOF breakpoint final active line', async ()=>{
+	await test('should adjust EOF breakpoint final active line', { timeout }, async ()=>{
 		await launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
 		});
@@ -174,7 +171,7 @@ suite('Debug Adapter', ()=>{
 	});
 
 
-	test('should stop at breakpoint in settings', async ()=>{
+	await test('should stop at breakpoint in settings', { timeout }, async ()=>{
 		await launch({
 			hookSettings: true,
 		});
@@ -201,7 +198,7 @@ suite('Debug Adapter', ()=>{
 	});
 
 
-	test('should stop at conditional breakpoint only if test is true', async ()=>{
+	await test('should stop at conditional breakpoint only if test is true', { timeout }, async ()=>{
 		await launch({
 			hookSettings: true,
 		});
@@ -244,7 +241,7 @@ suite('Debug Adapter', ()=>{
 		await dc.terminateRequest();
 	});
 
-	test('should stop at breakpoint in data', async ()=>{
+	await test('should stop at breakpoint in data', { timeout }, async ()=>{
 		await launch({
 			hookData: true,
 		});
@@ -270,7 +267,7 @@ suite('Debug Adapter', ()=>{
 		await dc.terminateRequest();
 	});
 
-	test('should list and validate breakpoint locations', async ()=>{
+	await test('should list and validate breakpoint locations', { timeout }, async ()=>{
 		await launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
 		});
@@ -319,7 +316,7 @@ suite('Debug Adapter', ()=>{
 		await dc.terminateRequest();
 	});
 
-	test('should list loaded modules and sources', async ()=>{
+	await test('should list loaded modules and sources', { timeout }, async ()=>{
 		await launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
 		});
@@ -343,7 +340,7 @@ suite('Debug Adapter', ()=>{
 		await dc.terminateRequest();
 	});
 
-	test('should catch exceptions', async ()=>{
+	await test('should catch exceptions', { timeout }, async ()=>{
 		await launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/throw"],
 		});
@@ -415,7 +412,7 @@ suite('Debug Adapter', ()=>{
 		await dc.terminateRequest();
 	});
 
-	test('should catch exception in data', async ()=>{
+	await test('should catch exception in data', { timeout }, async ()=>{
 		await launch({
 			hookData: true,
 		}, "throw");
@@ -448,7 +445,7 @@ suite('Debug Adapter', ()=>{
 		await dc.terminateRequest();
 	});
 
-	test('should pause', async ()=>{
+	await test('should pause', { timeout }, async ()=>{
 		await launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
 			runningBreak: 1,
@@ -469,7 +466,7 @@ suite('Debug Adapter', ()=>{
 		await dc.terminateRequest();
 	});
 
-	test('should report scopes and variables', async ()=>{
+	await test('should report scopes and variables', { timeout }, async ()=>{
 		await launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
 		});
@@ -533,7 +530,7 @@ suite('Debug Adapter', ()=>{
 		await dc.terminateRequest();
 	});
 
-	test('should report scopes and variables in data', async ()=>{
+	await test('should report scopes and variables in data', { timeout }, async ()=>{
 		await launch({
 			hookData: true,
 		}, "scopes");
@@ -587,7 +584,7 @@ suite('Debug Adapter', ()=>{
 		await dc.terminateRequest();
 	});
 
-	test('should eval', async ()=>{
+	await test('should eval', { timeout }, async ()=>{
 		await launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
 		});
@@ -640,7 +637,7 @@ suite('Debug Adapter', ()=>{
 		await dc.terminateRequest();
 	});
 
-	test('should eval LS translation', async ()=>{
+	await test('should eval LS translation', { timeout }, async ()=>{
 		await launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
 		});
@@ -678,7 +675,7 @@ suite('Debug Adapter', ()=>{
 		await dc.terminateRequest();
 	});
 
-	test('should reload ref IDs', async ()=>{
+	await test('should reload ref IDs', { timeout }, async ()=>{
 		await launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
 			runningTimeout: 30000,

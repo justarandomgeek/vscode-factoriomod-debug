@@ -55,4 +55,24 @@
             "unstable_native_nodejs_ts_config"
         ]
     },
+    "nodejs-testing.include": [
+        "./test"
+    ],
+    "nodejs-testing.extensions": [
+        {
+            "extensions": ["ts"],
+            "filePatterns": ["**/*.spec.ts"],
+            "parameters": [ "--experimental-transform-types" ]
+        }
+    ],
+    "nodejs-testing.concurrency": 1,
+    "nodejs-testing.debugOptions": {
+			"autoAttachChildProcesses": true,
+			"resolveSourceMapLocations": [
+				"!**/node_modules/**",
+			],
+			"skipFiles": [
+				"<node_internals>/**"
+			],
+		}
 }

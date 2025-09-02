@@ -1,13 +1,17 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
-import { test, suite } from "mocha";
+import { test, suite } from "node:test";
+import * as chai from "chai";
 import { expect } from "chai";
+import chaiAsPromised from "chai-as-promised";
 import { Duplex } from "stream";
 
-import { BufferSplitter } from '../src/Util/BufferSplitter';
-import { BufferStream } from '../src/Util/BufferStream';
-import { encodeVarInt } from '../src/Util/EncodingUtil';
-import { PropertyTreeType, loadPTree, savePTree } from '../src/Util/PropertyTree';
-import { MapVersion } from '../src/Util/MapVersion';
+import { BufferSplitter } from '../src/Util/BufferSplitter.ts';
+import { BufferStream } from '../src/Util/BufferStream.ts';
+import { encodeVarInt } from '../src/Util/EncodingUtil.ts';
+import { PropertyTreeType, loadPTree, savePTree } from '../src/Util/PropertyTree.ts';
+import { MapVersion } from '../src/Util/MapVersion.ts';
+
+chai.use(chaiAsPromised);
 
 class TestStream extends Duplex {
 	_write(chunk: string, _encoding: string, done: () => void) {
@@ -19,8 +23,8 @@ class TestStream extends Duplex {
 	}
 }
 
-suite('EncodingUtil', ()=>{
-	test('encodeVarInt', ()=>{
+await suite('EncodingUtil', async ()=>{
+	await test('encodeVarInt', ()=>{
 		expect(encodeVarInt(0).equals(Buffer.from([0])));
 		expect(encodeVarInt(1).equals(Buffer.from([1])));
 		expect(encodeVarInt(0x7f).equals(Buffer.from([0x7f])));
@@ -53,7 +57,7 @@ suite('EncodingUtil', ()=>{
 	});
 });
 
-test('BufferSplitter', async ()=>{
+await test('BufferSplitter', async ()=>{
 	const ts = new TestStream();
 	const bs = new BufferSplitter(ts, [Buffer.from("\n"), Buffer.from("lua_debug> "), {start: Buffer.from("**start**"), end: Buffer.from("**end**")}]);
 	const result = new Promise((resolve)=>{
@@ -91,7 +95,7 @@ test('BufferSplitter', async ()=>{
 	]);
 });
 
-test('PropertyTree', ()=>{
+await test('PropertyTree', ()=>{
 	expect(savePTree({type: PropertyTreeType.none})).deep.equals(Buffer.from([0, 0]));
 
 	expect(savePTree({type: PropertyTreeType.bool, value: false})).deep.equals(Buffer.from([1, 0, 0]));
@@ -162,7 +166,7 @@ test('PropertyTree', ()=>{
 
 });
 
-test('MapVersion', ()=>{
+await test('MapVersion', ()=>{
 	expect(MapVersion.load(Buffer.from([1, 0, 2, 0, 3, 0, 4, 0, 5])))
 		.instanceOf(MapVersion)
 		.include({ main: 1, major: 2, minor: 3, patch: 4, branch: 5 });

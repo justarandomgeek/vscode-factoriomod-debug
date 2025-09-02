@@ -388,6 +388,7 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			}
 			// and terminate event to actually stop the debug session
 			this.sendEvent(new TerminatedEvent());
+			this.shutdown();
 		});
 
 		let resolveModules:resolver<void>;
@@ -1516,7 +1517,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			}
 		}
 		this.sendEvent(new TerminatedEvent(restart));
-		// exit now if we're running standalone and collecting coverage data...
-		if (!this._isRunningInline() && process.env["NODE_V8_COVERAGE"]) { process.exit(); }
+		this.shutdown();
 	}
 }

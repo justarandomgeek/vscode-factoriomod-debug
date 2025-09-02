@@ -1,9 +1,9 @@
-import { test, suite } from "mocha";
+import { test, suite } from "node:test";
 import { expect } from "chai";
-import { engines, devDependencies } from "../package.json";
+import {default as packagejson} from "../package.json" assert { type: "json" };
 
-suite('meta', ()=>{
-	test('vscode engine and types versions should match', ()=>{
-		expect(engines.vscode).equals(devDependencies["@types/vscode"]);
+await suite('meta', async ()=>{
+	await test('vscode engine and types versions should match', ()=>{
+		expect(packagejson.engines.vscode).equals(packagejson.devDependencies["@types/vscode"]);
 	});
 });

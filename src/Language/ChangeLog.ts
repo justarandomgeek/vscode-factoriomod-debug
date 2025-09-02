@@ -1,9 +1,9 @@
-import type { Diagnostic, DocumentSymbol, CodeActionContext, CodeAction, Range } from 'vscode-languageserver/node';
-import { SymbolKind, CodeActionKind } from 'vscode-languageserver/node';
+import type { Diagnostic, DocumentSymbol, CodeActionContext, CodeAction, Range } from 'vscode-languageserver';
+import { SymbolKind, CodeActionKind } from 'vscode-languageserver';
 import type { DocumentUri, TextDocument, TextEdit } from 'vscode-languageserver-textdocument';
-import { parse } from './ChangeLog/Parse';
-import type { Category, DateLine, Entry, EntryExt, Root, Section, VersionLine } from './ChangeLog/AST';
-import { diagnose } from './ChangeLog/Diagnose';
+import { parse } from './ChangeLog/Parse.ts';
+import type { Category, DateLine, Entry, EntryExt, Root, Section, VersionLine } from './ChangeLog/AST.ts';
+import { diagnose } from './ChangeLog/Diagnose.ts';
 
 // for convenience in non-LSP consumers
 export { parse, diagnose };
