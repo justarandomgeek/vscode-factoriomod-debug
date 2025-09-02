@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 import { test, suite } from "node:test";
+import assert from 'node:assert/strict';
 import * as chai from "chai";
 import { expect } from "chai";
 import chaiAsPromised from "chai-as-promised";
@@ -24,36 +25,67 @@ class TestStream extends Duplex {
 }
 
 await suite('EncodingUtil', async ()=>{
-	await test('encodeVarInt', ()=>{
-		expect(encodeVarInt(0).equals(Buffer.from([0])));
-		expect(encodeVarInt(1).equals(Buffer.from([1])));
-		expect(encodeVarInt(0x7f).equals(Buffer.from([0x7f])));
+	await test('encodeVarInt 0', ()=>{
+		assert.deepEqual(encodeVarInt(0), Buffer.from([0]));
+	});
+	await test('encodeVarInt 1', ()=>{
+		assert.deepEqual(encodeVarInt(1), Buffer.from([1]));
+	});
+	await test('encodeVarInt 0x7f', ()=>{
+		assert.deepEqual(encodeVarInt(0x7f), Buffer.from([0x7f]));
+	});
+	await test('encodeVarInt 0x80', ()=>{
+		assert.deepEqual(encodeVarInt(0x80), Buffer.from([0b110_0_0010, 0b10_00_0000]));
+	});
+	await test('encodeVarInt 0x7ff', ()=>{
+		assert.deepEqual(encodeVarInt(0x7ff), Buffer.from([0b110_1_1111, 0b10_11_1111]));
+	});
+	await test('encodeVarInt 0x800', ()=>{
+		assert.deepEqual(encodeVarInt(0x800), Buffer.from([0b1110_0000, 0b10_10_0000, 0b10_00_0000]));
+	});
+	await test('encodeVarInt 0xffff', ()=>{
+		assert.deepEqual(encodeVarInt(0xffff), Buffer.from([0b1110_1111, 0b10_11_1111, 0b10_11_1111]));
+	});
+	await test('encodeVarInt 0x10000', ()=>{
+		assert.deepEqual(encodeVarInt(0x1_0000), Buffer.from([0b11110_000, 0b10_01_0000, 0b10_00_0000, 0b10_00_0000]));
+	});
+	await test('encodeVarInt 0x1fffff', ()=>{
+		assert.deepEqual(encodeVarInt(0x1f_ffff), Buffer.from([0b11110_111, 0b10_11_1111, 0b10_11_1111, 0b10_11_1111]));
+	});
+	await test('encodeVarInt 0x200000', ()=>{
+		assert.deepEqual(encodeVarInt(0x20_0000), Buffer.from([0b111110_00, 0b10_00_1000, 0b10_00_0000, 0b10_00_0000, 0b10_00_0000]));
+	});
+	await test('encodeVarInt 0x3ffffff', ()=>{
+		assert.deepEqual(encodeVarInt(0x3ff_ffff), Buffer.from([0b111110_11, 0b10_11_1111, 0b10_11_1111, 0b10_11_1111, 0b10_11_1111]));
+	});
+	await test('encodeVarInt 0x4000000', ()=>{
+		assert.deepEqual(encodeVarInt(0x400_0000), Buffer.from([0b111111_00, 0b10_00_0100, 0b10_00_0000, 0b10_00_0000, 0b10_00_0000, 0b10_00_0000]));
+	});
+	await test('encodeVarInt 0xfffffff0', ()=>{
+		assert.deepEqual(encodeVarInt(0xffff_fff0), Buffer.from([0b111111_11, 0b10_11_1111, 0b10_11_1111, 0b10_11_1111, 0b10_11_1111, 0b10_11_0000]));
+	});
+	await test('encodeVarInt -1', ()=>{
+		assert.throws(()=>encodeVarInt(-1));
+	});
 
-		expect(encodeVarInt(0x80).equals(Buffer.from([0b110_1_0000, 0b10_00_0000])));
-		expect(encodeVarInt(0x7ff).equals(Buffer.from([0b110_1_1111, 0b10_11_1111])));
+	// some values are reserved for remapping specials
+	await test('encodeVarInt 0xfffffff1', ()=>{
+		assert.throws(()=>encodeVarInt(0xffff_fff1));
+	});
+	await test('encodeVarInt 0xffffffff', ()=>{
+		assert.throws(()=>encodeVarInt(0xffff_ffff));
+	});
 
-		expect(encodeVarInt(0x800).equals(Buffer.from([0b1110_1000, 0b10_00_0000, 0b10_00_0000])));
-		expect(encodeVarInt(0xffff).equals(Buffer.from([0b1110_1111, 0b10_11_1111, 0b10_11_1111])));
 
-		expect(encodeVarInt(0x1_0000).equals(Buffer.from([0b11110_100, 0b10_00_0000, 0b10_00_0000, 0b10_00_0000])));
-		expect(encodeVarInt(0x1f_ffff).equals(Buffer.from([0b11110_111, 0b10_11_1111, 0b10_11_1111, 0b10_11_1111])));
-
-		expect(encodeVarInt(0x20_0000).equals(Buffer.from([0b111110_10, 0b10_00_0000, 0b10_00_0000, 0b10_00_0000, 0b10_00_0000])));
-		expect(encodeVarInt(0x3ff_ffff).equals(Buffer.from([0b111110_11, 0b10_11_1111, 0b10_11_1111, 0b10_11_1111, 0b10_11_1111])));
-
-		expect(encodeVarInt(0x400_0000).equals(Buffer.from([0b111111_10, 0b10_00_0000, 0b10_00_0000, 0b10_00_0000, 0b10_00_0000, 0b10_00_0000])));
-		expect(encodeVarInt(0xffff_fff0).equals(Buffer.from([0b111111_11, 0b10_11_1111, 0b10_11_1111, 0b10_11_1111, 0b10_11_1111, 0b10_11_0000])));
-
-		expect(()=>encodeVarInt(-1)).throws();
-
-		// some values are reserved for remapping specials
-		expect(()=>encodeVarInt(0xffff_fff1)).throws();
-		expect(()=>encodeVarInt(0xffff_ffff)).throws();
-
-		// and test the specials...
-		expect(encodeVarInt(10).equals(Buffer.from([0b111111_11, 0b10_11_1111, 0b10_11_1111, 0b10_11_1111, 0b10_11_1111, 0b10_11_1111])));
-		expect(encodeVarInt(13).equals(Buffer.from([0b111111_11, 0b10_11_1111, 0b10_11_1111, 0b10_11_1111, 0b10_11_1111, 0b10_11_1101])));
-		expect(encodeVarInt(26).equals(Buffer.from([0b111111_11, 0b10_11_1111, 0b10_11_1111, 0b10_11_1111, 0b10_11_1111, 0b10_11_1110])));
+	// and test the specials...
+	await test('encodeVarInt 10', ()=>{
+		assert.deepEqual(encodeVarInt(10), Buffer.from([0b111111_11, 0b10_11_1111, 0b10_11_1111, 0b10_11_1111, 0b10_11_1111, 0b10_11_1111]));
+	});
+	await test('encodeVarInt 13', ()=>{
+		assert.deepEqual(encodeVarInt(13), Buffer.from([0b111111_11, 0b10_11_1111, 0b10_11_1111, 0b10_11_1111, 0b10_11_1111, 0b10_11_1101]));
+	});
+	await test('encodeVarInt 26', ()=>{
+		assert.deepEqual(encodeVarInt(26), Buffer.from([0b111111_11, 0b10_11_1111, 0b10_11_1111, 0b10_11_1111, 0b10_11_1111, 0b10_11_1110]));
 	});
 });
 
