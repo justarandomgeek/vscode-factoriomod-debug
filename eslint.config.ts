@@ -1,9 +1,9 @@
-import { globalIgnores } from "eslint/config";
+import { globalIgnores, defineConfig } from "eslint/config";
 import globals from "globals";
 import tseslint from 'typescript-eslint';
 import stylisticTs from '@stylistic/eslint-plugin';
 
-export default tseslint.config([
+export default defineConfig([
 	globalIgnores(["dist", "coverage", "test/factorio"]),
 	...tseslint.configs.recommendedTypeChecked,
 	{
