@@ -39,7 +39,7 @@ function luaAsPlainValue(modname:string, value:PartialSavedLuaValue) {
 
 		case "Table":
 		case "TableWithMeta":
-			return luaPlainValue("table", `${value.type} [id=${value.id}] (${value.values_count} vals, ${value.size} B)`);
+			return luaPlainValue("table", `${value.type} [id=${value.id}] (${value.values_count} vals, ${value.size} bytes)`);
 
 		case "LuaObject":
 			return luaPlainValue("luaobject", `${(value.value as {type:string}).type} [id=${value.id}]`);
