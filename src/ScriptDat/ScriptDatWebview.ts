@@ -39,10 +39,10 @@ function luaAsPlainValue(modname:string, value:PartialSavedLuaValue) {
 
 		case "Table":
 		case "TableWithMeta":
-			return luaPlainValue("table", `${value.type} [${value.id}] (${value.size} B)`);
+			return luaPlainValue("table", `${value.type} [id=${value.id}] (${value.values_count} vals, ${value.size} B)`);
 
 		case "LuaObject":
-			return luaPlainValue("luaobject", `${(value.value as {type:string}).type} [${value.id}]`);
+			return luaPlainValue("luaobject", `${(value.value as {type:string}).type} [id=${value.id}]`);
 	}
 }
 const isplain = ["Nil", "BoolFalse", "BoolTrue", "Number", "String", "ExistingGCObject"];
@@ -181,6 +181,7 @@ window.addEventListener('click', e=>{
 	const target = e.target as HTMLElement;
 	const details = target.closest("details");
 	if (details) {
+		//TODO: if values_count is large, create subtree for chunks. 10ks?
 		const fetch = details.querySelector(".fetch");
 		if (fetch && fetch.parentElement === details) {
 			fetch.classList.remove("fetch");

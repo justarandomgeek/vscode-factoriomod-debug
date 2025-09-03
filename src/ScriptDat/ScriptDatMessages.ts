@@ -1,7 +1,11 @@
 import type { SavedLuaTable, SavedLuaTableWithMeta, SavedLuaValue } from "./ScriptDat";
 
-export type PartailSavedLuaTable = Omit<SavedLuaTable, "values">;
-export type PartailSavedLuaTableWithMeta = Omit<SavedLuaTableWithMeta, "values">;
+export interface PartailSavedLuaTable extends Omit<SavedLuaTable, "values"> {
+	values_count: number
+}
+export interface PartailSavedLuaTableWithMeta extends Omit<SavedLuaTableWithMeta, "values"> {
+	values_count: number
+}
 
 export type PartialSavedLuaValue =
 	Exclude<SavedLuaValue, SavedLuaTable>|
@@ -23,6 +27,8 @@ export interface ScriptDatMessages {
 	fetch: {
 		readonly modname:string
 		readonly gcid:number
+		readonly index?:number // index in values array - *not* key!
+		readonly count?:number
 	}
 	values: {
 		readonly modname:string
@@ -35,7 +41,10 @@ export function SavedLuaValueAsPartial(value:SavedLuaValue):PartialSavedLuaValue
 	switch (value.type) {
 		case "Table":
 		case "TableWithMeta":
-			return Object.assign({}, value, {values: undefined});
+			return Object.assign({}, value, {
+				values: undefined,
+				values_count: value.values.length,
+			});
 
 		default:
 			return value;

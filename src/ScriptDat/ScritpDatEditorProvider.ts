@@ -90,9 +90,16 @@ export class ScriptDatEditorProvider implements vscode.CustomReadonlyEditorProvi
 			case 'fetch':
 				const fetchbody = message.body as ScriptDatMessages['fetch'];
 				const value = document.find(fetchbody.modname, fetchbody.gcid);
+				let values;
+				if (fetchbody.index !== undefined && fetchbody.count !== undefined) {
+					values = value.values.slice(fetchbody.index, fetchbody.index+fetchbody.count );
+				} else {
+					values = value.values;
+				}
+
 				this.postMessage(this.webviews.get(document.uri.toString())!, 'values', {
 					...fetchbody,
-					values: value.values.map(kv=>({
+					values: values.map(kv=>({
 						key: SavedLuaValueAsPartial(kv.key),
 						value: SavedLuaValueAsPartial(kv.value),
 					})),
