@@ -34,6 +34,7 @@ export interface ScriptDatMessages {
 		readonly modname:string
 		readonly gcid:number
 		readonly values:PartailSavedLuaTableValues
+		readonly index?:number // start index in values array for partial fetch - *not* key!
 	}
 }
 
