@@ -730,7 +730,7 @@ export class ScriptDat {
 					item = b.readUInt8();
 					size += 1;
 				}
-				return { stacktype: LuaItemStackType[type], target, line, item, size};
+				return { stacktype: LuaItemStackType[type], target, line, item, itemid, size};
 			}
 			case LuaItemStackType.TargetableInventory:
 				throw new Error(`LuaItemStack type ${type} cannot have been saved`);
