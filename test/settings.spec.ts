@@ -6,7 +6,7 @@ import { forkTest, forkTestFails } from "./util.ts";
 
 await suite('CLI Mod Settings', async ()=>{
 	const fmtk = path.join(import.meta.dirname, '../dist/fmtk-cli.js');
-	const mods = path.join(import.meta.dirname, "./factorio/mod-tests");
+	const mods = path.join(import.meta.dirname, "./factorio/mod-settings-tests");
 
 	before(async ()=>{
 		await fsp.mkdir(mods, {recursive: true});
