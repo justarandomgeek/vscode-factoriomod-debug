@@ -6,7 +6,7 @@ import { FSProvider } from './FSProvider';
 import { ProfileRenderer } from '../Profile/ProfileRenderer';
 import * as LanguageClient from "../Language/Client";
 import { ModSettingsEditorProvider } from '../ModSettings/ModSettingsEditorProvider';
-import { ScriptDatEditorProvider } from '../ScriptDat/ScritpDatEditorProvider';
+import { ScriptDatEditorProvider } from '../ScriptDat/ScriptDatEditorProvider';
 
 import { version } from "../../package.json";
 
