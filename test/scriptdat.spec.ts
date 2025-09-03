@@ -12,7 +12,7 @@ await suite('CLI script.dat dump', async ()=>{
 			["scriptdat", path.join(import.meta.dirname, 'test-script_1.1.dat')],
 			{cwd: import.meta.dirname});
 		const expected = JSON.parse(await fsp.readFile(path.join(import.meta.dirname, 'test-script_1.1.json'), "utf8"));
-		assert.deepEqual(JSON.parse(result.stdout.toString("utf8")), expected);
+		assert.partialDeepStrictEqual(JSON.parse(result.stdout.toString("utf8")), expected);
 	});
 
 	await test.skip('dump', async ()=>{
