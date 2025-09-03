@@ -96,9 +96,11 @@ const pageSize = 1000;
 function luaTableRange(modname:string, table:PartailSavedLuaTable, index:number) {
 	const details = document.createElement("details");
 	const summary = document.createElement("summary");
-	summary.classList.add("tablerange");
+	const span = document.createElement("span");
+	span.classList.add("tablerange");
 
-	summary.append(`${index}..${index+pageSize-1}`);
+	span.append(`${index}..${index+pageSize-1}`);
+	summary.append(span);
 	details.append(summary);
 
 	const div = document.createElement("div");

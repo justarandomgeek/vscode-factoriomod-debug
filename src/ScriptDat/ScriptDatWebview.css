@@ -26,7 +26,7 @@ details.loading > summary::marker {
 	animation: codicon-spin 1.5s steps(30) infinite;
 }
 
-span.modname, span.existing, span.meta {
+span.modname, span.existing, span.meta, span.tablerange {
 	color: var(--vscode-debugTokenExpression-name);
 }
 
