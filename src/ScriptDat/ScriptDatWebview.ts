@@ -92,10 +92,26 @@ function luaTableKV(modname:string, kv:PartailSavedLuaTableValues[1]) {
 	return details;
 }
 
+const pageSize = 1000;
+function luaTableRange(modname:string, table:PartailSavedLuaTable, index:number) {
+	const details = document.createElement("details");
+	const summary = document.createElement("summary");
+	summary.classList.add("tablerange");
+
+	summary.append(`${index}..${index+pageSize-1}`);
+	details.append(summary);
+
+	const div = document.createElement("div");
+	div.id = `${modname}_gc_${table.id}_idx_${index}`;
+	div.classList.add("fetch");
+	details.append(div);
+
+	return details;
+}
+
 function luaTable(modname:string, table:PartailSavedLuaTable) {
 	const div = document.createElement("div");
 	div.id = `${modname}_gc_${table.id}`;
-	div.classList.add("fetch");
 
 	if (table.type==="TableWithMeta") {
 		const meta = document.createElement("details");
@@ -108,11 +124,20 @@ function luaTable(modname:string, table:PartailSavedLuaTable) {
 		meta.append(msumm);
 		div.append(meta);
 	}
+
+	if (table.values_count <= pageSize) {
+		div.classList.add("fetch");
+	} else {
+		// pre-populate it with ranges of 1000
+		for (let i = 0; i < table.values_count; i+=pageSize) {
+			div.append(luaTableRange(modname, table, i));
+		}
+	}
+
 	return div;
 }
 
-function finishTable(modname:string, id:number, values:PartailSavedLuaTableValues) {
-	const div = document.getElementById(`${modname}_gc_${id}`)!;
+function finishTable(modname:string, div:HTMLElement, values:PartailSavedLuaTableValues) {
 	const details = div.closest("details")!;
 	details.classList.remove("loading");
 	if (values.length === 0) {
@@ -169,11 +194,6 @@ function modRoot(name:string, value:PartialSavedLuaValue) {
 	summary.append(modname, ` = `, luaAsPlainValue(name, value));
 	details.append(summary);
 	details.append(luaValue(name, value));
-
-	if ("id" in value) {
-		details.id = `${name}_gc_${value.id}`;
-		details.classList.add("fetch");
-	}
 	return details;
 }
 
@@ -181,14 +201,18 @@ window.addEventListener('click', e=>{
 	const target = e.target as HTMLElement;
 	const details = target.closest("details");
 	if (details) {
-		//TODO: if values_count is large, create subtree for chunks. 10ks?
 		const fetch = details.querySelector(".fetch");
 		if (fetch && fetch.parentElement === details) {
 			fetch.classList.remove("fetch");
 			details.classList.add("loading");
-			const id = fetch.id.match(/^(.+)_gc_(.+)$/);
+			const id = fetch.id.match(/^(.+)_gc_(\d+)(?:_idx_(\d+))?$/);
 			if (id) {
-				postMessage("fetch", { modname: id[1], gcid: Number(id[2])});
+				postMessage("fetch", {
+					modname: id[1],
+					gcid: Number(id[2]),
+					index: id[3]? Number(id[3]) : undefined,
+					count: id[3]? pageSize : undefined,
+				});
 			}
 		}
 	}
@@ -209,7 +233,13 @@ window.addEventListener('message', <K extends keyof ScriptDatMessages>(e:Message
 			break;
 		case 'values':
 			const valuesbody = body as ScriptDatMessages['values'];
-			finishTable(valuesbody.modname, valuesbody.gcid, valuesbody.values);
+			const id = valuesbody.index !== undefined ?
+				`${valuesbody.modname}_gc_${valuesbody.gcid}_idx_${valuesbody.index}` :
+				`${valuesbody.modname}_gc_${valuesbody.gcid}`;
+			const div = document.getElementById(id);
+			if (div) {
+				finishTable(valuesbody.modname, div, valuesbody.values);
+			}
 			break;
 	}
 });
