@@ -129,20 +129,20 @@ export enum LuaObjectType {
 	LuaQualityPrototype = 70,
 	LuaSpaceLocationPrototype = 71,
 	LuaPlanet = 72,
-	LuaUndoRedoStackType = 73,
+	LuaUndoRedoStack = 73,
 	LuaSurfacePropertyPrototype = 74,
 	LuaCustomEventPrototype = 75,
 	LuaSpaceConnectionPrototype = 76,
 	LuaActiveTriggerPrototype = 77,
-	LuaSpacePlatformType = 78,
+	LuaSpacePlatform = 78,
 	LuaHeatBufferPrototype = 79,
-	LuaWireConnectorType = 80,
+	LuaWireConnector = 80,
 	LuaAsteroidChunkPrototype = 81,
 	LuaLogisticSection = 82,
 	LuaRailEnd = 83,
 	LuaNamedNoiseFunction = 84,
 	LuaCollisionLayerPrototype = 85,
-	LuaSimulationType = 86,
+	LuaSimulation = 86,
 	LuaAirbornePollutionPrototype = 87,
 	LuaItem = 88,
 	LuaTrainManager = 89,
@@ -153,6 +153,12 @@ export enum LuaObjectType {
 	LuaProcessionPrototype = 94,
 	LuaProcessionLayerInheritanceGroupPrototype = 95,
 	LuaLogisticSections = 96,
+	LuaCargoHatch = 97,
+	LuaSchedule = 98,
+	LuaTerritory = 99,
+	LuaSegmentedUnit = 100,
+	LuaSegment = 101,
+	LuaModData = 104,
 
 	// this one isn't real, just so TS understands that there might be more not covered...
 	xLuaFutureObject = -1
@@ -195,6 +201,22 @@ export enum LuaControlBehaviorType {
 	MiningDrill = 16,
 	ProgrammableSpeaker = 17,
 	RailChainSignal = 18,
+	AssemblingMachine = 19,
+	SelectorCombinator = 20,
+	Pump = 21,
+	RocketSilo = 22,
+	Turret = 23,
+	Reactor = 24,
+	SpacePlatformHub = 25,
+	ArtilleryTurret = 26,
+	Radar = 27,
+	AsteroidCollector = 28,
+	DisplayPanel = 29,
+	Loader = 30,
+	CargoLandingPad = 31,
+	AgriculturalTower = 32,
+	Furnace = 33,
+	ProxyContainer = 34,
 }
 
 export enum LuaFlowStatisticsType {
@@ -325,11 +347,19 @@ export class ScriptDat {
 			case LuaObjectType.LuaAISettings:
 			case LuaObjectType.LuaPlanet:
 			case LuaObjectType.LuaRenderObject:
+			case LuaObjectType.LuaUndoRedoStack:
+			case LuaObjectType.LuaSpacePlatform:
+			case LuaObjectType.LuaItem:
+			case LuaObjectType.LuaCargoHatch:
+			case LuaObjectType.LuaSchedule:
+			case LuaObjectType.LuaTerritory:
+			case LuaObjectType.LuaSegmentedUnit:
 			{
 				const target = b.readUInt32LE();
 				return { target };
 			}
 			case LuaObjectType.LuaPermissionGroups:
+			case LuaObjectType.LuaTrainManager:
 				return {};
 			case LuaObjectType.LuaRecipe:
 			case LuaObjectType.LuaTechnology:
@@ -358,7 +388,10 @@ export class ScriptDat {
 			case LuaObjectType.LuaCustomChartTag:
 			{
 				const force = b.readUInt8();
-				const surface = b.readPackedUInt_8_32();
+				let surface;
+				if (!this.version.isBeyond(1, 2, 0, 259)) {
+					surface = b.readPackedUInt_8_32();
+				}
 				const target = b.readUInt32LE();
 				return { force, surface, target };
 			}
@@ -393,6 +426,8 @@ export class ScriptDat {
 			case LuaObjectType.LuaModuleCategoryPrototype:
 			case LuaObjectType.LuaEquipmentCategoryPrototype:
 			case LuaObjectType.LuaTrivialSmokePrototype:
+			case LuaObjectType.LuaQualityPrototype:
+			case LuaObjectType.LuaProcessionLayerInheritanceGroupPrototype:
 			{
 				const id = b.readUInt8();
 				return { id };
@@ -415,12 +450,24 @@ export class ScriptDat {
 			case LuaObjectType.LuaHeatEnergySourcePrototype:
 			case LuaObjectType.LuaVoidEnergySourcePrototype:
 			case LuaObjectType.LuaHeatBufferPrototype:
+			case LuaObjectType.LuaSpaceLocationPrototype:
+			case LuaObjectType.LuaSurfacePropertyPrototype:
+			case LuaObjectType.LuaCustomEventPrototype:
+			case LuaObjectType.LuaSpaceConnectionPrototype:
+			case LuaObjectType.LuaActiveTriggerPrototype:
+			case LuaObjectType.LuaAsteroidChunkPrototype:
+			case LuaObjectType.LuaCollisionLayerPrototype:
+			case LuaObjectType.LuaAirbornePollutionPrototype:
+			case LuaObjectType.LuaBurnerUsagePrototype:
+			case LuaObjectType.LuaSurfacePrototype:
+			case LuaObjectType.LuaProcessionPrototype:
 			{
 				const id = b.readUInt16LE();
 				return { id };
 			}
 			case LuaObjectType.LuaNamedNoiseExpression:
 			case LuaObjectType.LuaNamedNoiseFunction:
+			case LuaObjectType.LuaModData:
 			{
 				const id = b.readUInt32LE();
 				return { id };
@@ -533,9 +580,50 @@ export class ScriptDat {
 			case LuaObjectType.LuaCircuitNetwork:
 			{
 				const target = b.readUInt32LE();
-				const connector = b.readUInt8();
-				const wire = b.readUInt8();
+				let connector;
+				let wire;
+				if (this.version.isBeyond(1, 2, 0, 155)) {
+					wire = b.readUInt8();
+				} else {
+					connector = b.readUInt8();
+					wire = b.readUInt8();
+				}
 				return { target, connector, wire };
+			}
+
+			case LuaObjectType.LuaWireConnector:
+			{
+				const target = b.readUInt32LE();
+				const connector = b.readUInt8();
+				return { target, connector };
+			}
+
+			case LuaObjectType.LuaRailEnd:
+			{
+				const target = b.readUInt32LE();
+				const direction = b.readUInt8();
+				return { target, direction };
+			}
+
+			case LuaObjectType.LuaRecord:
+			{
+				const player = b.readUInt16LE();
+				const id = b.readUInt32LE();
+				return { player, id };
+			}
+
+			case LuaObjectType.LuaLogisticSections:
+			{
+				const target = b.readUInt32LE();
+				const member = b.readUInt8();
+				return { target, member };
+			}
+
+			case LuaObjectType.LuaSegment:
+			{
+				const target = b.readUInt32LE();
+				const index = b.readUInt32LE();
+				return { target, index };
 			}
 
 			case LuaObjectType.LuaItemStack:
@@ -544,8 +632,11 @@ export class ScriptDat {
 				return this.loadLuaControlBehavior(b);
 			case LuaObjectType.LuaFlowStatistics:
 				return this.loadLuaFlowStatistics(b);
+			case LuaObjectType.LuaLogisticSection:
+				return this.loadLuaLogisticSection(b);
 
 			case LuaObjectType.LuaStructMapSettings:
+			case LuaObjectType.LuaSimulation:
 				throw new Error(`LuaObject of type ${ltype} cannot have been saved`);
 
 			default:
@@ -597,7 +688,14 @@ export class ScriptDat {
 			{
 				const target = b.readUInt32LE();
 				const line = b.readUInt8();
-				const item = b.readUInt8();
+				let item;
+				let itemid;
+				if (this.version.isBeyond(1, 2, 0, 361)) {
+					item = b.readUInt16LE();
+					itemid = b.readUInt32LE();
+				} else {
+					item = b.readUInt8();
+				}
 				return { stacktype: LuaItemStackType[type], target, line, item};
 			}
 			case LuaItemStackType.TargetableInventory:
@@ -667,6 +765,22 @@ export class ScriptDat {
 			default:
 				throw new Error(`Unknown LuaFlowStatistics type ${type}`);
 		}
+	}
+
+	private loadLuaLogisticSection(b:BufferStream) {
+
+		if (!this.version.isBeyond(1, 2, 31, 1)) {
+			b.readUInt8(); // game just discards, old member index?
+		}
+		let section;
+		if (!this.version.isBeyond(1, 2, 0, 265)) {
+			b.readUInt8(); // game just discards, old section index?
+		} else {
+			section = b.readUInt32LE();
+		}
+		const entity = b.readUInt32LE();
+		return { entity, section };
+
 	}
 }
 
