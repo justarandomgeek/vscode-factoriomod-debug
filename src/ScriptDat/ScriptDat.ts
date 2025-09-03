@@ -21,17 +21,20 @@ export type SavedLuaTableValues = {
 export interface SavedLuaNumber {
 	type: "Number"
 	value: number
+	size: 9
 }
 
 export interface SavedLuaString {
 	type: "String"
 	value: string
+	size: number // size in saved stream (including type+length)
 }
 
 export interface SavedLuaTable {
 	type: "Table"|"TableWithMeta"
 	id: number
 	values: SavedLuaTableValues
+	size: number
 }
 
 export interface SavedLuaTableWithMeta extends SavedLuaTable {
@@ -42,18 +45,22 @@ export interface SavedLuaTableWithMeta extends SavedLuaTable {
 export interface SavedLuaRef {
 	type: "ExistingGCObject"
 	id: number
+	size: number
 }
 
 export interface LuaObjectData {
 	type: keyof typeof LuaObjectType
+	size: number
+	[moreProps:string]:unknown
 }
 export interface SavedLuaObject {
 	type: "LuaObject"
 	id: number
 	value: LuaObjectData
+	size: number
 }
 
-export type SavedLuaValue = { type: "Nil"|"BoolFalse"|"BoolTrue" }|
+export type SavedLuaValue = { type: "Nil"|"BoolFalse"|"BoolTrue"; size:1 }|
 	SavedLuaNumber|SavedLuaString|SavedLuaTable|SavedLuaRef|SavedLuaObject;
 
 export enum LuaObjectType {
@@ -279,30 +286,34 @@ export class ScriptDat {
 			case "Nil":
 			case "BoolFalse":
 			case "BoolTrue":
-				return { type };
+				return { type, size: 1 };
 			case "Number": {
 				const value = b.readDoubleLE();
-				return { type, value };
+				return { type, value, size: 9 };
 			}
 			case "String": {
 				const slen = b.readPackedUInt_8_32();
 				const value = b.readString(slen);
-				return { type, value };
+				return { type, value, size: 1 + 1 + (slen >= 0xff ? 4 : 0) + slen };
 			}
 			case "TableWithMeta":
 			case "Table": {
 				const thisgcid = this.gcid++;
 				let metaname:string|undefined;
+				let size = 1; // start with type tag...
 				if (type === "TableWithMeta") {
 					const metanamelen = b.readPackedUInt_8_32();
 					metaname = b.readString(metanamelen);
+					size += 1 + (metanamelen >= 0xff ? 4 : 0) + metanamelen;
 				}
 				const count = b.readPackedUInt_8_32();
+				size += count>=0xff?5:1;
 				const values = [];
 				for (let i = 0; i < count; i++) {
 					const key = this.loadLuaValue(b);
 					const value = this.loadLuaValue(b);
 					values.push({key, value});
+					size += key.size + value.size;
 				}
 
 				const t = {
@@ -310,27 +321,31 @@ export class ScriptDat {
 					id: thisgcid,
 					values,
 					meta: metaname,
+					size,
 				};
 				this.gcidmap[thisgcid] = t;
 				return t;
 			}
 			case "ExistingGCObject":
 				const id = b.readPackedUInt_16_32();
-				return { type, id };
+				return { type, id, size: 1 + 2 + (id >= 0xffff ? 4 : 0) };
 			case "LuaObject": {
 				const type = "LuaObject";
 				const thisgcid = this.gcid++;
 				const ltype = b.readUInt32LE() as LuaObjectType;
 				const ltypename = LuaObjectType[ltype] as keyof typeof LuaObjectType;
-				const data = this.loadLuaObjectData(ltype, b);
-				return { type, id: thisgcid, value: Object.assign({type: ltypename}, data)};
+				const data = Object.assign(
+					{type: ltypename},
+					this.loadLuaObjectData(ltype, b)
+				) as LuaObjectData;
+				return { type, id: thisgcid, value: data, size: 1+4+data.size};
 			}
 			default:
 				throw new Error(`Invalid type ${typetag} in saved lua value`);
 		}
 	}
 
-	private loadLuaObjectData(ltype:LuaObjectType, b:BufferStream) {
+	private loadLuaObjectData(ltype:LuaObjectType, b:BufferStream):Omit<LuaObjectData, "type"> {
 		switch (ltype) {
 			case LuaObjectType.LuaEntity:
 			case LuaObjectType.LuaPermissionGroup:
@@ -356,64 +371,67 @@ export class ScriptDat {
 			case LuaObjectType.LuaSegmentedUnit:
 			{
 				const target = b.readUInt32LE();
-				return { target };
+				return { target, size: 4 };
 			}
 			case LuaObjectType.LuaPermissionGroups:
 			case LuaObjectType.LuaTrainManager:
-				return {};
+				return { size: 0 };
 			case LuaObjectType.LuaRecipe:
 			case LuaObjectType.LuaTechnology:
 			{
 				const force = b.readUInt8();
 				const id = b.readUInt16LE();
-				return { force, id };
+				return { force, id, size: 3 };
 			}
 			case LuaObjectType.LuaRandomGenerator:
 			{
 				const seed = [b.readUInt32LE(), b.readUInt32LE(), b.readUInt32LE() ];
-				return { seed };
+				return { seed, size: 4*3 };
 			}
 			case LuaObjectType.LuaBurner:
 			{
 				const entity = b.readUInt32LE();
 				const equipment = b.readUInt32LE();
-				return { entity, equipment };
+				return { entity, equipment, size: 4*2 };
 			}
 			case LuaObjectType.LuaLogisticPoint:
 			{
 				const index = b.readUInt8();
 				const owner = b.readUInt32LE();
-				return { index, owner };
+				return { index, owner, size: 1+4 };
 			}
 			case LuaObjectType.LuaCustomChartTag:
 			{
 				const force = b.readUInt8();
+				let size = 1;
 				let surface;
 				if (!this.version.isBeyond(1, 2, 0, 259)) {
 					surface = b.readPackedUInt_8_32();
+					size += surface>=0xff?5:1;
 				}
 				const target = b.readUInt32LE();
-				return { force, surface, target };
+				size += 4;
+				return { force, surface, target, size };
 			}
 
 			case LuaObjectType.LuaDecorativePrototype:
 			{
 				if (this.version.isBeyond(1, 2, 1, 4)) {
 					const id = b.readUInt16LE();
-					return { id };
+					return { id, size: 2 };
 				} else {
 					const id = b.readUInt8();
-					return { id };
+					return { id, size: 1 };
 				}
 			}
 			case LuaObjectType.LuaTilePrototype:
 			{
 				if (this.version.isBeyond(1, 2, 0, 3)) {
 					const id = b.readUInt16LE();
-					return { id };
+					return { id, size: 2 };
 				} else {
 					const id = b.readUInt8();
-					return { id };
+					return { id, size: 1 };
 				}
 			}
 			case LuaObjectType.LuaForce:
@@ -430,7 +448,7 @@ export class ScriptDat {
 			case LuaObjectType.LuaProcessionLayerInheritanceGroupPrototype:
 			{
 				const id = b.readUInt8();
-				return { id };
+				return { id, size: 1 };
 			}
 			case LuaObjectType.LuaEntityPrototype:
 			case LuaObjectType.LuaItemPrototype:
@@ -463,14 +481,14 @@ export class ScriptDat {
 			case LuaObjectType.LuaProcessionPrototype:
 			{
 				const id = b.readUInt16LE();
-				return { id };
+				return { id, size: 2 };
 			}
 			case LuaObjectType.LuaNamedNoiseExpression:
 			case LuaObjectType.LuaNamedNoiseFunction:
 			case LuaObjectType.LuaModData:
 			{
 				const id = b.readUInt32LE();
-				return { id };
+				return { id, size: 4 };
 			}
 			case LuaObjectType.LuaTile:
 			{
@@ -479,40 +497,40 @@ export class ScriptDat {
 					y: b.readInt32LE(),
 				};
 				const surface = b.readPackedUInt_8_32();
-				return { position, surface };
+				return { position, surface, size: 8 + (surface>=0xff?5:1) };
 			}
 			case LuaObjectType.LuaGuiElement:
 			{
 				if (this.version.isBeyond(1, 2, 0, 415)) {
 					const id = b.readUInt32LE();
-					return { id };
+					return { id, size: 4 };
 				} else {
 					const player = b.readUInt32LE();
 					const index = b.readUInt32LE();
-					return { player, index };
+					return { player, index, size: 8 };
 				}
 			}
 			case LuaObjectType.LuaStyle:
 			{
 				const player = b.readUInt32LE();
 				const index = b.readUInt32LE();
-				return { player, index };
+				return { player, index, size: 8 };
 			}
 			case LuaObjectType.LuaSurface:
 			{
 				if (this.version.isBeyond(1, 2, 7, 1)) {
 					const target = b.readUInt32LE();
-					return { target };
+					return { target, size: 4 };
 				} else {
 					const surface = b.readPackedUInt_8_32();
-					return { surface };
+					return { surface, size: surface>=0xff?5:1 };
 				}
 			}
 			case LuaObjectType.LuaGroup:
 			{
 				const group = b.readUInt8();
 				const subgroup = b.readUInt16LE();
-				return { group, subgroup };
+				return { group, subgroup, size: 3 };
 			}
 			case LuaObjectType.LuaChunkIterator:
 			{
@@ -521,13 +539,13 @@ export class ScriptDat {
 					x: b.readInt32LE(),
 					y: b.readInt32LE(),
 				};
-				return { surface, position };
+				return { surface, position, size: (surface>=0xff?5:1) + 8 };
 			}
 			case LuaObjectType.LuaTransportLine:
 			{
 				const target = b.readUInt32LE();
 				const index = b.readUInt8();
-				return { target, index };
+				return { target, index, size: 4+1 };
 			}
 			case LuaObjectType.LuaInventory:
 			{
@@ -537,93 +555,101 @@ export class ScriptDat {
 				const equipment = b.readUInt32LE();
 				const scriptinv = b.readUInt32LE();
 				const linked = b.readUInt8() !== 0;
+				let size = 4*5 + 1;
 				let link;
 				if (linked) {
 					const force = b.readUInt8();
 					const proto = b.readUInt16LE();
 					const linkid = b.readUInt32LE();
 					link = {force, proto, linkid};
+					size += 1+2+4;
 				}
 				const index = b.readUInt8();
-				return { entity, controller, item, equipment, scriptinv, link, index };
+				size += 1;
+				return { entity, controller, item, equipment, scriptinv, link, index, size };
 			}
 			case LuaObjectType.LuaBurnerPrototype:
 			case LuaObjectType.LuaElectricEnergySourcePrototype:
 			{
 				const entity = b.readUInt16LE();
 				const equipment = b.readUInt16LE();
-				return { entity, equipment };
+				return { entity, equipment, size: 2*2 };
 			}
 			case LuaObjectType.LuaFluidBoxPrototype:
 			{
 				const entity = b.readUInt16LE();
 				const index = b.readUInt32LE();
 				const targettype = b.readUInt8();
-				return { entity, index, targettype };
+				return { entity, index, targettype, size: 2+4+1 };
 			}
 			case LuaObjectType.LuaProfiler:
 			{
 				const stopped = b.readUInt8() !== 0;
-				return { stopped };
+				return { stopped, size: 1 };
 			}
 			case LuaObjectType.LuaFontPrototype:
 			{
 				const hasname = b.readUInt8()!==0;
+				let size = 1;
 				let name;
 				if (hasname) {
 					const slen = b.readPackedUInt_8_32();
 					name = b.readString(slen);
+					size += (slen>=0xff?5:1) + slen;
 				}
-				return { name };
+				return { name, size };
 			}
 
 			case LuaObjectType.LuaCircuitNetwork:
 			{
 				const target = b.readUInt32LE();
+				let size = 4;
 				let connector;
 				let wire;
 				if (this.version.isBeyond(1, 2, 0, 155)) {
 					wire = b.readUInt8();
+					size += 1;
 				} else {
 					connector = b.readUInt8();
 					wire = b.readUInt8();
+					size += 2;
 				}
-				return { target, connector, wire };
+				return { target, connector, wire, size };
 			}
 
 			case LuaObjectType.LuaWireConnector:
 			{
 				const target = b.readUInt32LE();
 				const connector = b.readUInt8();
-				return { target, connector };
+				return { target, connector, size: 4+1 };
 			}
 
 			case LuaObjectType.LuaRailEnd:
 			{
 				const target = b.readUInt32LE();
 				const direction = b.readUInt8();
-				return { target, direction };
+				return { target, direction, size: 4+1 };
 			}
 
 			case LuaObjectType.LuaRecord:
 			{
 				const player = b.readUInt16LE();
 				const id = b.readUInt32LE();
-				return { player, id };
+				return { player, id, size: 2+4 };
 			}
 
 			case LuaObjectType.LuaLogisticSections:
 			{
 				const target = b.readUInt32LE();
 				const member = b.readUInt8();
-				return { target, member };
+				return { target, member, size: 4+1 };
 			}
 
 			case LuaObjectType.LuaSegment:
 			{
 				const target = b.readUInt32LE();
 				const index = b.readUInt32LE();
-				return { target, index };
+				return { target, index, size: 4*2 };
 			}
 
 			case LuaObjectType.LuaItemStack:
@@ -646,34 +672,38 @@ export class ScriptDat {
 
 	private loadItemStackLocation(b:BufferStream) {
 		const standaloneStack = this.version.isBeyond(1, 2, 0, 33) ? b.readUInt8() : 0;
-		if (standaloneStack!==0) { return {standaloneStack}; }
+		if (standaloneStack!==0) { return { standaloneStack, size: 1 }; }
 
 		const inventoryIndex = b.readUInt8();
 		const slotIndex = b.readUInt16LE();
-		return { inventoryIndex, slotIndex };
+		return { inventoryIndex, slotIndex, size: (this.version.isBeyond(1, 2, 0, 33)?1:0)+1+2 };
 	}
 
 	private loadLuaItemStack(b:BufferStream) {
 
 		const type = (this.version.isBeyond(1, 2, 0, 359) ? b.readUInt8() : b.readUInt32LE()) as LuaItemStackType;
+		let size = this.version.isBeyond(1, 2, 0, 359) ? 1 : 4;
 		switch (type) {
 			case LuaItemStackType.None:
-				return { stacktype: LuaItemStackType[type] };
+				return { stacktype: LuaItemStackType[type], size };
 			case LuaItemStackType.EntityInventory:
 			case LuaItemStackType.ControllerInventory:
 			case LuaItemStackType.ItemWithInventory:
 			case LuaItemStackType.Equipment:
 			{
 				const target = b.readUInt32LE();
+				size += 4;
 				let location;
 				if (this.version.isBeyond(1, 2, 0, 361)) {
 					location = this.loadItemStackLocation(b);
+					size += location.size;
 				} else {
 					const inventoryIndex = b.readUInt8();
 					const slotIndex = b.readUInt16LE();
 					location = { inventoryIndex, slotIndex };
+					size += 1+2;
 				}
-				return { stacktype: LuaItemStackType[type], target, location};
+				return { stacktype: LuaItemStackType[type], target, location, size};
 			}
 			case LuaItemStackType.ItemEntity:
 			case LuaItemStackType.EntityCursorStack:
@@ -682,39 +712,45 @@ export class ScriptDat {
 			case LuaItemStackType.PlayerBlueprint:
 			{
 				const target = b.readUInt32LE();
-				return { stacktype: LuaItemStackType[type], target};
+				size += 4;
+				return { stacktype: LuaItemStackType[type], target, size};
 			}
 			case LuaItemStackType.BeltConnectable:
 			{
 				const target = b.readUInt32LE();
 				const line = b.readUInt8();
+				size += 4+1;
 				let item;
 				let itemid;
 				if (this.version.isBeyond(1, 2, 0, 361)) {
 					item = b.readUInt16LE();
 					itemid = b.readUInt32LE();
+					size += 2+4;
 				} else {
 					item = b.readUInt8();
+					size += 1;
 				}
-				return { stacktype: LuaItemStackType[type], target, line, item};
+				return { stacktype: LuaItemStackType[type], target, line, item, size};
 			}
 			case LuaItemStackType.TargetableInventory:
 				throw new Error(`LuaItemStack type ${type} cannot have been saved`);
 
 			case LuaItemStackType.TargetableItemStack:
-				return { stacktype: LuaItemStackType[type] };
+				return { stacktype: LuaItemStackType[type], size };
 			case LuaItemStackType.ScriptInventory:
 			{
 				const target = b.readUInt32LE();
 				const slot = b.readUInt16LE();
-				return { stacktype: LuaItemStackType[type], target, slot};
+				size += 4+2;
+				return { stacktype: LuaItemStackType[type], target, slot, size};
 			}
 			case LuaItemStackType.LinkedInventory:
 			{
 				const force = b.readUInt8();
 				const proto = b.readUInt16LE();
 				const linkid = b.readUInt32LE();
-				return { stacktype: LuaItemStackType[type], force, proto, linkid};
+				size += 1+2+4;
+				return { stacktype: LuaItemStackType[type], force, proto, linkid, size};
 			}
 
 			default:
@@ -726,11 +762,12 @@ export class ScriptDat {
 	private loadLuaControlBehavior(b:BufferStream) {
 		const type = b.readUInt32LE() as LuaControlBehaviorType;
 		const target = b.readUInt32LE();
-		return {behavior: LuaControlBehaviorType[type], target};
+		return {behavior: LuaControlBehaviorType[type], target, size: 4*2};
 	}
 
 	private loadLuaFlowStatistics(b:BufferStream) {
 		const type = b.readUInt32LE() as LuaFlowStatisticsType;
+		let size = 4;
 
 		switch (type) {
 			case LuaFlowStatisticsType.ItemProduction:
@@ -741,26 +778,31 @@ export class ScriptDat {
 				let surface;
 				if (this.version.isBeyond(1, 2, 0, 360)) {
 					surface = b.readPackedUInt_8_32();
+					size += surface>=0xff?5:1;
 				}
 				const force = b.readUInt8();
-				return {flow: LuaFlowStatisticsType[type], force, surface};
+				size += 1;
+				return {flow: LuaFlowStatisticsType[type], force, surface, size};
 			}
 			case LuaFlowStatisticsType.ElectricNetwork:
 			{
 				const target = b.readUInt32LE();
+				size += 4;
 				let surface;
 				if (this.version.isBeyond(2, 0, 48, 4)) {
 					surface = b.readPackedUInt_8_32();
+					size += surface>=0xff?5:1;
 				}
-				return {flow: LuaFlowStatisticsType[type], target, surface};
+				return {flow: LuaFlowStatisticsType[type], target, surface, size};
 			}
 			case LuaFlowStatisticsType.Pollution:
 			{
 				let surface;
 				if (this.version.isBeyond(1, 2, 0, 360)) {
 					surface = b.readPackedUInt_8_32();
+					size += surface>=0xff?5:1;
 				}
-				return {flow: LuaFlowStatisticsType[type], surface };
+				return {flow: LuaFlowStatisticsType[type], surface, size };
 			}
 			default:
 				throw new Error(`Unknown LuaFlowStatistics type ${type}`);
@@ -768,19 +810,22 @@ export class ScriptDat {
 	}
 
 	private loadLuaLogisticSection(b:BufferStream) {
-
+		let size = 0;
 		if (!this.version.isBeyond(1, 2, 31, 1)) {
 			b.readUInt8(); // game just discards, old member index?
+			size += 1;
 		}
 		let section;
 		if (!this.version.isBeyond(1, 2, 0, 265)) {
 			b.readUInt8(); // game just discards, old section index?
+			size += 1;
 		} else {
 			section = b.readUInt32LE();
+			size += 4;
 		}
 		const entity = b.readUInt32LE();
-		return { entity, section };
-
+		size += 4;
+		return { entity, section, size };
 	}
 }
 
