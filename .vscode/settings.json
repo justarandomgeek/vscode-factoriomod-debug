@@ -19,6 +19,7 @@
         "out/sumneko-3rd/factorio/library",
         //"d:\\factorio\\factoriogit\\data",
     ],
+    "Lua.diagnostics.libraryFiles": "Enable",
     "Lua.runtime.plugin": ".vscode/lua/plugin.lua",
     "Lua.diagnostics.globals": [
         "on_error",
@@ -29,6 +30,7 @@
         "strict": "Any",
         "unbalanced": "Any",
         "ambiguity": "Any",
+        "luadoc": "Any",
     },
     "Lua.diagnostics.neededFileStatus": {
         //"no-unknown": "Any",

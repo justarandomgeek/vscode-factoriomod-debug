@@ -96,7 +96,7 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 				lsclass.exact = true;
 				lsclass.description = await format_description(concept.description, { scope: "prototype", member: concept.name });
 				if (concept.parent) {
-					lsclass.parents = [new LuaLSTypeName(this.type_prefix+concept.parent+suffix)];
+					lsclass.parents = [new LuaLSTypeName(this.type_prefix+concept.parent)];
 				}
 				for (const prop of concept.properties) {
 					lsclass.add(new LuaLSField(

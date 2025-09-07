@@ -12,6 +12,7 @@
     * named format `factorioDate` to match factorio's `dd. mm. yyyy`
 * LuaLS library package:
   * Add `feature_flags` global var for data stage (for real this time)
+  * Fix some parent class links generated incorrectly with `.struct` suffixes
 
 ## 2.0.8
 * Debugger:
