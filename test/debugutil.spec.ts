@@ -17,7 +17,7 @@ class TestStream extends Duplex {
 	}
 }
 
-await suite('EncodingUtil', async ()=>{
+await suite('EncodingUtil', { concurrency: true }, async ()=>{
 	await test('encodeVarInt 0', ()=>{
 		assert.deepEqual(encodeVarInt(0), Buffer.from([0]));
 	});
@@ -82,7 +82,7 @@ await suite('EncodingUtil', async ()=>{
 	});
 });
 
-await test('BufferSplitter', async ()=>{
+await test('BufferSplitter', { concurrency: true }, async ()=>{
 	const ts = new TestStream();
 	const bs = new BufferSplitter(ts, [Buffer.from("\n"), Buffer.from("lua_debug> "), {start: Buffer.from("**start**"), end: Buffer.from("**end**")}]);
 	const result = new Promise((resolve)=>{
@@ -121,7 +121,7 @@ await test('BufferSplitter', async ()=>{
 	]);
 });
 
-await suite('PropertyTree', async ()=>{
+await suite('PropertyTree', { concurrency: true }, async ()=>{
 	await suite('save', async ()=>{
 		await test('none', ()=>{
 			assert.deepEqual(savePTree({type: PropertyTreeType.none}), Buffer.from([0, 0]));
@@ -226,7 +226,7 @@ await suite('PropertyTree', async ()=>{
 	});
 });
 
-await suite('MapVersion', async()=>{
+await suite('MapVersion', { concurrency: true }, async()=>{
 	await test('load', ()=>{
 		assert.deepEqual(
 			MapVersion.load(Buffer.from([1, 0, 2, 0, 3, 0, 4, 0, 5])),

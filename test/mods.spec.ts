@@ -6,7 +6,7 @@ import { forkTest } from "./util.ts";
 import type { ModInstallResult } from "../src/ModManager";
 import {default as packagejson} from "../package.json" assert { type: "json" };
 
-await suite('CLI Mod Manager', async ()=>{
+await suite('CLI Mod Manager', { concurrency: false }, async ()=>{
 	const fmtk = path.join(import.meta.dirname, '../dist/fmtk-cli.js');
 	const mods = path.join(import.meta.dirname, "./factorio/mod-manager-tests");
 

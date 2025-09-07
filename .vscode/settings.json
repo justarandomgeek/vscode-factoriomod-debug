@@ -67,7 +67,6 @@
             "parameters": [ "--experimental-transform-types" ]
         }
     ],
-    "nodejs-testing.concurrency": 1,
     "nodejs-testing.debugOptions": {
         "autoAttachChildProcesses": true,
         "resolveSourceMapLocations": [

@@ -4,7 +4,7 @@ import { test, suite, before, after } from "node:test";
 import assert from 'node:assert/strict';
 import { forkTest, forkTestFails } from "./util.ts";
 
-await suite('CLI Mod Settings', async ()=>{
+await suite('CLI Mod Settings', { concurrency: false }, async ()=>{
 	const fmtk = path.join(import.meta.dirname, '../dist/fmtk-cli.js');
 	const mods = path.join(import.meta.dirname, "./factorio/mod-settings-tests");
 

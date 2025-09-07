@@ -14,7 +14,7 @@ function exists(file:fs.PathLike) {
 
 const timeout = 60000;
 
-await suite('Debug Adapter', async ()=>{
+await suite('Debug Adapter', { concurrency: false }, async ()=>{
 	let dc: DebugClient;
 	const cwd = path.join(import.meta.dirname, "./factorio/mods");
 	const fmtk = path.join(import.meta.dirname, '../dist/fmtk-cli.js');

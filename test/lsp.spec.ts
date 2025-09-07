@@ -16,7 +16,7 @@ function docItem(doc:TextDocument) {
 	return { uri: doc.uri, languageId: doc.languageId, version: doc.version, text: doc.getText() };
 }
 
-await suite("LSP", async ()=>{
+await suite("LSP", { concurrency: false }, async ()=>{
 	const fmtk = path.join(import.meta.dirname, '../dist/fmtk-cli.js');
 	const cwd = path.join(import.meta.dirname, "./mod");
 	let server:ChildProcess;
