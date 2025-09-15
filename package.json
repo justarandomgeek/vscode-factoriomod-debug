@@ -479,6 +479,11 @@
         "icon": "$(cloud-upload)"
       },
       {
+        "command": "factorio.details",
+        "category": "Factorio",
+        "title": "Sync details to Portal"
+      },
+      {
         "command": "factorio.publish",
         "category": "Factorio",
         "title": "Publish Mod",
@@ -548,6 +553,10 @@
           "when": "false"
         },
         {
+          "command": "factorio.details",
+          "when": "false"
+        },
+        {
           "command": "factorio.publish",
           "when": "false"
         }
@@ -577,6 +586,11 @@
           "command": "factorio.upload",
           "when": "view == factoriomods && viewItem =~ /latest/",
           "group": "2_basic@5"
+        },
+        {
+          "command": "factorio.details",
+          "when": "view == factoriomods && viewItem =~ /latest/",
+          "group": "2_basic@6"
         },
         {
           "command": "factorio.publish",

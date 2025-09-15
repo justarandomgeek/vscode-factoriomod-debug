@@ -438,10 +438,14 @@ class ModPackage extends vscode.TreeItem {
 	public DetailsTask() {
 		return new vscode.CustomExecution(async ()=>{
 			return new ModTaskPseudoterminal(async term=>{
-				await forkScript(term,
-					this.getFMTKCLIPath(),
-					["details"],
-					vscode.Uri.joinPath(this.resourceUri, "..").fsPath);
+				const APIKeyReady = await this.keychain.ReadyAPIKey();
+				if (APIKeyReady) {
+					await forkScript(term,
+						this.getFMTKCLIPath(),
+						["details"],
+						vscode.Uri.joinPath(this.resourceUri, "..").fsPath,
+						(APIKeyReady.from!=="env")?{ FACTORIO_UPLOAD_API_KEY: APIKeyReady.key }:undefined);
+				}
 				await this.Update();
 				term.close();
 			});
@@ -512,6 +516,12 @@ class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>, 
 			vscode.commands.registerCommand("factorio.upload", async (mp:ModPackage)=>{
 				const uploadtask = (await vscode.tasks.fetchTasks({type: "factorio"})).find(t=>t.definition.command === "upload" && t.definition.modname === mp.label)!;
 				await vscode.tasks.executeTask(uploadtask);
+			}));
+
+		this.subscriptions.push(
+			vscode.commands.registerCommand("factorio.details", async (mp:ModPackage)=>{
+				const detailstask = (await vscode.tasks.fetchTasks({type: "factorio"})).find(t=>t.definition.command === "details" && t.definition.modname === mp.label)!;
+				await vscode.tasks.executeTask(detailstask);
 			}));
 
 		this.subscriptions.push(

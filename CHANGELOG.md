@@ -15,6 +15,7 @@
   * Fix some parent class links generated incorrectly with `.struct` suffixes
 * VSCode:
   * updated `script.dat` viewer
+  * Sync Mod Details task now works correctly when launched from vscode
 
 ## 2.0.8
 * Debugger:
