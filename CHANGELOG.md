@@ -13,6 +13,8 @@
 * LuaLS library package:
   * Add `feature_flags` global var for data stage (for real this time)
   * Fix some parent class links generated incorrectly with `.struct` suffixes
+* VSCode:
+  * updated `script.dat` viewer
 
 ## 2.0.8
 * Debugger:
