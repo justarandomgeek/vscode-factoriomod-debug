@@ -45,8 +45,8 @@
     "postinstall": "node ./postinstall.ts"
   },
   "devDependencies": {
-    "@inquirer/input": "^4.2.2",
-    "@inquirer/password": "^4.0.18",
+    "@inquirer/input": "^4.2.4",
+    "@inquirer/password": "^4.0.20",
     "@stylistic/eslint-plugin": "^5.3.1",
     "@types/archiver": "^6.0.3",
     "@types/buffers": "^0.1.34",
