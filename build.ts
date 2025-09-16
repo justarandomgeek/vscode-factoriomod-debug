@@ -6,6 +6,8 @@ import { build, context } from "esbuild";
 import {default as ImportGlob} from 'esbuild-plugin-import-glob';
 //@ts-expect-error this plugin's exports are broken...
 const ImportGlobPlugin = ImportGlob.default as typeof ImportGlob;
+//@ts-expect-error plugin has no types
+import { default as compress } from "esbuild-compress";
 
 import { program } from 'commander';
 import archiver from 'archiver';
@@ -110,6 +112,15 @@ const commonConfig:BuildOptions = {
 		".ttf": "copy",
 	},
 	plugins: [
+		compress({
+			compressors: [
+				{
+					// match real files only, not the glob...
+					filter: /[^*]\.lua$/,
+					loader: "text",
+				},
+			],
+		}),
 	],
 };
 
@@ -142,6 +153,7 @@ const configs:BuildOptions[] = [
 			"safe-buffer": "safe-buffer",
 		},
 		plugins: [
+			...commonConfig.plugins!,
 			ImportGlobPlugin(),
 			FactorioModPlugin(),
 		],

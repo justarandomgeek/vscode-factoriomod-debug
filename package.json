@@ -75,6 +75,7 @@
     "dateformat": "^5.0.3",
     "dot-object": "^2.1.5",
     "esbuild": "^0.25.9",
+    "esbuild-compress": "^2.0.2",
     "esbuild-plugin-import-glob": "^0.1.1",
     "esbuild-visualizer": "^0.7.0",
     "eslint": "^9.35.0",
