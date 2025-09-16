@@ -116,7 +116,8 @@ const commonConfig:BuildOptions = {
 			compressors: [
 				{
 					// match real files only, not the glob...
-					filter: /[^*]\.lua$/,
+					filter: /\.lua$/,
+					namespace: "file",
 					loader: "text",
 				},
 			],
