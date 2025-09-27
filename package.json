@@ -14,7 +14,7 @@
   ],
   "engines": {
     "vscode": "^1.104.0",
-    "node": ">22"
+    "node": ">=22.7.0"
   },
   "icon": "images/factoriomod-debug-icon.png",
   "categories": [
@@ -33,7 +33,7 @@
     "lint": "eslint . --ext ts --flag unstable_native_nodejs_ts_config",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "typecheck-watch": "tsc -p tsconfig.json --noEmit --watch",
-    "esbuild": "node ./build.ts",
+    "esbuild": "node --experimental-transform-types ./build.ts",
     "watch": "npm run esbuild -- --watch",
     "stats": "npm run esbuild -- --minify --meta && esbuild-visualizer --metadata ./out/meta.json --filename ./out/stats.html",
     "vscode:prepublish": "npm run prepare",
@@ -42,7 +42,7 @@
     "publish-vscode": "vsce publish",
     "publish-vscode-prerelease": "vsce publish --pre-release",
     "test": "c8 node --experimental-transform-types --test ./test/*.spec.ts",
-    "postinstall": "node ./postinstall.ts"
+    "postinstall": "node --experimental-transform-types ./postinstall.ts"
   },
   "devDependencies": {
     "@inquirer/input": "^4.2.4",
