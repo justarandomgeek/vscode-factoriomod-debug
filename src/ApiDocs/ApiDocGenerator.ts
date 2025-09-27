@@ -80,7 +80,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		if (['classes', 'events', 'concepts', 'defines'].includes(member)) {
 			return `/${member}.html${part}`;
 		}
-		if (['libraries', 'storage', 'migrations', 'data-lifecycle', 'prototype-tree', 'noise-expressions', 'instrument', 'item-weight'].includes(member)) {
+		if (['libraries', 'storage', 'mod-structure', 'migrations', 'data-lifecycle', 'prototype-tree', 'noise-expressions', 'instrument', 'item-weight'].includes(member)) {
 			return `/auxiliary/${member}.html${part}`;
 		}
 		if (this.concepts.has(member)) {
