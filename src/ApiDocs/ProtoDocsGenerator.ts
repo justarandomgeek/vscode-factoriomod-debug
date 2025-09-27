@@ -234,6 +234,9 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 					case "uint64":
 						return new LuaLSTypeName(type);
 				}
+				if (type.match(/^defines\./)) {
+					return new LuaLSTypeName(type);
+				}
 				return new LuaLSTypeName(this.type_prefix+type);
 			case "object":
 				switch (type.complex_type) {
