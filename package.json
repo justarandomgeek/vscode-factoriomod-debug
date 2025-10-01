@@ -42,7 +42,7 @@
     "publish-vscode": "vsce publish",
     "publish-vscode-prerelease": "vsce publish --pre-release",
     "test": "c8 node --experimental-transform-types --test ./test/*.spec.ts",
-    "postinstall": "node --experimental-transform-types ./postinstall.ts"
+    "postinstall": "node ./postinstall.js"
   },
   "devDependencies": {
     "@inquirer/input": "^4.2.4",
