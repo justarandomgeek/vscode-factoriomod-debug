@@ -21,3 +21,4 @@ todo
 .eslint.config.ts
 tsconfig.json
 **/*.vsix
+**/*.tgz
