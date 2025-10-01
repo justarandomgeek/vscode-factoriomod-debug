@@ -5,6 +5,7 @@ dist/
 coverage/
 npm-debug.log
 *.vsix
+*.tgz
 *.zip
 mod/info.json
 test/mod/info.json
