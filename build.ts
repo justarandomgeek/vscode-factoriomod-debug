@@ -2,6 +2,7 @@ import * as fsp from 'fs/promises';
 import * as path from 'path';
 import type { BuildOptions, BuildResult, Metafile, Plugin } from "esbuild";
 import { build, context } from "esbuild";
+import { execSync } from "child_process";
 
 import {default as ImportGlob} from 'esbuild-plugin-import-glob';
 //@ts-expect-error this plugin's exports are broken...
@@ -186,6 +187,9 @@ await program
 	.option("--meta")
 	.option("--minify")
 	.action(async (options:{watch?:boolean; meta?:boolean; minify?:boolean})=>{
+		// make sure local patches are applied before we build...
+		execSync("npx patch-package", { stdio: 'inherit' });
+
 		if (options.watch) {
 			const watcher = new Watcher();
 			configs.forEach(config=>config.plugins!.push(watcher.plugin()));
