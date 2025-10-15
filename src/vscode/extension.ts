@@ -10,7 +10,7 @@ import { ScriptDatEditorProvider } from '../ScriptDat/ScriptDatEditorProvider';
 
 import { version } from "../../package.json";
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
 
 	const output = vscode.window.createOutputChannel("FMTK", { log: true });
 
@@ -35,7 +35,7 @@ export function activate(context: vscode.ExtensionContext) {
 		LanguageClient.activate(context);
 
 		output.info(`Registering Mod Package Provider...`);
-		activateModPackageProvider(context);
+		await activateModPackageProvider(context);
 
 		output.info(`Registering Profile Renderer...`);
 		new ProfileRenderer(context);

@@ -7,6 +7,7 @@ import { BufferSplitter } from '../Util/BufferSplitter';
 import { Keychain } from './Keychain';
 import { platform, tmpdir } from 'os';
 import * as dot from "dot-object";
+import type { GitExtension, API as GitAPI } from './git';
 
 interface ModPackageScripts {
 	[key:string]: string|undefined
@@ -81,7 +82,7 @@ function addBinToPath(path:string) {
 	return path;
 }
 
-export function activateModPackageProvider(context:vscode.ExtensionContext) {
+export async function activateModPackageProvider(context:vscode.ExtensionContext) {
 	if (vscode.workspace.workspaceFolders) {
 		const keychain = new Keychain(context.secrets);
 		context.subscriptions.push(vscode.commands.registerCommand("factorio.clearApiKey", async ()=>{
@@ -90,7 +91,11 @@ export function activateModPackageProvider(context:vscode.ExtensionContext) {
 		context.subscriptions.push(vscode.commands.registerCommand("factorio.setApiKey", async ()=>{
 			await keychain.ReadyAPIKey(true);
 		}));
-		const treeDataProvider = new ModsTreeDataProvider(context, keychain);
+		const gitExtension = vscode.extensions.getExtension<GitExtension>('vscode.git');
+		if (gitExtension && !gitExtension.isActive) {
+			await gitExtension.activate();
+		}
+		const treeDataProvider = new ModsTreeDataProvider(context, keychain, gitExtension?.exports.getAPI(1));
 		context.subscriptions.push(treeDataProvider);
 		const view = vscode.window.createTreeView('factoriomods', { treeDataProvider: treeDataProvider });
 		context.subscriptions.push(view);
@@ -112,49 +117,49 @@ class ModTaskProvider implements vscode.TaskProvider {
 		for (const modpackage of this.modPackages.values()) {
 			if (!latest.has(modpackage)) { continue; }
 			tasks.push(new vscode.Task(
-				{label: `${modpackage.label}.datestamp`, type: "factorio", modname: modpackage.label, command: "datestamp"},
+				{label: `${modpackage.name}.datestamp`, type: "factorio", modname: modpackage.label, command: "datestamp"},
 				vscode.workspace.getWorkspaceFolder(modpackage.resourceUri) || vscode.TaskScope.Workspace,
-				`${modpackage.label}.datestamp`,
+				`${modpackage.name}.datestamp`,
 				"factorio",
 				modpackage.DateStampTask(),
 				[]
 			));
 			tasks.push(new vscode.Task(
-				{label: `${modpackage.label}.package`, type: "factorio", modname: modpackage.label, command: "package"},
+				{label: `${modpackage.name}.package`, type: "factorio", modname: modpackage.label, command: "package"},
 				vscode.workspace.getWorkspaceFolder(modpackage.resourceUri) || vscode.TaskScope.Workspace,
-				`${modpackage.label}.package`,
+				`${modpackage.name}.package`,
 				"factorio",
 				modpackage.PackageTask(),
 				[]
 			));
 			tasks.push(new vscode.Task(
-				{label: `${modpackage.label}.version`, type: "factorio", modname: modpackage.label, command: "version"},
+				{label: `${modpackage.name}.version`, type: "factorio", modname: modpackage.label, command: "version"},
 				vscode.workspace.getWorkspaceFolder(modpackage.resourceUri) || vscode.TaskScope.Workspace,
-				`${modpackage.label}.version`,
+				`${modpackage.name}.version`,
 				"factorio",
 				modpackage.IncrementTask(),
 				[]
 			));
 			tasks.push(new vscode.Task(
-				{label: `${modpackage.label}.upload`, type: "factorio", modname: modpackage.label, command: "upload"},
+				{label: `${modpackage.name}.upload`, type: "factorio", modname: modpackage.label, command: "upload"},
 				vscode.workspace.getWorkspaceFolder(modpackage.resourceUri) || vscode.TaskScope.Workspace,
-				`${modpackage.label}.upload`,
+				`${modpackage.name}.upload`,
 				"factorio",
 				modpackage.PostToPortalTask(),
 				[]
 			));
 			tasks.push(new vscode.Task(
-				{label: `${modpackage.label}.details`, type: "factorio", modname: modpackage.label, command: "details"},
+				{label: `${modpackage.name}.details`, type: "factorio", modname: modpackage.label, command: "details"},
 				vscode.workspace.getWorkspaceFolder(modpackage.resourceUri) || vscode.TaskScope.Workspace,
-				`${modpackage.label}.details`,
+				`${modpackage.name}.details`,
 				"factorio",
 				modpackage.DetailsTask(),
 				[]
 			));
 			tasks.push(new vscode.Task(
-				{label: `${modpackage.label}.publish`, type: "factorio", modname: modpackage.label, command: "publish"},
+				{label: `${modpackage.name}.publish`, type: "factorio", modname: modpackage.label, command: "publish"},
 				vscode.workspace.getWorkspaceFolder(modpackage.resourceUri) || vscode.TaskScope.Workspace,
-				`${modpackage.label}.publish`,
+				`${modpackage.name}.publish`,
 				"factorio",
 				modpackage.PublishTask(),
 				[]
@@ -270,33 +275,45 @@ class ModTaskProvider implements vscode.TaskProvider {
 }
 
 class ModPackage extends vscode.TreeItem {
-	public label: string; // used as modname
-	public description: string; // used as modversion
-	public scripts?: ModPackageScripts;
-
 	constructor(
 		public readonly resourceUri: vscode.Uri,
-		modscript: ModInfo,
+		private modinfo: ModInfo,
 		private readonly keychain: Keychain,
 		private readonly context:vscode.ExtensionContext,
+		private readonly gitapi:GitAPI|undefined
 	) {
 		super(resourceUri);
-		this.label = modscript.name;
-		this.description = modscript.version;
-		this.tooltip = modscript.title;
 		this.command = {
 			title: 'Open',
 			command: 'vscode.open',
 			arguments: [resourceUri],
 		};
-		this.scripts = modscript.package?.scripts;
+
+		this.UpdateTreeItemFields();
 	}
 
+	public get name(): string {
+		return this.modinfo.name;
+	}
+
+	public get title(): string {
+		return this.modinfo.title;
+	}
+
+	public get version(): string {
+		return this.modinfo.version;
+	}
+
+	public get scripts(): ModPackageScripts|undefined {
+		return this.modinfo.package?.scripts;
+	}
+
+
 	public static sort(this:void, a:ModPackage, b:ModPackage) {
-		const namecomp = a.label.toLowerCase().localeCompare(b.label.toLowerCase());
+		const namecomp = a.name.toLowerCase().localeCompare(b.name.toLowerCase());
 		if (namecomp !== 0) { return namecomp * 100; }
 
-		const vercomp = semver.compare(a.description, b.description, {"loose": true});
+		const vercomp = semver.compare(a.version, b.version, {"loose": true});
 		if (vercomp !== 0) { return -vercomp * 10; }
 
 		if (a.resourceUri<b.resourceUri) { return -1; }
@@ -308,28 +325,52 @@ class ModPackage extends vscode.TreeItem {
 	public static latestPackages(packages:IterableIterator<ModPackage>) {
 		const byModName = new Map<string, ModPackage[]>();
 		for (const mp of packages) {
-			if (byModName.has(mp.label)) {
-				byModName.get(mp.label)!.push(mp);
+			if (byModName.has(mp.name)) {
+				byModName.get(mp.name)!.push(mp);
 			} else {
-				byModName.set(mp.label, [mp]);
+				byModName.set(mp.name, [mp]);
 			}
 		}
 		const latest = new Set<ModPackage>();
 		for (const mps of byModName.values()) {
-			latest.add(mps.reduce((a, b)=>(semver.compare(a.description, b.description, {"loose": true}) < 0) ? b : a));
+			latest.add(mps.reduce((a, b)=>(semver.compare(a.version, b.version, {"loose": true}) < 0) ? b : a));
 		}
 		return latest;
 	}
 
-	public async Update() {
+	private async gitLabel() {
+		const repo = this.gitapi?.getRepository(this.resourceUri);
+		if (repo) {
+			const log = await repo.log({});
+			let i = 0;
+			for (; i < log.length; i++) {
+				const entry = log[i];
+				if ("refNames" in entry) {
+					const refNames = entry.refNames as string[];
+					const hasTag = refNames.some(s=>s.match(/^tag:/));
+					if (hasTag) {
+						return `+${i}`;
+					}
+				}
+			}
+		}
+
+		return undefined;
+	}
+
+	public async ReloadInfo() {
 		const infodoc = await vscode.workspace.openTextDocument(this.resourceUri);
 		const jsonstr = infodoc.getText();
-		const modscript: ModInfo = JSON.parse(jsonstr);
+		this.modinfo = JSON.parse(jsonstr);
 
-		this.label = modscript.name;
-		this.description = modscript.version;
-		this.tooltip = modscript.title;
-		this.scripts = modscript.package?.scripts;
+		const gitLabel = await this.gitLabel();
+		this.UpdateTreeItemFields(gitLabel);
+	}
+
+	private UpdateTreeItemFields(gitLabel?:string) {
+		this.label = this.name;
+		this.description = gitLabel ? `${this.version} (${gitLabel})` : this.version;
+		this.tooltip = this.title;
 	}
 
 	private getFMTKCLIPath() {
@@ -343,7 +384,7 @@ class ModPackage extends vscode.TreeItem {
 					this.getFMTKCLIPath(),
 					["run", script, ...(scriptArgs??[])],
 					vscode.Uri.joinPath(this.resourceUri, "..").fsPath);
-				await this.Update();
+				await this.ReloadInfo();
 				term.close();
 			});
 		});
@@ -356,7 +397,7 @@ class ModPackage extends vscode.TreeItem {
 					this.getFMTKCLIPath(),
 					["datestamp"],
 					vscode.Uri.joinPath(this.resourceUri, "..").fsPath);
-				await this.Update();
+				await this.ReloadInfo();
 				term.close();
 			});
 		});
@@ -377,7 +418,7 @@ class ModPackage extends vscode.TreeItem {
 					this.getFMTKCLIPath(),
 					args,
 					vscode.Uri.joinPath(this.resourceUri, "..").fsPath);
-				await this.Update();
+				await this.ReloadInfo();
 				term.close();
 			});
 		});
@@ -390,7 +431,7 @@ class ModPackage extends vscode.TreeItem {
 					this.getFMTKCLIPath(),
 					["version"],
 					vscode.Uri.joinPath(this.resourceUri, "..").fsPath);
-				await this.Update();
+				await this.ReloadInfo();
 				term.close();
 			});
 		});
@@ -399,7 +440,7 @@ class ModPackage extends vscode.TreeItem {
 	public PostToPortalTask(): vscode.CustomExecution {
 		return new vscode.CustomExecution(async ()=>{
 			return new ModTaskPseudoterminal(async term=>{
-				await this.Update();
+				await this.ReloadInfo();
 				const config = vscode.workspace.getConfiguration(undefined, this.resourceUri);
 				let packagebase = path.dirname(this.resourceUri.path);
 				switch (config.get<string>("factorio.package.zipLocation", "inside")) {
@@ -413,7 +454,7 @@ class ModPackage extends vscode.TreeItem {
 				const moddir = this.resourceUri.with({path: packagebase});
 				const direntries = await vscode.workspace.fs.readDirectory(moddir);
 				const packages = direntries.filter(([name, type])=>{
-					return type === vscode.FileType.File && name.startsWith(this.label) && name.match(/_\d+\.\d+\.\d+\.zip$/);
+					return type === vscode.FileType.File && name.startsWith(this.name) && name.match(/_\d+\.\d+\.\d+\.zip$/);
 				}).map(([name, type])=>{ return name; }).sort().reverse();
 				const packagename = await vscode.window.showQuickPick(packages, { placeHolder: "Select Package to upload" });
 				if (!packagename) {
@@ -425,11 +466,11 @@ class ModPackage extends vscode.TreeItem {
 				if (APIKeyReady) {
 					await forkScript(term,
 						this.getFMTKCLIPath(),
-						["upload", packagepath, this.label ],
+						["upload", packagepath, this.name ],
 						vscode.Uri.joinPath(this.resourceUri, "..").fsPath,
 						(APIKeyReady.from!=="env")?{ FACTORIO_UPLOAD_API_KEY: APIKeyReady.key }:undefined);
 				}
-				await this.Update();
+				await this.ReloadInfo();
 				term.close();
 			});
 		});
@@ -446,7 +487,7 @@ class ModPackage extends vscode.TreeItem {
 						vscode.Uri.joinPath(this.resourceUri, "..").fsPath,
 						(APIKeyReady.from!=="env")?{ FACTORIO_UPLOAD_API_KEY: APIKeyReady.key }:undefined);
 				}
-				await this.Update();
+				await this.ReloadInfo();
 				term.close();
 			});
 		});
@@ -463,7 +504,7 @@ class ModPackage extends vscode.TreeItem {
 						vscode.Uri.joinPath(this.resourceUri, "..").fsPath,
 						(APIKeyReady.from!=="env")?{ FACTORIO_UPLOAD_API_KEY: APIKeyReady.key }:undefined);
 				}
-				await this.Update();
+				await this.ReloadInfo();
 				term.close();
 			});
 		});
@@ -477,7 +518,8 @@ class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>, 
 	private readonly subscriptions:{dispose():void}[] = [this._onDidChangeTreeData];
 	constructor(
 		private readonly context:vscode.ExtensionContext,
-		private readonly keychain:Keychain
+		private readonly keychain:Keychain,
+		private readonly gitapi:GitAPI|undefined
 	) {
 		this.modPackages = new Map<string, ModPackage>();
 		vscode.workspace.findFiles('**/info.json').then(infos=>{ infos.forEach((uri)=>void this.updateInfoJson(uri)); });
@@ -486,6 +528,18 @@ class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>, 
 		this.subscriptions.push(infoWatcher.onDidCreate((uri)=>this.updateInfoJson(uri)));
 		this.subscriptions.push(infoWatcher.onDidDelete((uri)=>this.removeInfoJson(uri)));
 		this.subscriptions.push(infoWatcher);
+
+		if (gitapi) {
+			this.subscriptions.push(gitapi.onDidOpenRepository(async (repo)=>{
+				for (const modscript of this.modPackages.values()) {
+					const modrepo = gitapi.getRepository(modscript.resourceUri);
+					if (repo.rootUri.toString() === modrepo?.rootUri?.toString()) {
+						await modscript.ReloadInfo();
+						this._onDidChangeTreeData.fire(modscript);
+					}
+				}
+			}));
+		}
 
 		this.subscriptions.push(vscode.tasks.registerTaskProvider("factorio", new ModTaskProvider(this.context, this.modPackages)));
 
@@ -544,9 +598,11 @@ class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>, 
 				const modscript: ModInfo = JSON.parse(jsonstr);
 				if (modscript && modscript.name) {
 					if (this.modPackages.has(uri.toString())) {
-						await this.modPackages.get(uri.toString())?.Update();
+						await this.modPackages.get(uri.toString())?.ReloadInfo();
 					} else {
-						this.modPackages.set(uri.toString(), new ModPackage(uri, modscript, this.keychain, this.context));
+						const pack = new ModPackage(uri, modscript, this.keychain, this.context, this.gitapi);
+						this.modPackages.set(uri.toString(), pack);
+						await pack.ReloadInfo();
 					}
 				} else {
 					this.modPackages.delete(uri.toString());
