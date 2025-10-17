@@ -280,6 +280,7 @@ class ModPackage extends vscode.TreeItem {
 		private modinfo: ModInfo,
 		private readonly keychain: Keychain,
 		private readonly context:vscode.ExtensionContext,
+		private readonly _onDidChange: (mp:ModPackage)=>void,
 		private readonly gitapi:GitAPI|undefined
 	) {
 		super(resourceUri);
@@ -365,6 +366,7 @@ class ModPackage extends vscode.TreeItem {
 
 		const gitLabel = await this.gitLabel();
 		this.UpdateTreeItemFields(gitLabel);
+		this._onDidChange(this);
 	}
 
 	private UpdateTreeItemFields(gitLabel?:string) {
@@ -535,7 +537,6 @@ class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>, 
 					const modrepo = gitapi.getRepository(modscript.resourceUri);
 					if (repo.rootUri.toString() === modrepo?.rootUri?.toString()) {
 						await modscript.ReloadInfo();
-						this._onDidChangeTreeData.fire(modscript);
 					}
 				}
 			}));
@@ -600,7 +601,7 @@ class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>, 
 					if (this.modPackages.has(uri.toString())) {
 						await this.modPackages.get(uri.toString())?.ReloadInfo();
 					} else {
-						const pack = new ModPackage(uri, modscript, this.keychain, this.context, this.gitapi);
+						const pack = new ModPackage(uri, modscript, this.keychain, this.context, (mp)=>{ this._onDidChangeTreeData.fire(mp); }, this.gitapi);
 						this.modPackages.set(uri.toString(), pack);
 						await pack.ReloadInfo();
 					}
