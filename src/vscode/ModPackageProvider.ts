@@ -6,7 +6,7 @@ import { fork } from 'child_process';
 import { BufferSplitter } from '../Util/BufferSplitter';
 import { Keychain } from './Keychain';
 import { platform, tmpdir } from 'os';
-import * as dot from "dot-object";
+import { default as dotize } from "dotize";
 import type { GitExtension, API as GitAPI } from './git';
 
 interface ModPackageScripts {
@@ -679,7 +679,7 @@ const fmtk_config_file = vscode.Uri.file(path.join(tmpdir(), `vscode-${process.p
 export async function forkScript(term:ModTaskTerminal, module:string, args:string[], cwd:string, env?:NodeJS.ProcessEnv, stdin?:string): Promise<number> {
 	const config = vscode.workspace.getConfiguration("factorio");
 
-	await vscode.workspace.fs.writeFile(fmtk_config_file, Buffer.from(JSON.stringify(dot.dot({
+	await vscode.workspace.fs.writeFile(fmtk_config_file, Buffer.from(JSON.stringify(dotize.convert({
 		docs: await config.get("docs"),
 		package: await config.get("package"),
 	}))));
