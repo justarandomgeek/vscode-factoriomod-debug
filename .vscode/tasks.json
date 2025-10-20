@@ -18,7 +18,11 @@
 			"group": "build",
 			"problemMatcher": "$esbuild-watch",
 			"isBackground": true,
-			"label": "npm: watch"
+			"label": "npm: watch",
+			"runOptions": {
+				"instanceLimit": 1,
+				"runOn": "folderOpen"
+			}
 		},
 		{
 			"type": "npm",
