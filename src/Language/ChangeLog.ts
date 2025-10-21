@@ -1,5 +1,5 @@
-import type { Diagnostic, DocumentSymbol, CodeActionContext, CodeAction, Range } from 'vscode-languageserver';
-import { SymbolKind, CodeActionKind } from 'vscode-languageserver';
+import type { Diagnostic, DocumentSymbol, CodeActionContext, CodeAction, Range, Position } from 'vscode-languageserver';
+import { DiagnosticSeverity, SymbolKind, CodeActionKind } from 'vscode-languageserver';
 import type { DocumentUri, TextDocument, TextEdit } from 'vscode-languageserver-textdocument';
 import { parse } from './ChangeLog/Parse.ts';
 import type { Category, DateLine, Entry, EntryExt, Root, Section, VersionLine } from './ChangeLog/AST.ts';
@@ -63,6 +63,22 @@ export function setDate(root:Root, forVersion:string, newdate:string):TextEdit|u
 	return undefined;
 }
 
+function comparePosition(a:Position, b:Position) {
+	if (a.line < b.line) { return -1; }
+	if (a.line > b.line) { return 1; }
+
+	if (a.character < b.character) { return -1; }
+	if (a.character > b.character) { return 1; }
+
+	return 0;
+}
+
+function rangeOverlaps(a:Range, b:Range) {
+	if (comparePosition(a.end, b.start) < 0) { return false; }
+	if (comparePosition(b.end, a.start) < 0) { return false; }
+	return true;
+}
+
 export class ChangeLogLanguageService {
 	readonly documentTrees:Map<DocumentUri, Root> = new Map();
 
@@ -86,7 +102,19 @@ export class ChangeLogLanguageService {
 	public diagnose(uri:DocumentUri):Diagnostic[] {
 		const tree = this.documentTrees.get(uri);
 		if (!tree) { return []; }
-		return diagnose(tree, uri);
+		const reports = diagnose(tree, uri);
+
+		const diags:Diagnostic[] = [];
+		for (const report of reports) {
+			diags.push({
+				message: report.message,
+				code: report.code,
+				source: "factorio-changelog",
+				severity: DiagnosticSeverity.Error,
+				...report.diag,
+			});
+		}
+		return diags;
 	}
 
 	private entrySymbol(entry:Entry|EntryExt): DocumentSymbol {
@@ -155,226 +183,30 @@ export class ChangeLogLanguageService {
 
 	public onCodeAction(document: TextDocument, range: Range, context: CodeActionContext): CodeAction[] {
 		if (document.languageId !== "factorio-changelog") { return []; }
-		return context.diagnostics.flatMap(diag=>{
-			if (!diag.code) { return []; }
-			switch (diag.code) {
-				case "separator.length":
-				{
-					const ca:CodeAction = {
-						title: "Fix separator length",
-						kind: CodeActionKind.QuickFix + ".separator.length",
-						diagnostics: [diag],
-						isPreferred: true,
-						edit: {
-							changes: {
-								[document.uri]: [
-									{
-										range: diag.range,
-										newText: "---------------------------------------------------------------------------------------------------",
-									},
-								],
-							},
-						},
-					};
-					return ca;
-				}
-				case "separator.insert":
-				{
-					const ca:CodeAction = {
-						title: "Insert separator",
-						kind: CodeActionKind.QuickFix + ".separator.insert",
-						diagnostics: [diag],
-						isPreferred: true,
-						edit: {
-							changes: {
-								[document.uri]: [
-									{
-										range: { start: diag.range.start, end: diag.range.start },
-										newText: "---------------------------------------------------------------------------------------------------\n",
-									},
-								],
-							},
-						},
-					};
-					return ca;
-				}
-				case "separator.remove":
-				{
-					const ca:CodeAction = {
-						title: "Remove separator",
-						kind: CodeActionKind.QuickFix + ".separator.remove",
-						diagnostics: [diag],
-						isPreferred: true,
-						edit: {
-							changes: {
-								[document.uri]: [
-									{
-										range: {
-											start: diag.range.start,
-											end: {
-												line: diag.range.start.line+1,
-												character: 0,
-											},
-										},
-										newText: "",
-									},
-								],
-							},
-						},
-					};
-					return ca;
-				}
-				case "version.insert":
-				{
-					const ca:CodeAction = {
-						title: "Insert version",
-						kind: CodeActionKind.QuickFix + ".version.insert",
-						diagnostics: [diag],
-						isPreferred: true,
-						edit: {
-							changes: {
-								[document.uri]: [
-									{
-										range: { start: diag.range.start, end: diag.range.start },
-										newText: "Version: 0.0.0\n",
-									},
-								],
-							},
-						},
-					};
-					return ca;
-				}
-				case "date.remove":
-				{
-					const ca:CodeAction = {
-						title: "Remove date",
-						kind: CodeActionKind.QuickFix + ".date.remove",
-						diagnostics: [diag],
-						isPreferred: true,
-						edit: {
-							changes: {
-								[document.uri]: [
-									{
-										range: {
-											start: diag.range.start,
-											end: {
-												line: diag.range.start.line+1,
-												character: 0,
-											},
-										},
-										newText: "",
-									},
-								],
-							},
-						},
-					};
-					return ca;
-				}
-				case "category.prefix":
-				{
-					const ca:CodeAction = {
-						title: "Fix Prefix",
-						kind: CodeActionKind.QuickFix + ".category.prefix",
-						diagnostics: [diag],
-						isPreferred: true,
-						edit: {
-							changes: {
-								[document.uri]: [
-									{
-										range: diag.range,
-										newText: "  ",
-									},
-								],
-							},
-						},
-					};
-					return ca;
-				}
-				case "category.suffix":
-				{
-					const ca:CodeAction = {
-						title: "Fix Suffix",
-						kind: CodeActionKind.QuickFix + ".category.suffix",
-						diagnostics: [diag],
-						isPreferred: true,
-						edit: {
-							changes: {
-								[document.uri]: [
-									{
-										range: diag.range,
-										newText: ":",
-									},
-								],
-							},
-						},
-					};
-					return ca;
-				}
-				case "category.insert":
-				{
-					const ca:CodeAction = {
-						title: "Insert Category",
-						kind: CodeActionKind.QuickFix + ".category.insert",
-						diagnostics: [diag],
-						isPreferred: true,
-						edit: {
-							changes: {
-								[document.uri]: [
-									{
-										range: { start: diag.range.start, end: diag.range.start },
-										newText: "  Changes:\n",
-									},
-								],
-							},
-						},
-					};
-					return ca;
-				}
-				case "entry.prefix":
-				{
-					const prefix = '    ' + ('  '.repeat(diag.data?.rank ?? 0)) + '- ';
-					const ca:CodeAction = {
-						title: "Fix Prefix",
-						kind: CodeActionKind.QuickFix + ".entry.prefix",
-						diagnostics: [diag],
-						isPreferred: true,
-						edit: {
-							changes: {
-								[document.uri]: [
-									{
-										range: diag.range,
-										newText: prefix,
-									},
-								],
-							},
-						},
-					};
-					return ca;
-				}
-				case "entryext.prefix":
-				{
-					const prefix = '      ';
-					const ca:CodeAction = {
-						title: "Fix Prefix",
-						kind: CodeActionKind.QuickFix + ".entryext.prefix",
-						diagnostics: [diag],
-						isPreferred: true,
-						edit: {
-							changes: {
-								[document.uri]: [
-									{
-										range: diag.range,
-										newText: prefix,
-									},
-								],
-							},
-						},
-					};
-					return ca;
-				}
-				default:
-					return [];
-			}
+
+		const tree = this.documentTrees.get(document.uri);
+		if (!tree) { return []; }
+		const reports = diagnose(tree, document.uri).filter(r=>!!r.fix);
+		const overlaps = reports.filter(r=>rangeOverlaps(range, r.diag.range));
+
+		return overlaps.map(r=>{
+			return {
+				title: `Fix this ${r.code}`,
+				kind: CodeActionKind.QuickFix + '.' + r.code,
+				diagnostics: [
+					{
+						message: r.message,
+						code: r.code,
+						source: "factorio-changelog",
+						severity: DiagnosticSeverity.Error,
+						...r.diag,
+					},
+				],
+				isPreferred: true,
+				edit: {
+					changes: { [document.uri]: r.fix! },
+				},
+			};
 		});
 	}
 }
