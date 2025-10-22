@@ -149,6 +149,45 @@ await suite("LSP", { concurrency: false }, async ()=>{
 		await test("line-format", singleDiagTest("entry.prefix", true));
 		await test("line-extformat", singleDiagTest("entryext.prefix", true));
 
+
+		function fixAllTest() {
+			return async (t:test.TestContext)=>{
+				const diags = await waitForNotification(PublishDiagnosticsNotification.type);
+				assert.equal(diags.uri, doc.uri);
+				assert.notEqual(diags.diagnostics.length, 0);
+
+				const actions = await clientConnection.sendRequest(CodeActionRequest.type, {
+					textDocument: docItem(doc),
+					range: diags.diagnostics[0].range,
+					context: {
+						diagnostics: diags.diagnostics,
+					},
+				} as CodeActionParams) as CodeAction[];
+
+				const fixall = actions.find(a=>a.kind === CodeActionKind.QuickFix + ".all");
+				assert.ok(fixall);
+
+				const edits = fixall.edit!.changes![doc.uri];
+				const oldText = doc.getText();
+				const newText = TextDocument.applyEdits(doc, edits);
+				assert.notEqual(oldText, newText);
+				TextDocument.update(doc, [{text: newText}], doc.version+1);
+				await clientConnection.sendNotification(DidChangeTextDocumentNotification.type, {
+					contentChanges: [{text: newText}],
+					textDocument: { uri: doc.uri, version: doc.version },
+				} as DidChangeTextDocumentParams);
+
+				const afterdiags = await waitForNotification(PublishDiagnosticsNotification.type);
+				assert.equal(afterdiags.uri, doc.uri);
+				assert.equal(afterdiags.diagnostics.length, 0);
+
+				const expectfile = path.join(import.meta.dirname, "changelog", `${t.name}.expect.txt`);
+				assert.equal(newText, await fsp.readFile(expectfile, "utf8"));
+			};
+		}
+
+		await test("line-nesting-all", fixAllTest());
+
 		await test("symbols", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
 			assert.equal(diags.uri, doc.uri);

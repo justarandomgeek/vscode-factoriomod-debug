@@ -1,0 +1,8 @@
+---------------------------------------------------------------------------------------------------
+Version: 0.0.4
+Date: someday
+  Changes:
+    - did the thing
+      - did the thing in more detail
+        - even more detail
+          - and another thing!

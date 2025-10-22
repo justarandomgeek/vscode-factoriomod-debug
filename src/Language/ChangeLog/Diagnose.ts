@@ -431,7 +431,7 @@ const rules:rule[] = [
 				entry: (node, index, parent)=>{
 					// strict match: failing this will fail in-game
 					const expect_strict = '    ' + (node.rank === 0 ? '- ' : '  ');
-					if (!node.full_line.startsWith(expect_strict)) {
+					if (node.rank === 0 && !node.full_line.startsWith(expect_strict)) {
 						context.report({
 							diag: {
 								range: {
@@ -458,7 +458,10 @@ const rules:rule[] = [
 					if (got !== expect) {
 						context.report({
 							diag: {
-								severity: DiagnosticSeverity.Warning,
+								severity:
+									!node.full_line.startsWith(expect_strict) ?
+										DiagnosticSeverity.Error:
+										DiagnosticSeverity.Warning,
 								range: {
 									start: node.range.start,
 									end: node.selectionRange.start,
@@ -471,7 +474,7 @@ const rules:rule[] = [
 										start: node.range.start,
 										end: node.selectionRange.start,
 									},
-									newText: expect_strict,
+									newText: expect,
 								},
 							],
 						});
