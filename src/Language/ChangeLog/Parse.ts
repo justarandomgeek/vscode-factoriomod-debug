@@ -81,7 +81,8 @@ export function parse(doc:TextDocument):Root {
 		},
 		{
 			//pattern: /^  ([^ ].+):$/d,
-			pattern: /^\s*([\w\s]+)\s*:?\s*$/d,
+			// more permissive pattern to allow silly nonsense like periodic-madness's version "subtitles" as fake sections
+			pattern: /^\s*([^\s\-].*?)\s*:?\s*$/d,
 			parse(matches, line) {
 				if (open_entries.length>0 && matches.indices![1][0]>=4 ) {
 					//this is more likely an entry extension line (possibly mis-indented)
