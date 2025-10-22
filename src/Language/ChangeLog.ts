@@ -188,9 +188,12 @@ export class ChangeLogLanguageService {
 		if (!tree) { return []; }
 		const reports = diagnose(tree, document.uri).filter(r=>!!r.fix);
 		const overlaps = reports.filter(r=>rangeOverlaps(range, r.diag.range));
+		const ca:CodeAction[] = [];
 
-		return overlaps.map(r=>{
-			return {
+		const seenCodes = new Set<string>();
+
+		for (const r of overlaps) {
+			ca.push({
 				title: `Fix this ${r.code}`,
 				kind: CodeActionKind.QuickFix + '.' + r.code,
 				diagnostics: [
@@ -206,7 +209,53 @@ export class ChangeLogLanguageService {
 				edit: {
 					changes: { [document.uri]: r.fix! },
 				},
-			};
-		});
+			});
+
+			if (!seenCodes.has(r.code)) {
+				seenCodes.add(r.code);
+				const samecode = reports.filter(rr=>rr.code === r.code);
+				if (samecode.length > 1) {
+					ca.push({
+						title: `Fix all ${r.code} in file`,
+						kind: CodeActionKind.QuickFix + '.' + r.code + ".all",
+						diagnostics: samecode.map(rr=>{
+							return {
+								message: rr.message,
+								code: rr.code,
+								source: "factorio-changelog",
+								severity: DiagnosticSeverity.Error,
+								...rr.diag,
+							};
+						}),
+						//isPreferred: true,
+						edit: {
+							changes: { [document.uri]: samecode.flatMap(rr=>rr.fix!) },
+						},
+					});
+				}
+			}
+		}
+
+		if (reports.length > overlaps.length) {
+			ca.push({
+				title: `Fix all auto-fixable in file`,
+				kind: CodeActionKind.QuickFix + ".all",
+				diagnostics: reports.map(rr=>{
+					return {
+						message: rr.message,
+						code: rr.code,
+						source: "factorio-changelog",
+						severity: DiagnosticSeverity.Error,
+						...rr.diag,
+					};
+				}),
+				//isPreferred: true,
+				edit: {
+					changes: { [document.uri]: reports.flatMap(rr=>rr.fix!) },
+				},
+			});
+		}
+
+		return ca;
 	}
 }
