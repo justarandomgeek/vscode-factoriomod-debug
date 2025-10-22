@@ -557,7 +557,7 @@ const rules:rule[] = [
 									start: node.range.start,
 									end: {
 										line: node.selectionRange.start.line,
-										character: node.selectionRange.start.character-1,
+										character: node.selectionRange.start.character,
 									},
 								},
 							},
@@ -567,7 +567,7 @@ const rules:rule[] = [
 										start: node.range.start,
 										end: {
 											line: node.selectionRange.start.line,
-											character: node.selectionRange.start.character-1,
+											character: node.selectionRange.start.character,
 										},
 									},
 									newText: '      ',
