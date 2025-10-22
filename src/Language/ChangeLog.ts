@@ -1,9 +1,10 @@
-import type { Diagnostic, DocumentSymbol, CodeActionContext, CodeAction, Range, Position } from 'vscode-languageserver';
+import type { Diagnostic, DocumentSymbol, CodeActionContext, CodeAction, Range } from 'vscode-languageserver';
 import { DiagnosticSeverity, SymbolKind, CodeActionKind } from 'vscode-languageserver';
 import type { DocumentUri, TextDocument, TextEdit } from 'vscode-languageserver-textdocument';
 import { parse } from './ChangeLog/Parse.ts';
 import type { Category, DateLine, Entry, EntryExt, Root, Section, VersionLine } from './ChangeLog/AST.ts';
 import { diagnose } from './ChangeLog/Diagnose.ts';
+import { getFixText, rangeOverlaps } from './ASTUtil.ts';
 
 // for convenience in non-LSP consumers
 export { parse, diagnose };
@@ -61,22 +62,6 @@ export function setDate(root:Root, forVersion:string, newdate:string):TextEdit|u
 		}
 	}
 	return undefined;
-}
-
-function comparePosition(a:Position, b:Position) {
-	if (a.line < b.line) { return -1; }
-	if (a.line > b.line) { return 1; }
-
-	if (a.character < b.character) { return -1; }
-	if (a.character > b.character) { return 1; }
-
-	return 0;
-}
-
-function rangeOverlaps(a:Range, b:Range) {
-	if (comparePosition(a.end, b.start) < 0) { return false; }
-	if (comparePosition(b.end, a.start) < 0) { return false; }
-	return true;
 }
 
 export class ChangeLogLanguageService {
@@ -207,7 +192,7 @@ export class ChangeLogLanguageService {
 				],
 				isPreferred: true,
 				edit: {
-					changes: { [document.uri]: r.fix! },
+					changes: { [document.uri]: getFixText(document, r.fix!) },
 				},
 			});
 
@@ -229,7 +214,7 @@ export class ChangeLogLanguageService {
 						}),
 						//isPreferred: true,
 						edit: {
-							changes: { [document.uri]: samecode.flatMap(rr=>rr.fix!) },
+							changes: { [document.uri]: getFixText(document, samecode.flatMap(rr=>rr.fix!)) },
 						},
 					});
 				}
@@ -251,7 +236,7 @@ export class ChangeLogLanguageService {
 				}),
 				//isPreferred: true,
 				edit: {
-					changes: { [document.uri]: reports.flatMap(rr=>rr.fix!) },
+					changes: { [document.uri]: getFixText(document, reports.flatMap(rr=>rr.fix!)) },
 				},
 			});
 		}

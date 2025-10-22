@@ -1,39 +1,12 @@
-import type { Diagnostic, TextEdit } from 'vscode-languageserver';
 import { DiagnosticSeverity } from 'vscode-languageserver';
 
-import type { Parent } from "../ASTUtil.ts";
+import type { DiagnoseContext, DiagnoseResult, DiagnoseRule, DiagnoseVisitor, parentOf } from "../ASTUtil.ts";
 import type { EntryExt, allNodes, Entry, Root, VersionLine, Category } from "./AST.ts";
 
 import { visit } from "unist-util-visit";
 import type { DocumentUri } from 'vscode-languageserver-textdocument';
 
-type allParents = Extends<allNodes, Parent>;
-
-type parentOf<N extends allNodes> = {
-	[k in allParents as k["type"]]: N extends k["children"][0] ? k : never
-}[allParents["type"]];
-
-type ruleVisitor<N extends allNodes = allNodes> = (node:N, index:number, parent:parentOf<N>)=>void;
-
-interface reportresult {
-	diag: Omit<Diagnostic, "message"|"code"|"source">
-	fix?: TextEdit[]
-}
-
-interface rulecontext {
-	uri: DocumentUri
-	report:(e:reportresult)=>void
-}
-
-interface rule {
-	message:string
-	code:string
-	setup:(context:rulecontext)=>{
-		[N in allNodes as N["type"]]?: ruleVisitor<N>
-	}
-}
-
-const rules:rule[] = [
+const rules:DiagnoseRule<allNodes>[] = [
 	{
 		message: "Missing separator",
 		code: "separator.insert",
@@ -490,7 +463,7 @@ const rules:rule[] = [
 			let activeCategoryLines:Map<string, Entry|EntryExt>|undefined;
 			const seenCategoryLines = new Map<string, Map<string, Entry|EntryExt>>();
 
-			const entry:ruleVisitor<Entry|EntryExt> = (node, index, parent)=>{
+			const entry:DiagnoseVisitor<Entry|EntryExt, allNodes> = (node, index, parent)=>{
 				const catLines = activeCategoryLines;
 				if (!catLines) { return; }
 				const seen = catLines.get(node.full_line);
@@ -593,8 +566,8 @@ const rules:rule[] = [
 ];
 
 export function diagnose(root:Root, uri:DocumentUri) {
-	const reports:(reportresult&{ message: string; code:string })[] = [];
-	const ruleVisitors:{ [N in allNodes as N["type"]]: ruleVisitor<N>[] } = {
+	const reports:(DiagnoseResult&{ message: string; code:string })[] = [];
+	const ruleVisitors:{ [N in allNodes as N["type"]]: DiagnoseVisitor<N, allNodes>[] } = {
 		"root": [],
 		"section": [],
 		"separator": [],
@@ -607,7 +580,7 @@ export function diagnose(root:Root, uri:DocumentUri) {
 	};
 
 	for (const rule of rules) {
-		const context:rulecontext = {
+		const context:DiagnoseContext = {
 			uri,
 			report(e) {
 				reports.push({
@@ -618,10 +591,12 @@ export function diagnose(root:Root, uri:DocumentUri) {
 			},
 		};
 		const ruleinst = rule.setup(context);
-		for (const key of ["root", "section", "separator", "version", "date", "category", "entry", "entryext", "error" ] as allNodes["type"][]) {
-			if (ruleinst[key]) {
-				const group = ruleVisitors[key] as ruleVisitor[];
-				group.push(ruleinst[key] as ruleVisitor);
+		for (const key in ruleVisitors) {
+			const k = key as keyof typeof ruleVisitors;
+			if (k in ruleinst && ruleinst[k]) {
+				//these types could be nicer...
+				const group = ruleVisitors[k] as DiagnoseVisitor<allNodes, allNodes>[];
+				group.push(ruleinst[k] as DiagnoseVisitor<allNodes, allNodes>);
 			}
 		}
 
@@ -630,7 +605,7 @@ export function diagnose(root:Root, uri:DocumentUri) {
 	visit(root, (node, index, parent)=>{
 		const typeVisitors = ruleVisitors[node.type];
 		for (const visitor of typeVisitors) {
-			(visitor as ruleVisitor<typeof node>)(node, index??-1, parent as parentOf<typeof node>);
+			(visitor as DiagnoseVisitor<typeof node, allNodes>)(node, index??-1, parent as parentOf<typeof node, allNodes>);
 		}
 	});
 	return reports;

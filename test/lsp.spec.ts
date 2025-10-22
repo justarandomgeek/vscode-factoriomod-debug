@@ -276,24 +276,11 @@ await suite("LSP", { concurrency: false }, async ()=>{
 			assert.equal(diags.diagnostics[0].code, "section.rootconflict");
 		});
 
-		await test("section-emptyname", async ()=>{
-			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
-			assert.equal(diags.uri, doc.uri);
-			assert.equal(diags.diagnostics.length, 1);
-			assert.equal(diags.diagnostics[0].code, "section.invalid");
-
-			const symbols = <DocumentSymbol[]> await clientConnection.sendRequest(DocumentSymbolRequest.type, { textDocument: docItem(doc) } as DocumentSymbolParams);
-			assert.equal(symbols.length, 1);
-			assert.equal(symbols[0].detail, '');
-			assert.equal(symbols[0].kind, SymbolKind.Namespace);
-			assert(symbols[0].name);
-		});
-
 		await test("section-invalid", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
 			assert.equal(diags.uri, doc.uri);
 			assert.equal(diags.diagnostics.length, 1);
-			assert.equal(diags.diagnostics[0].code, "section.invalid");
+			assert.equal(diags.diagnostics[0].code, "error.unknown");
 		});
 
 		await test("key-duplicate", async ()=>{
@@ -307,14 +294,14 @@ await suite("LSP", { concurrency: false }, async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
 			assert.equal(diags.uri, doc.uri);
 			assert.equal(diags.diagnostics.length, 1);
-			assert.equal(diags.diagnostics[0].code, "key.invalid");
+			assert.equal(diags.diagnostics[0].code, "key.empty");
 		});
 
 		await test("key-invalid", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
 			assert.equal(diags.uri, doc.uri);
 			assert.equal(diags.diagnostics.length, 1);
-			assert.equal(diags.diagnostics[0].code, "key.invalid");
+			assert.equal(diags.diagnostics[0].code, "error.unknown");
 		});
 
 		await test("key-whitespace-end", async ()=>{

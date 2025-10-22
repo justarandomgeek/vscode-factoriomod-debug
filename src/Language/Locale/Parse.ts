@@ -1,7 +1,7 @@
 
 import assert from "assert";
-import { literalNode, span } from "./ASTUtil";
-import type { Section, Root, Record, Text, TextNode, Macro, Escape, Comment, Error, PluralMatch, PluralOption, CommentGroup } from "./LocaleAST";
+import { literalNode, span } from "../ASTUtil";
+import type { Section, Root, Record, Text, TextNode, Macro, Escape, Comment, Error, PluralMatch, PluralOption, CommentGroup } from "./AST";
 import type { TextDocument } from 'vscode-languageserver-textdocument';
 
 function textNode(value:string, line:number, startcol:number):Text {

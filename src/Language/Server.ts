@@ -152,7 +152,7 @@ export async function runLanguageServer():Promise<void> {
 		switch (change.document.languageId) {
 			case "factorio-locale":
 				Locale.loadDocument(change.document);
-				void connection.sendDiagnostics({ uri: change.document.uri, diagnostics: Locale.validateTextDocument(change.document) });
+				void connection.sendDiagnostics({ uri: change.document.uri, diagnostics: Locale.diagnose(change.document.uri) });
 				break;
 			case "factorio-changelog":
 				ChangeLog.loadDocument(change.document);

@@ -3,104 +3,17 @@ import { CodeActionKind, DiagnosticSeverity, SymbolKind } from 'vscode-languages
 import type { DocumentUri, TextDocument } from 'vscode-languageserver-textdocument';
 
 import { visitParents } from 'unist-util-visit-parents';
-import { ParseLocale } from './LocaleParse';
-import type { Record, Root, Section } from './LocaleAST';
+import { ParseLocale } from './Locale/Parse';
+import type { Record, Root, Section } from './Locale/AST';
+import { colorFromString, colorToStrings } from './Locale/Color';
+import { diagnose } from './Locale/Diagnose';
+import { getFixText, rangeOverlaps } from './ASTUtil';
 
 interface DuplicateDefinitionDiagnostic extends Diagnostic {
 	data: {
 		firstsym: DocumentSymbol
 		newsym: DocumentSymbol
 	}
-}
-
-const constColors = new Map<string, Color>([
-	["default", { red: 1.000, green: 0.630, blue: 0.259, alpha: 1 }],
-	["red", { red: 1.000, green: 0.166, blue: 0.141, alpha: 1 }],
-	["green", { red: 0.173, green: 0.824, blue: 0.250, alpha: 1 }],
-	["blue", { red: 0.343, green: 0.683, blue: 1.000, alpha: 1 }],
-	["orange", { red: 1.000, green: 0.630, blue: 0.259, alpha: 1 }],
-	["yellow", { red: 1.000, green: 0.828, blue: 0.231, alpha: 1 }],
-	["pink", { red: 1.000, green: 0.520, blue: 0.633, alpha: 1 }],
-	["purple", { red: 0.821, green: 0.440, blue: 0.998, alpha: 1 }],
-	["white", { red: 0.9, green: 0.9, blue: 0.9, alpha: 1 }],
-	["black", { red: 0.5, green: 0.5, blue: 0.5, alpha: 1 }],
-	["gray", { red: 0.7, green: 0.7, blue: 0.7, alpha: 1 }],
-	["brown", { red: 0.757, green: 0.522, blue: 0.371, alpha: 1 }],
-	["cyan", { red: 0.335, green: 0.918, blue: 0.866, alpha: 1 }],
-	["acid", { red: 0.708, green: 0.996, blue: 0.134, alpha: 1 }],
-]);
-function colorFromString(str: string): Color | undefined {
-	// color name from utility constants
-	if (constColors.has(str)) { return constColors.get(str); }
-	// #rrggbb or #rrggbbaa
-	if (str.startsWith("#")) {
-		const matches = str.match(/#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})?/);
-		if (matches) {
-			return {
-				red: parseInt(matches[1], 16) / 255,
-				green: parseInt(matches[2], 16) / 255,
-				blue: parseInt(matches[3], 16) / 255,
-				alpha: matches[4] ? parseInt(matches[4], 16) / 255 : 1,
-			};
-		}
-	}
-	// r,g,b as int 1-255 or float 0-1
-	const matches = str.match(/\s*(\d+(?:\.\d+)?)\s*,?\s*(\d+(?:\.\d+)?)\s*,?\s*(\d+(?:\.\d+)?)(?:\s*,?\s*(\d+(?:\.\d+)?))?\s*/);
-	if (matches) {
-		let r = parseFloat(matches[1]);
-		let g = parseFloat(matches[2]);
-		let b = parseFloat(matches[3]);
-		let a = matches[4] ? parseFloat(matches[4]) : undefined;
-		if (r>1 || g>1 || b>1 || a && a>1) {
-			r = r/255;
-			g = g/255;
-			b = b/255;
-			if (a) {
-				a = a/255;
-			}
-		}
-		if (!a) {
-			a = 1;
-		}
-		return { red: r, green: g, blue: b, alpha: a };
-	}
-
-	return undefined;
-}
-function padHex(i: number): string {
-	let hex = Math.floor(i).toString(16);
-	if (hex.length < 2) {
-		hex = "0" + hex;
-	}
-	return hex;
-}
-
-function roundTo(f:number, places:number):number {
-	return Math.round(f*Math.pow(10, places))/Math.pow(10, places);
-}
-function colorToStrings(color: Color): string[] {
-	const names:string[] = [];
-	for (const [constname, constcolor] of constColors) {
-		if (Math.abs(constcolor.red-color.red) < 0.004 &&
-			Math.abs(constcolor.green-color.green) < 0.004 &&
-			Math.abs(constcolor.blue-color.blue) < 0.004 &&
-			Math.abs(constcolor.alpha-color.alpha) < 0.004) {
-			names.push(constname);
-			break;
-		}
-	}
-
-	if (color.alpha > 0.996) {
-		names.push(`#${padHex(color.red * 255)}${padHex(color.green * 255)}${padHex(color.blue * 255)}`);
-		names.push(`${Math.floor(color.red * 255)}, ${Math.floor(color.green * 255)}, ${Math.floor(color.blue * 255)}`);
-		names.push(`${roundTo(color.red, 3)}, ${roundTo(color.green, 3)}, ${roundTo(color.blue, 3)}`);
-	} else {
-		names.push(`#${padHex(color.red * 255)}${padHex(color.green * 255)}${padHex(color.blue * 255)}${padHex(color.alpha * 255)}`);
-		names.push(`${Math.floor(color.red * 255)}, ${Math.floor(color.green * 255)}, ${Math.floor(color.blue * 255)}, ${Math.floor(color.alpha * 255)}`);
-		names.push(`${roundTo(color.red, 3)}, ${roundTo(color.green, 3)}, ${roundTo(color.blue, 3)}, ${roundTo(color.alpha, 3)}`);
-	}
-
-	return names;
 }
 
 function documentDefinitions(doc:Root, uri:string) {
@@ -124,9 +37,9 @@ function defined<T>(x:T|undefined):x is T { return x !== undefined; }
 
 function recordSymbol(record:Record):DocumentSymbol {
 	return {
-		name: record.value ? record.value : "<error>",
+		name: record.value ? record.value : "<empty>",
 		detail: "", //TODO: stringify children? attached comment group?
-		kind: SymbolKind.String,
+		kind: record.value ? SymbolKind.String : SymbolKind.Null,
 		range: record.range,
 		selectionRange: record.selectionRange,
 		children: [],
@@ -135,8 +48,9 @@ function recordSymbol(record:Record):DocumentSymbol {
 
 function sectionSymbols(section:Section):DocumentSymbol {
 	return {
-		name: section.value ? section.value : "<error>",
+		name: section.value ? section.value : "[empty]",
 		detail: "", //TODO: first comment group?
+		tags: [],
 		kind: SymbolKind.Namespace,
 		range: section.range,
 		selectionRange: section.selectionRange,
@@ -168,134 +82,6 @@ export class LocaleLanguageService {
 
 	public hasDiagnosticRelatedInformationCapability:boolean = false;
 
-	public validateTextDocument(textDocument: TextDocument): Diagnostic[] {
-		const locale = textDocument.getText().split(/\r?\n/);
-		const diags: Diagnostic[] = [];
-
-		const symbols = this.onDocumentSymbol(textDocument);
-
-		let currentSection:string|undefined;
-		const sections = new Map<string|undefined, Set<string>>();
-		sections.set(undefined, new Set<string>());
-		for (let i = 0; i < locale.length; i++) {
-			const line = locale[i];
-			if (line.match(/^[ \r\t]*[#;]/)) {
-				// nothing to check in comments
-			} else if (line.match(/^[ \r\t]*\[/)) {
-				const secname = line.match(/^[ \r\t]*\[([^\[]+)\][ \r\t]*$/d);
-				if (secname) {
-					// save current category, check for duplicates
-					currentSection = secname[1];
-					if (sections.has(currentSection)) {
-						const matching = symbols.filter(sym=>sym.name === currentSection);
-						const previous = matching.reduce((syma, symb)=>syma.range.start.line < symb.range.start.line?syma:symb);
-						const newsym = matching.find(sym=>sym.range.start.line === i);
-						diags.push(<DuplicateDefinitionDiagnostic>{
-							message: "Duplicate Section",
-							source: "factorio-locale",
-							severity: DiagnosticSeverity.Error,
-							range: { start: { line: i, character: secname.indices![1][0] }, end: { line: i, character: secname.indices![1][1] }},
-							relatedInformation: this.hasDiagnosticRelatedInformationCapability ? [{
-								location: {
-									uri: textDocument.uri,
-									range: previous.range,
-								},
-								message: "First defined here",
-							}] : undefined,
-							code: "section.merge",
-							data: {
-								firstsym: previous,
-								newsym: newsym,
-							},
-						});
-					} else if (sections.get(undefined)!.has(currentSection)) {
-						const matching = symbols.filter(sym=>sym.name === currentSection);
-						const previous = matching.reduce((syma, symb)=>syma.range.start.line < symb.range.start.line?syma:symb);
-						diags.push({
-							message: "Section Name conflicts with Key in Root",
-							source: "factorio-locale",
-							severity: DiagnosticSeverity.Error,
-							range: { start: { line: i, character: secname.indices![1][0] }, end: { line: i, character: secname.indices![1][1] }},
-							relatedInformation: this.hasDiagnosticRelatedInformationCapability ? [{
-								location: {
-									uri: textDocument.uri,
-									range: previous.range,
-								},
-								message: "First defined here",
-							}] : undefined,
-							code: "section.rootconflict",
-						});
-						sections.set(currentSection, new Set<string>());
-					} else {
-						sections.set(currentSection, new Set<string>());
-					}
-				} else {
-					diags.push({
-						message: "Invalid Section Header",
-						source: "factorio-locale",
-						severity: DiagnosticSeverity.Error,
-						range: { start: { line: i, character: 0 }, end: { line: i, character: line.length }},
-						code: "section.invalid",
-					});
-				}
-			} else if (line.trim().length > 0) {
-				const keyval = line.match(/^[ \r\t]*([^=]*)=(.*)$/d);
-				if (keyval && keyval[1]) {
-					const key = keyval[1];
-					if (sections.get(currentSection)!.has(key)) {
-						const existing = symbols
-							.filter(sym=>sym.name === currentSection && sym.kind === SymbolKind.Namespace)
-							.flatMap(sym=>sym.children?.filter(sym=>sym.name === key)??[])
-							.concat(
-								symbols.filter(sym=>sym.name === key && sym.kind === SymbolKind.String)
-							);
-						if (existing.length > 0) {
-							const previous = existing.reduce((syma, symb)=>syma.range.start.line < symb.range.start.line?syma:symb);
-							diags.push({
-								message: "Duplicate Key",
-								source: "factorio-locale",
-								severity: DiagnosticSeverity.Error,
-								code: "key.duplicate",
-								range: { start: { line: i, character: keyval.indices![1][0] }, end: { line: i, character: keyval.indices![1][1] }},
-								relatedInformation: this.hasDiagnosticRelatedInformationCapability ? [{
-									location: {
-										uri: textDocument.uri,
-										range: previous.range,
-									},
-									message: "First defined here",
-								}] : undefined,
-							});
-						}
-					} else {
-						sections.get(currentSection)!.add(key);
-					}
-
-					const keyspace = key.match(/[\t ]+$/d);
-					if (keyspace) {
-						diags.push({
-							message: "Key ends with whitespace",
-							source: "factorio-locale",
-							severity: DiagnosticSeverity.Warning,
-							code: "key.whitespace-end",
-							range: { start: { line: i, character: keyval.indices![1][0] + keyspace.index! }, end: { line: i, character: keyval.indices![1][1] }},
-						});
-					}
-
-					//TODO: validate tags in value (keyval[2])
-				} else {
-					diags.push({
-						message: "Invalid Key",
-						source: "factorio-locale",
-						severity: DiagnosticSeverity.Error,
-						code: "key.invalid",
-						range: { start: { line: i, character: 0 }, end: { line: i, character: line.length }},
-					});
-				}
-			}
-		}
-		return diags;
-	}
-
 	readonly definitions:Map<DocumentUri, { name:string; link:LocationLink }[]> = new Map();
 	readonly documentTrees:Map<DocumentUri, Root> = new Map();
 
@@ -321,6 +107,24 @@ export class LocaleLanguageService {
 				this.documentTrees.delete(key);
 			}
 		}
+	}
+
+	public diagnose(uri:DocumentUri):Diagnostic[] {
+		const tree = this.documentTrees.get(uri);
+		if (!tree) { return []; }
+		const reports = diagnose(tree, uri);
+
+		const diags:Diagnostic[] = [];
+		for (const report of reports) {
+			diags.push({
+				message: report.message,
+				code: report.code,
+				source: "factorio-locale",
+				severity: DiagnosticSeverity.Error,
+				...report.diag,
+			});
+		}
+		return diags;
 	}
 
 	public onDocumentSymbol(document: TextDocument): DocumentSymbol[] {
@@ -360,47 +164,81 @@ export class LocaleLanguageService {
 	}
 
 	public onCodeAction(document: TextDocument, range: Range, context: CodeActionContext): CodeAction[] {
-		if (document.languageId === "factorio-locale") {
-			return context.diagnostics.filter(diag=>!!diag.code).map((diag)=>{
-				switch (diag.code) {
-					case "section.merge":
+		if (document.languageId !== "factorio-locale") { return []; }
+
+		const tree = this.documentTrees.get(document.uri);
+		if (!tree) { return []; }
+		const reports = diagnose(tree, document.uri).filter(r=>!!r.fix);
+		const overlaps = reports.filter(r=>rangeOverlaps(range, r.diag.range));
+		const ca:CodeAction[] = [];
+
+		const seenCodes = new Set<string>();
+
+		for (const r of overlaps) {
+			ca.push({
+				title: `Fix this ${r.code}`,
+				kind: CodeActionKind.QuickFix + '.' + r.code,
+				diagnostics: [
 					{
-						const dupediag = <DuplicateDefinitionDiagnostic>diag;
-						const insertAt = dupediag.data.firstsym.range.end;
+						message: r.message,
+						code: r.code,
+						source: "factorio-locale",
+						severity: DiagnosticSeverity.Error,
+						...r.diag,
+					},
+				],
+				isPreferred: true,
+				edit: {
+					changes: { [document.uri]: getFixText(document, r.fix!) },
+				},
+			});
 
-						const ca:CodeAction = {
-							title: "Merge Sections",
-							kind: CodeActionKind.QuickFix + ".section.merge",
-							diagnostics: [diag],
-							edit: {
-								changes: {
-									[document.uri]: [
-										{
-											range: dupediag.data.newsym.range,
-											newText: "",
-
-										},
-										{
-											range: {start: insertAt, end: insertAt},
-											newText: document.getText(
-												{
-													start: { line: dupediag.data.newsym.selectionRange.end.line, character: dupediag.data.newsym.selectionRange.end.character+1 },
-													end: dupediag.data.newsym.range.end,
-												},
-											),
-										},
-									],
-								},
-							},
-						};
-						return ca;
-					}
-					default:
-						return undefined;
+			if (!seenCodes.has(r.code)) {
+				seenCodes.add(r.code);
+				const samecode = reports.filter(rr=>rr.code === r.code);
+				if (samecode.length > 1) {
+					ca.push({
+						title: `Fix all ${r.code} in file`,
+						kind: CodeActionKind.QuickFix + '.' + r.code + ".all",
+						diagnostics: samecode.map(rr=>{
+							return {
+								message: rr.message,
+								code: rr.code,
+								source: "factorio-locale",
+								severity: DiagnosticSeverity.Error,
+								...rr.diag,
+							};
+						}),
+						//isPreferred: true,
+						edit: {
+							changes: { [document.uri]: getFixText(document, samecode.flatMap(rr=>rr.fix!)) },
+						},
+					});
 				}
-			}).filter((ca):ca is CodeAction=>!!ca);
+			}
 		}
-		return [];
+
+		if (reports.length > overlaps.length) {
+			ca.push({
+				title: `Fix all auto-fixable in file`,
+				kind: CodeActionKind.QuickFix + ".all",
+				diagnostics: reports.map(rr=>{
+					return {
+						message: rr.message,
+						code: rr.code,
+						source: "factorio-locale",
+						severity: DiagnosticSeverity.Error,
+						...rr.diag,
+					};
+				}),
+				//isPreferred: true,
+				edit: {
+					changes: { [document.uri]: getFixText(document, reports.flatMap(rr=>rr.fix!)) },
+				},
+			});
+		}
+
+		return ca;
 	}
 
 	public onDocumentColor(document: TextDocument): ColorInformation[] {

@@ -1,4 +1,6 @@
-import type { Node, Literal, Parent } from "./ASTUtil";
+import type { Node, Literal, Parent } from "../ASTUtil";
+
+export type allNodes = Root|Record|Section|CommentGroup|Comment|RichTextNode|PluralOption|PluralMatch|RichTextOpen|RichTextClose|MacroArgument|Error;
 
 // The whole document
 export interface Root extends Parent {
