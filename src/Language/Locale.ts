@@ -9,13 +9,6 @@ import { colorFromString, colorToStrings } from './Locale/Color';
 import { diagnose } from './Locale/Diagnose';
 import { getFixText, rangeOverlaps } from './ASTUtil';
 
-interface DuplicateDefinitionDiagnostic extends Diagnostic {
-	data: {
-		firstsym: DocumentSymbol
-		newsym: DocumentSymbol
-	}
-}
-
 function documentDefinitions(doc:Root, uri:string) {
 	const definitions:{ name:string; link:LocationLink }[] = [];
 	visitParents(doc, "record", (record, parents)=>{
