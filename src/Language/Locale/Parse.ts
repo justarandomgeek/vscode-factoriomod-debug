@@ -40,7 +40,7 @@ function parsePatterns<T extends TextNode>(text:Text, prefix:string, patterns?:s
 					if (!matches) { return false; }
 					const node = pattern.parse(matches, line, startcol);
 					if (!node) { return false; }
-					if (lastIndex < index-1) {
+					if (lastIndex < index) {
 						result.push(textNode(value.substring(lastIndex, index), line, startcol+lastIndex));
 					}
 					result.push(node);
