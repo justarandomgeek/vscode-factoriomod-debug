@@ -65,7 +65,11 @@ const escapes:searchPattern<Escape>[] = [
 	{
 		pattern: /\\n/dy,
 		parse(matches, line, startcol) {
-			return literalNode<Escape>("escape", "\n", line, startcol+matches.index);
+			// create the node with the raw text so it gets sized properly
+			const esc = literalNode<Escape>("escape", "\\n", line, startcol+matches.index);
+			// then swap out the real value for nicer rendering later
+			esc.value = "\n";
+			return esc;
 		},
 	},
 ];
@@ -261,9 +265,12 @@ const linePatterns:{
 		parse(matches, line, state) {
 			const newrec:Record = literalNode(
 				"record", matches[1], line, matches.indices![1][0], {
-					children: [
-						...parsePatterns(textNode(matches[2], line, matches.indices![2][0]), "__", macros),
-					],
+					children:
+						parsePatterns(textNode(matches[2], line, matches.indices![2][0]), "\\", escapes)
+							.flatMap(n=>{
+								if (n.type === "escape") { return n; }
+								return parsePatterns(n, "__", macros);
+							}),
 				});
 			if (state.open_comments.length > 0) {
 				newrec.children.unshift(commentGroup(state));
