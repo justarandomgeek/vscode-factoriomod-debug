@@ -9,7 +9,7 @@ import type { DocumentUri } from 'vscode-languageserver-textdocument';
 const rules:DiagnoseRule<allNodes>[] = [
 	{
 		message: "Duplicate Section",
-		code: "section.merge",
+		code: "section.duplicate",
 		setup(context) {
 			const seenSections = new Map<string, Section>();
 			return {

@@ -9,7 +9,7 @@ import type { DocumentUri } from 'vscode-languageserver-textdocument';
 const rules:DiagnoseRule<allNodes>[] = [
 	{
 		message: "Missing separator",
-		code: "separator.insert",
+		code: "separator.missing",
 		setup(context) {
 			return {
 				section: (node, index, parent)=>{
@@ -30,7 +30,7 @@ const rules:DiagnoseRule<allNodes>[] = [
 	},
 	{
 		message: "Missing version",
-		code: "version.insert",
+		code: "version.missing",
 		setup(context) {
 			return {
 				section: (node, index, parent)=>{
@@ -78,7 +78,7 @@ const rules:DiagnoseRule<allNodes>[] = [
 	},
 	{
 		message: "Unexpected separator",
-		code: "separator.remove",
+		code: "separator.extra",
 		setup(context) {
 			return {
 				separator: (node, index, parent)=>{
@@ -195,7 +195,7 @@ const rules:DiagnoseRule<allNodes>[] = [
 	},
 	{
 		message: "Duplicate Date line in section",
-		code: "date.remove",
+		code: "date.duplicate",
 		setup(context) {
 			return {
 				date: (node, index, parent)=>{
@@ -247,7 +247,7 @@ const rules:DiagnoseRule<allNodes>[] = [
 	},
 	{
 		message: "Missing Category",
-		code: "category.insert",
+		code: "category.missing",
 		setup(context) {
 			return {
 				category: (node, index, parent)=>{

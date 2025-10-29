@@ -128,20 +128,20 @@ await suite("LSP", { concurrency: false }, async ()=>{
 		}
 
 		await test("separator-length", singleDiagTest("separator.length", true));
-		await test("separator-eof", singleDiagTest("separator.remove", true));
-		await test("version-missing", singleDiagTest("version.insert", true));
+		await test("separator-eof", singleDiagTest("separator.extra", true));
+		await test("version-missing", singleDiagTest("version.missing", true));
 		await test("version-duplicate", singleDiagTest("version.duplicate"));
 		await test("version-valformat", singleDiagTest("version.value"));
 		await test("version-format", singleDiagTest("version.format"));
 		await test("version-order", singleDiagTest("version.order"));
-		await test("separator-missing", singleDiagTest("separator.insert", true));
-		await test("date-duplicate", singleDiagTest("date.remove", true));
+		await test("separator-missing", singleDiagTest("separator.missing", true));
+		await test("date-duplicate", singleDiagTest("date.duplicate", true));
 		await test("date-placement", singleDiagTest("date.placement"));
 		await test("date-format", singleDiagTest("date.format"));
 		await test("category-prefix", singleDiagTest("category.prefix", true));
 		await test("category-suffix", singleDiagTest("category.suffix", true));
 		await test("category-nonstandard", singleDiagTest("category.nonstandard"));
-		await test("category-none", singleDiagTest("category.insert", true));
+		await test("category-none", singleDiagTest("category.missing", true));
 		await test("line-blank", singleDiagTest("entry.empty"));
 		await test("line-duplicate", singleDiagTest("entry.duplicate"));
 		await test("line-extduplicate", singleDiagTest("entry.duplicate"));
@@ -264,7 +264,7 @@ await suite("LSP", { concurrency: false }, async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
 			assert.equal(diags.uri, doc.uri);
 			assert.equal(diags.diagnostics.length, 1);
-			assert.equal(diags.diagnostics[0].code, "section.merge");
+			assert.equal(diags.diagnostics[0].code, "section.duplicate");
 
 			await singleCodeActionShouldFix(doc, diags);
 		});
