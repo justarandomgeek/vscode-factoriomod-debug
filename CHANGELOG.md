@@ -7,6 +7,11 @@
   * correct some npm package metadata errors
 * VSCode:
   * show commits since last tag in Mod Package view, if applicable
+* Changelog LSP:
+  * improved diagnostic rules, better recognition of some edge cases
+  * auto-fixes can now apply across a whole file at once
+* Locale LSP:
+  * update diagnostics and fixes to use the same tree-based system as Changelog LSP
 
 ## 2.0.9
 * JSON Schema:
