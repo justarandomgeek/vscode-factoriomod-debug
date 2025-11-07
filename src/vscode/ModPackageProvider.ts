@@ -537,6 +537,12 @@ class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>, 
 					const modrepo = gitapi.getRepository(modscript.resourceUri);
 					if (repo.rootUri.toString() === modrepo?.rootUri?.toString()) {
 						await modscript.ReloadInfo();
+						this.subscriptions.push(repo.onDidCommit(async ()=>{
+							await modscript.ReloadInfo();
+						}));
+						this.subscriptions.push(repo.onDidCheckout(async ()=>{
+							await modscript.ReloadInfo();
+						}));
 					}
 				}
 			}));
