@@ -300,27 +300,27 @@ export class FactorioVersionSelector {
 			return (await this.tryJsonDocs(fv).catch(()=>undefined))?.application_version ?? "unknown";
 		};
 
-		const qpresult = await vscode.window.showQuickPick(Promise.all([
+		const qpresult = await vscode.window.showQuickPick([
 			{
 				kind: vscode.QuickPickItemKind.Separator,
 				label: "settings",
 			},
-			...versions.map(async fv=>({
+			...await Promise.all(versions.map(async fv=>({
 				fv: fv,
 				label: fv.name,
 				description: await describeVersion(fv),
 				detail: fv.factorioPath,
-			})),
+			}))),
 			{
 				kind: vscode.QuickPickItemKind.Separator,
 				label: "autodetected",
 			},
-			...detectedVersions.map(async fv=>({
+			...await Promise.all(detectedVersions.map(async fv=>({
 				fv: fv,
 				label: fv.name,
 				description: await describeVersion(fv),
 				detail: fv.factorioPath,
-			})),
+			}))),
 			{
 				fv: onlineLatest,
 				label: onlineLatest.name,
@@ -340,7 +340,7 @@ export class FactorioVersionSelector {
 				label: "Select another install locaton...",
 				picked: false,
 			},
-		]),
+		],
 		{title: "Select Factorio Version"});
 		if (!qpresult) { return; }
 
