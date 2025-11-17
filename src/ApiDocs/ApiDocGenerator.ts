@@ -199,14 +199,14 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	public async generate_LuaLS_docs(
 		format_description:DocDescriptionFormatter
 	):Promise<LuaLSFile[]> {
-		return Promise.all([
+		return [
 			... (await this.generate_LuaLS_classes(format_description)),
-			this.generate_LuaLS_concepts(format_description),
-			this.generate_LuaLS_defines(format_description),
-			this.generate_LuaLS_events(format_description),
+			await this.generate_LuaLS_concepts(format_description),
+			await this.generate_LuaLS_defines(format_description),
+			await this.generate_LuaLS_events(format_description),
 			this.generate_LuaLS_LuaObjectNames(),
-			this.generate_LuaLS_global_functions(format_description),
-		]);
+			await this.generate_LuaLS_global_functions(format_description),
+		];
 	}
 
 
