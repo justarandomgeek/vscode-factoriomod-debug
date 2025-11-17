@@ -24,9 +24,22 @@ local function stringInterp(...)
   return stringInterp(...)
 end
 
+---@class LuaObjectInfo.expandKeysProp
+---@field readOnly? boolean
+---@field enumFrom? string only used to build `enum`, then cleared
+---@field thisTranslated? boolean
+---@field thisAsTable? boolean
+---@field iterMode? "count"|"pairs"|"ipairs"
+---@field countLine? boolean
+---@field fetchable? boolean
+---@
+---@field enum? table|fun(obj:LuaObject, index:integer):string|nil
+
 ---@class LuaObjectInfo
 local luaObjectInfo = {
+  ---@type {[string]?:true}
   alwaysValid = {},
+  ---@type {[string]?:{[string]?:LuaObjectInfo.expandKeysProp}}
   expandKeys = {},
 }
 do
@@ -131,6 +144,7 @@ luaObjectInfo.alwaysValid.LuaMapSettings = true
 luaObjectInfo.alwaysValid.LuaDifficultySettings = true
 luaObjectInfo.alwaysValid.LuaGameViewSettings = true
 
+---@type {[string]:fun():(fun(obj:LuaObject, index:integer):string|nil)}
 local enumSpecial = {
   ["defines.inventory"] = function()
     local burner = {
@@ -143,7 +157,7 @@ local enumSpecial = {
       [defines.inventory.chest] = "defines.inventory.chest",
     }
 
-    local assembler = with(burner,invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^assembling_machine_") end))
+    local crafter = with(burner,invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^crafter_") end))
 
     local character = invert(defines.inventory,"defines.inventory.",function(k,v) return (not not smatch(k,"^character_")) and k ~= "character_corpse" end)
     local robot = invert(defines.inventory,"defines.inventory.",function(k,v) return (not not smatch(k,"^robot_")) end)
@@ -160,8 +174,11 @@ local enumSpecial = {
       },
       entity = {
         ["container"]=chest,
+        ["infinity-container"]=chest,
+        ["temporary-container"]=chest,
         ["logistic-container"]=chest,
         ["cargo-wagon"]={ [defines.inventory.cargo_wagon] = "defines.inventory.cargo_wagon" },
+        ["infinity-cargo-wagon"]={ [defines.inventory.cargo_wagon] = "defines.inventory.cargo_wagon" },
         ["rocket-silo-rocket"]={ [defines.inventory.cargo_wagon] = "defines.inventory.rocket" },
 
         ["construction-robot"]=robot,
@@ -174,50 +191,68 @@ local enumSpecial = {
         ["beacon"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^beacon_") end),
         ["character-corpse"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^character_corpse_") end),
 
-        ["furnace"]=with(burner,invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^furnace_") end)),
-        ["assembling-machine"]=assembler,
+        ["fusion-reactor"]=burner,
+        ["furnace"]=crafter,
+        ["assembling-machine"]=crafter,
         ["mining-drill"]=with(burner,invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^mining_drill_") end)),
         ["lab"]=with(burner,invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^lab_") end)),
         ["car"]=with(burner,invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^car_") end)),
         ["spider-vehicle"]=with(burner,invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^spider_") end)),
-        ["rocket-silo"]=with(assembler,invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^rocket_silo_") end)),
+        ["rocket-silo"]=with(crafter,invert(defines.inventory,"defines.inventory.",function(k,v) return (not not smatch(k,"^rocket_silo_")) and (not smatch(k, "put$")) and (not smatch(k, "_modules$")) end)),
 
+        ["asteroid-collector"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^asteroid_collector_") end),
+        ["cargo-pod"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^cargo_unit_") end),
+        ["space-platform-hub"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^hub_") end),
+        ["cargo-landing-pad"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^cargo_landing_pad_") end),
+        ["proxy-container"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^proxy_") end),
+        ["linked-container"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^linked_container_") end),
+        ["agricultural-tower"]=invert(defines.inventory,"defines.inventory.",function(k,v) return not not smatch(k,"^agricultural_tower_") end),
       },
     }
+    ---@param inv LuaInventory
+    ---@param index integer
+    ---@return string?
     return function(inv,index)
-      local owner = inv.player_owner
-      if owner then
-        -- check if player is character/god/editor
-        local names = invname.player[owner.controller_type]
-        if names then
-          return names[index]
+      do
+        local owner = inv.player_owner
+        if owner then
+          -- check if player is character/god/editor
+          local names = invname.player[owner.controller_type]
+          if names then
+            return names[index]
+          end
+          return
         end
-        return
       end
-      owner = inv.equipment_owner
-      if owner then
-        -- burner inside equipment
-        return invname.burner[index]
-      end
-      owner = inv.entity_owner
-      if owner then
-        -- check entity type
-        local names = invname.entity[owner.type]
-        if names then
-          return names[index]
+      do
+        local owner = inv.equipment_owner
+        if owner then
+          -- burner inside equipment
+          return invname.burner[index]
         end
-        return
       end
-      owner = inv.mod_owner
-      if owner then
-        return nil
+      do
+        local owner = inv.entity_owner
+        if owner then
+          -- check entity type
+          local names = invname.entity[owner.type]
+          if names then
+            return names[index]
+          end
+          return
+        end
+      end
+      do
+        local owner = inv.mod_owner
+        if owner then
+          return nil
+        end
       end
       local names = invname.item
       return names[index]
     end
   end,
   ["defines.transport_line"] = function() end,
-  ["defines.circuit_condition_index"] = function() end, --1.2
   ["defines.wire_connector_id"] = function () --1.2
     ---@diagnostic disable-next-line: undefined-field
     local wire_connector_id = defines.wire_connector_id
@@ -230,14 +265,17 @@ local enumSpecial = {
       ["power-switch"] = switch,
       ["decider-combinator"] = combinator,
       ["arithmetic-combinator"] = combinator,
+      ["selector-combinator"] = combinator,
     }
 
     return function(obj,id)
       local object_name = obj.object_name
       local owner
       if object_name == "LuaCircuitNetwork" then
+        ---@cast obj LuaCircuitNetwork
         owner = obj.entity
       elseif object_name == "LuaWireConnector" then
+        ---@cast obj LuaWireConnector
         owner = obj.owner
       else
         return
