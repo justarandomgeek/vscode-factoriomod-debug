@@ -103,6 +103,7 @@ const commonConfig:BuildOptions = {
 	sourcemap: true,
 	sourcesContent: false,
 	platform: "node",
+	target: "node22",
 	format: "esm",
 	treeShaking: true,
 	// `module` first for jsonc-parser
