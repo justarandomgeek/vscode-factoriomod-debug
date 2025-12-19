@@ -101,6 +101,7 @@ export async function runLanguageServer():Promise<void> {
 					triggerCharacters: ['"', "'", "."],
 					allCommitCharacters: ["."],
 				},
+				hoverProvider: true,
 			},
 		};
 		if (hasWorkspaceFolderCapability) {
@@ -207,6 +208,17 @@ export async function runLanguageServer():Promise<void> {
 					break;
 			}
 		}
+	});
+
+	connection.onHover((request)=>{
+		const document = documents.get(request.textDocument.uri);
+		if (document) {
+			switch (document.languageId) {
+				case "factorio-locale":
+					return Locale.onHover(request, document);
+			}
+		}
+		return null;
 	});
 
 	connection.onDocumentSymbol((request)=>{

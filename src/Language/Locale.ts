@@ -1,4 +1,4 @@
-import type { CodeAction, CodeActionContext, Diagnostic, DocumentSymbol, Range, Color, ColorInformation, ColorPresentation, LocationLink } from 'vscode-languageserver/node';
+import type { CodeAction, CodeActionContext, Diagnostic, DocumentSymbol, Range, Color, ColorInformation, ColorPresentation, LocationLink, HoverParams, Hover } from 'vscode-languageserver/node';
 import { CodeActionKind, DiagnosticSeverity, SymbolKind } from 'vscode-languageserver/node';
 import type { DocumentUri, TextDocument } from 'vscode-languageserver-textdocument';
 
@@ -268,6 +268,29 @@ export class LocaleLanguageService {
 			.filter(n=>(n.type!=="comment_group" && n.type!=="error"))
 			.map(n=>this.getNodePlainText(n, context))
 			.join('');
+	}
+
+	public onHover(request:HoverParams, document:TextDocument):Hover|null {
+		const defs = this.definitions.get(request.textDocument.uri);
+		if (defs) {
+			const def = defs.find(def=>{
+				return def.record.selectionRange.start.line === request.position.line &&
+					def.record.selectionRange.start.character <= request.position.character &&
+					def.record.selectionRange.end.character >= request.position.character;
+			});
+			if (def) {
+				try {
+					return {
+						range: def.record.selectionRange,
+						contents: {
+							kind: 'plaintext',
+							value: this.getRecordPlainText(def.record, document),
+						},
+					};
+				} catch (error) {}
+			}
+		}
+		return null;
 	}
 
 	public getCompletions(prefix?:string) {
