@@ -37,7 +37,7 @@ export class LuaLanguageService {
 						character: match.index + match[0].length,
 					},
 				};
-				const defs = this.Locale.findDefinitions(name);
+				const defs = this.Locale.findDefinitionLinks(name);
 				return defs.map(def=>Object.assign({
 					originSelectionRange: range,
 				}, def));

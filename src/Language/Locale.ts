@@ -4,13 +4,13 @@ import type { DocumentUri, TextDocument } from 'vscode-languageserver-textdocume
 
 import { visitParents } from 'unist-util-visit-parents';
 import { ParseLocale } from './Locale/Parse';
-import type { Record, Root, Section } from './Locale/AST';
+import type { Macro, Plural, Record, Root, Section, TextNode } from './Locale/AST';
 import { colorFromString, colorToStrings } from './Locale/Color';
 import { diagnose } from './Locale/Diagnose';
 import { getFixText, rangeOverlaps } from './ASTUtil';
 
 function documentDefinitions(doc:Root, uri:string) {
-	const definitions:{ name:string; link:LocationLink }[] = [];
+	const definitions:{ name:string; link:LocationLink; section?:Section; record:Record }[] = [];
 	visitParents(doc, "record", (record, parents)=>{
 		const parent = parents.length > 0 ? parents[parents.length-1] : undefined;
 		const section = parent?.type==="section" ? parent.value : undefined;
@@ -21,6 +21,8 @@ function documentDefinitions(doc:Root, uri:string) {
 				targetRange: record.range,
 				targetSelectionRange: record.selectionRange,
 			},
+			section: parent?.type==="section" ? parent : undefined,
+			record: record,
 		});
 	});
 	return definitions;
@@ -28,54 +30,23 @@ function documentDefinitions(doc:Root, uri:string) {
 
 function defined<T>(x:T|undefined):x is T { return x !== undefined; }
 
-function recordSymbol(record:Record):DocumentSymbol {
-	return {
-		name: record.value ? record.value : "<empty>",
-		detail: "", //TODO: stringify children? attached comment group?
-		kind: record.value ? SymbolKind.String : SymbolKind.Null,
-		range: record.range,
-		selectionRange: record.selectionRange,
-		children: [],
-	};
+interface StringParam {
+	// the expected type of the param value when filled in
+	type: "number"|"string"|"object"
+
+	//detected plural tags for this param?
 }
 
-function sectionSymbols(section:Section):DocumentSymbol {
-	return {
-		name: section.value ? section.value : "[empty]",
-		detail: "", //TODO: first comment group?
-		tags: [],
-		kind: SymbolKind.Namespace,
-		range: section.range,
-		selectionRange: section.selectionRange,
-		children: section.children.map(node=>{
-			switch (node.type) {
-				case "record":
-					return recordSymbol(node);
-				default:
-					return undefined;
-			}
-		}).filter(defined),
-	};
-}
-
-function documentSymbols(doc:Root):DocumentSymbol[] {
-	return doc.children.map(node=>{
-		switch (node.type) {
-			case "section":
-				return sectionSymbols(node);
-			case "record":
-				return recordSymbol(node);
-			default:
-				return undefined;
-		}
-	}).filter(defined);
-}
+interface StringContext {
+	params: StringParam[]
+	values?: (string|number)[]
+};
 
 export class LocaleLanguageService {
 
 	public hasDiagnosticRelatedInformationCapability:boolean = false;
 
-	readonly definitions:Map<DocumentUri, { name:string; link:LocationLink }[]> = new Map();
+	readonly definitions:Map<DocumentUri, { name:string; link:LocationLink; section?:Section; record:Record }[]> = new Map();
 	readonly documentTrees:Map<DocumentUri, Root> = new Map();
 
 	public loadDocument(document: TextDocument) {
@@ -120,21 +91,183 @@ export class LocaleLanguageService {
 		return diags;
 	}
 
+	private recordSymbol(record:Record):DocumentSymbol {
+		return {
+			name: record.value ? record.value : "<empty>",
+			detail: "", //TODO: stringify children? attached comment group?
+			kind: record.value ? SymbolKind.String : SymbolKind.Null,
+			range: record.range,
+			selectionRange: record.selectionRange,
+			children: [],
+		};
+	}
+
+	private sectionSymbols(section:Section):DocumentSymbol {
+		return {
+			name: section.value ? section.value : "[empty]",
+			detail: "", //TODO: first comment group?
+			tags: [],
+			kind: SymbolKind.Namespace,
+			range: section.range,
+			selectionRange: section.selectionRange,
+			children: section.children.map(node=>{
+				switch (node.type) {
+					case "record":
+						return this.recordSymbol(node);
+					default:
+						return undefined;
+				}
+			}).filter(defined),
+		};
+	}
+
+	private documentSymbols(doc:Root):DocumentSymbol[] {
+		return doc.children.map(node=>{
+			switch (node.type) {
+				case "section":
+					return this.sectionSymbols(node);
+				case "record":
+					return this.recordSymbol(node);
+				default:
+					return undefined;
+			}
+		}).filter(defined);
+	}
+
 	public onDocumentSymbol(document: TextDocument): DocumentSymbol[] {
 		if (!this.documentTrees.has(document.uri)) {
 			this.loadDocument(document);
 		}
 		const tree = this.documentTrees.get(document.uri);
 		if (!tree) { return []; }
-		return documentSymbols(tree);
+		return this.documentSymbols(tree);
 	}
 
-	public findDefinitions(name:string) {
+	public findDefinitionLinks(name:string) {
+		const defs = this.findDefinitions(name);
+		return defs.map(def=>def.link);
+	}
+
+	private findDefinitions(name: string) {
 		const defs = [];
 		for (const fromdoc of this.definitions.values()) {
-			defs.push(...fromdoc.filter(def=>def.name===name).map(def=>def.link));
+			defs.push(...fromdoc.filter(def=>def.name === name));
 		}
 		return defs;
+	}
+
+	private getKeyPlainText(key:string) {
+		const defs = this.findDefinitions(key);
+		if (defs.length === 0) {
+			return `Unknown key: ${key}`;
+		}
+		//TODO: filter them down by language? figure out last-loaded among duplicates to resolve the winner?
+		return this.getRecordPlainText(defs[0].record);
+	}
+
+	private getMacroPlainText(node:Macro) {
+		switch (node.name) {
+			case 'ENTITY':
+				return this.getKeyPlainText(`entity-name.${node.children[0].value}`);
+			case 'ITEM':
+				return this.getKeyPlainText(`item-name.${node.children[0].value}`);
+			case 'TILE':
+				return this.getKeyPlainText(`tile-name.${node.children[0].value}`);
+			case 'FLUID':
+				return this.getKeyPlainText(`fluid-name.${node.children[0].value}`);
+			case 'PLANET':
+				return this.getKeyPlainText(`space-location-name.${node.children[0].value}`);
+			case 'TECHNOLOGY':
+				return this.getKeyPlainText(`technology-name.${node.children[0].value}`);
+			case 'RECIPE':
+				return this.getKeyPlainText(`recipe-name.${node.children[0].value}`);
+
+			//TODO: a lot of these have controller alternate versions
+			// proper lookup will also need to read the config.ini for control settings
+			case 'CONTROL_KEY_SHIFT':
+				return this.getKeyPlainText("control-keys.shift");
+			case 'CONTROL_KEY_CTRL':
+				return this.getKeyPlainText("control-keys.control");
+			case 'CONTROL_MOVE':
+				//TODO: this actually does some more complicated logic to list the move controls, or merge to "WASD" if keyboard defaults
+				// needs control lookups for proper results
+				return `WASD`;
+
+			case 'CONTROL':
+			case 'CONTROL_MODIFIER':
+				//TODO: needs control lookups
+				return `__${node.name}__${node.children[0].value}__`;
+			case 'ALT_CONTROL':
+				//TODO: needs control lookups
+				return `__${node.name}__${node.children[0].value}__${node.children[1].value}__`;
+
+			case 'CONTROL_LEFT_CLICK':
+				return this.getKeyPlainText("control-keys.mouse-button-1");
+			case 'CONTROL_RIGHT_CLICK':
+				return this.getKeyPlainText("control-keys.mouse-button-2");
+			case 'ALT_CONTROL_LEFT_CLICK':
+				return this.getKeyPlainText(`control-keys.mouse-button-1-alt-${node.children[0].value}`);
+			case 'ALT_CONTROL_RIGHT_CLICK':
+				return this.getKeyPlainText(`control-keys.mouse-button-2-alt-${node.children[0].value}`);
+
+			case 'CONTROL_STYLE_BEGIN':
+				// TODO: font and color from style control_input_shortcut_label, with prototype dump
+				return "[font=default-semibold][color=128,206,240]";
+			case 'CONTROL_STYLE_END':
+				return "[/color][/font]";
+
+			case 'REMARK_COLOR_BEGIN':
+				// TODO: color from util const, with prototype dump
+				return "[color=34,181,255]";
+			case 'REMARK_COLOR_END':
+				return "[/color]";
+
+			default:
+				throw new Error("Unknown Macro Node Type");
+		}
+	}
+
+	private getPluralPlainTexts(node:Plural, context:StringContext) {
+		return node.children
+			.filter(opt=>opt.type==="plural_option")
+			.map(opt=>{
+				throw new Error("");
+			});
+	}
+
+	private getNodePlainText(node:TextNode, context:StringContext) {
+		switch (node.type) {
+			case 'text':
+			case 'escape':
+				return node.value;
+
+			case 'parameter':
+				if (context.values && node.value < context.values.length) {
+					const v = context.values[node.value];
+					if (v !== undefined) {
+						return `${v}`;
+					}
+				}
+				return `__${node.value}__`;
+
+			case 'plural':
+				return this.getPluralPlainTexts(node, context);
+			case 'macro':
+				return this.getMacroPlainText(node);
+
+			default:
+				throw new Error("Unknown Text Node Type");
+		}
+	}
+
+	private getRecordPlainText(record:Record, doc?:TextDocument):string {
+		const context:StringContext = {
+			params: [],
+		};
+		return record.children
+			.filter(n=>(n.type!=="comment_group" && n.type!=="error"))
+			.map(n=>this.getNodePlainText(n, context))
+			.join('');
 	}
 
 	public getCompletions(prefix?:string) {
