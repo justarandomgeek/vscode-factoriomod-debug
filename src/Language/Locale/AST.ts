@@ -19,7 +19,7 @@ export interface Section extends Literal, Parent {
 export interface Record extends Literal, Parent {
 	type:'record'
 	value:string
-	children:(RichTextNode|CommentGroup|Error)[]
+	children:(TextNode|CommentGroup|Error)[]
 }
 
 export type TextNode = Text|Escape|Parameter|Plural|Macro;
@@ -71,14 +71,13 @@ export interface Plural extends Literal, Parent {
 // ends in 5
 // ends in 05-15
 // rest
-// etc...
 export interface PluralMatch extends Literal {
 	type: "plural_match"
 	value: "rest"|number|[number, number]
 	ends_in?: boolean
 }
 
-// PluralMatch=TextNode
+// PluralMatch(,...)=TextNode...
 export interface PluralOption extends Parent {
 	type:'plural_option'
 	children:(PluralMatch|TextNode|Error)[]
@@ -92,14 +91,57 @@ export interface MacroArgument extends Literal {
 // __name__(children[i]__)*
 export interface Macro extends Parent {
 	type:"macro"
-	name:"CONTROL"|"CONTROL_MODIFIER"|"CONTROL_STYLE_BEGIN"|"CONTROL_STYLE_END"|"CONTROL_LEFT_CLICK"|"CONTROL_RIGHT_CLICK"|"CONTROL_KEY_SHIFT"|"CONTROL_KEY_CTRL"|"ALT_CONTROL_LEFT_CLICK"|"ALT_CONTROL_RIGHT_CLICK"|"ALT_CONTROL"|"CONTROL_MOVE"|"ENTITY"|"ITEM"|"TILE"|"FLUID"|"REMARK_COLOR_BEGIN"|"REMARK_COLOR_END"
+	name:	"ALT_CONTROL"|
+			"ALT_CONTROL_LEFT_CLICK"|
+			"ALT_CONTROL_RIGHT_CLICK"|
+			"CONTROL"|
+			"CONTROL_KEY_CTRL"|
+			"CONTROL_KEY_SHIFT"|
+			"CONTROL_LEFT_CLICK"|
+			"CONTROL_MODIFIER"|
+			"CONTROL_MOVE"|
+			"CONTROL_RIGHT_CLICK"|
+			"CONTROL_STYLE_BEGIN"|
+			"CONTROL_STYLE_END"|
+			"ENTITY"|
+			"FLUID"|
+			"ITEM"|
+			"PLANET"|
+			"REMARK_COLOR_BEGIN"|
+			"REMARK_COLOR_END"|
+			"TILE"|
+			"TECHNOLOGY"|
+			"RECIPE"
 	children:MacroArgument[]
 }
 
 // [name=children]
 export interface RichText extends Parent {
 	type:"richtext"
-	name:"img"|"item"|"entity"|"technology"|"recipe"|"item-group"|"fluid"|"tile"|"virtual-signal"|"achievement"|"gps"|"special-item"|"armor"|"train"|"train-stop"|"tooltip"|"space-location"|"planet"|"quality"|"space-age"|"asteroid-chunk"|"tip"|"shortcut"|"space-platform"
+	name:	"img"|
+			"item"|
+			"entity"|
+			"technology"|
+			"recipe"|
+			"item-group"|
+			"fluid"|
+			"tile"|
+			"virtual-signal"|
+			"achievement"|
+			"gps"|
+			"special-item"|
+			"armor"|
+			"train"|
+			"train-stop"|
+			"tooltip"|
+			"space-location"|
+			"planet"|
+			"quality"|
+			"space-age"|
+			"asteroid-chunk"|
+			"tip"|
+			"shortcut"|
+			"space-platform"
 	children: (TextNode|Error)[]
 }
 
