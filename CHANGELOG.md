@@ -9,6 +9,7 @@
   * show commits since last tag in Mod Package view, if applicable
   * match filename pattern `**/locale/*/*.cfg` instead of just extension `.cfg` for Locale files
 * LuaLS library package:
+  * added types for `math2d` library
   * don't prefix `defines.*` with `data.*`
   * fix some aux page links
 * Changelog LSP:
