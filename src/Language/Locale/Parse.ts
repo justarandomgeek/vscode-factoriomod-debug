@@ -1,7 +1,7 @@
 
 import assert from "assert";
 import { literalNode, span } from "../ASTUtil";
-import type { Section, Root, Record, Text, TextNode, Macro, Escape, Comment, Error, PluralMatch, PluralOption, CommentGroup } from "./AST";
+import type { Section, Root, Record, Text, TextNode, Macro, Escape, Comment, Error, PluralMatch, PluralOption, CommentGroup, RichTextRoot, RichTextNode, RichTextClose, RichTextOpen, RichTextFormat } from "./AST";
 import type { TextDocument } from 'vscode-languageserver-textdocument';
 
 function textNode(value:string, line:number, startcol:number):Text {
@@ -20,9 +20,9 @@ interface searchPattern<T>{
 	parse(matches:RegExpExecArray, line:number, startcol:number):T|undefined
 };
 
-function parsePatterns<T extends TextNode>(text:Text, prefix:string):Text[];
-function parsePatterns<T extends TextNode>(text:Text, prefix:string, patterns:searchPattern<T>[]):(T|Text)[];
-function parsePatterns<T extends TextNode>(text:Text, prefix:string, patterns?:searchPattern<T>[]):(T|Text)[] {
+function parsePatterns<T extends RichTextNode>(text:Text, prefix:string):Text[];
+function parsePatterns<T extends RichTextNode>(text:Text, prefix:string, patterns:searchPattern<T>[]):(T|Text)[];
+function parsePatterns<T extends RichTextNode>(text:Text, prefix:string, patterns?:searchPattern<T>[]):(T|Text)[] {
 	const value = text.value;
 	const line = text.range.start.line;
 	const startcol = text.range.start.character;
@@ -319,4 +319,138 @@ export function ParseLocale(doc:TextDocument):Root {
 	}
 
 	return parseState.root;
+}
+
+const richtags:searchPattern<RichTextNode>[] = [
+	{
+		pattern: /\[(.+?)=(.+?)\]/dy,
+		parse(matches, line, startcol) {
+			switch (matches[2]) {
+				case "font":
+				case "color":
+					return {
+						type: "richtextopen",
+						name: matches[2],
+						range: span(line, startcol+matches.index, matches[0].length),
+						selectionRange: span(line, startcol+matches.index, matches[0].length),
+						value: matches[2],
+					};
+				case "img":
+				case "item":
+				case "entity":
+				case "technology":
+				case "recipe":
+				case "item-group":
+				case "fluid":
+				case "tile":
+				case "virtual-signal":
+				case "achievement":
+				case "gps":
+				case "special-item":
+				case "armor":
+				case "train":
+				case "train-stop":
+				case "tooltip":
+				case "space-location":
+				case "planet":
+				case "quality":
+				case "space-age":
+				case "asteroid-chunk":
+				case "tip":
+				case "shortcut":
+				case "space-platform":
+					return {
+						type: "richtext",
+						name: matches[2],
+						range: span(line, startcol+matches.index, matches[0].length),
+						selectionRange: span(line, startcol+matches.index, matches[0].length),
+						value: matches[2],
+					};
+				default:
+					return undefined;
+			}
+		},
+	},
+
+	{
+		pattern: /\[([./])(font|color)\]/dy,
+		parse(matches, line, startcol) {
+			return {
+				type: "richtextclose",
+				close: matches[1] as RichTextClose["close"],
+				name: matches[2] as RichTextClose["name"],
+				range: span(line, startcol+matches.index, matches[0].length),
+				selectionRange: span(line, startcol+matches.index, matches[0].length),
+			};
+		},
+	},
+];
+
+export function ParseRichText(plaintext:string):RichTextRoot {
+	// split text back to lines to make range counting easier
+	const lines = plaintext.split("\n").map((s, i)=>textNode(s+"\n", i, 0));
+
+	const root:RichTextRoot = {
+		type: "richtextroot",
+		range: {
+			start: lines[0].range.start,
+			end: lines[lines.length-1].range.end,
+		},
+		selectionRange: span(0, 0, 0),
+		children: [],
+	};
+
+	const tags = lines.flatMap(l=>parsePatterns(l, "[", richtags));
+
+
+	const open_formats:(RichTextOpen&{children:RichTextNode[]})[] = [];
+	let pending = root.children;
+
+	// scan over root.children to group open/close tags into format elements
+	for (const node of tags) {
+		switch (node.type) {
+			case "text":
+			case "richtext":
+				pending.push(node);
+				break;
+			case "richtextopen":
+				const format = {
+					...node,
+					children: [],
+				};
+				open_formats.push(format);
+				pending = format.children;
+				break;
+			case "richtextclose":
+				if (open_formats.length > 1 && open_formats[open_formats.length-1].name === node.name) {
+					const format:RichTextFormat = {
+						...open_formats.pop()!,
+						close: node.close,
+						type: "richtextformat",
+					};
+					format.range.end = node.range.end;
+					const parent = open_formats.length>1 ? open_formats[open_formats.length-1] : root;
+					pending = parent.children;
+					pending.push(format);
+				} else {
+					pending.push(node);
+				}
+				break;
+
+			default:
+				break;
+		}
+	}
+	// and flatten any leftover opens back up to the root...
+	root.children.push(...open_formats.flatMap(open=>{
+		return [
+			{
+				...open,
+				children: undefined,
+			},
+			...open.children,
+		];
+	}));
+
+	return root;
 }

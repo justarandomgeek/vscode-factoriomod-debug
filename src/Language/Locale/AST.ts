@@ -115,8 +115,8 @@ export interface Macro extends Parent {
 	children:MacroArgument[]
 }
 
-// [name=children]
-export interface RichText extends Parent {
+// [name=value]
+export interface RichText extends Literal {
 	type:"richtext"
 	name:	"img"|
 			"item"|
@@ -142,14 +142,14 @@ export interface RichText extends Parent {
 			"tip"|
 			"shortcut"|
 			"space-platform"
-	children: (TextNode|Error)[]
+	value: string
 }
 
-// [name=children]
-export interface RichTextOpen extends Parent {
+// [name=value]
+export interface RichTextOpen extends Literal {
 	type:"richtextopen"
 	name:"color"|"font"
-	children: (TextNode|Error)[]
+	value: string
 }
 
 // [/name]
@@ -162,7 +162,15 @@ export interface RichTextClose extends Node {
 
 // [name=value]children[/name]
 // [name=value]children[.name]
-export interface RichTextFormat extends Parent {
+export interface RichTextFormat extends Parent, Omit<RichTextOpen, "type">, Omit<RichTextClose, "type"> {
 	type:"richtextformat"
-	children:(RichTextOpen|RichTextNode|RichTextClose)[]
+	children:(RichTextNode)[]
+}
+
+// a record rendered to plain text and re-parsed for RichText
+// a separate root from the main document tree, parsed within the rendered plaintext
+export interface RichTextRoot extends Parent {
+	type:'richtextroot'
+	children:(RichTextNode|Error)[]
+	//TODO: map text positions back to original tree?
 }
