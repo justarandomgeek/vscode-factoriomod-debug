@@ -271,6 +271,7 @@ export class LocaleLanguageService {
 	}
 
 	public onHover(request:HoverParams, document:TextDocument):Hover|null {
+		/*
 		const defs = this.definitions.get(request.textDocument.uri);
 		if (defs) {
 			const def = defs.find(def=>{
@@ -290,6 +291,7 @@ export class LocaleLanguageService {
 				} catch (error) {}
 			}
 		}
+		*/
 		return null;
 	}
 
