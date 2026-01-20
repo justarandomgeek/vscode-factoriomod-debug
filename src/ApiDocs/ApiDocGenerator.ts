@@ -270,10 +270,9 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 				}
 				case "index":
 				{
-					if (overlay.adjust.class[aclass.name]?.no_index) { break; }
 					lsclass.add(new LuaLSField(
 						await this.LuaLS_type(overlay.adjust.class[aclass.name]?.index_key ?? "uint"),
-						await this.LuaLS_type(operator.write_type ?? operator.read_type),
+						await this.LuaLS_type(overlay.adjust.class[aclass.name]?.index_value ?? operator.write_type ?? operator.read_type),
 						format_description(this.collect_description(operator, { scope: "runtime", member: aclass.name, part: "index_operator" })),
 					));
 					break;
@@ -292,7 +291,17 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		}
 
 		for (const method of aclass.methods) {
-			funcclass.add(await this.LuaLS_function(method, file, format_description, aclass.name));
+			const adjust = overlay.adjust.class[aclass.name]?.members?.[method.name];
+
+			const m:ApiMethod<V> = {
+				...method,
+				return_values: adjust?.return_values ?? method.return_values,
+			};
+			const func = await this.LuaLS_function(m, file, format_description, aclass.name);
+
+			if (adjust?.asfield) { func.asfield = true; }
+
+			funcclass.add(func);
 		}
 
 		file.add(lsclass);

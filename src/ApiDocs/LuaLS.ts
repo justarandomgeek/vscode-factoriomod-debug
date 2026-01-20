@@ -254,6 +254,14 @@ export class LuaLSClass {
 			}
 		}
 
+		if (this.functions) {
+			for (const func of this.functions) {
+				if (func.asfield) {
+					await func.write(output);
+				}
+			}
+		}
+
 		if (this.call_op) {
 			for (const call_op of this.call_op) {
 				await call_op.write(output);
@@ -270,7 +278,9 @@ export class LuaLSClass {
 
 		if (this.functions) {
 			for (const func of this.functions) {
-				await func.write(output);
+				if (!func.asfield) {
+					await func.write(output);
+				}
 			}
 		}
 
@@ -373,8 +383,10 @@ export class LuaLSFunction {
 	private overloads?:LuaLSOverload[];
 
 	nodiscard?:boolean;
+	asfield?: boolean;
 
 	add(overload:LuaLSOverload) {
+		this.asfield = false;
 		if (!this.overloads) {
 			this.overloads = [];
 		}
@@ -383,6 +395,10 @@ export class LuaLSFunction {
 
 	async write(output:Writable) {
 		await comment_description(output, this.description);
+		if (this.asfield) {
+			output.write(`---@field ${this.name} ${this.format()}\n`);
+			return;
+		}
 		if (this.params) {
 			for (const param of this.params) {
 				await param.write(output);
