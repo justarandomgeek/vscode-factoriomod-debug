@@ -1,7 +1,13 @@
 export const overlay:{
 	adjust: {
 		table: { [classname:string]: {
+				generic_params?: string[]
 				exact?: boolean
+				parameters?: {
+					[member:string]: {
+						type?: ApiType
+					}
+				}
 			}
 		}
 		class: { [classname:string]: {
@@ -11,6 +17,11 @@ export const overlay:{
 			index_value?: ApiType
 			split_funcs?: boolean
 			members?: {
+				[member:string]: {
+					type?: ApiType
+				}
+			}
+			methods?: {
 				[member:string]: {
 					asfield?:boolean
 					return_values?: ApiMethod["return_values"]
@@ -24,11 +35,19 @@ export const overlay:{
 			"BlueprintEntity": {
 				exact: false,
 			},
+			"ModSetting": {
+				generic_params: ["T:int32|double|boolean|string|Color"],
+				parameters: {
+					value: {
+						type: "T",
+					},
+				},
+			},
 		},
 		class: {
 			"LuaLazyLoadedValue": {
 				generic_params: ["T"],
-				members: {
+				methods: {
 					get: {
 						asfield: true,
 						return_values: [
@@ -56,6 +75,38 @@ export const overlay:{
 					],
 				},
 				split_funcs: true,
+			},
+			"LuaPlayer": {
+				members: {
+					mod_settings: {
+						type: "PlayerModSettings",
+					},
+				},
+			},
+			"LuaSettings": {
+				members: {
+					startup: {
+						type: "StartupModSettings",
+					},
+					global: {
+						type: "GlobalModSettings",
+					},
+					player_default: {
+						type: "PlayerModSettings",
+					},
+				},
+				methods: {
+					get_player_settings: {
+						return_values: [
+							{
+								order: 1,
+								type: "PlayerModSettings",
+								description: "",
+								optional: false,
+							},
+						],
+					},
+				},
 			},
 		},
 	},

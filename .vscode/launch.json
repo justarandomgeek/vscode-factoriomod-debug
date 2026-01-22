@@ -124,8 +124,10 @@
 			"args": [
 				"luals-addon",
 				//"-o", "latest",
-				//"-d","${workspaceFolder}/test/factorio/doc-html/runtime-api.json",
-				//"-p","${workspaceFolder}/test/factorio/doc-html/prototype-api.json",
+				"-d","${workspaceFolder}/test/factorio/doc-html/runtime-api.json",
+				"-p","${workspaceFolder}/test/factorio/doc-html/prototype-api.json",
+				"--sdump","${workspaceFolder}/test/factorio/script-output/mod-settings-dump.json",
+				"--pdump","${workspaceFolder}/test/factorio/script-output/data-raw-dump.json",
 				"${workspaceFolder}/out/sumneko-3rd",
 			],
 			"console": "integratedTerminal",

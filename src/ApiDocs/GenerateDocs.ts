@@ -9,9 +9,12 @@ import { ProtoDocGenerator } from './ProtoDocsGenerator';
 import * as LuaLSAddon from "../LuaLSAddon";
 
 
-export async function GenerateDocs(docsjson:string, protosjson:string, write_file:(subpath:string, write:(output:Writable)=>void|Promise<void>)=>Promise<void>) {
-	const docs = new ApiDocGenerator(docsjson);
-	const pdocs = new ProtoDocGenerator(protosjson);
+export async function GenerateDocs(docsjson:string, protosjson:string, sdumpjson:string|undefined, pdumpjson:string|undefined, write_file:(subpath:string, write:(output:Writable)=>void|Promise<void>)=>Promise<void>) {
+	const settings = sdumpjson && JSON.parse(sdumpjson);
+	const prototypes = pdumpjson && JSON.parse(pdumpjson);
+
+	const docs = new ApiDocGenerator(docsjson, settings, prototypes);
+	const pdocs = new ProtoDocGenerator(protosjson, settings, prototypes);
 
 	const resolve_link = (node:Link)=>{
 		const matches = node.url.match(/^(runtime|prototype):(.+?)(?:::(.+))?$/);

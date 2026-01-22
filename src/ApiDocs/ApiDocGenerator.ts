@@ -16,7 +16,11 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 	private readonly defines:Set<string>;
 
-	constructor(docjson:string) {
+	constructor(
+		docjson:string,
+		private readonly settingsdump?:any,
+		private readonly protosdump?:any
+	) {
 		this.docs = JSON.parse(docjson);
 
 		if (this.docs.application !== "factorio") {
@@ -206,6 +210,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			await this.generate_LuaLS_events(format_description),
 			this.generate_LuaLS_LuaObjectNames(),
 			await this.generate_LuaLS_global_functions(format_description),
+			this.generate_LuaLS_settings(format_description),
 		];
 	}
 
@@ -236,9 +241,10 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		}
 
 		for (const attribute of aclass.attributes) {
+			const adjust = overlay.adjust.class[aclass.name]?.members?.[attribute.name];
 			const type =
 				(attribute.name === "object_name") ? new LuaLSLiteral(aclass.name):
-				await this.LuaLS_type(attribute.write_type ?? attribute.read_type, {
+				await this.LuaLS_type(adjust?.type ?? attribute.write_type ?? attribute.read_type, {
 					file, table_class_name: `${aclass.name}.${attribute.name}`, format_description,
 				});
 
@@ -291,7 +297,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		}
 
 		for (const method of aclass.methods) {
-			const adjust = overlay.adjust.class[aclass.name]?.members?.[method.name];
+			const adjust = overlay.adjust.class[aclass.name]?.methods?.[method.name];
 
 			const m:ApiMethod<V> = {
 				...method,
@@ -478,6 +484,67 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		return file;
 	}
 
+
+	private generate_LuaLS_settings(format_description:DocDescriptionFormatter) {
+		const file = new LuaLSFile("mod-settings/settings", this.docs.application_version);
+
+		const parent = new LuaLSTypeName("LuaCustomTable", [
+			new LuaLSTypeName("string"),
+			new LuaLSTypeName("ModSetting")]);
+
+		const othersettings = new LuaLSTypeName("ModSetting", [new LuaLSUnion([
+			new LuaLSTypeName("int32"),
+			new LuaLSTypeName("double"),
+			new LuaLSTypeName("boolean"),
+			new LuaLSTypeName("string"),
+			new LuaLSTypeName("Color"),
+		])]);
+
+		const startup = new LuaLSClass("StartupModSettings");
+		startup.parents = [parent];
+		file.add(startup);
+
+		const global = new LuaLSClass("GlobalModSettings");
+		global.parents = [parent];
+		file.add(global);
+
+		const player = new LuaLSClass("PlayerModSettings");
+		player.parents = [parent];
+		file.add(player);
+
+
+		const targets = {
+			"startup": startup,
+			"runtime-global": global,
+			"runtime-per-user": player,
+		};
+
+		const typemap = {
+			"bool-setting": new LuaLSTypeName("boolean"),
+			"int-setting": new LuaLSTypeName("int32"),
+			"double-setting": new LuaLSTypeName("double"),
+			"string-setting": new LuaLSTypeName("string"),
+			"color-setting": new LuaLSTypeName("Color"),
+		};
+
+		for (const stype in this.settingsdump) {
+			const settings = this.settingsdump[stype];
+			for (const name in settings) {
+				const setting = settings[name];
+				const target = targets[setting.setting_type as keyof typeof targets];
+				if (target) {
+					target.add(new LuaLSField(new LuaLSLiteral(name), new LuaLSTypeName("ModSetting", [typemap[setting.type as keyof typeof typemap]])));
+				}
+			}
+		}
+
+		startup.add(new LuaLSField(new LuaLSTypeName("string"), othersettings));
+		global.add(new LuaLSField(new LuaLSTypeName("string"), othersettings));
+		player.add(new LuaLSField(new LuaLSTypeName("string"), othersettings));
+
+		return file;
+	}
+
 	private async LuaLS_params(params:ApiParameter[], format_description:DocDescriptionFormatter):Promise<LuaLSParam[]> {
 		return Promise.all(params.sort(sort_by_order).map(async p=>new LuaLSParam(
 			to_lua_ident(p.name),
@@ -586,6 +653,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	private async LuaLS_table_type(type_data:ApiWithParameters, file:LuaLSFile,  table_class_name:string, format_description:DocDescriptionFormatter, parents?:LuaLSType[]):Promise<LuaLSTypeName> {
 		const lsclass = new LuaLSClass(table_class_name);
 		lsclass.exact = overlay.adjust.table[table_class_name]?.exact ?? true;
+		lsclass.generic_args = overlay.adjust.table[table_class_name]?.generic_params;
 		lsclass.parents = parents;
 		file.add(lsclass);
 
@@ -595,7 +663,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 			lsclass.add(new LuaLSField(
 				is_tuple?new LuaLSLiteral(i++):param.name,
-				await this.LuaLS_type(param.type),
+				await this.LuaLS_type(overlay.adjust.table[table_class_name]?.parameters?.[param.name]?.type ?? param.type),
 				format_description(this.collect_description(param)),
 				param.optional,
 			));

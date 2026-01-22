@@ -10,7 +10,11 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 
 	private readonly type_prefix = "data.";
 
-	constructor(docjson:string) {
+	constructor(
+		docjson:string,
+		private readonly settingsdump?:any,
+		private readonly protosdump?:any
+	) {
 		this.docs = JSON.parse(docjson);
 
 		if (this.docs.application !== "factorio") {

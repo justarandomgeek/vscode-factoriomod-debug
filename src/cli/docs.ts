@@ -19,13 +19,22 @@ program.command("luals-addon [outdir]")
 	.option("-d, --docs <docsjson>", "Runtime docs")
 	.option("-p, --protos <protosjson>", "Prototype docs")
 	.option("-o, --online [version]", "Use online docs")
-	.action(async (outdir:string|undefined, options:{docs?:string; protos?:string; online?:string})=>{
+	.option("--sdump <mod-settings-dump.json>", "Load Settings Prototype dump")
+	.option("--pdump <data-raw-dump.json>", "Load Prototype dump")
+	.action(async (outdir:string|undefined, options:{
+			docs?:string
+			protos?:string
+			online?:string
+
+			sdump?:string
+			pdump?:string
+		})=>{
 		let docsjson:string;
 		let protosjson:string;
 		if (options.docs && options.protos) {
 			// use files
-			docsjson = (await fsp.readFile(options.docs, "utf8")).toString();
-			protosjson = (await fsp.readFile(options.protos, "utf8")).toString();
+			docsjson = await fsp.readFile(options.docs, "utf8");
+			protosjson = await fsp.readFile(options.protos, "utf8");
 		} else if (options.docs || options.protos) {
 			// error: must specify both
 			throw new Error("Using local json files must specify both files");
@@ -37,11 +46,15 @@ program.command("luals-addon [outdir]")
 			protosjson = await fetch_docs(`https://lua-api.factorio.com/${version}/prototype-api.json`);
 		}
 
-		await GenerateDocs(docsjson, protosjson, async (subpath, write)=>{
-			const filepath = path.join(outdir ?? process.cwd(), subpath);
-			await fsp.mkdir(path.dirname(filepath), { recursive: true });
-			const file = createWriteStream(filepath);
-			await write(file);
-			file.close();
-		});
+		const sdumpjson = options.sdump && await fsp.readFile(options.sdump, "utf8");
+		const pdumpjson = options.pdump && await fsp.readFile(options.pdump, "utf8");
+
+		await GenerateDocs(docsjson, protosjson, sdumpjson, pdumpjson,
+			async (subpath, write)=>{
+				const filepath = path.join(outdir ?? process.cwd(), subpath);
+				await fsp.mkdir(path.dirname(filepath), { recursive: true });
+				const file = createWriteStream(filepath);
+				await write(file);
+				file.close();
+			});
 	});
