@@ -5,6 +5,8 @@
 ## 2.0.11
 * LuaLS library package:
   * improved annotation of generics on LuaCustomTable<K,V> and LuaLazyLoadedValue<T>
+* VSCode:
+  * word-wrap locale files by default
 
 ## 2.0.10
 * NPM:

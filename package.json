@@ -683,6 +683,9 @@
           "Namespace",
           "!Class"
         ]
+      },
+      "[factorio-locale]": {
+        "editor.wordWrap": "on"
       }
     },
     "jsonValidation": [
