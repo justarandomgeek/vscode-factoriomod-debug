@@ -16,6 +16,7 @@ const detectPaths:LocalFactorioVersion[] = [
 	{name: "System", factorioPath: "C:\\Program Files\\Factorio\\bin\\x64\\factorio.exe"},
 	{name: "Steam", factorioPath: "~/Library/Application Support/Steam/steamapps/common/Factorio/factorio.app/Contents/MacOS/factorio"},
 	{name: "System", factorioPath: "/Applications/factorio.app/Contents/MacOS/factorio"},
+	{name: "Steam", factorioPath: "~/.local/share/Steam/steamapps/common/Factorio/bin/x64/factorio"},
 	{name: "Home", factorioPath: "~/.factorio/bin/x64/factorio"},
 ];
 
