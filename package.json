@@ -788,6 +788,10 @@
                   true
                 ]
               },
+              "tags": {
+                "type": "object",
+                "description": "Extra debug session tags, readable under `__DebugAdapter.tags` during this session."
+              },
               "modsPath": {
                 "type": "string",
                 "description": "Absolute path to Factorio mods directory."

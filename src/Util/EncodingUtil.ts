@@ -24,25 +24,40 @@ export function bufferChunks(buffer:Buffer, chunkSize:number) {
 	return result;
 }
 
-type LuaConvertableObject = string|number|boolean|{[k:string]:LuaConvertableObject};
+export type LuaConvertableObject = string|number|boolean|{[k:string]:LuaConvertableObject};
 
 export function objectToLua(obj:LuaConvertableObject) {
 	switch (typeof obj) {
 		case 'object':
-			const b = [Buffer.from("{")];
-			for (const key in obj) {
-				if (Object.prototype.hasOwnProperty.call(obj, key)) {
-					b.push(Buffer.from("["));
-					b.push(objectToLua(key));
-					b.push(Buffer.from("]="));
-					b.push(objectToLua(obj[key]));
+			if (Array.isArray(obj)) {
+				const b = [Buffer.from("{")];
+				for (const element of obj) {
+					b.push(objectToLua(element));
 					b.push(Buffer.from(","));
 				}
+				b.push(Buffer.from("}"));
+				return Buffer.concat(b);
+			} else {
+				const b = [Buffer.from("{")];
+				for (const key in obj) {
+					if (Object.prototype.hasOwnProperty.call(obj, key)) {
+						// parens in case the key gets bracket-quotes
+						b.push(Buffer.from("[("));
+						b.push(objectToLua(key));
+						b.push(Buffer.from(")]="));
+						b.push(objectToLua(obj[key]));
+						b.push(Buffer.from(","));
+					}
+				}
+				b.push(Buffer.from("}"));
+				return Buffer.concat(b);
 			}
-			b.push(Buffer.from("}"));
-			return Buffer.concat(b);
 		case 'string':
-			return Buffer.from(`"${obj}"`);
+			if (obj.match(/[\x00-\x1F\x7F"'\\]/)) {
+				return luaBlockQuote(Buffer.from(obj));
+			} else {
+				return Buffer.from(`"${obj}"`);
+			}
 		case 'boolean':
 		case 'number':
 			return Buffer.from(`${obj}`);

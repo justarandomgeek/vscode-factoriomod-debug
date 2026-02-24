@@ -15,6 +15,7 @@ end
 
 -- this is a global so the vscode extension can get to it from debug.debug()
 ---@class DebugAdapter : DebugAdapter.Stepping.Public
+---@field tags Tags
 local __DebugAdapter = _ENV.__DebugAdapter or {} -- but might have been defined already for selective instrument mode
 _ENV.__DebugAdapter = __DebugAdapter
 
@@ -28,6 +29,7 @@ __DebugAdapter.__dap = {}
 ---@field hooklog? boolean enable replacing `log`
 ---@field keepoldlog? boolean when set, `log` replacement will still call original `log`
 ---@field runningBreak? number frequency to check for pause in long-running code
+---@field tags? Tags
 __DebugAdapter.__config = __DebugAdapter.__config or {}
 
 ---@param to table<string,any>
@@ -54,6 +56,8 @@ local stacks = require("__debugadapter__/stacks.lua")
 
 local env = _ENV
 local _ENV = nil
+
+__DebugAdapter.tags = __DebugAdapter.__config.tags
 
 __DebugAdapter.print = daprint.print
 merge(__DebugAdapter, stepping.__pub)

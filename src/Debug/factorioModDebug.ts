@@ -14,6 +14,7 @@ import * as semver from 'semver';
 import type * as vscode from 'vscode';
 import { URI, Utils } from 'vscode-uri';
 import { bufferChunks, encodeBreakpoints, luaBlockQuote, objectToLua } from '../Util/EncodingUtil';
+import type { LuaConvertableObject } from '../Util/EncodingUtil';
 import { FactorioProcess } from './FactorioProcess';
 import type { ModInfo } from '../vscode/ModPackageProvider';
 import type { ActiveFactorioVersion } from '../vscode/FactorioVersion';
@@ -69,6 +70,8 @@ export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArgum
 
 	/** enable logging the Debug Adapter Protocol */
 	trace?: boolean
+
+	tags?: { [s:string]:LuaConvertableObject }
 }
 
 class AllThreadsStoppedEvent extends StoppedEvent implements DebugProtocol.StoppedEvent {
@@ -1321,6 +1324,9 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 			}
 			if (this.launchArgs!.runningBreak !== undefined) {
 				hookopts += `runningBreak=${this.launchArgs!.runningBreak},`;
+			}
+			if (this.launchArgs!.tags) {
+				hookopts += `tags=${objectToLua(this.launchArgs!.tags)},`;
 			}
 
 			this.writeStdin(`__DebugAdapter={__config={${hookopts}}}`);
