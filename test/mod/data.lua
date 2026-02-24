@@ -19,7 +19,9 @@ local tests = {
   end,
 }
 
-local testid = settings.startup["dap-test-id"].value
-if testid and tests[testid] then
-  tests[testid]()
+if __DebugAdapter and __DebugAdapter.tags then
+  local testid = __DebugAdapter.tags["dap-test-id"]
+  if testid and tests[testid] then
+    tests[testid]()
+  end
 end

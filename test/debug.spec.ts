@@ -19,8 +19,8 @@ await suite('Debug Adapter', { concurrency: false }, async ()=>{
 	const cwd = path.join(import.meta.dirname, "./factorio/mods");
 	const fmtk = path.join(import.meta.dirname, '../dist/fmtk-cli.js');
 
-	function launch(args:Partial<LaunchRequestArguments>, testid?:string) {
-		return dc.launch(Object.assign({
+	function launch(args:Partial<LaunchRequestArguments>, testid?:string, tags?:LaunchRequestArguments["tags"]) {
+		return dc.launch({
 			type: "factoriomod",
 			request: "launch",
 			adjustMods: {
@@ -28,16 +28,14 @@ await suite('Debug Adapter', { concurrency: false }, async ()=>{
 				"remove-animations": true,
 				//"minimal-no-base-mod": true,
 			},
-			adjustModSettings: [
-				{
-					scope: "startup",
-					name: "dap-test-id",
-					value: testid,
-				},
-			],
+			tags: {
+				"dap-test-id": testid,
+				...tags,
+			},
 			disableExtraMods: true,
 			//allowDisableBaseMod: true,
-		} as LaunchRequestArguments, args));
+			...args,
+		} as LaunchRequestArguments);
 	}
 
 	before(async ()=>{

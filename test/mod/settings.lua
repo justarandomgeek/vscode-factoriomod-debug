@@ -1,15 +1,7 @@
 local foo = true
 local bar = false
 local box = "oops"
-data:extend({
-  {
-    type = "string-setting",
-    name = "dap-test-id",
-    setting_type = "startup",
-    default_value = "",
-    allow_blank = true
-  }
-})
+local fox = "socks"
 
 -- strings with all possible bytes to make sure passing bytecode dumps works correctly
 -- if this doesn't go correctly, the breakpoint-in-settings test will fail
