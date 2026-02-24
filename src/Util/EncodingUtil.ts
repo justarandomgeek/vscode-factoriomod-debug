@@ -24,7 +24,7 @@ export function bufferChunks(buffer:Buffer, chunkSize:number) {
 	return result;
 }
 
-export type LuaConvertableObject = string|number|boolean|{[k:string]:LuaConvertableObject};
+export type LuaConvertableObject = string|number|boolean|{[k:string]:LuaConvertableObject}|LuaConvertableObject[];
 
 export function objectToLua(obj:LuaConvertableObject) {
 	switch (typeof obj) {
