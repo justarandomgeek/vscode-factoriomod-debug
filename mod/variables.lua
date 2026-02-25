@@ -599,7 +599,7 @@ function variables.describe(value,short)
       lineitem = "<userdata>"
     end
   elseif vtype == "string" then
-    lineitem = sformat("%q", value)
+    lineitem = sgsub(sformat("%q", value), "\\\n", "\\n")
   else -- boolean, number, nil
     lineitem = tostring(value)
   end
