@@ -319,15 +319,26 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 		for (const concept of this.docs.concepts) {
 			const description = format_description(this.collect_description(concept, { scope: "runtime", member: concept.name }));
-			if (typeof concept.type === "string") {
-				file.add(new LuaLSAlias(concept.name, await this.LuaLS_type(concept.type), description));
+			const ctype = concept.type;
+			if (this.protosdump) {
+				if (concept.name.endsWith("ID")) {
+					if (typeof ctype === "object" && ctype.complex_type === "union" &&
+						ctype.options.find(t=>{ return t==="string" || (typeof t === "object" && t.complex_type==="type" && t.value==="string"); })) {
+						ctype.options.push("data."+concept.name.replace(/ID$/, "Name"));
+					}
+
+				}
+			}
+
+			if (typeof ctype === "string") {
+				file.add(new LuaLSAlias(concept.name, await this.LuaLS_type(ctype), description));
 			} else {
-				switch (concept.type.complex_type) {
+				switch (ctype.complex_type) {
 					//@ts-expect-error fallthrough
 					case "dictionary":
 						// check for dict<union,true> and treat as flags instead...
-						const k = concept.type.key;
-						const v = concept.type.value;
+						const k = ctype.key;
+						const v = ctype.value;
 						if (typeof v === "object" && v.complex_type === "literal" && v.value === true &&
 								typeof k === "object" && k.complex_type === "union") {
 							const lsclass = new LuaLSClass(concept.name);
@@ -345,7 +356,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 					case "tuple":
 					case "LuaStruct":
 					{
-						const inner = await this.LuaLS_type(concept.type, {file, table_class_name: concept.name, format_description});
+						const inner = await this.LuaLS_type(ctype, {file, table_class_name: concept.name, format_description});
 						if (inner instanceof LuaLSTypeName && inner.name === concept.name) {
 
 						} else {
@@ -527,13 +538,15 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			"color-setting": new LuaLSTypeName("Color"),
 		};
 
-		for (const stype in this.settingsdump) {
-			const settings = this.settingsdump[stype];
-			for (const name in settings) {
-				const setting = settings[name];
-				const target = targets[setting.setting_type as keyof typeof targets];
-				if (target) {
-					target.add(new LuaLSField(new LuaLSLiteral(name), new LuaLSTypeName("ModSetting", [typemap[setting.type as keyof typeof typemap]])));
+		if (this.settingsdump) {
+			for (const stype in this.settingsdump) {
+				const settings = this.settingsdump[stype];
+				for (const name in settings) {
+					const setting = settings[name];
+					const target = targets[setting.setting_type as keyof typeof targets];
+					if (target) {
+						target.add(new LuaLSField(new LuaLSLiteral(name), new LuaLSTypeName("ModSetting", [typemap[setting.type as keyof typeof typemap]])));
+					}
 				}
 			}
 		}
