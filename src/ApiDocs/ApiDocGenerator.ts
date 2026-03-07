@@ -663,17 +663,27 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	}
 
 	// method table params and table/tuple complex_types
-	private async LuaLS_table_type(type_data:ApiWithParameters, file:LuaLSFile,  table_class_name:string, format_description:DocDescriptionFormatter, parents?:LuaLSType[]):Promise<LuaLSTypeName> {
+	private async LuaLS_table_type(type_data:ApiWithParameters, file:LuaLSFile,  table_class_name:string, format_description:DocDescriptionFormatter, parents?:LuaLSType[], extrafields?:LuaLSField[]):Promise<LuaLSTypeName> {
 		const lsclass = new LuaLSClass(table_class_name);
 		lsclass.exact = overlay.adjust.table[table_class_name]?.exact ?? true;
 		lsclass.generic_args = overlay.adjust.table[table_class_name]?.generic_params;
 		lsclass.parents = parents;
 		file.add(lsclass);
 
+		if (extrafields) {
+			extrafields.forEach(f=>lsclass.add(f));
+		}
+		const group_field_name = type_data.variant_parameter_description?.match(/depending on `(.+)`/)?.[1];
+		let group_field_optional = true;
+
 		let i = 1;
 		for (const param of type_data.parameters.sort(sort_by_order)) {
 			const is_tuple = "complex_type" in type_data && type_data.complex_type === "tuple";
 
+			if (param.name === group_field_name) {
+				group_field_optional = param.optional;
+				continue;
+			}
 			lsclass.add(new LuaLSField(
 				is_tuple?new LuaLSLiteral(i++):param.name,
 				await this.LuaLS_type(overlay.adjust.table[table_class_name]?.parameters?.[param.name]?.type ?? param.type),
@@ -688,10 +698,16 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			file.add(innerunion);
 			lsclass.name += ".base";
 			for (const group of type_data.variant_parameter_groups) {
-				const inner = (await this.LuaLS_table_type(group, file, `${table_class_name}.${to_lua_ident(group.name)}`, format_description, [ new LuaLSTypeName(lsclass.name) ]));
+				const fields = [];
+				if (group_field_name) {
+					fields.push(new LuaLSField(group_field_name[1], new LuaLSLiteral(group.name)));
+				}
+				const inner = (await this.LuaLS_table_type(group, file, `${table_class_name}.${to_lua_ident(group.name)}`, format_description, [ new LuaLSTypeName(lsclass.name) ], fields));
 				inners.push(inner);
 			}
-			inners.push(new LuaLSTypeName(lsclass.name));
+			if (!group_field_optional) {
+				inners.push(new LuaLSTypeName(lsclass.name));
+			}
 			return new LuaLSTypeName(innerunion.name);
 		}
 		return new LuaLSTypeName(lsclass.name);;
