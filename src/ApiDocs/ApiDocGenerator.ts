@@ -405,14 +405,30 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			//there aren't any with both values and subkeys for now,
 			//we'll deal with that if it ever happens...
 			if (define.values) {
-				file.add(new LuaLSEnum(name, type_name,
-					define.values.map(v=>{
-						const field_description = v.description.replace(/^deprecated,?/i, "@deprecated");
-						const field_type = new LuaLSTypeName(`${type_name}.${to_lua_ident(v.name)}`);
-						const field = new LuaLSEnumField(v.name, field_type, field_description, use_value);
-						return field;
-					}),
-					description));
+				const values = define.values.map(v=>{
+					const field_description = v.description?.replace(/^deprecated,?/i, "@deprecated");
+					const field_type = new LuaLSTypeName(`${type_name}.${to_lua_ident(v.name)}`);
+					const field = new LuaLSEnumField(v.name, field_type, field_description, use_value);
+					return field;
+				});
+				if (this.protosdump) {
+					if (name === "defines.events") {
+						const add_event = (key:string)=>{
+							// non-ident type names but it seems to work better this way?
+							const field_type = new LuaLSTypeName(`${type_name}.${key}`);
+							const field = new LuaLSEnumField(key, field_type, undefined, use_value);
+							values.push(field);
+						};
+
+						for (const key in this.protosdump["custom-event"]) {
+							add_event(key);
+						}
+						for (const key in this.protosdump["custom-input"]) {
+							add_event(key);
+						}
+					}
+				}
+				file.add(new LuaLSEnum(name, type_name, values, description));
 			} else {
 				const lsclass = new LuaLSClass(name);
 				lsclass.global_name = name;
@@ -437,7 +453,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		const file = new LuaLSFile("runtime-api/events", this.docs.application_version);
 		const handlers = new LuaLSClass("event_handler.events");
 
-		for (const [_, event] of this.events) {
+		const add_event_data_type = async (event:ApiEvent<V>)=>{
 			const lsevent = new LuaLSClass(`EventData.${event.name}`);
 			lsevent.exact = true;
 			lsevent.parents = [new LuaLSTypeName("EventData")];
@@ -451,18 +467,33 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 				));
 			}
 			file.add(lsevent);
+		};
+
+		const add_event = (name:string, type?:LuaLSTypeName)=>{
+			const handler = new LuaLSFunction("handler", [new LuaLSParam("event", type ?? new LuaLSTypeName(`EventData.${name}`))]);
+			handlers.add(new LuaLSField(new LuaLSTypeName(`defines.events.${name}`), handler));
+			handlers.add(new LuaLSField(new LuaLSLiteral(name), handler));
+		};
+
+		for (const [_, event] of this.events) {
+			await add_event_data_type(event);
 
 			if (event.name === "CustomInputEvent") {
 				continue;
 			}
 
-			const handler = new LuaLSFunction("handler", [new LuaLSParam("event", new LuaLSTypeName(`EventData.${event.name}`))]);
-			handlers.add(new LuaLSField(
-				new LuaLSTypeName(`defines.events.${event.name}`),
-				handler));
-			handlers.add(new LuaLSField(
-				new LuaLSLiteral(event.name),
-				handler));
+			add_event(event.name);
+		}
+
+
+		if (this.protosdump) {
+			for (const key in this.protosdump["custom-event"]) {
+				add_event(key);
+			}
+
+			for (const key in this.protosdump["custom-input"]) {
+				add_event(key, new LuaLSTypeName(`EventData.CustomInputEvent`));
+			}
 		}
 
 		handlers.add(new LuaLSField(new LuaLSTypeName("LuaCustomInputPrototype"), new LuaLSFunction("handler", [new LuaLSParam("event", new LuaLSTypeName(`EventData.CustomInputEvent`))])));
@@ -629,18 +660,14 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 				]
 			));
 
-			for (const [_, event] of this.events) {
+			const add_event = (name:string, filter?:string, eventdata?:LuaLSTypeName)=>{
 				const eventtype = new LuaLSUnion([
-					new LuaLSTypeName(`defines.events.${event.name}`),
-					new LuaLSLiteral(event.name),
+					new LuaLSTypeName(`defines.events.${name}`),
+					new LuaLSLiteral(name),
 				]);
-				const eventdata =  new LuaLSTypeName(`EventData.${event.name}`);
-
-				if (event.name === "CustomInputEvent") {
-					//handled separately
-					continue;
+				if (!eventdata) {
+					eventdata = new LuaLSTypeName(`EventData.${name}`);
 				}
-
 				const params = [
 					new LuaLSParam("event", eventtype),
 					new LuaLSParam("handler", new LuaLSFunction("handler", [
@@ -648,14 +675,29 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 					])),
 				];
 
-				if (event.filter) {
-					params.push(new LuaLSParam("filters", new LuaLSArray(new LuaLSTypeName(event.filter)), undefined, true));
+				if (filter) {
+					params.push(new LuaLSParam("filters", new LuaLSArray(new LuaLSTypeName(filter)), undefined, true));
 				}
 
-				lsfunc.add(new LuaLSOverload(
-					undefined,
-					params
-				));
+				lsfunc.add(new LuaLSOverload(undefined, params));
+			};
+
+			for (const [_, event] of this.events) {
+				if (event.name === "CustomInputEvent") {
+					//handled separately
+					continue;
+				}
+				add_event(event.name, event.filter);
+			}
+
+			if (this.protosdump) {
+				for (const key in this.protosdump["custom-event"]) {
+					add_event(key);
+				}
+
+				for (const key in this.protosdump["custom-input"]) {
+					add_event(key, undefined, new LuaLSTypeName(`EventData.CustomInputEvent`));
+				}
 			}
 
 		}
