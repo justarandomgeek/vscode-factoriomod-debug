@@ -128,6 +128,13 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 						options,
 					};
 				}
+				if (this.protosdump) {
+					const pmatch = concept.description.match(/^The name of an? \[(.+)\]/);
+					if (concept.type === "string" && concept.name.endsWith("ID") && pmatch) {
+						// replace generic alias of `string` with ThingName
+						ptype = concept.name.replace(/ID$/, "Name");
+					}
+				}
 				file.add(new LuaLSAlias(this.type_prefix+concept.name, this.lua_proto_type(ptype, concept), concept.description));
 			}
 
@@ -210,6 +217,25 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 				));
 			}
 			file.add(lsproto);
+
+			if (this.protosdump) {
+				const nname = prototype.name.replace(/(Prototype)?$/, "Name");
+				const options = [];
+				// for abstract, list of child types
+				this.prototypes.forEach(p=>{
+					if (p.parent === prototype.name) {
+						options.push(new LuaLSTypeName(this.type_prefix+p.name.replace(/(Prototype)?$/, "Name")));
+					}
+				});
+				// for non-abstarct, list of known names and `string`
+				if (prototype.typename) {
+					for (const key in this.protosdump[prototype.typename]) {
+						options.push(new LuaLSLiteral(key));
+					}
+					options.push(new LuaLSTypeName("string"));
+				}
+				file.add(new LuaLSAlias(this.type_prefix+nname, new LuaLSUnion(options)));
+			}
 			files.push(file);
 		}
 		return files;
