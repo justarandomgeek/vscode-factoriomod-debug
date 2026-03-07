@@ -522,7 +522,7 @@ export class FactorioVersionSelector {
 		await forkScript(
 			{ close() {}, write(data) {} },
 			this.context.asAbsolutePath("./dist/fmtk-cli.js"),
-			activeVersion.docArgs, sumneko3rd.fsPath);
+			await activeVersion.docArgs(), sumneko3rd.fsPath);
 
 		const luaconfig = vscode.workspace.getConfiguration("Lua");
 

@@ -119,19 +119,36 @@ export class ActiveFactorioVersion {
 		return substitutePathVariables(this.fv.factorioPath, this.workspaceFolders);
 	}
 
-	public get docArgs() {
+	public get isLocal() {
+		return !!this.fv.factorioPath;
+	}
+
+	public async docArgs() {
+		const args = [ "luals-addon" ];
 		if (this.fv.onlineDocs) {
-			return [
-				"luals-addon",
-				"-o", this.fv.onlineDocs === true ? "latest" : this.fv.onlineDocs,
-			];
+			args.push("-o", this.fv.onlineDocs === true ? "latest" : this.fv.onlineDocs);
+		} else {
+			args.push(
+				"-d", this.docsPath,
+				"-p", this.protosPath,
+			);
 		}
 
-		return [
-			"luals-addon",
-			"-d", this.docsPath,
-			"-p", this.protosPath,
-		];
+		if (this.isLocal) {
+			try {
+				const dumppath = path.join(await this.scriptOutputPath(), "mod-settings-dump.json");
+				await this.fs.stat(URI.file(dumppath)); // throws if no file
+				args.push("--sdump", dumppath);
+			} catch (error) {}
+
+			try {
+				const dumppath = path.join(await this.scriptOutputPath(), "data-raw-dump.json");
+				await this.fs.stat(URI.file(dumppath)); // throws if no file
+				args.push("--pdump", dumppath);
+			} catch (error) {}
+		}
+
+		return args;
 	}
 
 	private get docsPath() {
@@ -268,6 +285,10 @@ export class ActiveFactorioVersion {
 			throw new Error("path.write-data missing in config.ini");
 		}
 		return path.posix.normalize(this.translatePath(configDataPath));
+	}
+
+	public async scriptOutputPath() {
+		return path.posix.join(await this.writeDataPath(), "script-output");
 	}
 
 	translatePath(p:string):string {
