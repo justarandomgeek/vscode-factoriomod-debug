@@ -2,6 +2,7 @@ import { overlay } from "./Overlay";
 import type { LuaLSType} from "./LuaLS";
 import { is_lua_ident, LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSEnum, LuaLSEnumField, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSLiteral, LuaLSOperator, LuaLSOverload, LuaLSParam, LuaLSReturn, LuaLSTuple, LuaLSTypeName, LuaLSUnion, to_lua_ident } from "./LuaLS";
 import assert from "assert";
+import type { ProtoDocGenerator } from "./ProtoDocsGenerator";
 
 function sort_by_order(a:{order:number}, b:{order:number}) {
 	return a.order - b.order;
@@ -19,6 +20,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 	constructor(
 		docjson:string,
+		private readonly pdocs:ProtoDocGenerator<V>,
 		private readonly settingsdump?:any,
 		private readonly protosdump?:any
 	) {
@@ -734,7 +736,16 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		if (extrafields) {
 			extrafields.forEach(f=>lsclass.add(f));
 		}
-		const group_field_name = type_data.variant_parameter_description?.match(/depending on `(.+)`/)?.[1];
+		let group_field_name:string|undefined = undefined;
+		let group_field_prototypes = false;
+		group_field_name = type_data.variant_parameter_description?.match(/depending on `(.+)`/)?.[1];
+		if (!group_field_name && type_data.variant_parameter_description?.match(/depending on the type of entity/)) {
+			const p = type_data.parameters.filter(p=>p.type==="EntityID").sort(sort_by_order);
+			if (p.length > 0) {
+				group_field_name = p[0].name;
+				group_field_prototypes = true;
+			}
+		}
 		let group_field_optional = true;
 
 		let i = 1;
@@ -761,7 +772,11 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			for (const group of type_data.variant_parameter_groups) {
 				const fields = [];
 				if (group_field_name) {
-					fields.push(new LuaLSField(group_field_name, new LuaLSLiteral(group.name)));
+					if (group_field_prototypes) {
+						fields.push(new LuaLSField(group_field_name, this.pdocs.nameFor(group.name==="particle"?"optimized-particle":group.name)));
+					} else {
+						fields.push(new LuaLSField(group_field_name, new LuaLSLiteral(group.name)));
+					}
 				}
 				const inner = (await this.LuaLS_table_type(group, file, `${table_class_name}.${to_lua_ident(group.name)}`, format_description, [ new LuaLSTypeName(lsclass.name) ], fields));
 				inners.push(inner);

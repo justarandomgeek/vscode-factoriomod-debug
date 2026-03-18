@@ -13,8 +13,8 @@ export async function GenerateDocs(docsjson:string, protosjson:string, sdumpjson
 	const settings = sdumpjson && JSON.parse(sdumpjson);
 	const prototypes = pdumpjson && JSON.parse(pdumpjson);
 
-	const docs = new ApiDocGenerator(docsjson, settings, prototypes);
 	const pdocs = new ProtoDocGenerator(protosjson, settings, prototypes);
+	const docs = new ApiDocGenerator(docsjson, pdocs, settings, prototypes);
 
 	const resolve_link = (node:Link)=>{
 		const matches = node.url.match(/^(runtime|prototype):(.+?)(?:::(.+))?$/);

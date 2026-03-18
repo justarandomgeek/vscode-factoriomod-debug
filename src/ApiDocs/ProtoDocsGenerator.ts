@@ -182,6 +182,14 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 		return file;
 	}
 
+	public nameFor(type:string) {
+		const p = this.docs.prototypes.find(p=>p.typename===type);
+		if (p) {
+			return new LuaLSTypeName(this.type_prefix+p.name.replace(/(Prototype)?$/, "Name"));
+		}
+		throw new Error(`no type for '${type}'`);
+	}
+
 	private async generate_LuaLS_prototypes(format_description:DocDescriptionFormatter): Promise<LuaLSFile[]> {
 		const files = [];
 		for (const [_, prototype] of this.prototypes) {
