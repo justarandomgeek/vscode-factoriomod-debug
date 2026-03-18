@@ -1,6 +1,7 @@
 import { overlay } from "./Overlay";
 import type { LuaLSType} from "./LuaLS";
 import { is_lua_ident, LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSEnum, LuaLSEnumField, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSLiteral, LuaLSOperator, LuaLSOverload, LuaLSParam, LuaLSReturn, LuaLSTuple, LuaLSTypeName, LuaLSUnion, to_lua_ident } from "./LuaLS";
+import assert from "assert";
 
 function sort_by_order(a:{order:number}, b:{order:number}) {
 	return a.order - b.order;
@@ -619,11 +620,29 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			));
 		}
 
-		const lsfunc = new LuaLSFunction(func.name,
-			params,
-			await this.LuaLS_returns(func.return_values, format_description),
+		const returns = await this.LuaLS_returns(func.return_values, format_description);
+
+		const lsfunc = new LuaLSFunction(func.name, params, returns,
 			format_description(this.collect_description(func), {scope: "runtime", member: in_class??"libraries", part: in_class?func.name:"new-functions"})
 		);
+
+		if (func.format.takes_table && func.variant_parameter_groups) {
+			const ptype = params[0].type;
+			assert(ptype instanceof LuaLSTypeName);
+			assert(ptype.inner instanceof LuaLSAlias);
+			assert(ptype.inner.type instanceof LuaLSUnion);
+			ptype.inner.type.members.forEach(m=>{
+				if ("name" in m && m.name?.endsWith(".base")) {
+					return;
+				}
+				lsfunc.add(new LuaLSOverload(
+					undefined,
+					[ new LuaLSParam("param", m)],
+					returns
+				));
+			});
+		}
+
 		if (in_class === "LuaBootstrap" && func.name === "on_event") {
 
 			// rename the generated handler arg...
@@ -742,17 +761,17 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			for (const group of type_data.variant_parameter_groups) {
 				const fields = [];
 				if (group_field_name) {
-					fields.push(new LuaLSField(group_field_name[1], new LuaLSLiteral(group.name)));
+					fields.push(new LuaLSField(group_field_name, new LuaLSLiteral(group.name)));
 				}
 				const inner = (await this.LuaLS_table_type(group, file, `${table_class_name}.${to_lua_ident(group.name)}`, format_description, [ new LuaLSTypeName(lsclass.name) ], fields));
 				inners.push(inner);
 			}
 			if (!group_field_optional) {
-				inners.push(new LuaLSTypeName(lsclass.name));
+				inners.push(new LuaLSTypeName(lsclass));
 			}
-			return new LuaLSTypeName(innerunion.name);
+			return new LuaLSTypeName(innerunion);
 		}
-		return new LuaLSTypeName(lsclass.name);;
+		return new LuaLSTypeName(lsclass);;
 	}
 
 	private async LuaLS_type(api_type:ApiType|undefined, in_parent?:{

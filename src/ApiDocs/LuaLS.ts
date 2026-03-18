@@ -66,9 +66,17 @@ export type LuaLSType = LuaLSTypeName|LuaLSLiteral|LuaLSFunction|LuaLSDict|LuaLS
 
 export class LuaLSTypeName {
 	constructor(
-		public readonly name:string,
+		public readonly inner:string|(LuaLSType&{name:string})|LuaLSAlias,
 		public readonly generic_args?:LuaLSType[]
 	) {}
+
+	public get name() : string {
+		if (typeof this.inner === "string") {
+			return this.inner;
+		}
+		return this.inner.name;
+	}
+
 
 	format():string {
 		if (this.generic_args) {
