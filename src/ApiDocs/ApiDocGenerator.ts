@@ -740,20 +740,20 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		let group_field_prototypes = false;
 		group_field_name = type_data.variant_parameter_description?.match(/depending on `(.+)`/)?.[1];
 		if (!group_field_name && type_data.variant_parameter_description?.match(/depending on the type of entity/)) {
-			const p = type_data.parameters.filter(p=>p.type==="EntityID").sort(sort_by_order);
+			const p = type_data.parameters.filter(p=>p.name==="name").sort(sort_by_order);
 			if (p.length > 0) {
 				group_field_name = p[0].name;
 				group_field_prototypes = true;
 			}
 		}
-		let group_field_optional = true;
+		let group_field = undefined;
 
 		let i = 1;
 		for (const param of type_data.parameters.sort(sort_by_order)) {
 			const is_tuple = "complex_type" in type_data && type_data.complex_type === "tuple";
 
 			if (param.name === group_field_name) {
-				group_field_optional = param.optional;
+				group_field = param;
 				continue;
 			}
 			lsclass.add(new LuaLSField(
@@ -771,17 +771,22 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			lsclass.name += ".base";
 			for (const group of type_data.variant_parameter_groups) {
 				const fields = [];
-				if (group_field_name) {
+				if (group_field) {
+					let group_type;
 					if (group_field_prototypes) {
-						fields.push(new LuaLSField(group_field_name, this.pdocs.nameFor(group.name==="particle"?"optimized-particle":group.name)));
+						group_type = this.pdocs.nameFor(group.name==="particle"?"optimized-particle":group.name);
+						if (group_field.type !== "string") {
+							group_type = new LuaLSUnion([group_type, new LuaLSTypeName("LuaEntityPrototype"), new LuaLSTypeName("LuaEntity")]);
+						}
 					} else {
-						fields.push(new LuaLSField(group_field_name, new LuaLSLiteral(group.name)));
+						group_type = new LuaLSLiteral(group.name);
 					}
+					fields.push(new LuaLSField(group_field.name, group_type));
 				}
 				const inner = (await this.LuaLS_table_type(group, file, `${table_class_name}.${to_lua_ident(group.name)}`, format_description, [ new LuaLSTypeName(lsclass.name) ], fields));
 				inners.push(inner);
 			}
-			if (!group_field_optional) {
+			if (!group_field?.optional) {
 				inners.push(new LuaLSTypeName(lsclass));
 			}
 			return new LuaLSTypeName(innerunion);
