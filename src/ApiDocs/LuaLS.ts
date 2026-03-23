@@ -373,7 +373,7 @@ export class LuaLSOverload {
 			params = this.params.map(p=>`${p.name}${p.optional?'?':''}:${p.type.format()}`).join(", ");
 		}
 		let returns = "";
-		if (this.returns) {
+		if (this.returns && this.returns.length>0) {
 			returns = `:${this.returns.map(r=>`${r.type.format()}${r.optional?'?':''}`).join(", ")}`;
 		}
 		output.write(`---@overload fun(${params})${returns}\n`);
