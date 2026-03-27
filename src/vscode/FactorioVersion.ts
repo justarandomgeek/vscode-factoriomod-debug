@@ -123,7 +123,7 @@ export class ActiveFactorioVersion {
 		return !!this.fv.factorioPath;
 	}
 
-	public async docArgs() {
+	public async docArgs(usePrototypeDumps?:boolean) {
 		const args = [ "luals-addon" ];
 		if (this.fv.onlineDocs) {
 			args.push("-o", this.fv.onlineDocs === true ? "latest" : this.fv.onlineDocs);
@@ -134,7 +134,7 @@ export class ActiveFactorioVersion {
 			);
 		}
 
-		if (this.isLocal) {
+		if (usePrototypeDumps && this.isLocal) {
 			try {
 				const dumppath = path.join(await this.scriptOutputPath(), "mod-settings-dump.json");
 				await this.fs.stat(URI.file(dumppath)); // throws if no file
