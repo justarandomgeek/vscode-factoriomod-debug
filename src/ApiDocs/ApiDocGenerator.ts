@@ -20,7 +20,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 	constructor(
 		docjson:string,
-		private readonly pdocs:ProtoDocGenerator<V>,
+		private readonly pdocs?:ProtoDocGenerator<V>,
 		private readonly settingsdump?:any,
 		private readonly protosdump?:any
 	) {
@@ -739,7 +739,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		let group_field_name:string|undefined = undefined;
 		let group_field_prototypes = false;
 		group_field_name = type_data.variant_parameter_description?.match(/depending on `(.+)`/)?.[1];
-		if (!group_field_name && type_data.variant_parameter_description?.match(/depending on the type of entity/)) {
+		if (!group_field_name && this.pdocs && type_data.variant_parameter_description?.match(/depending on the type of entity/)) {
 			const p = type_data.parameters.filter(p=>p.name==="name").sort(sort_by_order);
 			if (p.length > 0) {
 				group_field_name = p[0].name;
@@ -774,7 +774,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 				if (group_field) {
 					let group_type;
 					if (group_field_prototypes) {
-						group_type = this.pdocs.nameFor(group.name==="particle"?"optimized-particle":group.name);
+						group_type = this.pdocs!.nameFor(group.name==="particle"?"optimized-particle":group.name);
 						if (group_field.type !== "string") {
 							group_type = new LuaLSUnion([group_type, new LuaLSTypeName("LuaEntityPrototype"), new LuaLSTypeName("LuaEntity")]);
 						}
