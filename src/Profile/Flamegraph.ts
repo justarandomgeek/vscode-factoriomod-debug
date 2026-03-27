@@ -1,12 +1,13 @@
 import * as d3 from "d3";
-import { flamegraph } from "d3-flame-graph";
+//@ts-expect-error missing type
+import { default as flamegraph } from "d3-flame-graph";
 import type { ProfileTreeNode } from "./Profile";
-import "d3-flame-graph/dist/d3-flamegraph.css";
+import "./Flamegraph.css";
 import type {} from "vscode-webview";
 
 const vscode = acquireVsCodeApi();
 const chart = flamegraph().height(window.innerHeight - 20).width(window.innerWidth - 60);
-chart.label(function (d) {
+chart.setLabelHandler(function (d:any) {
 	return `${d.data.name} (${(100 * (d.x1 - d.x0)).toFixed(3)}%, ${d.value.toFixed(3)} ms)`;
 });
 const treeData = {
@@ -16,7 +17,7 @@ const treeData = {
 };
 d3.select("#chart").datum(treeData).call(chart);
 
-chart.onClick(function (d) {
+chart.onClick(function (d:any) {
 	vscode.postMessage({
 		command: 'click',
 		name: d.data.name,
