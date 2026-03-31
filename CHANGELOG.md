@@ -5,7 +5,8 @@
 ## 2.0.11
 * LuaLS library package:
   * improved annotation of generics on LuaCustomTable<K,V> and LuaLazyLoadedValue<T>
-  * Experimental: use prototype dumps to fill in known names (enable in settings: `factorio.docs.usePrototypeDumps`)
+  * **Experimental:** use prototype dumps to fill in known names (enable in settings: `factorio.docs.usePrototypeDumps`)
+    * run factorio with `--dump-data` manually to generate these data files, then re-run the FMTK Factorio Version selector to regenerate docs
     * various `data.ThingID` types now also have a corresponding `data.ThingName` for the union of `string` and all known specific names. Runtime `ThingID` union types have the corresponding `data.ThingName` (with `data.` prefix still) inserted as well.
     * `on_event` and `event_handler` distinguish event name strings between CustomEvent and CustomInputEvent
     * various functions which take a param table with subtypes have been split to overloads
