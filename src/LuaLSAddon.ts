@@ -26,12 +26,10 @@ import configjson from "../luals-addon/factorio/config.json";
 export function getConfig(factorioVersion?:string) {
 	return {
 		name: "factorio/config.json",
-		content: JSON.stringify(Object.assign(
-			{},
-			configjson,
-			{
-				bundleVersion: version,
-				factorioVersion: factorioVersion,
-			})),
+		content: JSON.stringify({
+			...configjson,
+			bundleVersion: version,
+			factorioVersion: factorioVersion,
+		}),
 	};
 }
