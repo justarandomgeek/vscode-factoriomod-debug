@@ -14,3 +14,5 @@ declare module "*.lua" {
 	export default content;
 }
 
+declare module "*.css" {
+}

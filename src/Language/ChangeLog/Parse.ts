@@ -57,7 +57,7 @@ export function parse(doc:TextDocument):Root {
 			//pattern: /^Version: (.+)$/d,
 			pattern: /^\s*Version\s*:\s*(.+)\s*$/d,
 			parse(matches, line) {
-				const version = literalNode<VersionLine>("version", matches[1], line, matches.indices![1][0], { full_line: matches[0] });
+				const version = literalNode<VersionLine>("version", matches[1], line, matches.indices![1]![0], { full_line: matches[0] });
 				version.range.start.character = 0;
 				if (!open_section || open_section.children.find(n=>n.type==="version")) {
 					startSection(line);
@@ -70,7 +70,7 @@ export function parse(doc:TextDocument):Root {
 			//pattern: /^Date: (.+)$/d,
 			pattern: /^\s*Date\s*:\s*(.+)\s*$/d,
 			parse(matches, line) {
-				const date = literalNode<DateLine>("date", matches[1], line, matches.indices![1][0], { full_line: matches[0] });
+				const date = literalNode<DateLine>("date", matches[1], line, matches.indices![1]![0], { full_line: matches[0] });
 				date.range.start.character = 0;
 				if (!open_section) {
 					startSection(line);
@@ -84,14 +84,14 @@ export function parse(doc:TextDocument):Root {
 			// more permissive pattern to allow silly nonsense like periodic-madness's version "subtitles" as fake sections
 			pattern: /^\s*([^\s\-].*?)\s*:?\s*$/d,
 			parse(matches, line) {
-				if (open_entries.length>0 && matches.indices![1][0]>=4 ) {
+				if (open_entries.length>0 && matches.indices![1]![0]>=4 ) {
 					//this is more likely an entry extension line (possibly mis-indented)
 					return false;
 				}
 				if (!open_section) {
 					startSection(line);
 				}
-				const cat = literalNode<Category>("category", matches[1], line, matches.indices![1][0], { full_line: matches[0], children: [] });
+				const cat = literalNode<Category>("category", matches[1], line, matches.indices![1]![0], { full_line: matches[0], children: [] });
 				cat.range.start.character = 0;
 				open_section!.children.push(cat);
 				open_category = cat;
@@ -111,9 +111,9 @@ export function parse(doc:TextDocument):Root {
 					open_entries = [];
 				}
 				if (open_category) {
-					const rec = literalNode<Entry>("entry", matches[2], line, matches.indices![2][0], {
+					const rec = literalNode<Entry>("entry", matches[2], line, matches.indices![2]![0], {
 						full_line: matches[0],
-						rank: matches.indices![1][0],
+						rank: matches.indices![1]![0],
 						children: [],
 					});
 					rec.range.start.character = 0;
@@ -140,9 +140,9 @@ export function parse(doc:TextDocument):Root {
 			pattern: /^\s*(.*)$/d,
 			parse(matches, line) {
 				if (open_entries.length > 0) {
-					const rec = literalNode<EntryExt>("entryext", matches[1], line, matches.indices![1][0], {
+					const rec = literalNode<EntryExt>("entryext", matches[1], line, matches.indices![1]![0], {
 						full_line: matches[0],
-						rank: matches.indices![1][0],
+						rank: matches.indices![1]![0],
 					});
 					rec.range.start.character = 0;
 					rec.selectionRange.end = rec.selectionRange.start;

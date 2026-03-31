@@ -4,7 +4,7 @@ import { test, suite, before, after } from "node:test";
 import assert from 'node:assert/strict';
 import { forkTest } from "./util.ts";
 import type { ModInstallResult } from "../src/ModManager";
-import {default as packagejson} from "../package.json" assert { type: "json" };
+import {default as packagejson} from "../package.json" with { type: "json" };
 
 await suite('CLI Mod Manager', { concurrency: false }, async ()=>{
 	const fmtk = path.join(import.meta.dirname, '../dist/fmtk-cli.js');

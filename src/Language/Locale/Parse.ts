@@ -44,7 +44,7 @@ function parsePatterns<T extends RichTextNode>(text:Text, prefix:string, pattern
 						result.push(textNode(value.substring(lastIndex, index), line, startcol+lastIndex));
 					}
 					result.push(node);
-					lastIndex = matches.indices![0][1];
+					lastIndex = matches.indices![0]![1];
 					index = lastIndex;
 					return true;
 				});
@@ -127,7 +127,7 @@ const macros:searchPattern<TextNode>[] = [
 				type: "parameter",
 				value: parseInt(matches[1]),
 				range: span(line, startcol+matches.index, matches[0].length),
-				selectionRange: span(line, startcol+matches.indices![1][0], matches[1].length),
+				selectionRange: span(line, startcol+matches.indices![1]![0], matches[1].length),
 			};
 		},
 	},
@@ -137,9 +137,9 @@ const macros:searchPattern<TextNode>[] = [
 			return {
 				type: "plural",
 				value: parseInt(matches[1]),
-				children: parsePlural(textNode(matches[2], line, startcol+matches.indices![2][0])),
+				children: parsePlural(textNode(matches[2], line, startcol+matches.indices![2]![0])),
 				range: span(line, startcol+matches.index, matches[0].length),
-				selectionRange: span(line, startcol+matches.indices![1][0], matches[1].length),
+				selectionRange: span(line, startcol+matches.indices![1]![0], matches[1].length),
 			};
 		},
 	},
@@ -151,7 +151,7 @@ const macros:searchPattern<TextNode>[] = [
 				name: matches[1] as Macro["name"],
 				children: [],
 				range: span(line, startcol+matches.index, matches[0].length),
-				selectionRange: span(line, startcol+matches.indices![1][0], matches[1].length),
+				selectionRange: span(line, startcol+matches.indices![1]![0], matches[1].length),
 			};
 		},
 	},
@@ -163,7 +163,7 @@ const macros:searchPattern<TextNode>[] = [
 				name: matches[1] as Macro["name"],
 				children: [],
 				range: span(line, startcol+matches.index, matches[0].length),
-				selectionRange: span(line, startcol+matches.indices![1][0], matches[1].length),
+				selectionRange: span(line, startcol+matches.indices![1]![0], matches[1].length),
 			};
 		},
 	},
@@ -173,9 +173,9 @@ const macros:searchPattern<TextNode>[] = [
 			return {
 				type: "macro",
 				name: matches[1] as Macro["name"],
-				children: [literalNode("macro_argument", matches[2], line, startcol+matches.indices![2][0])],
+				children: [literalNode("macro_argument", matches[2], line, startcol+matches.indices![2]![0])],
 				range: span(line, startcol+matches.index, matches[0].length),
-				selectionRange: span(line, startcol+matches.indices![1][0], matches[1].length),
+				selectionRange: span(line, startcol+matches.indices![1]![0], matches[1].length),
 			};
 		},
 	},
@@ -186,11 +186,11 @@ const macros:searchPattern<TextNode>[] = [
 				type: "macro",
 				name: matches[1] as Macro["name"],
 				children: [
-					literalNode("macro_argument", matches[2], line, startcol+matches.indices![2][0]),
-					literalNode("macro_argument", matches[3], line, startcol+matches.indices![3][0]),
+					literalNode("macro_argument", matches[2], line, startcol+matches.indices![2]![0]),
+					literalNode("macro_argument", matches[3], line, startcol+matches.indices![3]![0]),
 				],
 				range: span(line, startcol+matches.index, matches[0].length),
-				selectionRange: span(line, startcol+matches.indices![1][0], matches[1].length),
+				selectionRange: span(line, startcol+matches.indices![1]![0], matches[1].length),
 			};
 		},
 	},
@@ -200,9 +200,9 @@ const macros:searchPattern<TextNode>[] = [
 			return {
 				type: "macro",
 				name: matches[1] as Macro["name"],
-				children: [literalNode("macro_argument", matches[2], line, startcol+matches.indices![1][0])],
+				children: [literalNode("macro_argument", matches[2], line, startcol+matches.indices![1]![0])],
 				range: span(line, startcol+matches.index, matches[0].length),
-				selectionRange: span(line, startcol+matches.indices![1][0], matches[1].length),
+				selectionRange: span(line, startcol+matches.indices![1]![0], matches[1].length),
 			};
 		},
 	},
@@ -238,7 +238,7 @@ const linePatterns:{
 		pattern: /^[\r\t ]*([#;].*)?$/d,
 		parse(matches, line, state) {
 			if (matches[1]) {
-				state.open_comments.push(literalNode("comment", matches[1], line, matches.indices![1][0]));
+				state.open_comments.push(literalNode("comment", matches[1], line, matches.indices![1]![0]));
 			} else if (state.open_comments.length > 0) {
 				// blank line: push any open comments to the containing scope,
 				// instead of holding them for the next token
@@ -249,7 +249,7 @@ const linePatterns:{
 	{
 		pattern: /^[\r\t ]*\[(.*?)\][\r\t ]*$/d,
 		parse(matches, line, state) {
-			state.open_section = literalNode<Section>("section", matches[1], line, matches.indices![1][0], {children: []});
+			state.open_section = literalNode<Section>("section", matches[1], line, matches.indices![1]![0], {children: []});
 			if (state.open_comments.length > 0) {
 				state.open_section.children.push(commentGroup(state));
 			}
@@ -264,9 +264,9 @@ const linePatterns:{
 		pattern: /^[\r\t ]*(.*?)=(.*)$/d,
 		parse(matches, line, state) {
 			const newrec:Record = literalNode(
-				"record", matches[1], line, matches.indices![1][0], {
+				"record", matches[1], line, matches.indices![1]![0], {
 					children:
-						parsePatterns(textNode(matches[2], line, matches.indices![2][0]), "\\", escapes)
+						parsePatterns(textNode(matches[2], line, matches.indices![2]![0]), "\\", escapes)
 							.flatMap(n=>{
 								if (n.type === "escape") { return n; }
 								return parsePatterns(n, "__", macros);

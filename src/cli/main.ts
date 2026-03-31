@@ -43,7 +43,5 @@ await program
 	})
 	.then(()=>{
 		// close IPC if it was open from parent...
-		if (process.send) {
-			process.disconnect();
-		}
+		process.disconnect?.();
 	});
