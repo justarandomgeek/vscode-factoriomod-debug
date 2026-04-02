@@ -49,12 +49,15 @@ program.command("luals-addon [outdir]")
 		const sdumpjson = options.sdump && await fsp.readFile(options.sdump, "utf8");
 		const pdumpjson = options.pdump && await fsp.readFile(options.pdump, "utf8");
 
+		let fileCount = 0;
 		await GenerateDocs(docsjson, protosjson, sdumpjson, pdumpjson,
 			async (subpath, write)=>{
 				const filepath = path.join(outdir ?? process.cwd(), subpath);
 				await fsp.mkdir(path.dirname(filepath), { recursive: true });
 				const file = createWriteStream(filepath);
 				await write(file);
+				fileCount++;
 				file.close();
 			});
+		console.log(`Generated bundle with ${fileCount} files`);
 	});
