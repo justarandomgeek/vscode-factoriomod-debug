@@ -519,11 +519,25 @@ export class FactorioVersionSelector {
 		} catch (error) {
 		}
 
-		await forkScript(
-			{ close() {}, write(data) {} },
+		const output = this.output;
+		const result = await forkScript(
+			{ close() {}, write(data) { output.info(`docgen: ${data}`); } },
 			this.context.asAbsolutePath("./dist/fmtk-cli.js"),
 			await activeVersion.docArgs(vscode.workspace.getConfiguration("factorio").get("docs.usePrototypeDumps", false)), sumneko3rd.fsPath);
 
+		if (result !== 0) {
+			this.output.warn(`docgen return code ${result}`);
+			const action = await vscode.window.showErrorMessage("Error while generating docs", "Show Output");
+			switch (action) {
+				case "Show Output":
+					this.output.show();
+					break;
+
+				default:
+					break;
+			}
+			return;
+		}
 		const luaconfig = vscode.workspace.getConfiguration("Lua");
 
 		const library = luaconfig.get<string[]>("workspace.library", []);
