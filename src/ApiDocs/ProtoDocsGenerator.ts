@@ -179,6 +179,13 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 			}
 		}
 
+		//TODO: these should really be on a totally separate data.raw but we can't do that
+		dataraw.add(new LuaLSField("bool-setting", new LuaLSDict(new LuaLSTypeName("string"), new LuaLSTypeName("data.ModBoolSettingPrototype")), "In Settings Stage"));
+		dataraw.add(new LuaLSField("int-setting", new LuaLSDict(new LuaLSTypeName("string"), new LuaLSTypeName("data.ModIntSettingPrototype")), "In Settings Stage"));
+		dataraw.add(new LuaLSField("double-setting", new LuaLSDict(new LuaLSTypeName("string"), new LuaLSTypeName("data.ModDoubleSettingPrototype")), "In Settings Stage"));
+		dataraw.add(new LuaLSField("string-setting", new LuaLSDict(new LuaLSTypeName("string"), new LuaLSTypeName("data.ModStringSettingPrototype")), "In Settings Stage"));
+		dataraw.add(new LuaLSField("color-setting", new LuaLSDict(new LuaLSTypeName("string"), new LuaLSTypeName("data.ModColorSettingPrototype")), "In Settings Stage"));
+
 		return file;
 	}
 
