@@ -44,8 +44,8 @@
     "test": "c8 node --experimental-transform-types --test ./test/*.spec.ts"
   },
   "devDependencies": {
-    "@inquirer/input": "^5.0.10",
-    "@inquirer/password": "^5.0.10",
+    "@inquirer/input": "^5.0.11",
+    "@inquirer/password": "^5.0.11",
     "@stylistic/eslint-plugin": "^5.10.0",
     "@types/archiver": "^7.0.0",
     "@types/buffers": "^0.1.34",
@@ -54,7 +54,7 @@
     "@types/ini": "^4.1.1",
     "@types/inquirer": "^9.0.9",
     "@types/mute-stream": "^0.0.4",
-    "@types/node": "^25.5.0",
+    "@types/node": "^25.5.2",
     "@types/readdir-glob": "^1.1.5",
     "@types/request": "^2.48.13",
     "@types/semver": "^7.7.1",
@@ -76,7 +76,7 @@
     "esbuild-compress": "^2.2.0",
     "esbuild-plugin-import-glob": "^0.1.1",
     "esbuild-visualizer": "^0.7.0",
-    "eslint": "^10.1.0",
+    "eslint": "^10.2.0",
     "globals": "^17.4.0",
     "ini": "^6.0.0",
     "jsonc-parser": "^3.3.1",
