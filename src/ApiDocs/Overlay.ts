@@ -1,7 +1,7 @@
 export const overlay:{
 	adjust: {
 		table: { [classname:string]: {
-				generic_params?: string[]
+				generic_params?: {name:string; type?:ApiType}[]
 				exact?: boolean
 				parameters?: {
 					[member:string]: {
@@ -11,7 +11,7 @@ export const overlay:{
 			}
 		}
 		class: { [classname:string]: {
-			generic_params?: string[]
+			generic_params?: {name:string; type?:ApiType}[]
 			generic_parent?: ApiType
 			index_key?: ApiType
 			index_value?: ApiType
@@ -36,7 +36,7 @@ export const overlay:{
 				exact: false,
 			},
 			"ModSetting": {
-				generic_params: ["T:int32|double|boolean|string|Color"],
+				generic_params: [{name: "T", type: "int32|double|boolean|string|Color"}],
 				parameters: {
 					value: {
 						type: "T",
@@ -46,7 +46,7 @@ export const overlay:{
 		},
 		class: {
 			"LuaLazyLoadedValue": {
-				generic_params: ["T"],
+				generic_params: [{name: "T"}],
 				methods: {
 					get: {
 						asfield: true,
@@ -62,9 +62,17 @@ export const overlay:{
 				},
 			},
 			"LuaCustomTable": {
-				generic_params: ["K", "V"],
+				generic_params: [{name: "K"}, {name: "V"}],
 				index_key: "K",
 				index_value: "V",
+			},
+			"LuaModData": {
+				generic_params: [{name: "T", type: "{[string]: AnyBasic}"}],
+				members: {
+					data: {
+						type: "T",
+					},
+				},
 			},
 			"LuaGuiElement": {
 				index_key: {

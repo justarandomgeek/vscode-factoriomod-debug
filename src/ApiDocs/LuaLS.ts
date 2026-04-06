@@ -200,13 +200,29 @@ export class LuaLSEnumField {
 	}
 }
 
+export class LuaLSGeneric {
+	constructor(
+		public readonly name:string,
+		public readonly type?:LuaLSType,
+	) {}
+
+	write(output:Writable) {
+		output.write(`---@generic ${this.name}`);
+		if (this.type) {
+			output.write(`: ${this.type.format()}`);
+
+		}
+		output.write(`\n`);
+	}
+}
+
 export class LuaLSClass {
 	constructor(
 		public name:string,
 	) {}
 	description?:Description;
 	parents?:LuaLSType[];
-	generic_args?:string[];
+	generic_args?:LuaLSGeneric[];
 	global_name?:string;
 	exact?:boolean;
 
@@ -244,8 +260,8 @@ export class LuaLSClass {
 		output.write(`do\n`);
 		await comment_description(output, this.description);
 		if (this.generic_args) {
-			this.generic_args.forEach(a=>{
-				output.write(`---@generic ${a}\n`);
+			this.generic_args.forEach(g=>{
+				g.write(output);
 			});
 		}
 		output.write(`---@class `);
@@ -253,6 +269,9 @@ export class LuaLSClass {
 			output.write(`(exact) `);
 		}
 		output.write(`${this.name}`);
+		if (this.generic_args && this.generic_args.length > 0) {
+			output.write(`<${this.generic_args.map(g=>g.name).join(",")}>`);
+		}
 		if (this.parents && this.parents.length > 0) {
 			output.write(`:${this.parents.map(t=>t.format()).join(", ")}`);
 		}

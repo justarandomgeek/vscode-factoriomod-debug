@@ -1,6 +1,6 @@
 import { overlay } from "./Overlay";
 import type { LuaLSType} from "./LuaLS";
-import { is_lua_ident, LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSEnum, LuaLSEnumField, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSLiteral, LuaLSOperator, LuaLSOverload, LuaLSParam, LuaLSReturn, LuaLSTuple, LuaLSTypeName, LuaLSUnion, to_lua_ident } from "./LuaLS";
+import { is_lua_ident, LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSEnum, LuaLSEnumField, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSGeneric, LuaLSLiteral, LuaLSOperator, LuaLSOverload, LuaLSParam, LuaLSReturn, LuaLSTuple, LuaLSTypeName, LuaLSUnion, to_lua_ident } from "./LuaLS";
 import assert from "assert";
 import type { ProtoDocGenerator } from "./ProtoDocsGenerator";
 
@@ -226,6 +226,15 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		return files;
 	}
 
+	private async LuaLS_generics(generic_params?:typeof overlay["adjust"]["class"][""]["generic_params"]) {
+		if (!generic_params) { return; }
+		const res = [];
+		for (const g of generic_params) {
+			res.push(new LuaLSGeneric(g.name, g.type ? await this.LuaLS_type(g.type): undefined));
+		}
+		return res;
+	}
+
 	private async generate_LuaLS_class(aclass:ApiClass<V>, format_description:DocDescriptionFormatter) {
 		const file = new LuaLSFile(`runtime-api/${aclass.name}`, this.docs.application_version);
 		const lsclass = new LuaLSClass(aclass.name);
@@ -238,7 +247,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 		lsclass.parents = aclass.parent ? [new LuaLSTypeName(aclass.parent)] :
 			[ new LuaLSTypeName("LuaObject.base") ];
-		lsclass.generic_args = overlay.adjust.class[aclass.name]?.generic_params;
+		lsclass.generic_args = await this.LuaLS_generics(overlay.adjust.class[aclass.name]?.generic_params);
 		if (overlay.adjust.class[aclass.name]?.generic_parent) {
 			lsclass.parents.push(await this.LuaLS_type(overlay.adjust.class[aclass.name]?.generic_parent));
 		}
@@ -729,7 +738,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	private async LuaLS_table_type(type_data:ApiWithParameters, file:LuaLSFile,  table_class_name:string, format_description:DocDescriptionFormatter, parents?:LuaLSType[], extrafields?:LuaLSField[]):Promise<LuaLSTypeName> {
 		const lsclass = new LuaLSClass(table_class_name);
 		lsclass.exact = overlay.adjust.table[table_class_name]?.exact ?? true;
-		lsclass.generic_args = overlay.adjust.table[table_class_name]?.generic_params;
+		lsclass.generic_args = await this.LuaLS_generics(overlay.adjust.table[table_class_name]?.generic_params);
 		lsclass.parents = parents;
 		file.add(lsclass);
 
