@@ -243,14 +243,16 @@ export class LuaLSClass {
 	async write(output:Writable) {
 		output.write(`do\n`);
 		await comment_description(output, this.description);
+		if (this.generic_args) {
+			this.generic_args.forEach(a=>{
+				output.write(`---@generic ${a}\n`);
+			});
+		}
 		output.write(`---@class `);
 		if (this.exact) {
 			output.write(`(exact) `);
 		}
 		output.write(`${this.name}`);
-		if (this.generic_args && this.generic_args.length > 0) {
-			output.write(`<${this.generic_args.join(",")}>`);
-		}
 		if (this.parents && this.parents.length > 0) {
 			output.write(`:${this.parents.map(t=>t.format()).join(", ")}`);
 		}
