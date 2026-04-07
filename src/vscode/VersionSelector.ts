@@ -521,7 +521,7 @@ export class FactorioVersionSelector {
 
 		const output = this.output;
 		const result = await forkScript(
-			{ close() {}, write(data) { output.info(`docgen: ${data}`); } },
+			{ close() {}, write(data) { output.info(`docgen: ${data.trimEnd()}`); } },
 			this.context.asAbsolutePath("./dist/fmtk-cli.js"),
 			await activeVersion.docArgs(vscode.workspace.getConfiguration("factorio").get("docs.usePrototypeDumps", false)), sumneko3rd.fsPath);
 
