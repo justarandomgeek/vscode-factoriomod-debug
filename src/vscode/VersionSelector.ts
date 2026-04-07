@@ -454,7 +454,7 @@ export class FactorioVersionSelector {
 	private async tryJsonDocs(fv:FactorioVersion) : Promise<ApiDocGenerator> {
 		let docjson:string;
 		if (fv.onlineDocs) {
-			const version = fv.onlineDocs === true ? "latest" : fv.onlineDocs;
+			const version = (fv.onlineDocs === true || fv.onlineDocs === "throw" ) ? "latest" : fv.onlineDocs;
 
 			const url = `https://lua-api.factorio.com/${version}/runtime-api.json`;
 			const result = await fetch(url);

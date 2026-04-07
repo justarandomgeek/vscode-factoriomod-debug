@@ -39,6 +39,9 @@ program.command("luals-addon [outdir]")
 			// error: must specify both
 			throw new Error("Using local json files must specify both files");
 		} else {
+			if (options.online === "throw") {
+				throw new Error("Test Error");
+			}
 			// use online...
 			const version = options.online ?? "latest";
 
