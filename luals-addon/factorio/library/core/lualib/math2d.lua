@@ -20,6 +20,7 @@ local math2d = {
 ---| Vector
 ---| MapPosition
 ---| TilePosition
+---| ChunkPosition
 ---| GuiLocation
 
 ---@class math2d_bounding_box
