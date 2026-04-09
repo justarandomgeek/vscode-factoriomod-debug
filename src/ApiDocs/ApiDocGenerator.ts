@@ -261,120 +261,78 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 				});
 
 			switch (adjust?.rule) {
-				case "mod-data": {
-					// generate subclass that derives from value type, and specialize with name and data_type
-					assert(type instanceof LuaLSTypeName);
-					assert(type.name === "LuaCustomTable");
-					assert(type.generic_args);
-
-					const subclass = new LuaLSClass(`${lsclass.name}.${attribute.name}`);
-					subclass.parents = [type];
-
-					if (this.protosdump) {
-						for (const name in this.protosdump["mod-data"]) {
-							const m = this.protosdump["mod-data"][name];
-							const mtype = m.data_type ? [new LuaLSTypeName(m.data_type)] : undefined;
-							subclass.add(new LuaLSField(is_lua_ident(name) ? name : new LuaLSLiteral(name), new LuaLSTypeName("LuaModData", mtype)));
-						}
-					}
-
-					file.add(subclass);
-					type = new LuaLSTypeName(subclass.name);
-					break;
-				}
-				case "style": {
-					assert(type instanceof LuaLSTypeName);
-					assert(type.name === "LuaCustomTable");
-
-					const subclass = new LuaLSClass(`${lsclass.name}.${attribute.name}`);
-					subclass.parents = [type];
-
-					if (this.protosdump) {
-						for (const name in this.protosdump["gui-style"].default) {
-							const style = this.protosdump["gui-style"].default[name];
-							if (typeof style === "object" && "type" in style) {
-								subclass.add(new LuaLSField(is_lua_ident(name) ? name : new LuaLSLiteral(name), new LuaLSLiteral(style.type)));
-							}
-						}
-
-					}
-
-					file.add(subclass);
-					type = new LuaLSTypeName(subclass.name);
-					break;
-				}
-				case "map-gen-presets": {
+				case "mod-data":
+				case "style":
+				case "map-gen-presets":
+				case "proto-names":
+				case "setting-names":
 					assert(type instanceof LuaLSTypeName);
 					assert(type.name === "LuaCustomTable");
 					assert(type.generic_args);
 					assert(type.generic_args.length === 2);
-
 					const subclass = new LuaLSClass(`${lsclass.name}.${attribute.name}`);
 					subclass.parents = [type];
-
-					if (this.protosdump) {
-						for (const name in this.protosdump["map-gen-presets"].default) {
-							const preset = this.protosdump["map-gen-presets"].default[name];
-							if (typeof preset === "object") {
-								subclass.add(new LuaLSField(is_lua_ident(name) ? name : new LuaLSLiteral(name), type.generic_args[1]));
+					switch (adjust.rule) {
+						case "mod-data":
+							if (this.protosdump) {
+								for (const name in this.protosdump["mod-data"]) {
+									const m = this.protosdump["mod-data"][name];
+									const mtype = m.data_type ? [new LuaLSTypeName(m.data_type)] : undefined;
+									subclass.add(new LuaLSField(is_lua_ident(name) ? name : new LuaLSLiteral(name), new LuaLSTypeName("LuaModData", mtype)));
+								}
+							} else {
+								subclass.add(new LuaLSField(new LuaLSTypeName("string"), new LuaLSTypeName("LuaModData")));
 							}
-						}
+							break;
+						case "style":
+							if (this.protosdump) {
+								for (const name in this.protosdump["gui-style"].default) {
+									const style = this.protosdump["gui-style"].default[name];
+									if (typeof style === "object" && "type" in style) {
+										subclass.add(new LuaLSField(is_lua_ident(name) ? name : new LuaLSLiteral(name), new LuaLSLiteral(style.type)));
+									}
+								}
+							}
+							subclass.add(new LuaLSField(new LuaLSTypeName("string"), new LuaLSTypeName("string")));
+							break;
+						case "map-gen-presets":
+							if (this.protosdump) {
+								for (const name in this.protosdump["map-gen-presets"].default) {
+									const preset = this.protosdump["map-gen-presets"].default[name];
+									if (typeof preset === "object") {
+										subclass.add(new LuaLSField(is_lua_ident(name) ? name : new LuaLSLiteral(name), type.generic_args[1]));
+									}
+								}
+							}
+							subclass.add(new LuaLSField(new LuaLSTypeName("string"), type.generic_args[1]));
+							break;
+						case "setting-names":
+							if (this.settingsdump) {
+								//TODO: extract these types an apply as generic to LuaModSettingsPrototype? some properties won't quite work...
+								for (const proto of ["bool-setting", "int-setting", "double-setting", "string-setting", "color-setting"]) {
+									for (const name in this.settingsdump[proto]) {
+										subclass.add(new LuaLSField(is_lua_ident(name) ? name : new LuaLSLiteral(name), type.generic_args[1]));
+									}
+								}
+							}
+							subclass.add(new LuaLSField(new LuaLSTypeName("string"), type.generic_args[1]));
+							break;
+						case "proto-names":
+							const protos = this.docs.defines.find(d=>d.name==="prototypes")!.subkeys!
+								.find(d=>d.name===(adjust.protos_from ?? attribute.name))?.values?.map(d=>d.name);
 
+							if (this.protosdump) {
+								for (const proto of protos!) {
+									for (const name in this.protosdump[proto]) {
+										subclass.add(new LuaLSField(is_lua_ident(name) ? name : new LuaLSLiteral(name), type.generic_args[1]));
+									}
+								}
+							}
+							subclass.add(new LuaLSField(new LuaLSTypeName("string"), type.generic_args[1]));
+							break;
 					}
-
 					file.add(subclass);
 					type = new LuaLSTypeName(subclass.name);
-					break;
-				}
-				case "setting-names": {
-					// generate subclass that derives from value type, and specialize with names from settings
-					assert(type instanceof LuaLSTypeName);
-					assert(type.name === "LuaCustomTable");
-					assert(type.generic_args);
-					assert(type.generic_args.length === 2);
-
-					const subclass = new LuaLSClass(`${lsclass.name}.${attribute.name}`);
-					subclass.parents = [type];
-
-					if (this.settingsdump) {
-						//TODO: extract these types an apply as generic to LuaModSettingsPrototype? some properties won't quite work...
-						for (const proto of ["bool-setting", "int-setting", "double-setting", "string-setting", "color-setting"]) {
-							for (const name in this.settingsdump[proto]) {
-								subclass.add(new LuaLSField(is_lua_ident(name) ? name : new LuaLSLiteral(name), type.generic_args[1]));
-							}
-						}
-					}
-
-					file.add(subclass);
-					type = new LuaLSTypeName(subclass.name);
-					break;
-				}
-				case "proto-names": {
-					// generate subclass that derives from value type, and specialize with names from some prototype tree
-					assert(type instanceof LuaLSTypeName);
-					assert(type.name === "LuaCustomTable");
-					assert(type.generic_args);
-					assert(type.generic_args.length === 2);
-
-					const subclass = new LuaLSClass(`${lsclass.name}.${attribute.name}`);
-					subclass.parents = [type];
-
-					const protos = this.docs.defines.find(d=>d.name==="prototypes")!.subkeys!
-						.find(d=>d.name===(adjust.protos_from ?? attribute.name))?.values?.map(d=>d.name);
-
-					if (this.protosdump) {
-						for (const proto of protos!) {
-							for (const name in this.protosdump[proto]) {
-								subclass.add(new LuaLSField(is_lua_ident(name) ? name : new LuaLSLiteral(name), type.generic_args[1]));
-							}
-						}
-					}
-
-					file.add(subclass);
-					type = new LuaLSTypeName(subclass.name);
-					break;
-				}
-				default:
 					break;
 			}
 
@@ -710,11 +668,11 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 					}
 				}
 			}
+		} else {
+			startup.add(new LuaLSField(new LuaLSTypeName("string"), othersettings));
+			global.add(new LuaLSField(new LuaLSTypeName("string"), othersettings));
+			player.add(new LuaLSField(new LuaLSTypeName("string"), othersettings));
 		}
-
-		startup.add(new LuaLSField(new LuaLSTypeName("string"), othersettings));
-		global.add(new LuaLSField(new LuaLSTypeName("string"), othersettings));
-		player.add(new LuaLSField(new LuaLSTypeName("string"), othersettings));
 
 		return file;
 	}
