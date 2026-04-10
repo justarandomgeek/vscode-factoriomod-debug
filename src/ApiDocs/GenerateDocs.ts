@@ -16,6 +16,12 @@ export async function GenerateDocs(docsjson:string, protosjson:string, sdumpjson
 	const pdocs = new ProtoDocGenerator(protosjson, settings, prototypes);
 	const docs = new ApiDocGenerator(docsjson, pdocs, settings, prototypes);
 
+	console.log(`Loaded Prototype docs ${pdocs.application_version}`);
+	console.log(`Loaded Runtime docs ${docs.application_version}`);
+
+	if (settings) { console.log(`With Settings Dump`); }
+	if (prototypes) { console.log(`With Prototypes Dump`); }
+
 	const resolve_link = (node:Link)=>{
 		const matches = node.url.match(/^(runtime|prototype):(.+?)(?:::(.+))?$/);
 		if (matches) {
