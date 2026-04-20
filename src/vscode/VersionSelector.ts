@@ -120,6 +120,8 @@ export class FactorioVersionSelector {
 			}
 		}
 
+		this.output.info(`Workspace Trusted: ${vscode.workspace.isTrusted}`);
+
 		const workspaceLibrary = this.context.storageUri;
 		if (!workspaceLibrary) {
 			this.output.error(`No Workspace`);
