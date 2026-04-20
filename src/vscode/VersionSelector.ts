@@ -122,6 +122,8 @@ export class FactorioVersionSelector {
 
 		this.output.info(`Workspace Trusted: ${vscode.workspace.isTrusted}`);
 
+		vscode.workspace.workspaceFolders?.forEach(wf=>this.output.info(`Workspace folder: ${wf.uri.toString()}`));
+
 		const workspaceLibrary = this.context.storageUri;
 		if (!workspaceLibrary) {
 			this.output.error(`No Workspace`);
