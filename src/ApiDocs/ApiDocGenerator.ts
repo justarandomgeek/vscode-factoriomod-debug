@@ -730,82 +730,106 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			});
 		}
 
-		if (in_class === "LuaBootstrap" && func.name === "on_event") {
+		const adjust = in_class ? overlay.adjust.class[in_class]?.methods?.[func.name] : undefined;
 
-			// rename the generated handler arg...
-			(((params[1].type as LuaLSUnion).members[0] as LuaLSFunction).params![0] as any).name="event";
+		if (adjust?.rule) {
+			switch (adjust.rule) {
+				case "on-event": {
 
-			// a few special cases first...
-			lsfunc.add(new LuaLSOverload(
-				undefined,
-				[
-					new LuaLSParam("event", new LuaLSTypeName("string")),
-					new LuaLSParam("handler", new LuaLSFunction("handler", [
-						new LuaLSParam("event", new LuaLSTypeName(`EventData`)),
-					])),
-				]
-			));
+					// rename the generated handler arg...
+					(((params[1].type as LuaLSUnion).members[0] as LuaLSFunction).params![0] as any).name="event";
 
-			lsfunc.add(new LuaLSOverload(
-				undefined,
-				[
-					new LuaLSParam("event", new LuaLSTypeName("LuaCustomEventPrototype")),
-					new LuaLSParam("handler", new LuaLSFunction("handler", [
-						new LuaLSParam("event", new LuaLSTypeName(`EventData`)),
-					])),
-				]
-			));
+					// a few special cases first...
+					lsfunc.add(new LuaLSOverload(
+						undefined,
+						[
+							new LuaLSParam("event", new LuaLSTypeName("string")),
+							new LuaLSParam("handler", new LuaLSFunction("handler", [
+								new LuaLSParam("event", new LuaLSTypeName(`EventData`)),
+							])),
+						]
+					));
 
-			lsfunc.add(new LuaLSOverload(
-				undefined,
-				[
-					new LuaLSParam("event", new LuaLSTypeName("LuaCustomInputPrototype")),
-					new LuaLSParam("handler", new LuaLSFunction("handler", [
-						new LuaLSParam("event", new LuaLSTypeName(`EventData.CustomInputEvent`)),
-					])),
-				]
-			));
+					lsfunc.add(new LuaLSOverload(
+						undefined,
+						[
+							new LuaLSParam("event", new LuaLSTypeName("LuaCustomEventPrototype")),
+							new LuaLSParam("handler", new LuaLSFunction("handler", [
+								new LuaLSParam("event", new LuaLSTypeName(`EventData`)),
+							])),
+						]
+					));
 
-			const add_event = (name:string, filter?:string, eventdata?:LuaLSTypeName)=>{
-				const eventtype = new LuaLSUnion([
-					new LuaLSTypeName(`defines.events.${name}`),
-					new LuaLSLiteral(name),
-				]);
-				if (!eventdata) {
-					eventdata = new LuaLSTypeName(`EventData.${name}`);
+					lsfunc.add(new LuaLSOverload(
+						undefined,
+						[
+							new LuaLSParam("event", new LuaLSTypeName("LuaCustomInputPrototype")),
+							new LuaLSParam("handler", new LuaLSFunction("handler", [
+								new LuaLSParam("event", new LuaLSTypeName(`EventData.CustomInputEvent`)),
+							])),
+						]
+					));
+
+					const add_event = (name:string, filter?:string, eventdata?:LuaLSTypeName)=>{
+						const eventtype = new LuaLSUnion([
+							new LuaLSTypeName(`defines.events.${name}`),
+							new LuaLSLiteral(name),
+						]);
+						if (!eventdata) {
+							eventdata = new LuaLSTypeName(`EventData.${name}`);
+						}
+						const params = [
+							new LuaLSParam("event", eventtype),
+							new LuaLSParam("handler", new LuaLSFunction("handler", [
+								new LuaLSParam("event", eventdata),
+							])),
+						];
+
+						if (filter) {
+							params.push(new LuaLSParam("filters", new LuaLSArray(new LuaLSTypeName(filter)), undefined, true));
+						}
+
+						lsfunc.add(new LuaLSOverload(undefined, params));
+					};
+
+					for (const [_, event] of this.events) {
+						if (event.name === "CustomInputEvent") {
+							//handled separately
+							continue;
+						}
+						add_event(event.name, event.filter);
+					}
+
+					if (this.protosdump) {
+						for (const key in this.protosdump["custom-event"]) {
+							add_event(key);
+						}
+
+						for (const key in this.protosdump["custom-input"]) {
+							add_event(key, undefined, new LuaLSTypeName(`EventData.CustomInputEvent`));
+						}
+					}
+
+					break;
 				}
-				const params = [
-					new LuaLSParam("event", eventtype),
-					new LuaLSParam("handler", new LuaLSFunction("handler", [
-						new LuaLSParam("event", eventdata),
-					])),
-				];
+				case "set-event-filter": {
+					for (const [_, event] of this.events) {
+						if (event.filter) {
+							const eventtype = new LuaLSUnion([
+								new LuaLSTypeName(`defines.events.${event.name}`),
+								new LuaLSLiteral(event.name),
+							]);
+							const params = [
+								new LuaLSParam("event", eventtype),
+								new LuaLSParam("filters", new LuaLSArray(new LuaLSTypeName(event.filter)), undefined, true),
+							];
 
-				if (filter) {
-					params.push(new LuaLSParam("filters", new LuaLSArray(new LuaLSTypeName(filter)), undefined, true));
+							lsfunc.add(new LuaLSOverload(undefined, params));
+						}
+					}
+					break;
 				}
-
-				lsfunc.add(new LuaLSOverload(undefined, params));
-			};
-
-			for (const [_, event] of this.events) {
-				if (event.name === "CustomInputEvent") {
-					//handled separately
-					continue;
-				}
-				add_event(event.name, event.filter);
 			}
-
-			if (this.protosdump) {
-				for (const key in this.protosdump["custom-event"]) {
-					add_event(key);
-				}
-
-				for (const key in this.protosdump["custom-input"]) {
-					add_event(key, undefined, new LuaLSTypeName(`EventData.CustomInputEvent`));
-				}
-			}
-
 		}
 		return lsfunc;
 	}

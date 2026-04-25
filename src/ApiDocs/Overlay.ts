@@ -35,7 +35,11 @@ export const overlay:{
 				[member:string]: {
 					asfield?:boolean
 					return_values?: ApiMethod["return_values"]
-				}
+				} & (
+					{ rule?:undefined }|
+					{ rule: "on-event" }|
+					{ rule: "set-event-filter"}
+				)
 			}
 		} }
 	}
@@ -82,6 +86,12 @@ export const overlay:{
 					data: {
 						type: "T",
 					},
+				},
+			},
+			"LuaBootstrap": {
+				methods: {
+					"on_event": { rule: "on-event" },
+					"set_event_filter": { rule: "set-event-filter" },
 				},
 			},
 			"LuaPrototypes": {
