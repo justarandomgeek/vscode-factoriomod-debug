@@ -6,7 +6,7 @@
 * LuaLS library package:
   * improved annotation of generics on LuaCustomTable<K,V> and LuaLazyLoadedValue<T>
   * generate event-specific overloads for `LuaBootstrap.set_event_filter`
-  * **Experimental:** use prototype dumps to fill in known names (enable in settings: `factorio.docs.usePrototypeDumps`, default off). Run factorio with `--dump-data` manually to generate the data files needed, then re-run the FMTK Factorio Version Selector with your local install to regenerate docs
+  * **Experimental:** use prototype dumps to fill in known names (vscode enable in settings: `factorio.docs.usePrototypeDumps`, cli provide dump files in args). Run factorio with `--dump-data` manually to generate the data files needed, then re-run the FMTK Factorio Version Selector with your local install to regenerate docs
     * various `data.ThingID` types now also have a corresponding `data.ThingName` for the union of `string` and all known specific names. Runtime `ThingID` union types have the corresponding `data.ThingName` (with `data.` prefix still) inserted as well.
     * `on_event` and `event_handler` distinguish event name strings between CustomEvent and CustomInputEvent
     * various functions which take a param table with subtypes have been split to overloads
