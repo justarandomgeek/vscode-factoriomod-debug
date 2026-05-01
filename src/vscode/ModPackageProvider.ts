@@ -701,7 +701,7 @@ export async function forkScript(term:ModTaskTerminal, module:string, args:strin
 		const inspect = config.get<boolean>("inspect", false);
 		const scriptProc = fork(module, args, {
 			cwd: cwd,
-			execArgv: inspect ? ["--nolazy", "--inspect-brk=34200"] : undefined,
+			execArgv: inspect ? ["--nolazy", "--inspect-brk=34200"] : [],
 			env: scriptenv,
 			stdio: "pipe",
 		});
