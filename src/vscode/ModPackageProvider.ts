@@ -695,13 +695,29 @@ export async function forkScript(term:ModTaskTerminal, module:string, args:strin
 		FMTK_CONFIG: fmtk_config_file.fsPath,
 	});
 
+
+	let execArgv = process.execArgv;
+	for (const opt of config.get("tasks.execArgvOptions", [])) {
+		switch (opt) {
+			case "clear":
+				execArgv = [];
+				break;
+			case "stripjsflags":
+				execArgv = execArgv.filter(e=>!e.match(/^--js-flags/));
+				break;
+			case "stripinspect":
+				execArgv = execArgv.filter(e=>!e.match(/^--inspect/));
+				break;
+		}
+	}
+	execArgv = [ ...execArgv, ...config.get("tasks.execArgvExtra", [])];
+
 	scriptenv.Path = addBinToPath(scriptenv.Path??"");
 
 	return new Promise((resolve, reject)=>{
-		const inspect = config.get<boolean>("inspect", false);
 		const scriptProc = fork(module, args, {
 			cwd: cwd,
-			execArgv: inspect ? ["--nolazy", "--inspect-brk=34200"] : [],
+			execArgv: execArgv,
 			env: scriptenv,
 			stdio: "pipe",
 		});

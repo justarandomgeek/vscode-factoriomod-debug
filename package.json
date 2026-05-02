@@ -389,6 +389,24 @@
               "Run inside extension, communicate directly",
               "Run in an external process, communicate via stdio"
             ]
+          },
+          "factorio.tasks.execArgvOptions": {
+            "description": "Options to modify existing `execArgv` when forking",
+            "type": "array",
+            "default": [],
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "clear",
+                "stripjsflags",
+                "stripinspect"
+              ]
+            }
+          },
+          "factorio.tasks.execArgvExtras": {
+            "description": "Extra options to add to `execArgv` when forking",
+            "type": "array",
+            "items": { "type": "string" }
           }
         }
       }

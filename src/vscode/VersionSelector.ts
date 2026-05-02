@@ -130,6 +130,13 @@ export class FactorioVersionSelector {
 			return;
 		}
 
+		const luaconfig = vscode.workspace.getConfiguration("Lua");
+		const factorioconfig = vscode.workspace.getConfiguration("factorio");
+
+		this.output.info(`execArgv: ${JSON.stringify(process.execArgv)}`);
+		this.output.info(`execArgvOptions: ${JSON.stringify(factorioconfig.get("tasks.execArgvOptions", []))}`);
+		this.output.info(`execArgvExtras: ${JSON.stringify(factorioconfig.get("tasks.execArgvExtras", []))}`);
+
 		try {
 			const filecontent = (await fs.readFile(Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/config.json"))).toString();
 			const config = JSON.parse(filecontent);
@@ -155,9 +162,6 @@ export class FactorioVersionSelector {
 			return;
 		}
 		this.output.info(`LuaLS ${luals.packageJSON.version} ${luals.isActive?"Activated":"Not Yet Activated"}`);
-
-		const luaconfig = vscode.workspace.getConfiguration("Lua");
-		const factorioconfig = vscode.workspace.getConfiguration("factorio");
 
 		const userThirdParty = luaconfig.get<string[]>("workspace.userThirdParty");
 		if (!userThirdParty) {
