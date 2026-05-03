@@ -4,7 +4,8 @@
 
 ## 2.0.13
 * VSCode:
-  * workaround for microsoft/vscode#302602
+  * workaround for [microsoft/vscode#302602](https://github.com/microsoft/vscode/issues/302602)
+    * if you encounter the error `bad option: --js-flags=--nodecommit_pooled_pages` from docgen or tasks, try setting `stripjsflags` or `clear` in `factorio.tasks.execArgvOptions` in vscode options. ([#200](https://github.com/justarandomgeek/vscode-factoriomod-debug/issues/200))
 
 ## 2.0.12
 * LuaLS library package:
