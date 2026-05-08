@@ -888,7 +888,11 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 							group_type = new LuaLSUnion([group_type, new LuaLSTypeName("LuaEntityPrototype"), new LuaLSTypeName("LuaEntity")]);
 						}
 					} else {
-						group_type = new LuaLSLiteral(group.name);
+						if (typeof group_field.type === "string" && group_field.type.startsWith("defines.")) {
+							group_type = new LuaLSTypeName(group.name);
+						} else {
+							group_type = new LuaLSLiteral(group.name);
+						}
 					}
 					fields.push(new LuaLSField(group_field.name, group_type));
 				}
