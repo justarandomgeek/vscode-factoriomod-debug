@@ -20,6 +20,7 @@ import { applyEdits, modify } from "jsonc-parser";
 import archiver from "archiver";
 import semver from "semver";
 import { readdirGlob } from 'readdir-glob';
+import type * as ReaddirGlob from 'readdir-glob';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
@@ -136,19 +137,21 @@ export async function doPackageZip(info:ModInfo): Promise<archiver.Archiver> {
 	}
 
 	const archive = archiver('zip', { zlib: { level: 9 }});
-	archive.glob("**", {
-		cwd: process.cwd(),
+	const files = await matchGlob(process.cwd(), {
+		pattern: "**",
 		nodir: true,
 		ignore: [`**/${info.name}_*.zip`].concat(info.package?.ignore||[]),
-	}, { prefix: `${info.name}_${info.version}` });
+	});
+	files.forEach(match=>archive.file(match.absolute, { name: match.relative, prefix: `${info.name}_${info.version}` }));
 
 	if (info.package?.extra) {
 		for (const extra of info.package.extra) {
-			archive.glob(extra.glob ?? "**", {
-				cwd: extra.root,
+			const files = await matchGlob(extra.root, {
+				pattern: extra.glob ?? "**",
 				nodir: true,
 				ignore: extra.ignore,
-			}, { prefix: `${info.name}_${info.version}` });
+			});
+			files.forEach(match=>archive.file(match.absolute, { name: match.relative, prefix: `${info.name}_${info.version}` }));
 		}
 	}
 
@@ -385,6 +388,18 @@ async function processMarkdown(
 	return String(result);
 }
 
+async function matchGlob(base_path:string, options:ReaddirGlob.Options) {
+	return new Promise<ReaddirGlob.Match[]>((resolve, reject)=>{
+		const files: ReaddirGlob.Match[] = [];
+		const globber = readdirGlob(base_path, options);
+		globber.on('match', (match:{ relative:string; absolute:string })=>{
+			files.push(match);
+		});
+		globber.on('error', (err)=>reject(err));
+		globber.on('end', ()=>resolve(files));
+	});
+}
+
 export async function doPackageDetails(info:ModInfo, options?:{
 	readme?: string
 	faq?: string
@@ -401,16 +416,8 @@ export async function doPackageDetails(info:ModInfo, options?:{
 	const gallery = info.package?.gallery;
 	if (gallery) {
 		for (const glob of gallery) {
-			const files = await new Promise<string[]>((resolve, reject)=>{
-				const files:string[] = [];
-				const globber = readdirGlob(process.cwd(), {pattern: glob, nodir: true});
-				globber.on('match', (match:{ relative:string; absolute:string })=>{
-					files.push(match.absolute);
-				});
-				globber.on('error', (err)=>reject(err));
-				globber.on('end', ()=>resolve(files));
-			});
-			await Promise.all(files.sort().map(async (f)=>addGalleryImage(f, info.name, images, usedImageIDs)));
+			const files = await matchGlob(process.cwd(), {pattern: glob, nodir: true});
+			await Promise.all(files.map((f)=>f.absolute).sort().map(async (f)=>addGalleryImage(f, info.name, images, usedImageIDs)));
 		}
 	}
 
