@@ -11,7 +11,8 @@ const ImportGlobPlugin = ImportGlob.default as typeof ImportGlob;
 import { default as compress } from "esbuild-compress";
 
 import { program } from 'commander';
-import archiver from 'archiver';
+//@ts-expect-error until @types/archiver updates
+import { ZipArchive } from "archiver";
 
 import type { ModInfo } from './src/vscode/ModPackageProvider';
 
@@ -35,7 +36,7 @@ function FactorioModPlugin():Plugin {
 				const packagejsonPath = path.join(process.argv[1], "../package.json");
 				const version = JSON.parse(await fsp.readFile(packagejsonPath, "utf8")).version;
 
-				const archive = archiver('zip', { zlib: { level: 9 }});
+				const archive = new ZipArchive({ zlib: { level: 9 }});
 				const templatePath = path.join(args.path, "info.template.json");
 				const info = JSON.parse(await fsp.readFile(templatePath, "utf8")) as ModInfo;
 				info.version = version;
@@ -155,7 +156,6 @@ const configs:BuildOptions[] = [
 			// dedupe some packages in the bundle...
 			// (https://esbuild.github.io/analyze/ to see dupes)
 			"minimatch": "minimatch", // esm/cjs dupe. used as cjs by languageclient
-			"readdir-glob": "readdir-glob", // still esm/cjs dupe, but forcing esm breaks `archiver`
 			"string_decoder": "string_decoder",
 			"safe-buffer": "safe-buffer",
 		},

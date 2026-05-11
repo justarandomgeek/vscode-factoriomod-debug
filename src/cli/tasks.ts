@@ -17,7 +17,8 @@ import type { ModInfo } from "../vscode/ModPackageProvider";
 
 import { URI, Utils } from 'vscode-uri';
 import { applyEdits, modify } from "jsonc-parser";
-import archiver from "archiver";
+//@ts-expect-error until @types/archiver updates
+import { ZipArchive } from "archiver";
 import semver from "semver";
 import { readdirGlob } from 'readdir-glob';
 import type * as ReaddirGlob from 'readdir-glob';
@@ -121,7 +122,7 @@ export async function doPackageDatestamp(info:ModInfo): Promise<boolean> {
 	return !!content;
 }
 
-export async function doPackageZip(info:ModInfo): Promise<archiver.Archiver> {
+export async function doPackageZip(info:ModInfo): Promise<ZipArchive> {
 	if (info.package?.scripts?.compile) {
 		const code = await runPackageScript("compile", info);
 		if (code !== 0) {
@@ -136,7 +137,7 @@ export async function doPackageZip(info:ModInfo): Promise<archiver.Archiver> {
 		}
 	}
 
-	const archive = archiver('zip', { zlib: { level: 9 }});
+	const archive = new ZipArchive({ zlib: { level: 9 }});
 	const files = await matchGlob(process.cwd(), {
 		pattern: "**",
 		nodir: true,

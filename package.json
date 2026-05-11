@@ -65,7 +65,7 @@
     "@vscode/debugadapter-testsupport": "^1.68.0",
     "@vscode/vsce": "^3.9.1",
     "@vscode/webview-ui-toolkit": "^1.4.0",
-    "archiver": "^7.0.1",
+    "archiver": "^8.0.0",
     "c8": "^11.0.0",
     "commander": "^14.0.3",
     "d3": "^7.9.0",
