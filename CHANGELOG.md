@@ -5,6 +5,7 @@
 ## 2.0.14
 * LuaLS library package:
   * fix some `defines.*` types being stringified by table variant type splitting logic
+  * preserve the group field in the base class when splitting variant types (some subtypes are not exhaustive)
 
 
 ## 2.0.13

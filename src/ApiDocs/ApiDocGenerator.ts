@@ -863,7 +863,6 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 			if (param.name === group_field_name) {
 				group_field = param;
-				continue;
 			}
 			lsclass.add(new LuaLSField(
 				is_tuple?new LuaLSLiteral(i++):param.name,
