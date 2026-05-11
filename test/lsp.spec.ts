@@ -4,7 +4,7 @@ import * as path from "path";
 import * as fsp from "fs/promises";
 import type { ChildProcess } from "child_process";
 import { fork } from "child_process";
-import type { ProtocolConnection, InitializeParams, DidOpenTextDocumentParams } from "vscode-languageserver-protocol";
+import type { ProtocolConnection, InitializeParams } from "vscode-languageserver-protocol";
 import { StreamMessageReader, StreamMessageWriter } from "vscode-languageserver-protocol/node.js";
 import { createProtocolConnection, ShutdownRequest, ExitNotification, InitializeRequest, InitializedNotification, DidOpenTextDocumentNotification, PublishDiagnosticsNotification } from "vscode-languageserver-protocol";
 import type { CodeAction, CodeActionParams, ColorPresentationParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DocumentColorParams, DocumentSymbol, DocumentSymbolParams, ProtocolNotificationType, PublishDiagnosticsParams } from "vscode-languageserver-protocol";
@@ -92,7 +92,7 @@ await suite("LSP", { concurrency: false }, async ()=>{
 			const testfile = path.join(import.meta.dirname, "changelog", `${t.name}.txt`);
 			doc = TextDocument.create(`test://${t.name}/changelog.txt`, "factorio-changelog", 1, await fsp.readFile(testfile, "utf8"));
 			await clientConnection.sendNotification(DidOpenTextDocumentNotification.type,
-				{ textDocument: docItem(doc) } as DidOpenTextDocumentParams);
+				{ textDocument: docItem(doc) });
 		});
 
 		afterEach(async ()=>{
@@ -242,7 +242,7 @@ await suite("LSP", { concurrency: false }, async ()=>{
 			const testfile = path.join(import.meta.dirname, "locale", `${t.name}.cfg`);
 			doc = TextDocument.create(`test://${t.name}/locale/en/test.cfg`, "factorio-locale", 1, await fsp.readFile(testfile, "utf8"));
 			await clientConnection.sendNotification(DidOpenTextDocumentNotification.type,
-				{ textDocument: docItem(doc) } as DidOpenTextDocumentParams);
+				{ textDocument: docItem(doc) });
 		});
 
 		afterEach(async ()=>{

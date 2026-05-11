@@ -75,7 +75,7 @@ const escapes:searchPattern<Escape>[] = [
 ];
 
 function parsePlural(text:Text):PluralOption[] {
-	return parsePatterns(text, "|").map((option)=>{
+	return parsePatterns(text, "|").map<PluralOption>((option)=>{
 		const split = option.value.indexOf("=");
 		const patterns = textNode(option.value.substring(0, split), option.range.start.line, option.range.start.character);
 		const text = textNode(option.value.substring(split+1), option.range.start.line, option.range.start.character+split+1);
@@ -85,14 +85,14 @@ function parsePlural(text:Text):PluralOption[] {
 			range: option.range,
 			selectionRange: option.selectionRange,
 			children: [
-				...parsePatterns(patterns, ",").map(pattern=>{
+				...parsePatterns(patterns, ",").map<PluralMatch|Error>(pattern=>{
 					if (pattern.value === "rest") {
 						return {
 							type: "plural_match",
 							value: "rest",
 							range: pattern.range,
 							selectionRange: pattern.selectionRange,
-						} as PluralMatch;
+						};
 					}
 
 					const matches = pattern.value.match(/^(ends in )?(\d+)(?:-(\d+))?$/d);
@@ -103,14 +103,14 @@ function parsePlural(text:Text):PluralOption[] {
 							ends_in: matches[1] ? true : undefined,
 							range: pattern.range,
 							selectionRange: pattern.selectionRange,
-						} as PluralMatch;
+						};
 					}
 					return {
 						type: "error",
 						value: pattern.value,
 						range: pattern.range,
 						selectionRange: pattern.selectionRange,
-					} as Error;
+					};
 
 				}),
 				...parsePatterns(text, "__", macros),

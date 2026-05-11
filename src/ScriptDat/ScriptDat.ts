@@ -280,7 +280,7 @@ export class ScriptDat {
 	}
 
 	private loadLuaValue(b:BufferStream):SavedLuaValue {
-		const typetag = b.readUInt8() as SavedLuaTypeTag;
+		const typetag:SavedLuaTypeTag = b.readUInt8();
 		const type = SavedLuaTypeTag[typetag];
 		switch (type) {
 			case "Nil":
@@ -332,7 +332,7 @@ export class ScriptDat {
 			case "LuaObject": {
 				const type = "LuaObject";
 				const thisgcid = this.gcid++;
-				const ltype = b.readUInt32LE() as LuaObjectType;
+				const ltype:LuaObjectType = b.readUInt32LE();
 				const ltypename = LuaObjectType[ltype] as keyof typeof LuaObjectType;
 				const data = Object.assign(
 					{type: ltypename},
@@ -681,7 +681,7 @@ export class ScriptDat {
 
 	private loadLuaItemStack(b:BufferStream) {
 
-		const type = (this.version.isBeyond(1, 2, 0, 359) ? b.readUInt8() : b.readUInt32LE()) as LuaItemStackType;
+		const type:LuaItemStackType = (this.version.isBeyond(1, 2, 0, 359) ? b.readUInt8() : b.readUInt32LE());
 		let size = this.version.isBeyond(1, 2, 0, 359) ? 1 : 4;
 		switch (type) {
 			case LuaItemStackType.None:
@@ -760,13 +760,13 @@ export class ScriptDat {
 	}
 
 	private loadLuaControlBehavior(b:BufferStream) {
-		const type = b.readUInt32LE() as LuaControlBehaviorType;
+		const type:LuaControlBehaviorType = b.readUInt32LE();
 		const target = b.readUInt32LE();
 		return {behavior: LuaControlBehaviorType[type], target, size: 4*2};
 	}
 
 	private loadLuaFlowStatistics(b:BufferStream) {
-		const type = b.readUInt32LE() as LuaFlowStatisticsType;
+		const type:LuaFlowStatisticsType = b.readUInt32LE();
 		let size = 4;
 
 		switch (type) {

@@ -449,7 +449,7 @@ await suite('Debug Adapter', { concurrency: false }, async ()=>{
 		await launch({
 			factorioArgs: ["--load-scenario", "debugadapter-tests/run"],
 			runningBreak: 1,
-		} as LaunchRequestArguments);
+		});
 		await dc.waitForEvent('initialized');
 		await dc.setExceptionBreakpointsRequest({filters: ['pcall', 'xpcall', 'unhandled']});
 		await dc.configurationDoneRequest();

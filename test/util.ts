@@ -20,7 +20,7 @@ export async function forkTestFails(modulePath:string, args:readonly string[], o
 export async function forkTest(modulePath:string, args:readonly string[], options?:ForkOptions):Promise<ForkResult> {
 	const proc = fork(modulePath, args, Object.assign({}, options, {stdio: "pipe"} as ForkOptions));
 	proc.stdin?.end();
-	return new Promise((resolve, reject)=>{
+	return new Promise<ForkResult>((resolve, reject)=>{
 		proc.on('exit', (code, signal)=>{
 			const stdout = proc.stdout?.read();
 			const stderr = proc.stderr?.read();
@@ -28,7 +28,7 @@ export async function forkTest(modulePath:string, args:readonly string[], option
 				resolve({
 					stdout: stdout,
 					stderr: stderr,
-				} as ForkResult);
+				});
 			} else  {
 				reject({
 					stdout: stdout,
