@@ -13,6 +13,7 @@ export const overlay:{
 		class: { [classname:string]: {
 			generic_params?: {name:string; type?:ApiType}[]
 			generic_parent?: ApiType
+			no_index?: boolean
 			index_key?: ApiType
 			index_value?: ApiType
 			split_funcs?: boolean
@@ -77,8 +78,8 @@ export const overlay:{
 			},
 			"LuaCustomTable": {
 				generic_params: [{name: "K"}, {name: "V"}],
-				index_key: "K",
-				index_value: "V",
+				generic_parent: "{[K]:V}",
+				no_index: true,
 			},
 			"LuaModData": {
 				generic_params: [{name: "T", type: "{[string]: AnyBasic}"}],

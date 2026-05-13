@@ -280,9 +280,8 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 									const mtype = m.data_type ? [new LuaLSTypeName(m.data_type)] : undefined;
 									subclass.add(new LuaLSField(is_lua_ident(name) ? name : new LuaLSLiteral(name), new LuaLSTypeName("LuaModData", mtype)));
 								}
-							} else {
-								subclass.add(new LuaLSField(new LuaLSTypeName("string"), new LuaLSTypeName("LuaModData")));
 							}
+							subclass.parents.push(new LuaLSDict(new LuaLSTypeName("string"), new LuaLSTypeName("LuaModData")));
 							break;
 						case "style":
 							if (this.protosdump) {
@@ -293,7 +292,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 									}
 								}
 							}
-							subclass.add(new LuaLSField(new LuaLSTypeName("string"), new LuaLSTypeName("string")));
+							subclass.parents.push(new LuaLSDict(new LuaLSTypeName("string"), new LuaLSTypeName("string")));
 							break;
 						case "map-gen-presets":
 							if (this.protosdump) {
@@ -304,7 +303,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 									}
 								}
 							}
-							subclass.add(new LuaLSField(new LuaLSTypeName("string"), type.generic_args[1]));
+							subclass.parents.push(new LuaLSDict(new LuaLSTypeName("string"), type.generic_args[1]));
 							break;
 						case "setting-names":
 							if (this.settingsdump) {
@@ -315,7 +314,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 									}
 								}
 							}
-							subclass.add(new LuaLSField(new LuaLSTypeName("string"), type.generic_args[1]));
+							subclass.parents.push(new LuaLSDict(new LuaLSTypeName("string"), type.generic_args[1]));
 							break;
 						case "proto-names":
 							const protos = this.docs.defines.find(d=>d.name==="prototypes")!.subkeys!
@@ -328,7 +327,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 									}
 								}
 							}
-							subclass.add(new LuaLSField(new LuaLSTypeName("string"), type.generic_args[1]));
+							subclass.parents.push(new LuaLSDict(new LuaLSTypeName("string"), type.generic_args[1]));
 							break;
 					}
 					file.add(subclass);
@@ -364,6 +363,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 				}
 				case "index":
 				{
+					if (overlay.adjust.class[aclass.name]?.no_index) { break; }
 					lsclass.add(new LuaLSField(
 						await this.LuaLS_type(overlay.adjust.class[aclass.name]?.index_key ?? "uint"),
 						await this.LuaLS_type(overlay.adjust.class[aclass.name]?.index_value ?? operator.write_type ?? operator.read_type),
