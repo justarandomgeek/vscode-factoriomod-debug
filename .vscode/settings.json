@@ -6,7 +6,7 @@
         "node_modules":true,
     },
     "eslint.useFlatConfig": true,
-    "typescript.tsc.autoDetect": "off",
+    "js/ts.tsc.autoDetect": "off",
     "files.trimTrailingWhitespace": true,
     "editor.insertSpaces": false,
     "Lua.workspace.ignoreDir": [
