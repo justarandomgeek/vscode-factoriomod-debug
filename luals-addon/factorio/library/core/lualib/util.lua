@@ -11,8 +11,8 @@ util = {
 ---@return T
 function table.deepcopy(object) end
 
---- Checks for shallow equality between tbl1 and tbl2.
---- Shallow equality is effectively the more "intuitive" version of table equality, comparing tables by value instead of by reference.
+--- Checks for deep equality between tbl1 and tbl2.
+--- Deep equality is effectively the more "intuitive" version of table equality, comparing tables by value instead of by reference.
 ---@param tbl1 table
 ---@param tbl2 table
 ---@return boolean
