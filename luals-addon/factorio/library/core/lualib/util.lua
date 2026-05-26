@@ -5,7 +5,9 @@ util = {
   table = {}
 }
 
---- Deep copies a table, making a new table with all of the same values in all of the same places, without leaving references to the provided object.
+--- Deep copies a table, making a new table with all of the same values in all of the same places.
+--- The new table has no references to the original, leaving you safe to modify either table without modifying the other.
+--- If passed a non-table, it returns the value it was given.
 ---@generic T
 ---@param object T
 ---@return T
