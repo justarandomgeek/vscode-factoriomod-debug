@@ -5,15 +5,18 @@ util = {
   table = {}
 }
 
----Deep copies a table
+--- Deep copies a table, making a new table with all of the same values in all of the same places.
+--- The new table has no references to the original, leaving you safe to modify either table without modifying the other.
+--- If passed a non-table, it returns the value it was given.
 ---@generic T
 ---@param object T
 ---@return T
 function table.deepcopy(object) end
 
----Compares a table for shallow equality
----@param tbl1 any
----@param tbl2 any
+--- Checks for deep equality between tbl1 and tbl2.
+--- Deep equality is effectively the more "intuitive" version of table equality, comparing tables by value instead of by reference.
+---@param tbl1 table
+---@param tbl2 table
 ---@return boolean
 function table.compare(tbl1, tbl2) end
 
