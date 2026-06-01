@@ -122,6 +122,54 @@ export async function doPackageDatestamp(info:ModInfo): Promise<boolean> {
 	return !!content;
 }
 
+type TreeNode = {
+  [key: string]: TreeNode
+};
+
+/**
+ * Converts an array of file paths into a nested dictionary tree.
+ */
+function buildTree(paths: string[]): TreeNode {
+	const root: TreeNode = {};
+
+	for (const path of paths) {
+		// Split paths by slash and filter out any empty strings from leading/trailing slashes
+		const parts = path.split('/').filter(Boolean);
+		let currentLevel = root;
+
+		for (const part of parts) {
+			if (!currentLevel[part]) {
+				currentLevel[part] = {};
+			}
+			currentLevel = currentLevel[part];
+		}
+	}
+
+	return root;
+}
+
+/**
+ * Recursively logs the nested tree structure to the console with box-drawing characters.
+ */
+function printTree(node: TreeNode, prefix: string = ''): void {
+	const keys = Object.keys(node);
+
+	keys.forEach((key, index)=>{
+		const isLast = index === keys.length - 1;
+
+		// Select the correct branch character depending on if it is the last item in the folder
+		const marker = isLast ? '└── ' : '├── ';
+
+		console.log(`${prefix}${marker}${key}`);
+
+		// Append proper spacing for the next level down
+		const nextPrefix = prefix + (isLast ? '    ' : '│   ');
+		printTree(node[key], nextPrefix);
+	});
+}
+
+const forbiddenExtensions = [".exe", ".bat", ".ps1", ".sh", ".py"];
+
 export async function doPackageZip(info:ModInfo): Promise<ZipArchive> {
 	if (info.package?.scripts?.compile) {
 		const code = await runPackageScript("compile", info);
@@ -138,12 +186,22 @@ export async function doPackageZip(info:ModInfo): Promise<ZipArchive> {
 	}
 
 	const archive = new ZipArchive({ zlib: { level: 9 }});
+	const all_files:{absolute:string; relative:string}[] = [];
+	const warnings:string[] = [];
+	const add_file = (file:{absolute:string; relative:string})=>{
+		if (forbiddenExtensions.some(ext=>file.relative.endsWith(ext))) {
+			warnings.push(`WARNING: File '${file.relative}' skipped due to forbidden extension` );
+			return;
+		}
+		archive.file(file.absolute, { name: file.relative, prefix: `${info.name}_${info.version}` });
+		all_files.push(file);
+	};
 	const files = await matchGlob(process.cwd(), {
 		pattern: "**",
 		nodir: true,
 		ignore: [`**/${info.name}_*.zip`].concat(info.package?.ignore||[]),
 	});
-	files.forEach(match=>archive.file(match.absolute, { name: match.relative, prefix: `${info.name}_${info.version}` }));
+	files.forEach(add_file);
 
 	if (info.package?.extra) {
 		for (const extra of info.package.extra) {
@@ -152,9 +210,12 @@ export async function doPackageZip(info:ModInfo): Promise<ZipArchive> {
 				nodir: true,
 				ignore: extra.ignore,
 			});
-			files.forEach(match=>archive.file(match.absolute, { name: match.relative, prefix: `${info.name}_${info.version}` }));
+			files.forEach(add_file);
 		}
 	}
+
+	printTree(buildTree(all_files.map(f=>f.relative)));
+	warnings.forEach(w=>console.log(w));
 
 	return archive;
 }
