@@ -512,6 +512,7 @@ export class FactorioVersionSelector {
 		}
 	}
 
+
 	private async generateDocs(previous_active?:ActiveFactorioVersion) {
 		if (!vscode.workspace.getConfiguration("factorio").get("docs.generateDocs", true)) { return; }
 
@@ -524,38 +525,19 @@ export class FactorioVersionSelector {
 			return;
 		}
 
+		const emmylua = vscode.extensions.getExtension("tangzx.emmylua");
+		if (emmylua) {
+			const emmylualib = Utils.joinPath(workspaceLibrary, "emmylua");
+
+			await this.refreshDocFiles(emmylualib, activeVersion);
+		}
+
 		const sumneko = vscode.extensions.getExtension("sumneko.lua");
 		if (sumneko) {
 			const sumneko3rd = Utils.joinPath(workspaceLibrary, "sumneko-3rd");
-			await fs.createDirectory(sumneko3rd);
 
-			try {
-				await Promise.allSettled([
-					fs.delete(Utils.joinPath(sumneko3rd, "factorio", "library"), {recursive: true}),
-					fs.delete(Utils.joinPath(sumneko3rd, "factorio", "factorio-plugin"), {recursive: true}),
-				]);
-			} catch (error) {
-			}
+			await this.refreshDocFiles(sumneko3rd, activeVersion);
 
-			const output = this.output;
-			const result = await forkScript(
-				{ close() {}, write(data) { output.info(`docgen: ${data.trimEnd()}`); } },
-				this.context.asAbsolutePath("./dist/fmtk-cli.js"),
-				await activeVersion.docArgs(vscode.workspace.getConfiguration("factorio").get("docs.usePrototypeDumps", false)), sumneko3rd.fsPath);
-
-			if (result !== 0) {
-				this.output.warn(`docgen return code ${result}`);
-				const action = await vscode.window.showErrorMessage("Error while generating docs", "Show Output");
-				switch (action) {
-					case "Show Output":
-						this.output.show();
-						break;
-
-					default:
-						break;
-				}
-				return;
-			}
 			const luaconfig = vscode.workspace.getConfiguration("Lua");
 
 			const library = luaconfig.get<string[]>("workspace.library", []);
@@ -626,6 +608,38 @@ export class FactorioVersionSelector {
 			if (!sumneko.isActive) {
 				await sumneko.activate();
 			}
+		}
+	}
+
+	private async refreshDocFiles(basedir:URI, activeVersion:ActiveFactorioVersion) {
+		await fs.createDirectory(basedir);
+
+		try {
+			await Promise.allSettled([
+				fs.delete(Utils.joinPath(basedir, "factorio", "library"), {recursive: true}),
+				fs.delete(Utils.joinPath(basedir, "factorio", "factorio-plugin"), {recursive: true}),
+			]);
+		} catch (error) {
+		}
+
+		const output = this.output;
+		const result = await forkScript(
+			{ close() {}, write(data) { output.info(`docgen: ${data.trimEnd()}`); } },
+			this.context.asAbsolutePath("./dist/fmtk-cli.js"),
+			await activeVersion.docArgs(vscode.workspace.getConfiguration("factorio").get("docs.usePrototypeDumps", false)), basedir.fsPath);
+
+		if (result !== 0) {
+			this.output.warn(`docgen return code ${result}`);
+			const action = await vscode.window.showErrorMessage("Error while generating docs", "Show Output");
+			switch (action) {
+				case "Show Output":
+					this.output.show();
+					break;
+
+				default:
+					break;
+			}
+			return;
 		}
 	}
 }
