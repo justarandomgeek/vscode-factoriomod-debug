@@ -195,7 +195,7 @@ export class LuaLSEnumField {
 		if (this.value) {
 			output.write(`${this.value.format()},\n`);
 		} else {
-			output.write(`#{} --[[@as ${this.typename.format()} ]],\n`);
+			output.write(`(#{}) --[[@as ${this.typename.format()} ]],\n`);
 		}
 	}
 }
