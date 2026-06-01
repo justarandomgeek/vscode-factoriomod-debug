@@ -124,18 +124,30 @@ export class FactorioVersionSelector {
 
 		vscode.workspace.workspaceFolders?.forEach(wf=>this.output.info(`Workspace folder: ${wf.uri.toString()}`));
 
+		const factorioconfig = vscode.workspace.getConfiguration("factorio");
+
+		this.output.info(`execArgv: ${JSON.stringify(process.execArgv)}`);
+		this.output.info(`execArgvOptions: ${JSON.stringify(factorioconfig.get("tasks.execArgvOptions", []))}`);
+		this.output.info(`execArgvExtras: ${JSON.stringify(factorioconfig.get("tasks.execArgvExtras", []))}`);
+
+		const luals = vscode.extensions.getExtension("sumneko.lua");
+		if (luals) {
+			await this.checkLuaLSConfig(luals, activeVersion, factorioconfig);
+		} else {
+			this.output.warn(`LuaLS (sumneko.lua) not present!`);
+		}
+	}
+
+	private async checkLuaLSConfig(luals: vscode.Extension<any>, activeVersion: ActiveFactorioVersion, factorioconfig: vscode.WorkspaceConfiguration) {
+		const luaconfig = vscode.workspace.getConfiguration("Lua");
+
 		const workspaceLibrary = this.context.storageUri;
 		if (!workspaceLibrary) {
 			this.output.error(`No Workspace`);
 			return;
 		}
 
-		const luaconfig = vscode.workspace.getConfiguration("Lua");
-		const factorioconfig = vscode.workspace.getConfiguration("factorio");
-
-		this.output.info(`execArgv: ${JSON.stringify(process.execArgv)}`);
-		this.output.info(`execArgvOptions: ${JSON.stringify(factorioconfig.get("tasks.execArgvOptions", []))}`);
-		this.output.info(`execArgvExtras: ${JSON.stringify(factorioconfig.get("tasks.execArgvExtras", []))}`);
+		this.output.info(`LuaLS ${luals.packageJSON.version} ${luals.isActive?"Activated":"Not Yet Activated"}`);
 
 		try {
 			const filecontent = (await fs.readFile(Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/config.json"))).toString();
@@ -156,12 +168,6 @@ export class FactorioVersionSelector {
 			this.output.error(`Missing or damaged library bundle info ${error}`);
 		}
 
-		const luals = vscode.extensions.getExtension("sumneko.lua");
-		if (!luals) {
-			this.output.warn(`LuaLS (sumneko.lua) not present!`);
-			return;
-		}
-		this.output.info(`LuaLS ${luals.packageJSON.version} ${luals.isActive?"Activated":"Not Yet Activated"}`);
 
 		const userThirdParty = luaconfig.get<string[]>("workspace.userThirdParty");
 		if (!userThirdParty) {
@@ -508,113 +514,115 @@ export class FactorioVersionSelector {
 
 	private async generateDocs(previous_active?:ActiveFactorioVersion) {
 		if (!vscode.workspace.getConfiguration("factorio").get("docs.generateDocs", true)) { return; }
+
 		const activeVersion = await this.getActiveVersion();
 		if (!activeVersion) { return; }
+
 		const workspaceLibrary = this.context.storageUri;
 		if (!workspaceLibrary) {
 			vscode.window.showErrorMessage("Unable to generate docs: no open workspace");
 			return;
 		}
 
-		const sumneko3rd = Utils.joinPath(workspaceLibrary, "sumneko-3rd");
-		await fs.createDirectory(sumneko3rd);
-
-		try {
-			await Promise.allSettled([
-				fs.delete(Utils.joinPath(sumneko3rd, "factorio", "library"), {recursive: true}),
-				fs.delete(Utils.joinPath(sumneko3rd, "factorio", "factorio-plugin"), {recursive: true}),
-			]);
-		} catch (error) {
-		}
-
-		const output = this.output;
-		const result = await forkScript(
-			{ close() {}, write(data) { output.info(`docgen: ${data.trimEnd()}`); } },
-			this.context.asAbsolutePath("./dist/fmtk-cli.js"),
-			await activeVersion.docArgs(vscode.workspace.getConfiguration("factorio").get("docs.usePrototypeDumps", false)), sumneko3rd.fsPath);
-
-		if (result !== 0) {
-			this.output.warn(`docgen return code ${result}`);
-			const action = await vscode.window.showErrorMessage("Error while generating docs", "Show Output");
-			switch (action) {
-				case "Show Output":
-					this.output.show();
-					break;
-
-				default:
-					break;
-			}
-			return;
-		}
-		const luaconfig = vscode.workspace.getConfiguration("Lua");
-
-		const library = luaconfig.get<string[]>("workspace.library", []);
-
-		const removeLibraryPath = (oldroot:URI, ...seg:string[])=>{
-			if (oldroot) {
-				const oldpath = Utils.joinPath(oldroot, ...seg);
-				const oldindex = library.indexOf(oldpath.fsPath);
-				if (oldindex !== -1) {
-					library.splice(oldindex, 1);
-				}
-			}
-		};
-
-		const addLibraryPath =async (newroot:URI, ...seg:string[])=>{
-			try {
-				const newpath = Utils.joinPath(newroot, ...seg);
-				if (!library.includes(newpath.fsPath) &&
-					// eslint-disable-next-line no-bitwise
-					((await fs.stat(newpath)).type & vscode.FileType.Directory)) {
-					library.push(newpath.fsPath);
-				}
-			} catch {}
-		};
-
-		// remove and re-add library links to force sumneko to update...
-		const factorioconfig = vscode.workspace.getConfiguration("factorio");
-
-		if (previous_active && !previous_active.onlineOnly) {
-			const oldroot = URI.file(await previous_active.dataPath());
-			removeLibraryPath(oldroot);
-		}
-
-		if (library.length === 0) {
-			await luaconfig.update("workspace.library", undefined);
-		} else {
-			await luaconfig.update("workspace.library", library);
-		}
-
-		if (factorioconfig.get("workspace.manageLibraryDataLinks", false)) {
-			const newroot = URI.file(await activeVersion.dataPath());
-			await addLibraryPath(newroot);
-		}
-
-		if (library.length === 0) {
-			await luaconfig.update("workspace.library", undefined);
-		} else {
-			await luaconfig.update("workspace.library", library);
-		}
-
-		let userThirdParty = luaconfig.get<string[]>("workspace.userThirdParty", []);
-
-
-		// remove any mismatched entries and re-register the current one...
-		userThirdParty = userThirdParty.filter(s=>{
-			return !s.includes("justarandomgeek.factoriomod-debug");
-		});
-		// do the double-update on this to force luals to reload if we didn't actually change library links
-		await luaconfig.update("workspace.userThirdParty", userThirdParty);
-		userThirdParty.push(sumneko3rd.fsPath);
-		await luaconfig.update("workspace.userThirdParty", userThirdParty);
-
-		const checkThirdParty = luaconfig.get<string|undefined>("workspace.checkThirdParty");
-		if (!(checkThirdParty && ["Ask", "Apply", "ApplyInMemory"].includes(checkThirdParty))) {
-			await luaconfig.update("workspace.checkThirdParty", "ApplyInMemory");
-		}
-
 		const sumneko = vscode.extensions.getExtension("sumneko.lua");
 		if (sumneko) {
+			const sumneko3rd = Utils.joinPath(workspaceLibrary, "sumneko-3rd");
+			await fs.createDirectory(sumneko3rd);
+
+			try {
+				await Promise.allSettled([
+					fs.delete(Utils.joinPath(sumneko3rd, "factorio", "library"), {recursive: true}),
+					fs.delete(Utils.joinPath(sumneko3rd, "factorio", "factorio-plugin"), {recursive: true}),
+				]);
+			} catch (error) {
+			}
+
+			const output = this.output;
+			const result = await forkScript(
+				{ close() {}, write(data) { output.info(`docgen: ${data.trimEnd()}`); } },
+				this.context.asAbsolutePath("./dist/fmtk-cli.js"),
+				await activeVersion.docArgs(vscode.workspace.getConfiguration("factorio").get("docs.usePrototypeDumps", false)), sumneko3rd.fsPath);
+
+			if (result !== 0) {
+				this.output.warn(`docgen return code ${result}`);
+				const action = await vscode.window.showErrorMessage("Error while generating docs", "Show Output");
+				switch (action) {
+					case "Show Output":
+						this.output.show();
+						break;
+
+					default:
+						break;
+				}
+				return;
+			}
+			const luaconfig = vscode.workspace.getConfiguration("Lua");
+
+			const library = luaconfig.get<string[]>("workspace.library", []);
+
+			const removeLibraryPath = (oldroot:URI, ...seg:string[])=>{
+				if (oldroot) {
+					const oldpath = Utils.joinPath(oldroot, ...seg);
+					const oldindex = library.indexOf(oldpath.fsPath);
+					if (oldindex !== -1) {
+						library.splice(oldindex, 1);
+					}
+				}
+			};
+
+			const addLibraryPath =async (newroot:URI, ...seg:string[])=>{
+				try {
+					const newpath = Utils.joinPath(newroot, ...seg);
+					if (!library.includes(newpath.fsPath) &&
+						// eslint-disable-next-line no-bitwise
+						((await fs.stat(newpath)).type & vscode.FileType.Directory)) {
+						library.push(newpath.fsPath);
+					}
+				} catch {}
+			};
+
+			// remove and re-add library links to force sumneko to update...
+			const factorioconfig = vscode.workspace.getConfiguration("factorio");
+
+			if (previous_active && !previous_active.onlineOnly) {
+				const oldroot = URI.file(await previous_active.dataPath());
+				removeLibraryPath(oldroot);
+			}
+
+			if (library.length === 0) {
+				await luaconfig.update("workspace.library", undefined);
+			} else {
+				await luaconfig.update("workspace.library", library);
+			}
+
+			if (factorioconfig.get("workspace.manageLibraryDataLinks", false)) {
+				const newroot = URI.file(await activeVersion.dataPath());
+				await addLibraryPath(newroot);
+			}
+
+			if (library.length === 0) {
+				await luaconfig.update("workspace.library", undefined);
+			} else {
+				await luaconfig.update("workspace.library", library);
+			}
+
+			let userThirdParty = luaconfig.get<string[]>("workspace.userThirdParty", []);
+
+
+			// remove any mismatched entries and re-register the current one...
+			userThirdParty = userThirdParty.filter(s=>{
+				return !s.includes("justarandomgeek.factoriomod-debug");
+			});
+			// do the double-update on this to force luals to reload if we didn't actually change library links
+			await luaconfig.update("workspace.userThirdParty", userThirdParty);
+			userThirdParty.push(sumneko3rd.fsPath);
+			await luaconfig.update("workspace.userThirdParty", userThirdParty);
+
+			const checkThirdParty = luaconfig.get<string|undefined>("workspace.checkThirdParty");
+			if (!(checkThirdParty && ["Ask", "Apply", "ApplyInMemory"].includes(checkThirdParty))) {
+				await luaconfig.update("workspace.checkThirdParty", "ApplyInMemory");
+			}
+
 			if (!sumneko.isActive) {
 				await sumneko.activate();
 			}

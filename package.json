@@ -95,9 +95,6 @@
     "vscode-uri": "^3.1.0",
     "yoctocolors": "^2.1.2"
   },
-  "extensionDependencies": [
-    "sumneko.lua"
-  ],
   "type": "module",
   "main": "dist/fmtk-vscode.js",
   "bin": {
