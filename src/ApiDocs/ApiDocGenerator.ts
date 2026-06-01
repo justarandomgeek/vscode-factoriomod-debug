@@ -246,6 +246,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		lsclass.description = format_description(this.collect_description(aclass, { scope: "runtime", member: aclass.name }));
 
 		lsclass.parents = aclass.parent ? [new LuaLSTypeName(aclass.parent)] :
+			overlay.adjust.class[aclass.name]?.no_common_base ? [ new LuaLSTypeName("userdata") ] :
 			[ new LuaLSTypeName("LuaObject.base") ];
 		lsclass.generic_args = await this.LuaLS_generics(overlay.adjust.class[aclass.name]?.generic_params);
 		if (overlay.adjust.class[aclass.name]?.generic_parent) {
@@ -333,6 +334,8 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 					file.add(subclass);
 					type = new LuaLSTypeName(subclass.name);
 					break;
+				case "skip":
+					continue;
 			}
 
 			lsclass.add(new LuaLSField(

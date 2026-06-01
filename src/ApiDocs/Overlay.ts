@@ -14,6 +14,7 @@ export const overlay:{
 			generic_params?: {name:string; type?:ApiType}[]
 			generic_parent?: ApiType
 			no_index?: boolean
+			no_common_base?: boolean
 			index_key?: ApiType
 			index_value?: ApiType
 			split_funcs?: boolean
@@ -22,6 +23,7 @@ export const overlay:{
 					type?: ApiType
 				} & (
 					{ rule?:undefined }|
+					{ rule: "skip" }|
 					{ rule: "mod-data" }|
 					{ rule: "style" }|
 					{ rule: "map-gen-presets" }|
@@ -80,6 +82,11 @@ export const overlay:{
 				generic_params: [{name: "K"}, {name: "V"}],
 				generic_parent: "{[K]:V}",
 				no_index: true,
+				no_common_base: true,
+				members: {
+					"object_name": {rule: "skip"},
+					"valid": {rule: "skip"},
+				},
 			},
 			"LuaModData": {
 				generic_params: [{name: "T", type: "{[string]: AnyBasic}"}],
