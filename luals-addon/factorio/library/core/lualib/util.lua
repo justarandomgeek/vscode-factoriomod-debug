@@ -125,13 +125,14 @@ function util.by_pixel_hr(x, y) end
 ---@return T
 function util.foreach_sprite_definition(table_, fun_) end
 
+---Vectors have to be in array format: https://forums.factorio.com/133724
 ---@param a Vector
 ---@param b Vector
 ---@return Vector
 function util.add_shift(a, b) end
 
----@generic T: table
----@param offset_ Vector
+---@generic T: {shift?:Vector}
+---@param offset_ Vector Affected by https://forums.factorio.com/133724
 ---@param table_ T
 ---@return T
 function util.add_shift_offset(offset_, table_) end
@@ -289,6 +290,9 @@ function util.technology_icon_constant_mining(technology_icon) end
 ---@return number
 function util.parse_energy(energy) end
 
+--- Returns the average amount a ProductPrototype will result in. Uses the same formula as the recipe tooltip.
+---
+--- Currently does not account for extra_count_fraction: https://forums.factorio.com/133745
 ---@param product data.ProductPrototype
 ---@return number
 function util.product_amount(product) end
@@ -303,19 +307,46 @@ function util.empty_animation(animation_length) end
 ---@return data.IconData
 function util.empty_icon() end
 
----@generic L: table
+---@generic L: data.SpriteParameters|data.SpritePrototype|data.AnimationPrototype
 ---@param layer L
 ---@return L
 function util.draw_as_glow(layer) end
 
----@generic T : table
----@param path string
+
+---@class sprite_load_input
+---@field shift? data.Vector
+---@field multiply_shift? double
+---@field frame_index? uint32
+
+--- The data structure used by `util.sprite_load`. This is used so some of the information
+--- that can shift as renders update can be automatically generated next to the images.
+---
+--- The filename(s) described in this structure are appended to the end of the string
+--- that is used to require the file that should return this structure. So ostensibly
+--- the filename of this structure should be the same as the beginning of the pictures.
+---@class sprite_load_data
+---@field width data.SpriteSizeType
+---@field height data.SpriteSizeType
+--- Currently only supports array format: https://forums.factorio.com/133724
+---@field shift data.Vector
+---@field line_length? uint32
+--- Only for [SpriteNWaySheet.frames](https://lua-api.factorio.com/latest/types/SpriteNWaySheet.html#frames)?
+---@field frames? uint32
+---@field filenames? string[]
+--- Mandatory if `filenames` is defined
+---@field lines_per_file? uint32
+--- Mandatory if `filenames` is not defined
+---@field filename? string
+
+
+---@generic T : sprite_load_data|data.SpriteSource
+---@param path string Given to a `require()` that should return an instance of [sprite_load_data](lua://sprite_load_data)
 ---@param table T
 ---@return T
 function util.sprite_load(path, table) end
 
----@param spritesheets table[]
----@return table[]
+---@param spritesheets {frame_count:uint?,path:string,scale:number?,dice_y:number?}[]
+---@return data.SpriteParameters[]
 function util.spritesheets_to_pictures(spritesheets) end
 
 -- Does not handle:
