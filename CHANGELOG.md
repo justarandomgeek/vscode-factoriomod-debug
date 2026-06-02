@@ -8,6 +8,8 @@
   * generate a `.luarc.json` file when detecting EmmyLua is installed
 * Lua library package:
   * various tweaks to improve EmmyLua compatibility
+* JSON Schema:
+  * `+` mod dependency type for recommended mods
 
 ## 2.0.15
 

@@ -70,6 +70,10 @@
             "body": "? ${1:modname}"
           },
           {
+            "label": "recommended",
+            "body": "+ ${1:modname}"
+          },
+          {
             "label": "hidden",
             "body": "(?) ${1:modname}"
           },
