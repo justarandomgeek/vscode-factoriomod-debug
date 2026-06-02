@@ -5,6 +5,7 @@
 ## 2.1.0
 * VSCode:
   * removed extension dependency on LuaLS (`sumneko.lua`) to facilitate transition to EmmyLua
+  * generate a `.luarc.json` file when detecting EmmyLua is installed
 * Lua library package:
   * various tweaks to improve EmmyLua compatibility
 

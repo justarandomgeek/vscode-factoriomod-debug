@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as os from 'os';
 import * as path from 'path';
 import { URI, Utils } from "vscode-uri";
+import { applyEdits, modify } from "jsonc-parser";
 import { forkScript } from './ModPackageProvider';
 import { version as bundleVersion } from "../../package.json";
 import type { FactorioVersion, LocalFactorioVersion } from "../vscode/FactorioVersion";
@@ -527,9 +528,35 @@ export class FactorioVersionSelector {
 
 		const emmylua = vscode.extensions.getExtension("tangzx.emmylua");
 		if (emmylua) {
+			const factorioconfig = vscode.workspace.getConfiguration("factorio");
+
 			const emmylualib = Utils.joinPath(workspaceLibrary, "emmylua");
 
 			await this.refreshDocFiles(emmylualib, activeVersion);
+
+			const luarcs = await vscode.workspace.findFiles(".luarc.json");
+			let jsontext = "{}";
+			if (luarcs.length > 0) {
+				jsontext = (await fs.readFile(luarcs[0])).toString();
+			}
+
+			jsontext = applyEdits(jsontext, modify(jsontext, ["$schema"], "https://raw.githubusercontent.com/EmmyLuaLs/emmylua-analyzer-rust/refs/heads/main/crates/emmylua_code_analysis/resources/schema.json", {}));
+			jsontext = applyEdits(jsontext, modify(jsontext, ["runtime", "version"], "Lua5.2", {}));
+			jsontext = applyEdits(jsontext, modify(jsontext, ["runtime", "requirePattern"], ["?", "?.lua"], {}));
+			const libpaths = [ Utils.joinPath(emmylualib, "factorio", "library").fsPath ];
+			if (factorioconfig.get("workspace.manageLibraryDataLinks") !== false) {
+				libpaths.push(await activeVersion.dataPath());
+				libpaths.push(await activeVersion.lualibPath());
+
+			}
+			jsontext = applyEdits(jsontext, modify(jsontext, ["workspace", "library"], libpaths, {}));
+
+			if (luarcs.length > 0) {
+				await fs.writeFile(luarcs[0], Buffer.from(jsontext));
+			} else {
+				await fs.writeFile(Utils.joinPath(vscode.workspace.workspaceFolders![0].uri, ".luarc.json"), Buffer.from(jsontext));
+			}
+
 		}
 
 		const sumneko = vscode.extensions.getExtension("sumneko.lua");
@@ -577,7 +604,7 @@ export class FactorioVersionSelector {
 				await luaconfig.update("workspace.library", library);
 			}
 
-			if (factorioconfig.get("workspace.manageLibraryDataLinks", false)) {
+			if (factorioconfig.get("workspace.manageLibraryDataLinks")===true) {
 				const newroot = URI.file(await activeVersion.dataPath());
 				await addLibraryPath(newroot);
 			}
