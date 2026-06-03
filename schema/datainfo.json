@@ -52,6 +52,7 @@
       "items": {
         "type":"string",
         "pattern": "^(([!?~+]|\\(\\?\\)) *)?([a-zA-Z0-9_ -]+)( *([<>]=?|=) *((\\d+\\.){1,2}\\d+))?$",
+        "errorMessage": "Dependency does not match pattern \"[?|(?)|!|~|+] ModName [EqualityOperator ModVersion]\"",
         "defaultSnippets": [
           {
             "label": "simple",
@@ -59,7 +60,7 @@
           },
           {
             "label": "version",
-            "body": "${1:modname} ${2|<,<=,>,>=,==|} ${3:0.0.0}"
+            "body": "${1:modname} ${2|<,<=,>,>=,=|} ${3:0.0.0}"
           },
           {
             "label": "incompatible",
@@ -83,11 +84,11 @@
           },
           {
             "label": "version",
-            "body": "${1:modname} ${2|<,<=,>,>=,==|} ${3:0.0.0}"
+            "body": "${1:modname} ${2|<,<=,>,>=,=|} ${3:0.0.0}"
           },
           {
             "label": "full",
-            "body": "${1| ,~,?,(?)|} ${2:modname} ${3|<,<=,>,>=,==|} ${4:0.0.0}"
+            "body": "${1| ,~,?,(?),+|} ${2:modname} ${3|<,<=,>,>=,=|} ${4:0.0.0}"
           }
         ]
       }
