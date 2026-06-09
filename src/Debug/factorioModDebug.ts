@@ -54,7 +54,7 @@ export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArgum
 	hookSettings?:boolean
 	hookData?:boolean
 	hookControl?:string[]|boolean
-	hookMode?:"debug"|"profile"|"profile2"
+	hookMode?:"debug"|"profile"
 
 	hookLog?:boolean
 	keepOldLog?:boolean
@@ -495,8 +495,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 								hookmods !== false && (hookmods === true || hookmods.includes(modname));
 							if (this.launchArgs!.hookMode === "profile") {
 								this.continueProfile(shouldhook);
-							} else if (this.launchArgs!.hookMode === "profile2") {
-								this.continueProfile(shouldhook, 2);
 							} else {
 								this.continueRequire(shouldhook, modname);
 							}
@@ -507,8 +505,6 @@ export class FactorioModDebugSession extends LoggingDebugSession {
 							const dahooked = ((Array.isArray(hookmods) && hookmods.includes("debugadapter")) || hookmods === false);
 							if (this.launchArgs!.hookMode === "profile") {
 								this.continueProfile(!dahooked);
-							} else if (this.launchArgs!.hookMode === "profile2") {
-								this.continueProfile(!dahooked, 2);
 							} else {
 								this.continueRequire(false, "debugadapter");
 							}
