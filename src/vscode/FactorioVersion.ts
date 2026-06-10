@@ -14,7 +14,6 @@ export interface FactorioVersion {
 	// debug options
 	factorioPath?: string
 	configPath?: string
-	nativeDAP?: boolean
 
 	// docs options
 	onlineDocs?: boolean|string
@@ -189,10 +188,6 @@ export class ActiveFactorioVersion {
 		return this.translatePath("__PATH__system-write-data__/config/config.ini");
 	}
 
-	public get nativeDAP() {
-		return this.fv.nativeDAP;
-	}
-
 	private iniData? : FactorioConfigIni|Thenable<FactorioConfigIni>;
 	private async configIni() {
 		if (!this.iniData) {
@@ -325,7 +320,6 @@ export class ActiveFactorioVersion {
 		return fv.name === other.name &&
 			fv.factorioPath === other.factorioPath &&
 			fv.configPath === other.configPath &&
-			fv.nativeDAP === other.nativeDAP &&
 			fv.onlineDocs === other.onlineDocs &&
 			fv.docsPath === other.docsPath &&
 			fv.protosPath === other.protosPath;

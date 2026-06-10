@@ -23,13 +23,17 @@ export async function activate(context: vscode.ExtensionContext) {
 		output.info(`Registering Version Selector...`);
 		const versionSelector = new FactorioVersionSelector(context, output, fsprovider);
 
-		output.info(`Registering Debug Provider...`);
-		const provider = new FactorioModConfigurationProvider(versionSelector);
-		context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('factoriomod', provider));
+		output.info(`Registering Legacy Debug Provider...`);
+		const legacy_provider = new FactorioModDebugProvider(versionSelector);
+		context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('factoriomod', legacy_provider));
+		context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('factoriomod', legacy_provider));
+		context.subscriptions.push(legacy_provider);
 
-		const factory = new DebugAdapterFactory(versionSelector);
-		context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('factoriomod', factory));
-		context.subscriptions.push(factory);
+		output.info(`Registering Native Debug Provider...`);
+		const debug_provider = new FactorioDebugProvider(versionSelector);
+		context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('factorio', debug_provider));
+		context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('factorio', debug_provider));
+		context.subscriptions.push(debug_provider);
 
 		output.info(`Registering Language Client...`);
 		LanguageClient.activate(context);
@@ -50,17 +54,43 @@ export async function activate(context: vscode.ExtensionContext) {
 	}
 }
 
-class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvider {
+// shiny new native, as "factorio"
+class FactorioDebugProvider implements vscode.DebugConfigurationProvider, vscode.DebugAdapterDescriptorFactory {
 	constructor(
 		private readonly versionSelector: FactorioVersionSelector,
-	) {
+	) {}
 
+	async resolveDebugConfigurationWithSubstitutedVariables(folder: vscode.WorkspaceFolder | undefined, config: vscode.DebugConfiguration, token?: vscode.CancellationToken): Promise<vscode.DebugConfiguration|undefined> {
+
+		const activeVersion = await this.versionSelector.getActiveVersion();
+		if (!activeVersion) { return; }
+
+		const debugconfigenv = vscode.workspace.getConfiguration("factorio.debug").get("env", {});
+		if (Object.keys(debugconfigenv).length > 0) {
+			config.env = Object.assign({}, debugconfigenv, config.env);
+		}
+
+		return config;
 	}
 
-	/**
-	 * Massage a debug configuration just before a debug session is being launched,
-	 * e.g. add all missing attributes to the debug configuration.
-	 */
+	async createDebugAdapterDescriptor(session: vscode.DebugSession, executable: vscode.DebugAdapterExecutable) {
+		const activeVersion = await this.versionSelector.getActiveVersion();
+		if (!activeVersion) { return; }
+		if (activeVersion.onlineOnly) {
+			throw new Error("Select a local Factorio install to debug");
+		}
+		return new vscode.DebugAdapterExecutable(activeVersion.factorioPath, ["--dap"]);
+	}
+
+	dispose() {}
+}
+
+// the old lua one, as "factoriomod"
+class FactorioModDebugProvider implements vscode.DebugConfigurationProvider, vscode.DebugAdapterDescriptorFactory {
+	constructor(
+		private readonly versionSelector: FactorioVersionSelector,
+	) {}
+
 	async resolveDebugConfigurationWithSubstitutedVariables(folder: vscode.WorkspaceFolder | undefined, config: vscode.DebugConfiguration, token?: vscode.CancellationToken): Promise<vscode.DebugConfiguration|undefined> {
 
 		const activeVersion = await this.versionSelector.getActiveVersion();
@@ -86,22 +116,12 @@ class FactorioModConfigurationProvider implements vscode.DebugConfigurationProvi
 
 		return config;
 	}
-}
-
-class DebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
-	constructor(
-		private readonly versionSelector: FactorioVersionSelector,
-	) {}
 
 	async createDebugAdapterDescriptor(session: vscode.DebugSession, executable: vscode.DebugAdapterExecutable) {
 		const activeVersion = await this.versionSelector.getActiveVersion();
 		if (!activeVersion) { return; }
 		if (activeVersion.onlineOnly) {
 			throw new Error("Select a local Factorio install to debug");
-		}
-
-		if (activeVersion.nativeDAP) {
-			return new vscode.DebugAdapterExecutable(activeVersion.factorioPath, ["--dap"]);
 		}
 
 		const config = vscode.workspace.getConfiguration("factorio");
@@ -129,8 +149,6 @@ class DebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
 		}
 	}
 
-	dispose() {
-
-	}
+	dispose() {}
 }
 

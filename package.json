@@ -788,6 +788,42 @@
     ],
     "debuggers": [
       {
+        "type": "factorio",
+        "label": "Factorio Debug",
+        "program": "factorio",
+        "args": ["--dap"],
+        "languages": [
+          "lua"
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "properties": {
+              "tags": {
+                "type": "object",
+                "description": "Extra debug session tags, readable under `__DebugAdapter.tags` during this session."
+              },
+              "factorioArgs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "examples": [
+                    "--load-scenario",
+                    "--disable-migration-window"
+                  ]
+                },
+                "default": [],
+                "description": "Extra command line arguments to pass to Factorio"
+              },
+              "followSymlinks": {
+                "type": "boolean",
+                "default": true,
+                "description": "Follow symlinks when emitting source locations"
+              }
+            }
+          }
+        }
+      },
+      {
         "type": "factoriomod",
         "label": "Factorio Mod Debug",
         "program": "./dist/fmtk-cli.js",
@@ -796,8 +832,7 @@
         ],
         "runtime": "node",
         "languages": [
-          "lua",
-          "typescript"
+          "lua"
         ],
         "configurationAttributes": {
           "launch": {
