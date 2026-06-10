@@ -539,6 +539,18 @@
         "command": "factorio.disableMouseAutoCapture",
         "category": "Factorio",
         "title": "Disable Mouse Auto Capture"
+      },
+      {
+        "command": "factorio.startProfile",
+        "category": "Factorio",
+        "title": "Start Profile",
+        "icon": "$(record)"
+      },
+      {
+        "command": "factorio.stopProfile",
+        "category": "Factorio",
+        "title": "Stop Profile",
+        "icon": "$(stop-circle)"
       }
     ],
     "views": {
@@ -647,6 +659,18 @@
           "command": "factorio.publish",
           "when": "view == factoriomods && viewItem =~ /latest/",
           "group": "inline@6"
+        }
+      ],
+      "debug/toolBar": [
+        {
+          "command": "factorio.startProfile",
+          "group": "navigation",
+          "when": "debugType == 'factorio' && !factorio.debugProfileIsRunning"
+        },
+        {
+          "command": "factorio.stopProfile",
+          "group": "navigation",
+          "when": "debugType == 'factorio' && factorio.debugProfileIsRunning"
         }
       ]
     },

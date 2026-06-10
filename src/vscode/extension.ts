@@ -62,7 +62,11 @@ class FactorioDebugProvider implements vscode.DebugConfigurationProvider, vscode
 		this.disposables.push(vscode.debug.onDidReceiveDebugSessionCustomEvent(async (e)=>{
 			if (e.session.type === "factorio") {
 				switch (e.event) {
+					case "profileRunning":
+						await vscode.commands.executeCommand('setContext', 'factorio.debugProfileIsRunning', true);
+						break;
 					case "profileComplete":
+						await vscode.commands.executeCommand('setContext', 'factorio.debugProfileIsRunning', false);
 						await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(e.body.path));
 						break;
 
@@ -71,6 +75,22 @@ class FactorioDebugProvider implements vscode.DebugConfigurationProvider, vscode
 				}
 			}
 		}));
+
+		this.disposables.push(vscode.commands.registerCommand("factorio.startProfile",
+			async ()=>{
+				const session = vscode.debug.activeDebugSession;
+				if (session) {
+					await session.customRequest("startProfile", {});
+				}
+			}));
+
+		this.disposables.push(vscode.commands.registerCommand("factorio.stopProfile",
+			async ()=>{
+				const session = vscode.debug.activeDebugSession;
+				if (session) {
+					await session.customRequest("stopProfile", {});
+				}
+			}));
 	}
 
 	async resolveDebugConfigurationWithSubstitutedVariables(folder: vscode.WorkspaceFolder | undefined, config: vscode.DebugConfiguration, token?: vscode.CancellationToken): Promise<vscode.DebugConfiguration|undefined> {
