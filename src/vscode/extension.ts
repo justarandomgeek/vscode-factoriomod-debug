@@ -58,7 +58,20 @@ export async function activate(context: vscode.ExtensionContext) {
 class FactorioDebugProvider implements vscode.DebugConfigurationProvider, vscode.DebugAdapterDescriptorFactory {
 	constructor(
 		private readonly versionSelector: FactorioVersionSelector,
-	) {}
+	) {
+		this.disposables.push(vscode.debug.onDidReceiveDebugSessionCustomEvent(async (e)=>{
+			if (e.session.type === "factorio") {
+				switch (e.event) {
+					case "profileComplete":
+						await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(e.body.path));
+						break;
+
+					default:
+						break;
+				}
+			}
+		}));
+	}
 
 	async resolveDebugConfigurationWithSubstitutedVariables(folder: vscode.WorkspaceFolder | undefined, config: vscode.DebugConfiguration, token?: vscode.CancellationToken): Promise<vscode.DebugConfiguration|undefined> {
 
@@ -79,10 +92,14 @@ class FactorioDebugProvider implements vscode.DebugConfigurationProvider, vscode
 		if (activeVersion.onlineOnly) {
 			throw new Error("Select a local Factorio install to debug");
 		}
+
 		return new vscode.DebugAdapterExecutable(activeVersion.factorioPath, ["--dap"]);
 	}
 
-	dispose() {}
+	private readonly disposables:vscode.Disposable[] = [];
+	dispose(): void {
+		this.disposables.forEach(d=>d.dispose());
+	}
 }
 
 // the old lua one, as "factoriomod"
