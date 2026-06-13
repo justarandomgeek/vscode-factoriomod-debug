@@ -110,7 +110,7 @@ class FactorioDebugProvider implements vscode.DebugConfigurationProvider, vscode
 		const activeVersion = await this.versionSelector.getActiveVersion();
 		if (!activeVersion) { return; }
 		if (activeVersion.onlineOnly) {
-			throw new Error("Select a local Factorio install to debug");
+			throw new Error("Cannot debug online docs. Select a local Factorio install to debug.");
 		}
 
 		const config = vscode.workspace.getConfiguration("factorio.debug");
@@ -165,7 +165,7 @@ class FactorioModDebugProvider implements vscode.DebugConfigurationProvider, vsc
 		const activeVersion = await this.versionSelector.getActiveVersion();
 		if (!activeVersion) { return; }
 		if (activeVersion.onlineOnly) {
-			throw new Error("Select a local Factorio install to debug");
+			throw new Error("Cannot debug online docs. Select a local Factorio install to debug.");
 		}
 
 		const config = vscode.workspace.getConfiguration("factorio");
