@@ -375,6 +375,11 @@
               "type": "string"
             }
           },
+          "factorio.debug.shim": {
+            "description": "debug shim to launch instead of native DAP",
+            "type": "string",
+            "examples": ["vsjitdebugger.exe"]
+          },
           "factorio.debug.runMode": {
             "description": "Run mode for Debug Adapter",
             "default": "inline",

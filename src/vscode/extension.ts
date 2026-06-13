@@ -113,7 +113,14 @@ class FactorioDebugProvider implements vscode.DebugConfigurationProvider, vscode
 			throw new Error("Select a local Factorio install to debug");
 		}
 
-		return new vscode.DebugAdapterExecutable(activeVersion.factorioPath, ["--dap"]);
+		const config = vscode.workspace.getConfiguration("factorio.debug");
+
+		const shim = config.get<string>("shim");
+		if (shim) {
+			return new vscode.DebugAdapterExecutable(shim, [activeVersion.factorioPath, "--dap"]);
+		} else {
+			return new vscode.DebugAdapterExecutable(activeVersion.factorioPath, [ "--dap"]);
+		}
 	}
 
 	private readonly disposables:vscode.Disposable[] = [];
