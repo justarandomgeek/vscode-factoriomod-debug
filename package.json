@@ -829,7 +829,7 @@
             "properties": {
               "tags": {
                 "type": "object",
-                "description": "Extra debug session tags, readable under `__DebugAdapter.tags` during this session."
+                "description": "Extra debug session tags, readable under `debugadapter.tags` during this session."
               },
               "factorioArgs": {
                 "type": "array",
