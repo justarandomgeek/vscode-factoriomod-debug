@@ -30,6 +30,12 @@ const onlineStable:FactorioVersion = {
 	onlineDocs: "stable",
 };
 
+const emmylua_ids = [
+	"tangzx.emmylua",
+	"xuhuanzy.emmylua-luals",
+	"theo.emmylua",
+];
+
 export class FactorioVersionSelector {
 	private readonly bar:vscode.StatusBarItem;
 
@@ -135,12 +141,21 @@ export class FactorioVersionSelector {
 		if (luals) {
 			await this.checkLuaLSConfig(luals, activeVersion, factorioconfig);
 		} else {
-			this.output.warn(`LuaLS (sumneko.lua) not present!`);
+			this.output.info(`LuaLS (sumneko.lua) not present`);
 		}
+
+		for (const id of emmylua_ids) {
+			const emmylua = vscode.extensions.getExtension(id);
+			if (emmylua) {
+				await this.checkEmmyLuaConfig(emmylua, activeVersion, factorioconfig);
+			} else {
+				this.output.info(`EmmyLua (${id}) not present`);
+			}
+		};
 	}
 
-	private async checkLuaLSConfig(luals: vscode.Extension<any>, activeVersion: ActiveFactorioVersion, factorioconfig: vscode.WorkspaceConfiguration) {
-		const luaconfig = vscode.workspace.getConfiguration("Lua");
+	private async checkEmmyLuaConfig(emmylua: vscode.Extension<any>, activeVersion: ActiveFactorioVersion, factorioconfig: vscode.WorkspaceConfiguration) {
+		this.output.info(`EmmyLua (${emmylua.id}) ${emmylua.packageJSON.version} ${emmylua.isActive?"Activated":"Not Yet Activated"}`);
 
 		const workspaceLibrary = this.context.storageUri;
 		if (!workspaceLibrary) {
@@ -148,7 +163,37 @@ export class FactorioVersionSelector {
 			return;
 		}
 
-		this.output.info(`LuaLS ${luals.packageJSON.version} ${luals.isActive?"Activated":"Not Yet Activated"}`);
+		try {
+			const filecontent = (await fs.readFile(Utils.joinPath(workspaceLibrary, "emmylua/factorio/config.json"))).toString();
+			const config = JSON.parse(filecontent);
+			this.output.info(`Library bundle found in ${workspaceLibrary.fsPath}, generated from Factorio ${config.factorioVersion} with FMTK ${config.bundleVersion}`);
+
+			for (const file of LuaLSAddon.getLuaFiles()) {
+				try {
+					const local = (await fs.readFile(Utils.joinPath(workspaceLibrary, "emmylua", file.name))).toString();
+					if (local !== file.content) {
+						this.output.info(`file ${file.name} content mismatch!`);
+					}
+				} catch (error) {
+					this.output.error(`file ${file.name} ${error}`);
+				}
+			}
+		} catch (error) {
+			this.output.error(`Missing or damaged library bundle info ${error}`);
+		}
+
+	}
+
+	private async checkLuaLSConfig(luals: vscode.Extension<any>, activeVersion: ActiveFactorioVersion, factorioconfig: vscode.WorkspaceConfiguration) {
+		this.output.info(`LuaLS (${luals.id}) ${luals.packageJSON.version} ${luals.isActive?"Activated":"Not Yet Activated"}`);
+
+		const luaconfig = vscode.workspace.getConfiguration("Lua");
+
+		const workspaceLibrary = this.context.storageUri;
+		if (!workspaceLibrary) {
+			this.output.error(`No Workspace`);
+			return;
+		}
 
 		try {
 			const filecontent = (await fs.readFile(Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/config.json"))).toString();
@@ -493,22 +538,42 @@ export class FactorioVersionSelector {
 		return new ApiDocGenerator(docjson);
 	}
 
+
+	private async wantsRegenFromConfigFileVersion(uri:vscode.Uri, activeVersion:ActiveFactorioVersion) {
+		try {
+			const filecontent = (await fs.readFile(uri)).toString();
+			const config = JSON.parse(filecontent);
+			if (config.factorioVersion !== activeVersion.docs.application_version ||
+				config.bundleVersion !== bundleVersion) {
+				// version tags mismatch, go ahead and regen...
+				return true;
+			}
+			return false;
+		} catch (error) {
+			// no config.json at all
+			return true;
+		}
+	}
+
 	private async checkDocs() {
 		const activeVersion = await this.getActiveVersion();
 		if (!activeVersion) { return; }
 		const workspaceLibrary = this.context.storageUri;
 		if (!workspaceLibrary) { return; }
 
-		try {
-			const filecontent = (await fs.readFile(Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/config.json"))).toString();
-			const config = JSON.parse(filecontent);
-			if (config.factorioVersion !== activeVersion.docs.application_version ||
-				config.bundleVersion !== bundleVersion) {
-				// version tags mismatch, go ahead and regen...
-				return this.generateDocs();
-			}
-		} catch (error) {
-			// no config.json at all
+		let wantsRegen = false;
+
+		const emmylua = emmylua_ids.some(id=>vscode.extensions.getExtension(id));
+		if (emmylua) {
+			wantsRegen ||= await this.wantsRegenFromConfigFileVersion(Utils.joinPath(workspaceLibrary, "emmylua/factorio/config.json"), activeVersion );
+		}
+
+		const sumneko = vscode.extensions.getExtension("sumneko.lua");
+		if (sumneko) {
+			wantsRegen ||= await this.wantsRegenFromConfigFileVersion(Utils.joinPath(workspaceLibrary, "sumneko-3rd/factorio/config.json"), activeVersion );
+		}
+
+		if (wantsRegen) {
 			return this.generateDocs();
 		}
 	}
@@ -526,8 +591,9 @@ export class FactorioVersionSelector {
 			return;
 		}
 
-		const emmylua = vscode.extensions.getExtension("tangzx.emmylua");
+		const emmylua = emmylua_ids.map(id=>vscode.extensions.getExtension(id)).find(ex=>!!ex);
 		if (emmylua) {
+			this.output.appendLine(`Generating EmmyLua bundle for ${emmylua.id}`);
 			const factorioconfig = vscode.workspace.getConfiguration("factorio");
 
 			const emmylualib = Utils.joinPath(workspaceLibrary, "emmylua");
@@ -561,6 +627,8 @@ export class FactorioVersionSelector {
 
 		const sumneko = vscode.extensions.getExtension("sumneko.lua");
 		if (sumneko) {
+			this.output.appendLine(`Generating LuaLS bundle for ${sumneko.id}`);
+
 			const sumneko3rd = Utils.joinPath(workspaceLibrary, "sumneko-3rd");
 
 			await this.refreshDocFiles(sumneko3rd, activeVersion);
