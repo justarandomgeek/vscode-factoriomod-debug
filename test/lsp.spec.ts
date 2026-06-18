@@ -5,7 +5,7 @@ import * as fsp from "fs/promises";
 import type { ChildProcess } from "child_process";
 import { fork } from "child_process";
 import type { ProtocolConnection, InitializeParams } from "vscode-languageserver-protocol";
-import { StreamMessageReader, StreamMessageWriter } from "vscode-languageserver-protocol/node.js";
+import { StreamMessageReader, StreamMessageWriter } from "vscode-languageserver-protocol/node";
 import { createProtocolConnection, ShutdownRequest, ExitNotification, InitializeRequest, InitializedNotification, DidOpenTextDocumentNotification, PublishDiagnosticsNotification } from "vscode-languageserver-protocol";
 import type { CodeAction, CodeActionParams, ColorPresentationParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DocumentColorParams, DocumentSymbol, DocumentSymbolParams, ProtocolNotificationType, PublishDiagnosticsParams } from "vscode-languageserver-protocol";
 import { CodeActionKind, CodeActionRequest, ColorPresentationRequest, DiagnosticSeverity, DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DocumentColorRequest, DocumentSymbolRequest, SymbolKind } from "vscode-languageserver-protocol";
