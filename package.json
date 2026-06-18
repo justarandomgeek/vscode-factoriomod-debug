@@ -47,7 +47,7 @@
     "@inquirer/input": "^5.0.13",
     "@inquirer/password": "^5.0.13",
     "@stylistic/eslint-plugin": "^5.10.0",
-    "@types/archiver": "^7.0.0",
+    "@types/archiver": "^8.0.0",
     "@types/buffers": "^0.1.34",
     "@types/d3": "^7.4.3",
     "@types/dateformat": "^5.0.3",

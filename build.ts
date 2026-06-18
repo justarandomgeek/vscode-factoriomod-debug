@@ -11,7 +11,6 @@ const ImportGlobPlugin = ImportGlob.default as typeof ImportGlob;
 import { default as compress } from "esbuild-compress";
 
 import { program } from 'commander';
-//@ts-expect-error until @types/archiver updates
 import { ZipArchive } from "archiver";
 
 import type { ModInfo } from './src/vscode/ModPackageProvider';

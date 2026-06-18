@@ -17,7 +17,6 @@ import type { ModInfo } from "../vscode/ModPackageProvider";
 
 import { URI, Utils } from 'vscode-uri';
 import { applyEdits, modify } from "jsonc-parser";
-//@ts-expect-error until @types/archiver updates
 import { ZipArchive } from "archiver";
 import semver from "semver";
 import { readdirGlob } from 'readdir-glob';
