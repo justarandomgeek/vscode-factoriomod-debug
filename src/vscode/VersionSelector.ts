@@ -613,9 +613,9 @@ export class FactorioVersionSelector {
 			if (factorioconfig.get("workspace.manageLibraryDataLinks") !== false) {
 				libpaths.push(await activeVersion.dataPath());
 				libpaths.push(await activeVersion.lualibPath());
-
 			}
 			jsontext = applyEdits(jsontext, modify(jsontext, ["workspace", "library"], libpaths, {}));
+			jsontext = applyEdits(jsontext, modify(jsontext, ["diagnostics", "disable"], ["unnecessary-if"], {}));;
 
 			if (luarcs.length > 0) {
 				await fs.writeFile(luarcs[0], Buffer.from(jsontext));
