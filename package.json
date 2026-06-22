@@ -767,6 +767,10 @@
             "tags": {}
           }
         ]
+      },
+      {
+        "type": "factoriomod",
+        "deprecated": "Please upgrade to `factorio` launch type"
       }
     ],
     "customEditors": [
