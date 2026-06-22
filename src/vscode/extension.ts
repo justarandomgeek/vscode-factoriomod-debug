@@ -87,10 +87,7 @@ class FactorioDebugProvider implements vscode.DebugConfigurationProvider, vscode
 		if (!activeVersion) { return; }
 
 		const debugconfigenv = vscode.workspace.getConfiguration("factorio.debug").get("env", {});
-		if (Object.keys(debugconfigenv).length > 0) {
-			config.env = Object.assign({}, debugconfigenv, config.env);
-		}
-
+		config.env = {...debugconfigenv, ...config.env, SteamAppId: "427520"};
 		return config;
 	}
 
@@ -105,9 +102,9 @@ class FactorioDebugProvider implements vscode.DebugConfigurationProvider, vscode
 
 		const shim = config.get<string>("shim");
 		if (shim) {
-			return new vscode.DebugAdapterExecutable(shim, [activeVersion.factorioPath, "--dap"]);
+			return new vscode.DebugAdapterExecutable(shim, [activeVersion.factorioPath, "--dap"], {env: session.configuration.env});
 		} else {
-			return new vscode.DebugAdapterExecutable(activeVersion.factorioPath, [ "--dap"]);
+			return new vscode.DebugAdapterExecutable(activeVersion.factorioPath, [ "--dap"], {env: session.configuration.env});
 		}
 	}
 
