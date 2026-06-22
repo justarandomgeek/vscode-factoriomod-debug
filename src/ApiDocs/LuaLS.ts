@@ -132,7 +132,7 @@ export class LuaLSTuple {
 	) {}
 
 	format():string {
-		return `{${this.members.map((m, i)=>`[${i+1}]:${m.format()}`).join(", ")}}`;
+		return `[${this.members.map((m)=>`${m.format()}`).join(", ")}]`;
 	}
 }
 
