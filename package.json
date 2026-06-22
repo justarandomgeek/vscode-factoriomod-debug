@@ -823,7 +823,7 @@
     "debuggers": [
       {
         "type": "factorio",
-        "label": "Factorio Debug Adapter",
+        "label": "Factorio Debug Adapter Adapter",
         "program": "factorio",
         "args": [
           "--dap"
@@ -857,7 +857,23 @@
               }
             }
           }
-        }
+        },
+        "initialConfigurations": [
+          {
+            "type": "factorio",
+            "request": "launch",
+            "name": "Factorio Debug Adapter"
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "type": "factorio",
+            "request": "launch",
+            "name": "Factorio Debug Adapter",
+            "factorioArgs": [],
+            "tags": {}
+          }
+        ]
       },
       {
         "type": "factoriomod",
