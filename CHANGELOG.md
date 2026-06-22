@@ -3,6 +3,8 @@
 [<img height='36' style='border:0px;height:36px;' src='https://az743702.vo.msecnd.net/cdn/kofi2.png?v=2' border='0' alt='Buy Me a Coffee at ko-fi.com'/>](https://ko-fi.com/X8X41IE4T)
 
 ## 2.1.2
+* Debugger:
+  * Now uses Factorio's native LuaDebugAdapter, removed legacy mod-based debugger
 * VSCode:
   * removed extension dependency on LuaLS (`sumneko.lua`) to facilitate transition to EmmyLua
   * generate a `.luarc.json` file when detecting EmmyLua is installed
