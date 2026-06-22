@@ -168,7 +168,6 @@ const configs:BuildOptions[] = [
 		...commonConfig,
 		platform: "browser",
 		entryPoints: {
-			Flamegraph: "./src/Profile/Flamegraph.ts",
 			ModSettingsWebview: "./src/ModSettings/ModSettingsWebview.ts",
 			ScriptDatWebview: "./src/ScriptDat/ScriptDatWebview.ts",
 		},

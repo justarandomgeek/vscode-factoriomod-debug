@@ -14,7 +14,6 @@ import "./details";
 import "./publish";
 import "./docs";
 import "./lsp";
-import "./debug";
 import "./scriptdat";
 
 if (process.env["FMTK_TEST_ARGV"]) {

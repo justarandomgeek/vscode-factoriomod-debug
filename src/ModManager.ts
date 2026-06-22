@@ -2,20 +2,13 @@ import * as fsp from 'fs/promises';
 import * as path from 'path';
 
 import type { ModInfo } from './vscode/ModPackageProvider';
-import { version as bundleVersion } from "../package.json";
-
-import mod from "factoriomod:../mod";
-import testmod from "factoriomod:../test/mod";
+//import { version as bundleVersion } from "../package.json";
 
 const BundledMods:{[name:string]:{version:string; zip:Uint8Array}} = {
-	["debugadapter"]: {
-		version: bundleVersion,
-		zip: mod,
-	},
-	["debugadapter-tests"]: {
-		version: bundleVersion,
-		zip: testmod,
-	},
+//	["debugadapter"]: {
+//		version: bundleVersion,
+//		zip: mod,
+//	},
 };
 
 
