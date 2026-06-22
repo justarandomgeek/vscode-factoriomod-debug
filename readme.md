@@ -2,11 +2,10 @@
 
 A collection of tools for developing Factorio mods. This package is both [an npm package](https://www.npmjs.com/package/factoriomod-debug) providing the command line tool `fmtk`, and a [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=justarandomgeek.factoriomod-debug) providing additional editor integration.
 
- * [Debug Adapter](doc/debugadapter.md)
- * [Mod Profiling](doc/profile.md)
+ * Debug Adapter - This extension uses Factorio's native [LuaDebugAdapter](https://lua-api.factorio.com/latest/classes/LuaDebugAdapter.html) support to enable debugging and profiling of mods
  * [JSON Validation](doc/language-json.md)
  * [Language Support for Locale and Changelog files](doc/language.md)
- * [Language Server integration for Lua](doc/language-lua.md) via [sumneko.lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua)
+ * [Language Server integration for Lua](doc/language-lua.md) via [sumneko.lua](https://marketplace.visualstudio.com/items?itemName=sumneko.lua) or [tangzx.emmylua](https://marketplace.visualstudio.com/items?itemName=tangzx.emmylua), [xuhuanzy.emmylua-luals](https://open-vsx.org/extension/xuhuanzy/emmylua-luals), [theo.emmylua](https://open-vsx.org/extension/theo/emmylua)
  * [Packaging and Publishing](doc/package.md)
 
  * [Getting LSP on text editors other than vscode](doc/lsptutorial.md)
