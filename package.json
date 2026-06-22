@@ -386,7 +386,7 @@
             ]
           },
           "factorio.debug.runMode": {
-            "description": "Run mode for Debug Adapter",
+            "description": "Run mode for Legacy Debug Adapter",
             "default": "inline",
             "enum": [
               "inline",
@@ -823,7 +823,7 @@
     "debuggers": [
       {
         "type": "factorio",
-        "label": "Factorio Debug",
+        "label": "Factorio Debug Adapter",
         "program": "factorio",
         "args": [
           "--dap"
@@ -861,7 +861,7 @@
       },
       {
         "type": "factoriomod",
-        "label": "Factorio Mod Debug",
+        "label": "Legacy Factorio Mod Debug",
         "program": "./dist/fmtk-cli.js",
         "args": [
           "debug"
@@ -1072,19 +1072,19 @@
           {
             "type": "factoriomod",
             "request": "launch",
-            "name": "Factorio Mod Debug"
+            "name": "Legacy Factorio Mod Debug"
           },
           {
             "type": "factoriomod",
             "request": "launch",
-            "name": "Factorio Mod Debug (Settings & Data)",
+            "name": "Legacy Factorio Mod Debug (Settings & Data)",
             "hookSettings": true,
             "hookData": true
           },
           {
             "type": "factoriomod",
             "request": "launch",
-            "name": "Factorio Mod Debug (Profile)",
+            "name": "Legacy Factorio Mod Debug (Profile)",
             "hookMode": "profile"
           }
         ],
