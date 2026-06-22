@@ -23,7 +23,7 @@ export async function GenerateDocs(docsjson:string, protosjson:string, sdumpjson
 	if (prototypes) { console.log(`With Prototypes Dump`); }
 
 	const resolve_link = (node:Link)=>{
-		const matches = node.url.match(/^(runtime|prototype):(.+?)(?:::(.+))?$/);
+		const matches = node.url.match(/^(runtime|prototype|auxiliary):(.+?)(?:::(.+))?$/);
 		if (matches) {
 			switch (matches[1]) {
 				case 'runtime':
@@ -37,6 +37,9 @@ export async function GenerateDocs(docsjson:string, protosjson:string, sdumpjson
 					if (plink) {
 						node.url = "https://lua-api.factorio.com/latest"+plink;
 					}
+					break;
+				case 'auxiliary':
+					node.url = `https://lua-api.factorio.com/latest/${matches[2]}.html`;
 					break;
 			}
 		}
