@@ -427,13 +427,15 @@
         "command": "factorio.startProfile",
         "category": "Factorio",
         "title": "Start Profile",
-        "icon": "$(record)"
+        "icon": "$(record)",
+        "enablement": "!factorio.debugProfileStarting"
       },
       {
         "command": "factorio.stopProfile",
         "category": "Factorio",
         "title": "Stop Profile",
-        "icon": "$(stop-circle)"
+        "icon": "$(stop-circle)",
+        "enablement": "!factorio.debugProfileStopping"
       }
     ],
     "views": {

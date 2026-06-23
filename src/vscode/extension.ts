@@ -51,9 +51,13 @@ class FactorioDebugProvider implements vscode.DebugConfigurationProvider, vscode
 			if (e.session.type === "factorio") {
 				switch (e.event) {
 					case "profileRunning":
+						await vscode.commands.executeCommand('setContext', 'factorio.debugProfileStarting', false);
+						await vscode.commands.executeCommand('setContext', 'factorio.debugProfileStopping', false);
 						await vscode.commands.executeCommand('setContext', 'factorio.debugProfileIsRunning', true);
 						break;
 					case "profileComplete":
+						await vscode.commands.executeCommand('setContext', 'factorio.debugProfileStarting', false);
+						await vscode.commands.executeCommand('setContext', 'factorio.debugProfileStopping', false);
 						await vscode.commands.executeCommand('setContext', 'factorio.debugProfileIsRunning', false);
 						await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(e.body.path));
 						break;
@@ -68,6 +72,9 @@ class FactorioDebugProvider implements vscode.DebugConfigurationProvider, vscode
 			async ()=>{
 				const session = vscode.debug.activeDebugSession;
 				if (session) {
+					await vscode.commands.executeCommand('setContext', 'factorio.debugProfileStarting', true);
+					await vscode.commands.executeCommand('setContext', 'factorio.debugProfileStopping', false);
+					await vscode.commands.executeCommand('setContext', 'factorio.debugProfileIsRunning', false);
 					await session.customRequest("startProfile", {});
 				}
 			}));
@@ -76,6 +83,9 @@ class FactorioDebugProvider implements vscode.DebugConfigurationProvider, vscode
 			async ()=>{
 				const session = vscode.debug.activeDebugSession;
 				if (session) {
+					await vscode.commands.executeCommand('setContext', 'factorio.debugProfileStarting', false);
+					await vscode.commands.executeCommand('setContext', 'factorio.debugProfileStopping', true);
+					await vscode.commands.executeCommand('setContext', 'factorio.debugProfileIsRunning', true);
 					await session.customRequest("stopProfile", {});
 				}
 			}));
@@ -97,6 +107,10 @@ class FactorioDebugProvider implements vscode.DebugConfigurationProvider, vscode
 		if (activeVersion.onlineOnly) {
 			throw new Error("Cannot debug online docs. Select a local Factorio install to debug.");
 		}
+
+		await vscode.commands.executeCommand('setContext', 'factorio.debugProfileStarting', false);
+		await vscode.commands.executeCommand('setContext', 'factorio.debugProfileStopping', false);
+		await vscode.commands.executeCommand('setContext', 'factorio.debugProfileIsRunning', false);
 
 		const config = vscode.workspace.getConfiguration("factorio.debug");
 
