@@ -125,14 +125,14 @@ function util.by_pixel_hr(x, y) end
 ---@return T
 function util.foreach_sprite_definition(table_, fun_) end
 
----Vectors have to be in array format: https://forums.factorio.com/133724
+---Vectors have to be in array format ([133724](https://forums.factorio.com/133724))
 ---@param a Vector
 ---@param b Vector
 ---@return Vector
 function util.add_shift(a, b) end
 
 ---@generic T: {shift?:Vector}
----@param offset_ Vector Affected by https://forums.factorio.com/133724
+---@param offset_ Vector Has to be in array format ([133724](https://forums.factorio.com/133724))
 ---@param table_ T
 ---@return T
 function util.add_shift_offset(offset_, table_) end
@@ -290,9 +290,7 @@ function util.technology_icon_constant_mining(technology_icon) end
 ---@return number
 function util.parse_energy(energy) end
 
---- Returns the average amount a ProductPrototype will result in. Uses the same formula as the recipe tooltip.
----
---- Currently does not account for extra_count_fraction: https://forums.factorio.com/133745
+--- Returns the average amount a ProductPrototype will result in.
 ---@param product data.ProductPrototype
 ---@return number
 function util.product_amount(product) end
@@ -327,7 +325,7 @@ function util.draw_as_glow(layer) end
 ---@class sprite_load_data
 ---@field width data.SpriteSizeType
 ---@field height data.SpriteSizeType
---- Currently only supports array format: https://forums.factorio.com/133724
+--- Only supports array format ([133724](https://forums.factorio.com/133724))
 ---@field shift data.Vector
 ---@field line_length? uint32
 --- Only for [SpriteNWaySheet.frames](https://lua-api.factorio.com/latest/types/SpriteNWaySheet.html#frames)?
@@ -365,6 +363,15 @@ function util.remove_tile_references(data, array_of_tiles_to_remove) end
 ---@param value T
 ---@return boolean
 util.remove_from_list = function(list, value) end
+
+--- Returns whether or not the given list contains a value equal to the value given. It uses `==` which does not work on basic tables (no [metatable](https://www.lua.org/manual/5.2/manual.html#2.4)).
+---
+--- Almost all LuaObjects can be compared this way. Some of the exceptions are: LuaSimulation, LuaStruct, or LuaCustomTable, which are not serializable either.
+---@generic T: any
+---@param list table<any,T>
+---@param value T
+---@return boolean
+util.contains_value = function (list, value) end
 
 ---@generic T: any
 ---@param list T[]
