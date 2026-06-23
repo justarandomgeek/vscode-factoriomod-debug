@@ -97,11 +97,11 @@
       "type": "boolean",
       "default": true
     },
-    "rail_bridges_required": {
+    "quality_required": {
       "type": "boolean",
       "default": false
     },
-    "space_travel_required": {
+    "rail_bridges_required": {
       "type": "boolean",
       "default": false
     },
@@ -118,6 +118,14 @@
       "default": false
     },
     "expansion_shaders_required": {
+      "type": "boolean",
+      "default": false
+    },
+    "expansion_required": {
+      "type": "boolean",
+      "default": false
+    },
+    "space_travel_required": {
       "type": "boolean",
       "default": false
     }
