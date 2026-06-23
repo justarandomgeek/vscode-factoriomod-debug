@@ -1,9 +1,9 @@
----@meta
+---@meta "meld"
 
 ---@class meld
 ---@field private control_marker meld.control_marker
 ---@field private control_handlers meld.control_handlers
----@overload fun(target:table, source:table):table
+---@overload fun<T>(target:T, source:meld.source<T>):T
 local meld = {}
 
 ---@class (exact) meld.control_marker
@@ -13,51 +13,45 @@ meld.control_marker = {} -- empty but unique table used as a marker
 meld.control_handlers = {}
 
 ---@class (exact) meld.control_op
----@field marker meld.control_marker
+---@field private marker meld.control_marker
 
 ---@class (exact) meld.delete_op : meld.control_op
----@field op "delete"
+---@field private op "delete"
 
 ---@return meld.delete_op
 meld.delete = function() end
 
-meld.control_handlers.delete = function(target, k, v)
-  target[k] = nil
-end
+---@generic T
+---@class (exact) meld.overwrite_op<T> : meld.control_op
+---@field private op "overwrite"
+---@field private data T
 
----@class (exact) meld.overwrite_op : meld.control_op
----@field op "overwrite"
----@field data any
-
----@return meld.overwrite_op
+---@generic T
+---@param new T
+---@return meld.overwrite_op<T>
 meld.overwrite = function(new) end
 
-meld.control_handlers.overwrite = function(target, k, v)
-  target[k] = util.copy(v.data)
-end
+---@generic T
+---@class (exact) meld.invoke_op<T> : meld.control_op
+---@field private op "invoke"
+---@field private fct fun(v:T):T
 
----@class (exact) meld.invoke_op : meld.control_op
----@field op "invoke"
----@field fct fun(v:any):any
-
----@return meld.invoke_op
+---@generic T
+---@param fct fun(v:T):T
+---@return meld.invoke_op<T>
 meld.invoke = function(fct) end
 
-meld.control_handlers.invoke = function(target, k, v)
-  target[k] = v.fct(target[k])
-end
+---@generic T
+---@class (exact) meld.append_op<T> : meld.control_op
+---@field private op "append"
+---@field private data T
 
----@class (exact) meld.append_op : meld.control_op
----@field op "append"
----@field data any[]
-
----@return meld.append_op
+---@generic T
+---@param T[]
+---@return meld.append_op<T>
 meld.append = function(data) end
-meld.control_handlers.append = function(target, k, v)
-  for _, to_append in pairs(v.data) do
-    table.insert(target[k], util.copy(to_append))
-  end
-end
+
+---@alias meld.source<T> (T extends table and {[K in keyof T]?: meld.source<T[K]>} or T)|meld.delete_op|meld.overwrite_op<T>|meld.invoke_op<T>|(T extends A[] and meld.append_op<A> or never)
 
 --- recursive table merge but it reuses target table (does not deepcopy it). When target is not to be reused or more than
 ---  2 tables are to be merged, consider using util.merge. When there is conflict of 2 values, a value from the source will
@@ -65,7 +59,7 @@ end
 ---  be possible under normal merge rules
 ---@generic T
 ---@param target T
----@param source table
+---@param source meld.source<T>
 ---@return T
 meld.meld = function(target, source) end
 
