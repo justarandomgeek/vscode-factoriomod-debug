@@ -562,8 +562,8 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 		const add_event = (name:string, type?:LuaLSTypeName)=>{
 			const handler = new LuaLSFunction("handler", [new LuaLSParam("event", type ?? new LuaLSTypeName(`EventData.${name}`))]);
-			handlers.add(new LuaLSField(new LuaLSTypeName(`defines.events.${name}`), handler));
-			handlers.add(new LuaLSField(new LuaLSLiteral(name), handler));
+			handlers.add(new LuaLSField(new LuaLSTypeName(`defines.events.${name}`), handler, undefined, true));
+			handlers.add(new LuaLSField(new LuaLSLiteral(name), handler, undefined, true));
 		};
 
 		for (const [_, event] of this.events) {
