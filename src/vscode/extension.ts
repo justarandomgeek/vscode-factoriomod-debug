@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { activateModPackageProvider } from './ModPackageProvider';
 import { FactorioVersionSelector } from './VersionSelector';
 import { FSProvider } from './FSProvider';
@@ -95,6 +96,19 @@ class FactorioDebugProvider implements vscode.DebugConfigurationProvider, vscode
 
 		const activeVersion = await this.versionSelector.getActiveVersion();
 		if (!activeVersion) { return; }
+
+		if (!config.factorioArgs || !(config.factorioArgs as string[]).includes("--mod-directory")) {
+			const modlists = await vscode.workspace.findFiles("**/mod-list.json");
+			if (modlists.length === 1) {
+				const dir = path.posix.normalize(path.resolve(vscode.Uri.joinPath(modlists[0], "..").fsPath));
+				const def = await activeVersion.defaultModsPath();
+				if (dir !== def) {
+					config.factorioArgs = [ ...config.factorioArgs, "--mod-directory", dir];
+				}
+			} else if (modlists.length > 1) {
+				throw new Error("Cannot automatically select mod directory, multiple mod-list.json in workspace");
+			}
+		}
 
 		const debugconfigenv = vscode.workspace.getConfiguration("factorio.debug").get("env", {});
 		config.env = {...debugconfigenv, ...config.env, SteamAppId: "427520"};
