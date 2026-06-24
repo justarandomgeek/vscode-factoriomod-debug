@@ -190,12 +190,11 @@ export class LuaLSEnumField {
 	async write(output:Writable) {
 		await comment_description(output, this.description);
 		const name = is_lua_ident(this.name) ? this.name : `['${this.name}']`;
-		output.write(`${name}=`);
-
 		if (this.value) {
-			output.write(`${this.value.format()},\n`);
+			output.write(`${name}=${this.value.format()},\n`);
 		} else {
-			output.write(`(#{}) --[[@as ${this.typename.format()} ]],\n`);
+			output.write(`---@class ${this.typename.format()}\n`);
+			output.write(`${name}={},\n`);
 		}
 	}
 }
