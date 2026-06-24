@@ -3,6 +3,15 @@
 [<img height='36' style='border:0px;height:36px;' src='https://az743702.vo.msecnd.net/cdn/kofi2.png?v=2' border='0' alt='Buy Me a Coffee at ko-fi.com'/>](https://ko-fi.com/X8X41IE4T)
 
 ## 2.1.3
+* Debugger:
+  * automatically set `--mod-directory` if not set and workspace contains exactly one mod-list.json in a non-default mod dir
+* Lua Library package:
+  * BlueprintEntity shim removed, it is inclued in the json docs now
+  * event_hander.events fields marked as optional
+  * defines.* types re-shaped to not be pathological types for emmylua
+  * util.lua types updated
+* JSON Schema:
+  * Improved validation of dependency strings
 
 ## 2.1.2
 * Debugger:
