@@ -28,6 +28,7 @@
 
 		"allowImportingTsExtensions": true,
 		"noEmit": true,
+		"types": ["*"],
 	},
 	"exclude": [
 		"node_modules"
