@@ -16,18 +16,6 @@ import "./docs";
 import "./lsp";
 import "./scriptdat";
 
-if (process.env["FMTK_TEST_ARGV"]) {
-	try {
-		const args = JSON.parse(process.env["FMTK_TEST_ARGV"]) as string[];
-		process.argv.push(...args);
-		delete process.env["FMTK_TEST_ARGV"];
-	} catch (error) {
-		console.log(`Error using extra args from FMTK_TEST_ARGV: ${error}`);
-		process.exit(1);
-	}
-}
-
-
 await program
 	.description(`${displayName} ${bundleVersion}`)
 	.helpCommand("help")
