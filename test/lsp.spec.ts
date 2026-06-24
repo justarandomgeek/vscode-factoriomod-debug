@@ -18,7 +18,7 @@ function docItem(doc:TextDocument) {
 
 await suite("LSP", { concurrency: false }, async ()=>{
 	const fmtk = path.join(import.meta.dirname, '../dist/fmtk-cli.js');
-	const cwd = path.join(import.meta.dirname, "./mod");
+	const cwd = path.join(import.meta.dirname, "./");
 	let server:ChildProcess;
 	let clientConnection:ProtocolConnection;
 
