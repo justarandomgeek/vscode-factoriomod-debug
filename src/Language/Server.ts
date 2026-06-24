@@ -255,7 +255,7 @@ export async function runLanguageServer():Promise<void> {
 					return Locale.onDocumentColor(document);
 			}
 		}
-		return null;
+		return [];
 	});
 
 	connection.onColorPresentation((request)=>{
@@ -266,7 +266,7 @@ export async function runLanguageServer():Promise<void> {
 					return Locale.onColorPresentation(request.color, request.range);
 			}
 		}
-		return null;
+		return [];
 	});
 
 	// Make the text document manager listen on the connection
