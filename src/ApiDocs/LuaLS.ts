@@ -112,7 +112,7 @@ export class LuaLSDict {
 	) {}
 
 	format():string {
-		return `{[${this.key.format()}]:${this.value.format()}}`;
+		return `table<${this.key.format()},${this.value.format()}>`;
 	}
 }
 

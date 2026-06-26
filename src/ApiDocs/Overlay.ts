@@ -80,7 +80,7 @@ export const overlay:{
 			},
 			"LuaCustomTable": {
 				generic_params: [{name: "K"}, {name: "V"}],
-				generic_parent: "{[K]:V}",
+				generic_parent: "table<K,V>",
 				no_index: true,
 				no_common_base: true,
 				members: {
@@ -89,7 +89,7 @@ export const overlay:{
 				},
 			},
 			"LuaModData": {
-				generic_params: [{name: "T", type: "{[string]: AnyBasic}"}],
+				generic_params: [{name: "T", type: "table<string,AnyBasic>"}],
 				members: {
 					data: {
 						type: "T",
