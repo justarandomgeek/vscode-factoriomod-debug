@@ -97,7 +97,11 @@ class FactorioDebugProvider implements vscode.DebugConfigurationProvider, vscode
 		const activeVersion = await this.versionSelector.getActiveVersion();
 		if (!activeVersion) { return; }
 
-		if (!config.factorioArgs || !(config.factorioArgs as string[]).includes("--mod-directory")) {
+		if (!config.factorioArgs) {
+			config.factorioArgs = [];
+		}
+
+		if (!(config.factorioArgs as string[]).includes("--mod-directory")) {
 			const modlists = await vscode.workspace.findFiles("**/mod-list.json");
 			if (modlists.length === 1) {
 				const dir = path.posix.normalize(path.resolve(vscode.Uri.joinPath(modlists[0], "..").fsPath));
