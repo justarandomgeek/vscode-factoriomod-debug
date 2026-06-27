@@ -3,6 +3,11 @@
 [<img height='36' style='border:0px;height:36px;' src='https://az743702.vo.msecnd.net/cdn/kofi2.png?v=2' border='0' alt='Buy Me a Coffee at ko-fi.com'/>](https://ko-fi.com/X8X41IE4T)
 
 ## 2.1.4
+* Debugger:
+  * fix error when factorioArgs array not present
+  * wait for Factorio's `.lock` file to be cleaned up before (re)launching
+* Lua Library package:
+  * switch dict types to use `table<K,V>` for better EmmyLua support (previously `{[K]:V}`)
 
 ## 2.1.3
 * Debugger:
