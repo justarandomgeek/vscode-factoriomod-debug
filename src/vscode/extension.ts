@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs';
 import { activateModPackageProvider } from './ModPackageProvider';
 import { FactorioVersionSelector } from './VersionSelector';
 import { FSProvider } from './FSProvider';
@@ -124,6 +125,15 @@ class FactorioDebugProvider implements vscode.DebugConfigurationProvider, vscode
 		if (!activeVersion) { return; }
 		if (activeVersion.onlineOnly) {
 			throw new Error("Cannot debug online docs. Select a local Factorio install to debug.");
+		}
+
+		let waited = 0;
+		const lockpath = path.join(await activeVersion.writeDataPath(), ".lock");
+		while (fs.existsSync(lockpath)) {
+			await new Promise((resolve)=>setTimeout(resolve, 100));
+			if (waited++ > 50) {
+				throw new Error(`Factorio lock file (${lockpath}) still exists. Already running?`);
+			}
 		}
 
 		await vscode.commands.executeCommand('setContext', 'factorio.debugProfileStarting', false);
