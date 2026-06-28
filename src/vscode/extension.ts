@@ -144,9 +144,9 @@ class FactorioDebugProvider implements vscode.DebugConfigurationProvider, vscode
 
 		const shim = config.get<string>("shim");
 		if (shim) {
-			return new vscode.DebugAdapterExecutable(shim, [activeVersion.factorioPath, "--dap"], {env: session.configuration.env});
+			return new vscode.DebugAdapterExecutable(shim, [activeVersion.factorioPath, "--dap"], {env: session.configuration.env, cwd: vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath});
 		} else {
-			return new vscode.DebugAdapterExecutable(activeVersion.factorioPath, [ "--dap"], {env: session.configuration.env});
+			return new vscode.DebugAdapterExecutable(activeVersion.factorioPath, [ "--dap"], {env: session.configuration.env, cwd: vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath});
 		}
 	}
 
