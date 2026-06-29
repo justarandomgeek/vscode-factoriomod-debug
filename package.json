@@ -729,6 +729,11 @@
                 "type": "boolean",
                 "default": true,
                 "description": "Follow symlinks when emitting source locations"
+              },
+              "trace": {
+                "type": "boolean",
+                "default": false,
+                "description": "Trace DAP messages to a `dap-trace.log`"
               }
             }
           }
