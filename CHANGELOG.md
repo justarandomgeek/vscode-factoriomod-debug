@@ -5,7 +5,9 @@
 ## 2.1.4
 * Debugger:
   * fix error when factorioArgs array not present
-  * wait for Factorio's `.lock` file to be cleaned up before (re)launching
+  * wait for Factorio's `.lock` file to be released up before (re)launching
+  * launch debugger with first workspace dir as cwd
+  * added `trace` launch option
 * Lua Library package:
   * switch dict types to use `table<K,V>` for better EmmyLua support (previously `{[K]:V}`)
 
