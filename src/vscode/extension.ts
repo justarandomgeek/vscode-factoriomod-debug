@@ -130,9 +130,13 @@ class FactorioDebugProvider implements vscode.DebugConfigurationProvider, vscode
 		let waited = 0;
 		const lockpath = path.join(await activeVersion.writeDataPath(), ".lock");
 		while (fs.existsSync(lockpath)) {
-			await new Promise((resolve)=>setTimeout(resolve, 100));
-			if (waited++ > 50) {
-				throw new Error(`Factorio lock file (${lockpath}) still exists. Already running?`);
+			try {
+				fs.rmSync(lockpath);
+			} catch (error) {
+				if (waited++ > 50) {
+					throw new Error(`Factorio lock file (${lockpath}) still exists. Already running?`);
+				}
+				await new Promise((resolve)=>setTimeout(resolve, 100));
 			}
 		}
 
