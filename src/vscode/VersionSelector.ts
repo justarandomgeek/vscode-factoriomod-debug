@@ -610,7 +610,7 @@ export class FactorioVersionSelector {
 			jsontext = applyEdits(jsontext, modify(jsontext, ["runtime", "version"], "Lua5.2", {}));
 			jsontext = applyEdits(jsontext, modify(jsontext, ["runtime", "requirePattern"], ["?", "?.lua"], {}));
 			const libpaths = [ Utils.joinPath(emmylualib, "factorio", "library").fsPath ];
-			if (factorioconfig.get("workspace.manageLibraryDataLinks") !== false) {
+			if (factorioconfig.get("workspace.manageLibraryDataLinks", false)) {
 				libpaths.push(await activeVersion.dataPath());
 				libpaths.push(await activeVersion.lualibPath());
 			}
