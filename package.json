@@ -730,6 +730,11 @@
                 "default": true,
                 "description": "Follow symlinks when emitting source locations"
               },
+              "hookDebugConsole": {
+                "type": "boolean",
+                "default": false,
+                "description": "Enable catching errors and breakpoints/stepping in code called from the Debug Console (Evaluate context='repl')"
+              },
               "trace": {
                 "type": "boolean",
                 "default": false,
