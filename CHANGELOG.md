@@ -3,6 +3,16 @@
 [<img height='36' style='border:0px;height:36px;' src='https://az743702.vo.msecnd.net/cdn/kofi2.png?v=2' border='0' alt='Buy Me a Coffee at ko-fi.com'/>](https://ko-fi.com/X8X41IE4T)
 
 ## 2.1.5
+* Debugger:
+  * added `hoodDebugConsole` launch option (Factorio >= 2.0.10)
+* Lua Library package:
+  * `factorio.workspace.manageLibraryDataLinks` default changed to false for emmylua
+  * more spacers in generated typedefs for emmylua
+  * `meld` type namespace
+  * add `__debugcounts` and `__debugchildren` fields to `std.metatable`
+  * move `data.*` types into `data` namespace
+  * fix `meld` types crashing emmylua
+  * switch some `util` functions to use `data.Vector` and `data.Color` where appropriate
 
 ## 2.1.4
 * Debugger:
