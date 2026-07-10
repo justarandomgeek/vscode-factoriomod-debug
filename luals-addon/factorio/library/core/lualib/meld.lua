@@ -51,7 +51,8 @@ meld.invoke = function(fct) end
 ---@return append_op<T>
 meld.append = function(data) end
 
----@alias source<T> (T extends table and {[K in keyof T]?: source<T[K]>} or T)|delete_op|overwrite_op<T>|invoke_op<T>|(T extends A[] and append_op<A> or never)
+---@alias field<T> (T extends string|number|boolean|integer|nil and T or source<T>)|delete_op|overwrite_op<T>|invoke_op<T>|(T extends A[] and append_op<A> or never)
+---@alias source<T> {[K in keyof T]?: field<T[K]>}
 
 --- recursive table merge but it reuses target table (does not deepcopy it). When target is not to be reused or more than
 ---  2 tables are to be merged, consider using util.merge. When there is conflict of 2 values, a value from the source will
