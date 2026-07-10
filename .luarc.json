@@ -1,0 +1,33 @@
+{
+  "$schema": "https://raw.githubusercontent.com/EmmyLuaLs/emmylua-analyzer-rust/refs/heads/main/crates/emmylua_code_analysis/resources/schema.json",
+  "runtime": {
+    "version": "Lua5.2",
+    "requirePattern": ["?","?.lua"]
+  },
+  "workspace": {
+    "ignoreDir": [
+      ".vscode",
+      "test/factorio",
+      "luals-addon/factorio",
+      "out/sumneko-3rd/factorio/factorio-plugin",
+      "out/sumneko-3rd/factorio/plugin.lua"
+    ],
+    "library": [
+      "out/sumneko-3rd/factorio/library"
+    ],
+    "moduleMap": [
+      {
+        "pattern": "^__(.*)__(.*)$",
+        "replace": "$1$2"
+      },
+      {
+        "pattern": "^(.*)\\.lua$",
+        "replace": "$1"
+      }
+    ]
+  },
+  "diagnostics": {
+    "disable": ["unnecessary-if"],
+    "globals": []
+  }
+}

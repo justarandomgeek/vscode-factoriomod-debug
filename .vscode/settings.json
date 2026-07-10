@@ -9,49 +9,6 @@
     "js/ts.tsc.autoDetect": "off",
     "files.trimTrailingWhitespace": true,
     "editor.insertSpaces": false,
-    "Lua.workspace.ignoreDir": [
-        ".vscode",
-        "test/factorio",
-        "luals-addon/factorio/library",
-    ],
-    // run debug config "Standalone LuaLS Addon" to generate out/docs
-    "Lua.workspace.library": [
-        "out/sumneko-3rd/factorio/library",
-        //"d:\\factorio\\factoriogit\\data",
-    ],
-    "Lua.diagnostics.libraryFiles": "Enable",
-    "Lua.runtime.plugin": ".vscode/lua/plugin.lua",
-    "Lua.diagnostics.globals": [
-        "on_error",
-    ],
-    "Lua.diagnostics.groupFileStatus": {
-        "type-check": "Any",
-        "unused": "Any",
-        "strict": "Any",
-        "unbalanced": "Any",
-        "ambiguity": "Any",
-        "luadoc": "Any",
-    },
-    "Lua.diagnostics.neededFileStatus": {
-        //"no-unknown": "Any",
-    },
-    "Lua.diagnostics.severity": {
-        "deprecated": "Hint"
-        //"no-unknown": "Information",
-        //"unused-local": "Information",
-    },
-    "Lua.runtime.version": "Lua 5.2",
-    "Lua.runtime.builtin": {
-        "math": "disable",
-        "package": "disable",
-        "coroutine": "disable",
-        "io": "disable",
-        "os": "disable",
-        "debug": "disable"
-    },
-    "Lua.runtime.special": {
-        "__object_name":"type",
-    },
     "eslint.options": {
         "flags": [
             "unstable_native_nodejs_ts_config"
