@@ -276,6 +276,7 @@ export class LuaLSClass {
 		}
 		output.write(`\n`);
 		output.write(`---@\n`);
+		output.write(`---\n`);
 
 		if (this.fields) {
 			for (const field of this.fields) {
@@ -377,6 +378,7 @@ export class LuaLSField {
 		}
 		output.write(` ${this.type.format()}\n`);
 		output.write(`---@\n`);
+		output.write(`---\n`);
 
 	}
 }
