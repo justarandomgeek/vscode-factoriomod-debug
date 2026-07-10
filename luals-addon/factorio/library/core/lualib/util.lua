@@ -110,13 +110,13 @@ function util.multiplystripes(count, stripes) end
 --- Divides the given values by 32 to match the pixel per tile ratio
 ---@param x number
 ---@param y number
----@return Vector
+---@return data.Vector
 function util.by_pixel(x, y) end
 
 --- Divides the given values by 64 to match the pixel per tile ratio, when scale is 0.5
 ---@param x number
 ---@param y number
----@return Vector
+---@return data.Vector
 function util.by_pixel_hr(x, y) end
 
 ---@generic T: table
@@ -126,21 +126,21 @@ function util.by_pixel_hr(x, y) end
 function util.foreach_sprite_definition(table_, fun_) end
 
 ---Vectors have to be in array format ([133724](https://forums.factorio.com/133724))
----@param a Vector
----@param b Vector
----@return Vector
+---@param a data.Vector
+---@param b data.Vector
+---@return data.Vector
 function util.add_shift(a, b) end
 
----@generic T: {shift?:Vector}
----@param offset_ Vector Has to be in array format ([133724](https://forums.factorio.com/133724))
+---@generic T: {shift?:data.Vector}
+---@param offset_ data.Vector Has to be in array format ([133724](https://forums.factorio.com/133724))
 ---@param table_ T
 ---@return T
 function util.add_shift_offset(offset_, table_) end
 
----@generic T: Vector?
+---@generic T: data.Vector?
 ---@param shift T
 ---@param scale number
----@return T|Vector
+---@return T|data.Vector
 function util.mul_shift(shift, scale) end
 
 --- Outputs a number with commas separating the thousands.
@@ -229,7 +229,7 @@ util.get_walkable_tile = function() end
 -- manipulate a single icon when adding to the icons table.
 ---@param icons1 data.IconData[]
 ---@param icons2 data.IconData[]
----@param inputs {["scale"]:number?, ["shift"]:Vector?, ["tint"]:Color?}
+---@param inputs {["scale"]:number?, ["shift"]:data.Vector?, ["tint"]:data.Color?}
 ---@param default_icon_size integer
 ---@return data.IconData[]
 function util.combine_icons(icons1, icons2, inputs, default_icon_size) end
@@ -401,7 +401,7 @@ util.get_recipe_main_product = function(recipe, normalized_products) end
 --- If `tint` is `false`, all tinting will be removed.
 ---@generic T: table
 ---@param array T
----@param tint Color|false
+---@param tint data.Color|false
 ---@return T
 function util.recursive_tint(array, tint) end
 
