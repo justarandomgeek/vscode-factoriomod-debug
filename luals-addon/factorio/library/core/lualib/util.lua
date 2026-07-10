@@ -1,7 +1,7 @@
 ---@meta
 
 ---@class util
-util = {
+local utillib = {
   table = {}
 }
 
@@ -20,53 +20,53 @@ function table.deepcopy(object) end
 ---@return boolean
 function table.compare(tbl1, tbl2) end
 
-util.table.deepcopy = table.deepcopy
-util.table.compare = table.compare
-util.copy = util.table.deepcopy
+utillib.table.deepcopy = table.deepcopy
+utillib.table.compare = table.compare
+utillib.copy = utillib.table.deepcopy
 
 ---The distance between two MapPositions
 ---@param position1 MapPosition
 ---@param position2 MapPosition
 ---@return double
-function util.distance(position1, position2) end
+function utillib.distance(position1, position2) end
 
 ---@param pos MapPosition
 ---@return string
-function util.positiontostr(pos) end
+function utillib.positiontostr(pos) end
 
 ---@param ticks MapTick
 ---@return string
-function util.formattime(ticks) end
+function utillib.formattime(ticks) end
 
 --- supports 'rrggbb', 'rgb', 'rrggbbaa', 'rgba', 'ww', 'w'
 ---@param hex string
 ---@return Color
-function util.color(hex) end
+function utillib.color(hex) end
 
 ---Multiplies all color channels by alpha
 ---@param color Color
 ---@return Color
-function util.premul_color(color) end
+function utillib.premul_color(color) end
 
 ---Mixes two colors together
 ---@param c1 Color
 ---@param c2 Color
 ---@return Color
-function util.mix_color(c1, c2) end
+function utillib.mix_color(c1, c2) end
 
 ---@param c1 Color
 ---@param n number?
 ---@return Color
-function util.multiply_color(c1, n) end
+function utillib.multiply_color(c1, n) end
 
 ---@param color Color
 ---@param alpha double
 ---@param normalized_alpha boolean? Rescales a `0-1` alpha to `0-255` if the color has any fields larger than `1`
 ---@return Color
-function util.get_color_with_alpha(color, alpha, normalized_alpha) end
+function utillib.get_color_with_alpha(color, alpha, normalized_alpha) end
 
 ---@type {[defines.direction]:Vector}
-util.direction_vectors = {
+utillib.direction_vectors = {
   [defines.direction.north]          = { 0, -1 },
   [defines.direction.northnortheast] = { 1, -2 },
   [defines.direction.northeast]      = { 1, -1 },
@@ -89,59 +89,59 @@ util.direction_vectors = {
 ---@param direction defines.direction
 ---@param distance number
 ---@return Vector
-function util.moveposition(position, direction, distance) end
+function utillib.moveposition(position, direction, distance) end
 
 
 ---@param position Vector
 ---@param orientation number
 ---@return Vector
-function util.rotate_position(position, orientation) end
+function utillib.rotate_position(position, orientation) end
 
 ---@param direction defines.direction
 ---@return defines.direction
-function util.oppositedirection(direction) end
+function utillib.oppositedirection(direction) end
 
 ---@generic T: any
 ---@param count integer
 ---@param stripes T[]
 ---@return T[]
-function util.multiplystripes(count, stripes) end
+function utillib.multiplystripes(count, stripes) end
 
 --- Divides the given values by 32 to match the pixel per tile ratio
 ---@param x number
 ---@param y number
 ---@return data.Vector
-function util.by_pixel(x, y) end
+function utillib.by_pixel(x, y) end
 
 --- Divides the given values by 64 to match the pixel per tile ratio, when scale is 0.5
 ---@param x number
 ---@param y number
 ---@return data.Vector
-function util.by_pixel_hr(x, y) end
+function utillib.by_pixel_hr(x, y) end
 
 ---@generic T: table
 ---@param table_ T
 ---@param fun_ fun(t: T)
 ---@return T
-function util.foreach_sprite_definition(table_, fun_) end
+function utillib.foreach_sprite_definition(table_, fun_) end
 
 ---Vectors have to be in array format ([133724](https://forums.factorio.com/133724))
 ---@param a data.Vector
 ---@param b data.Vector
 ---@return data.Vector
-function util.add_shift(a, b) end
+function utillib.add_shift(a, b) end
 
 ---@generic T: {shift?:data.Vector}
 ---@param offset_ data.Vector Has to be in array format ([133724](https://forums.factorio.com/133724))
 ---@param table_ T
 ---@return T
-function util.add_shift_offset(offset_, table_) end
+function utillib.add_shift_offset(offset_, table_) end
 
 ---@generic T: data.Vector?
 ---@param shift T
 ---@param scale number
 ---@return T|data.Vector
-function util.mul_shift(shift, scale) end
+function utillib.mul_shift(shift, scale) end
 
 --- Outputs a number with commas separating the thousands.
 --- `append_suffix` will use one of the following suffixes when applicable
@@ -152,13 +152,13 @@ function util.mul_shift(shift, scale) end
 ---@param amount number
 ---@param append_suffix boolean?
 ---@return string
-function util.format_number(amount, append_suffix) end
+function utillib.format_number(amount, append_suffix) end
 
 ---@generic K: AnyBasic
 ---@param t {[K]:number}
 ---@param k K
 ---@param v? number
-function util.increment(t, k, v) end
+function utillib.increment(t, k, v) end
 
 ---If both value and data are truthy, returns data,
 ---otherwise returns either nil or false depending on what wasn't truthy
@@ -166,7 +166,7 @@ function util.increment(t, k, v) end
 ---@param value any
 ---@param data D
 ---@return D|false|nil
-function util.conditional_return(value, data) end
+function utillib.conditional_return(value, data) end
 
 -- Recursively merges and/or deep-copies tables.
 -- Entries in later tables override entries in earlier ones, unless
@@ -175,19 +175,19 @@ function util.conditional_return(value, data) end
 ---@generic T: table
 ---@param tables T[]
 ---@return T
-function util.merge(tables) end
+function utillib.merge(tables) end
 
 ---@param entity LuaControl?
 ---@param item_dict {[data.ItemID]:ItemCountType}?
-util.insert_safe = function(entity, item_dict) end
+utillib.insert_safe = function(entity, item_dict) end
 
 ---@param entity LuaControl?
 ---@param item_dict {[data.ItemID]:ItemCountType}?
-util.remove_safe = function(entity, item_dict) end
+utillib.remove_safe = function(entity, item_dict) end
 
 ---@param string string?
 ---@return string[]
-util.split_whitespace = function(string) end
+utillib.split_whitespace = function(string) end
 
 --- Splits the given string by each character in the given set of separators.
 --- ```lua
@@ -196,12 +196,12 @@ util.split_whitespace = function(string) end
 ---@param inputstr string
 ---@param sep string
 ---@return string[]
-util.split = function(inputstr, sep) end
+utillib.split = function(inputstr, sep) end
 
 ---@param str string
 ---@param start string
 ---@return boolean
-util.string_starts_with = function(str, start) end
+utillib.string_starts_with = function(str, start) end
 
 --- Replaces every instance of `what` with `with` in the given string.
 --- This is equivalent to `string.gsub` if it supported non-patterned matching.
@@ -209,19 +209,19 @@ util.string_starts_with = function(str, start) end
 ---@param what string
 ---@param with string
 ---@return string
-util.string_replace = function(str, what, with) end
+utillib.string_replace = function(str, what, with) end
 
 ---@generic X: number, Lower: number, Upper: number
 ---@param x X
 ---@param lower Lower
 ---@param upper Upper
 ---@return X|Lower|Upper
-util.clamp = function(x, lower, upper) end
+utillib.clamp = function(x, lower, upper) end
 
 --- Returns the first tile that does not collide with
 --- `"item"`, `"object"`, `"player"`, or `"water_tile"` in LuaPrototypes
 ---@return string
-util.get_walkable_tile = function() end
+utillib.get_walkable_tile = function() end
 
 -- This function takes 2 icons tables, and adds the second to the first, but applies scale,
 -- shift and tint to the entire second set.\
@@ -232,83 +232,83 @@ util.get_walkable_tile = function() end
 ---@param inputs {["scale"]:number?, ["shift"]:data.Vector?, ["tint"]:data.Color?}
 ---@param default_icon_size integer
 ---@return data.IconData[]
-function util.combine_icons(icons1, icons2, inputs, default_icon_size) end
+function utillib.combine_icons(icons1, icons2, inputs, default_icon_size) end
 
 ---@param technology_icon data.FileName
 ---@return data.IconData[]
-function util.technology_icon_constant_damage(technology_icon) end
+function utillib.technology_icon_constant_damage(technology_icon) end
 
 ---@param technology_icon data.FileName
 ---@return data.IconData[]
-function util.technology_icon_constant_speed(technology_icon) end
+function utillib.technology_icon_constant_speed(technology_icon) end
 
 ---@param technology_icon data.FileName
 ---@return data.IconData[]
-function util.technology_icon_constant_movement_speed(technology_icon) end
+function utillib.technology_icon_constant_movement_speed(technology_icon) end
 
 ---@param technology_icon data.FileName
 ---@return data.IconData[]
-function util.technology_icon_constant_range(technology_icon) end
+function utillib.technology_icon_constant_range(technology_icon) end
 
 ---@param technology_icon data.FileName
 ---@return data.IconData[]
-function util.technology_icon_constant_planet(technology_icon) end
+function utillib.technology_icon_constant_planet(technology_icon) end
 
 ---@param technology_icon data.FileName
 ---@return data.IconData[]
-function util.technology_icon_constant_equipment(technology_icon) end
+function utillib.technology_icon_constant_equipment(technology_icon) end
 
 ---@param technology_icon data.FileName
 ---@return data.IconData[]
-function util.technology_icon_constant_followers(technology_icon) end
+function utillib.technology_icon_constant_followers(technology_icon) end
 
 ---@param technology_icon data.FileName
 ---@return data.IconData[]
-function util.technology_icon_constant_capacity(technology_icon) end
+function utillib.technology_icon_constant_capacity(technology_icon) end
 
 ---@param technology_icon data.FileName
 ---@return data.IconData[]
-function util.technology_icon_constant_stack_size(technology_icon) end
+function utillib.technology_icon_constant_stack_size(technology_icon) end
 
 ---@param technology_icon data.FileName
 ---@return data.IconData[]
-function util.technology_icon_constant_productivity(technology_icon) end
+function utillib.technology_icon_constant_productivity(technology_icon) end
 
 ---@param technology_icon data.FileName
 ---@return data.IconData[]
-function util.technology_icon_constant_recipe_productivity(technology_icon) end
+function utillib.technology_icon_constant_recipe_productivity(technology_icon) end
 
 ---@param technology_icon data.FileName
 ---@return data.IconData[]
-function util.technology_icon_constant_braking_force(technology_icon) end
+function utillib.technology_icon_constant_braking_force(technology_icon) end
 
 ---@param technology_icon data.FileName
 ---@return data.IconData[]
-function util.technology_icon_constant_mining(technology_icon) end
+function utillib.technology_icon_constant_mining(technology_icon) end
 
 ---@param energy data.Energy
 ---@return number
-function util.parse_energy(energy) end
+function utillib.parse_energy(energy) end
 
 --- Returns the average amount a ProductPrototype will result in.
 ---@param product data.ProductPrototype
 ---@return number
-function util.product_amount(product) end
+function utillib.product_amount(product) end
 
 ---@return data.SpriteSource
-function util.empty_sprite() end
+function utillib.empty_sprite() end
 
 ---@param animation_length uint8
 ---@return data.AnimationParameters
-function util.empty_animation(animation_length) end
+function utillib.empty_animation(animation_length) end
 
 ---@return data.IconData
-function util.empty_icon() end
+function utillib.empty_icon() end
 
 ---@generic L: data.SpriteParameters|data.SpritePrototype|data.AnimationPrototype
 ---@param layer L
 ---@return L
-function util.draw_as_glow(layer) end
+function utillib.draw_as_glow(layer) end
 
 
 ---@class sprite_load_input
@@ -341,11 +341,11 @@ function util.draw_as_glow(layer) end
 ---@param path string Given to a `require()` that should return an instance of [sprite_load_data](lua://sprite_load_data)
 ---@param table T
 ---@return T
-function util.sprite_load(path, table) end
+function utillib.sprite_load(path, table) end
 
 ---@param spritesheets {frame_count:uint?,path:string,scale:number?,dice_y:number?}[]
 ---@return data.SpriteParameters[]
-function util.spritesheets_to_pictures(spritesheets) end
+function utillib.spritesheets_to_pictures(spritesheets) end
 
 -- Does not handle:
 --  - explicit tile filters in "selection-tool" items
@@ -355,14 +355,14 @@ function util.spritesheets_to_pictures(spritesheets) end
 --  - general tile transitions, only removes tile names from water_tile_type_names
 ---@param data data.raw --Seriously pass the global data
 ---@param array_of_tiles_to_remove string[]
-function util.remove_tile_references(data, array_of_tiles_to_remove) end
+function utillib.remove_tile_references(data, array_of_tiles_to_remove) end
 
 ---Remove the first occurance of value from the array
 ---@generic T: any
 ---@param list T[]
 ---@param value T
 ---@return boolean
-util.remove_from_list = function(list, value) end
+utillib.remove_from_list = function(list, value) end
 
 --- Returns whether or not the given list contains a value equal to the value given. It uses `==` which does not work on basic tables (no [metatable](https://www.lua.org/manual/5.2/manual.html#2.4)).
 ---
@@ -371,31 +371,31 @@ util.remove_from_list = function(list, value) end
 ---@param list table<any,T>
 ---@param value T
 ---@return boolean
-util.contains_value = function (list, value) end
+utillib.contains_value = function (list, value) end
 
 ---@generic T: any
 ---@param list T[]
 ---@return {[T]: true}
-util.list_to_map = function(list) end
+utillib.list_to_map = function(list) end
 
 --- Copies the given product and returns a normalized form factor:
 --- - `amount` is converted into matching `amount_min` and `amount_max`
 ---@param raw_product data.ProductPrototype
 ---@return data.ProductPrototype
-util.normalize_recipe_product = function(raw_product) end
+utillib.normalize_recipe_product = function(raw_product) end
 
 --- Loops over the given recipe's products, and copies the given product
 --- and returns the array of normalized products:
 --- - `amount` is converted into matching `amount_min` and `amount_max`
 ---@param recipe data.RecipePrototype
 ---@return data.ProductPrototype[]
-util.normalize_recipe_products = function(recipe) end
+utillib.normalize_recipe_products = function(recipe) end
 
 ---Returns the normalized main product or nil if the recipe defintion is invalid or there is no main product
 ---@param recipe data.RecipePrototype
 ---@param normalized_products data.ProductPrototype[]
 ---@return data.ProductPrototype
-util.get_recipe_main_product = function(recipe, normalized_products) end
+utillib.get_recipe_main_product = function(recipe, normalized_products) end
 
 --- Recursively tint all sprite definitions in the given table.\
 --- If `tint` is `false`, all tinting will be removed.
@@ -403,7 +403,7 @@ util.get_recipe_main_product = function(recipe, normalized_products) end
 ---@param array T
 ---@param tint data.Color|false
 ---@return T
-function util.recursive_tint(array, tint) end
+function utillib.recursive_tint(array, tint) end
 
 gram = 1
 grams = gram
@@ -415,4 +415,5 @@ hour = 60 * minute
 meter = 1
 kilometer = 1000
 
-return util
+util = utillib
+return utillib
