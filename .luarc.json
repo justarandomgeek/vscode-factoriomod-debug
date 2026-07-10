@@ -8,7 +8,8 @@
     "ignoreDir": [
       ".vscode",
       "test/factorio",
-      "luals-addon/factorio",
+      "luals-addon/factorio/factorio-plugin",
+      "luals-addon/factorio/plugin.lua",
       "out/sumneko-3rd/factorio/factorio-plugin",
       "out/sumneko-3rd/factorio/plugin.lua"
     ],
