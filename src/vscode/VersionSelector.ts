@@ -615,6 +615,17 @@ export class FactorioVersionSelector {
 				libpaths.push(await activeVersion.lualibPath());
 			}
 			jsontext = applyEdits(jsontext, modify(jsontext, ["workspace", "library"], libpaths, {}));
+			jsontext = applyEdits(jsontext, modify(jsontext, ["workspace", "moduleMap"], [
+				{
+					"pattern": "^__(.*)__(.*)$",
+					"replace": "$1$2",
+				},
+				{
+					"pattern": "^(.*)\\.lua$",
+					"replace": "$1",
+				},
+			], {}));
+
 			jsontext = applyEdits(jsontext, modify(jsontext, ["diagnostics", "disable"], ["unnecessary-if"], {}));;
 
 			if (luarcs.length > 0) {

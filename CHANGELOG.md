@@ -13,6 +13,7 @@
   * move `data.*` types into `data` namespace
   * fix `meld` types crashing emmylua
   * switch some `util` functions to use `data.Vector` and `data.Color` where appropriate
+  * set `workspace.moduleMap` to resolve modname requires
 
 ## 2.1.4
 * Debugger:
