@@ -622,6 +622,8 @@ export class FactorioVersionSelector {
 						"core/lualib/mod-gui.lua",
 						"core/lualib/sound-util.lua",
 						"core/lualib/util.lua",
+						"core/lualib/silo-script.lua",
+						"core/lualib/space-finish-script.lua",
 						"base/scripts/freeplay/",
 					],
 					ignoreGlobs: [
