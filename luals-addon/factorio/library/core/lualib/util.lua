@@ -137,10 +137,11 @@ function utillib.add_shift(a, b) end
 ---@return T
 function utillib.add_shift_offset(offset_, table_) end
 
----@generic T: data.Vector?
----@param shift T
+---@param shift? data.Vector
 ---@param scale number
----@return T|data.Vector
+---@return data.Vector?
+---@overload fun(shift:data.Vector, scale?:number):data.Vector
+---@overload fun(shift:nil, scale?:number):nil
 function utillib.mul_shift(shift, scale) end
 
 --- Outputs a number with commas separating the thousands.
