@@ -89,10 +89,10 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 
 
 		for (const [_, concept] of this.concepts) {
-			const file = new LuaLSFile(`prototype-api/concepts/${concept.name}`, this.application_version, this.namespace);
-			if (concept.type === "builtin") {
+			if (concept.name === "LocalisedString" || concept.type === "builtin") {
 				continue;
 			}
+			const file = new LuaLSFile(`prototype-api/concepts/${concept.name}`, this.application_version, this.namespace);
 			const simple = this.simple_structs.has(concept.name);
 			const suffix = simple?"":".struct";
 			if (concept.properties) {

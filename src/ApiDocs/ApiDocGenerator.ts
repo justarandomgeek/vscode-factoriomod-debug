@@ -316,6 +316,10 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		const file = new LuaLSFile("runtime-api/concepts", this.docs.application_version);
 
 		for (const concept of this.docs.concepts) {
+			if (concept.name === "LocalisedString") {
+				continue;
+			}
+
 			const description = format_description(this.collect_description(concept, { scope: "runtime", member: concept.name }));
 			const ctype = concept.type;
 			if (this.protosdump) {
