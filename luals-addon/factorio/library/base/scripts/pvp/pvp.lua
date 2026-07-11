@@ -25,7 +25,7 @@
 ---@field get_events fun():Events
 ---@field get_teams fun():Team[]
 ---@field get_config fun():Config
----@field set_config fun(c:Config)
+---@field set_config fun(c:Partial<Config>)
 
 ---@type event_handler
 local pvp
