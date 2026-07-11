@@ -4,7 +4,6 @@ import { program } from 'commander';
 import { createWriteStream } from 'fs';
 
 import { GenerateDocs } from '../ApiDocs/GenerateDocs';
-import { ApiDocGenerator } from '../ApiDocs/ApiDocGenerator';
 
 async function fetch_docs(url:string) {
 	const result = await fetch(url);
@@ -22,7 +21,6 @@ program.command("luals-addon [outdir]")
 	.option("-o, --online [version]", "Use online docs")
 	.option("--sdump <mod-settings-dump.json>", "Load Settings Prototype dump")
 	.option("--pdump <data-raw-dump.json>", "Load Prototype dump")
-	.option("--debug", "just generate legacy debug info")
 	.action(async (outdir:string|undefined, options:{
 			docs?:string
 			protos?:string
@@ -30,8 +28,6 @@ program.command("luals-addon [outdir]")
 
 			sdump?:string
 			pdump?:string
-
-			debug?:boolean
 		})=>{
 		let docsjson:string;
 		let protosjson:string;
@@ -56,20 +52,15 @@ program.command("luals-addon [outdir]")
 		const sdumpjson = options.sdump && await fsp.readFile(options.sdump, "utf8");
 		const pdumpjson = options.pdump && await fsp.readFile(options.pdump, "utf8");
 
-		if (options.debug) {
-			const docs = new ApiDocGenerator(docsjson);
-			await fsp.writeFile("debuginfo.json", JSON.stringify(docs.generate_debuginfo()));
-		} else {
-			let fileCount = 0;
-			await GenerateDocs(docsjson, protosjson, sdumpjson, pdumpjson,
-				async (subpath, write)=>{
-					const filepath = path.join(outdir ?? process.cwd(), subpath);
-					await fsp.mkdir(path.dirname(filepath), { recursive: true });
-					const file = createWriteStream(filepath);
-					await write(file);
-					fileCount++;
-					file.close();
-				});
-			console.log(`Generated bundle with ${fileCount} files`);
-		}
+		let fileCount = 0;
+		await GenerateDocs(docsjson, protosjson, sdumpjson, pdumpjson,
+			async (subpath, write)=>{
+				const filepath = path.join(outdir ?? process.cwd(), subpath);
+				await fsp.mkdir(path.dirname(filepath), { recursive: true });
+				const file = createWriteStream(filepath);
+				await write(file);
+				fileCount++;
+				file.close();
+			});
+		console.log(`Generated bundle with ${fileCount} files`);
 	});
