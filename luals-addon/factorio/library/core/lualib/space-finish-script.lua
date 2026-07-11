@@ -1,9 +1,11 @@
 ---@meta
 
 ---@class (partial) LuaRemote.InterfaceMap
----@field space-finish-script SpaceFinishScriptRemoteInterface
+---@field space-finish-script SpaceFinishScript.RemoteInterface
 
----@class SpaceFinishScriptRemoteInterface
+---@namespace SpaceFinishScript
+
+---@class RemoteInterface
 ---@field set_victory_location fun(l:data.SpaceLocationName)
 ---@field set_no_victory fun(b:boolean)
 ---@field get_no_vicotry fun():boolean

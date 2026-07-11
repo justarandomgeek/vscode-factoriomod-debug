@@ -1,9 +1,11 @@
 ---@meta
 
 ---@class (partial) LuaRemote.InterfaceMap
----@field silo-script SiloScriptRemoteInterface
+---@field silo-script SiloScript.RemoteInterface
 
----@class SiloScriptRemoteInterface
+---@namespace SiloScript
+
+---@class RemoteInterface
 ---@field set_no_victory fun(b:boolean)
 ---@field get_no_vicotry fun():boolean
 
