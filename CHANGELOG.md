@@ -6,7 +6,6 @@
 * Debugger:
   * added `hoodDebugConsole` launch option (Factorio >= 2.0.10)
 * Lua Library package:
-  * `factorio.workspace.manageLibraryDataLinks` default changed to false for emmylua
   * more spacers in generated typedefs for emmylua
   * `meld` type namespace
   * add `__debugcounts` and `__debugchildren` fields to `std.metatable`
@@ -14,6 +13,7 @@
   * fix `meld` types crashing emmylua
   * switch some `util` functions to use `data.Vector` and `data.Color` where appropriate
   * set `workspace.moduleMap` to resolve modname requires
+  * `factorio.workspace.manageLibraryDataLinks` for emmylua excludes library files that have typedefs, and game scripts that are unlikely to be used by mods
 
 ## 2.1.4
 * Debugger:

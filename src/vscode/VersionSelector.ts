@@ -606,27 +606,45 @@ export class FactorioVersionSelector {
 				jsontext = (await fs.readFile(luarcs[0])).toString();
 			}
 
-			jsontext = applyEdits(jsontext, modify(jsontext, ["$schema"], "https://raw.githubusercontent.com/EmmyLuaLs/emmylua-analyzer-rust/refs/heads/main/crates/emmylua_code_analysis/resources/schema.json", {}));
-			jsontext = applyEdits(jsontext, modify(jsontext, ["runtime", "version"], "Lua5.2", {}));
-			jsontext = applyEdits(jsontext, modify(jsontext, ["runtime", "requirePattern"], ["?", "?.lua"], {}));
-			const libpaths = [ Utils.joinPath(emmylualib, "factorio", "library").fsPath ];
-			if (factorioconfig.get("workspace.manageLibraryDataLinks", false)) {
-				libpaths.push(await activeVersion.dataPath());
-				libpaths.push(await activeVersion.lualibPath());
+			const opts = { formattingOptions: {keepLines: true, insertFinalNewline: true, insertSpaces: true}};
+
+			jsontext = applyEdits(jsontext, modify(jsontext, ["$schema"], "https://raw.githubusercontent.com/EmmyLuaLs/emmylua-analyzer-rust/refs/heads/main/crates/emmylua_code_analysis/resources/schema.json", opts));
+			jsontext = applyEdits(jsontext, modify(jsontext, ["runtime", "version"], "Lua5.2", opts));
+			jsontext = applyEdits(jsontext, modify(jsontext, ["runtime", "requirePattern"], ["?", "?.lua"], opts));
+			const libpaths:(string|{path:string; ignoreDir?:string[]; ignoreGlobs?:string[]})[] = [ Utils.joinPath(emmylualib, "factorio", "library").fsPath ];
+			if (factorioconfig.get<boolean>("workspace.manageLibraryDataLinks") !== false) {
+				libpaths.push({
+					path: await activeVersion.dataPath(),
+					ignoreDir: [
+						"core/lualib/event_handler.lua",
+						"core/lualib/math2d.lua",
+						"core/lualib/meld.lua",
+						"core/lualib/mod-gui.lua",
+						"core/lualib/sound-util.lua",
+						"core/lualib/util.lua",
+					],
+					ignoreGlobs: [
+						"*/migrations",
+						"*/scenarios",
+						"*/campaigns",
+						"*/tutorials",
+						"*/menu-simulations",
+					],
+				});
 			}
-			jsontext = applyEdits(jsontext, modify(jsontext, ["workspace", "library"], libpaths, {}));
+			jsontext = applyEdits(jsontext, modify(jsontext, ["workspace", "library"], libpaths, opts));
 			jsontext = applyEdits(jsontext, modify(jsontext, ["workspace", "moduleMap"], [
 				{
-					"pattern": "^__(.*)__(.*)$",
-					"replace": "$1$2",
+					pattern: "^__(.*)__(.*)$",
+					replace: "$1$2",
 				},
 				{
-					"pattern": "^(.*)\\.lua$",
-					"replace": "$1",
+					pattern: "^(.*)\\.lua$",
+					replace: "$1",
 				},
-			], {}));
+			], opts));
 
-			jsontext = applyEdits(jsontext, modify(jsontext, ["diagnostics", "disable"], ["unnecessary-if"], {}));;
+			jsontext = applyEdits(jsontext, modify(jsontext, ["diagnostics", "disable"], ["unnecessary-if"], opts));;
 
 			if (luarcs.length > 0) {
 				await fs.writeFile(luarcs[0], Buffer.from(jsontext));
