@@ -617,6 +617,7 @@ export class FactorioVersionSelector {
 					path: await activeVersion.dataPath(),
 					ignoreDir: [
 						"core/lualib/event_handler.lua",
+						"core/lualib/crash-site.lua",
 						"core/lualib/math2d.lua",
 						"core/lualib/meld.lua",
 						"core/lualib/mod-gui.lua",

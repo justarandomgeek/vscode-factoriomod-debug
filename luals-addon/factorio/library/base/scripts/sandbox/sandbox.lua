@@ -5,10 +5,12 @@
 
 ---@namespace Sandbox
 
+---@alias ItemMap table<data.ItemName, ItemCountType>
+
 ---@class RemoteInterface
 ---@field set_chart_distance fun(distance:number)
----@field get_created_items fun():{[data.ItemName]: integer}
----@field set_created_items fun(items:{[data.ItemName]: integer})
+---@field get_created_items fun():ItemMap
+---@field set_created_items fun(items:ItemMap)
 
 ---@type event_handler
 local sandbox
