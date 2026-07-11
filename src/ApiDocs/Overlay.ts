@@ -36,8 +36,11 @@ export const overlay:{
 			}
 			methods?: {
 				[member:string]: {
-					asfield?:boolean
+					generic_params?: {name:string; type?:ApiType}[]
+					parameters?: ApiParameter<6>[]
+					variadic_parameter?: ApiVariadicParameter<6>
 					return_values?: ApiMethod["return_values"]
+					asfield?:boolean
 				} & (
 					{ rule?:undefined }|
 					{ rule: "on-event" }|
@@ -62,6 +65,43 @@ export const overlay:{
 			},
 		},
 		class: {
+			"LuaRemote": {
+				methods: {
+					call: {
+						generic_params: [
+							{name: "I", type: "keyof LuaRemote.InterfaceMap"},
+							{name: "F", type: "keyof LuaRemote.InterfaceMap[I]"},
+						],
+						parameters: [
+							{
+								name: "interface",
+								type: "I",
+								description: "",
+								order: 1,
+								optional: false,
+							},
+							{
+								name: "fname",
+								type: "F",
+								description: "",
+								order: 2,
+								optional: false,
+							},
+						],
+						variadic_parameter: {
+							type: "Parameters<LuaRemote.InterfaceMap[I][F]>",
+						},
+						return_values: [
+							{
+								type: "ReturnType<LuaRemote.InterfaceMap[I][F]>",
+								description: "",
+								optional: false,
+								order: 1,
+							},
+						],
+					},
+				},
+			},
 			"LuaLazyLoadedValue": {
 				generic_params: [{name: "T"}],
 				methods: {

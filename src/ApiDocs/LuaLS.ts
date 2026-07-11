@@ -67,7 +67,7 @@ export class LuaLSFile {
 	}
 }
 
-export type LuaLSType = LuaLSTypeName|LuaLSLiteral|LuaLSFunction|LuaLSDict|LuaLSTuple|LuaLSArray|LuaLSUnion;
+export type LuaLSType = LuaLSTypeName|LuaLSClass|LuaLSLiteral|LuaLSFunction|LuaLSDict|LuaLSTuple|LuaLSArray|LuaLSUnion;
 
 export class LuaLSTypeName {
 	constructor(
@@ -211,12 +211,32 @@ export class LuaLSGeneric {
 	) {}
 
 	write(output:Writable) {
-		output.write(`---@generic ${this.name}`);
+		output.write(`${this.name}`);
 		if (this.type) {
 			output.write(`: ${this.type.format()}`);
-
 		}
+	}
+}
+
+export class LuaLSGenericList {
+	constructor(
+		public readonly params:LuaLSGeneric[],
+	) {}
+
+	write(output:Writable) {
+		output.write(`---@generic `);
+		let comma = false;
+		for (const item of this.params) {
+			if (comma) { output.write(`, `); }
+			item.write(output);
+			comma = true;
+		}
+
 		output.write(`\n`);
+	}
+
+	format() {
+		return `<${this.params.map(p=>p.name).join(", ")}>`;
 	}
 }
 
@@ -226,9 +246,9 @@ export class LuaLSClass {
 	) {}
 	description?:Description;
 	parents?:LuaLSType[];
-	generic_args?:LuaLSGeneric[];
+	generic_args?:LuaLSGenericList;
 	global_name?:string;
-	exact?:boolean;
+	flavor?:"exact"|"partial";
 
 	private operators?:LuaLSOperator[];
 	private call_op?:LuaLSOverload[];
@@ -263,19 +283,13 @@ export class LuaLSClass {
 	async write(output:Writable) {
 		output.write(`do\n`);
 		await comment_description(output, this.description);
-		if (this.generic_args) {
-			this.generic_args.forEach(g=>{
-				g.write(output);
-			});
-		}
+		this.generic_args?.write(output);
+
 		output.write(`---@class `);
-		if (this.exact) {
-			output.write(`(exact) `);
+		if (this.flavor) {
+			output.write(`(${this.flavor}) `);
 		}
-		output.write(`${this.name}`);
-		if (this.generic_args && this.generic_args.length > 0) {
-			output.write(`<${this.generic_args.map(g=>g.name).join(",")}>`);
-		}
+		output.write(`${this.name}${this.generic_args?.format() ?? ""}`);
 		if (this.parents && this.parents.length > 0) {
 			output.write(`:${this.parents.map(t=>t.format()).join(", ")}`);
 		}
@@ -417,6 +431,7 @@ export class LuaLSFunction {
 		public readonly description?:Description,
 	) {}
 
+	public generics?:LuaLSGenericList;
 	private overloads?:LuaLSOverload[];
 
 	nodiscard?:boolean;
@@ -436,6 +451,7 @@ export class LuaLSFunction {
 			output.write(`---@field ${this.name} ${this.format()}\n`);
 			return;
 		}
+		this.generics?.write(output);
 		if (this.params) {
 			for (const param of this.params) {
 				await param.write(output);

@@ -1,6 +1,6 @@
 import { overlay } from "./Overlay";
 import type { LuaLSType} from "./LuaLS";
-import { is_lua_ident, LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSEnum, LuaLSEnumField, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSGeneric, LuaLSLiteral, LuaLSOperator, LuaLSOverload, LuaLSParam, LuaLSReturn, LuaLSTuple, LuaLSTypeName, LuaLSUnion, to_lua_ident } from "./LuaLS";
+import { is_lua_ident, LuaLSAlias, LuaLSArray, LuaLSClass, LuaLSDict, LuaLSEnum, LuaLSEnumField, LuaLSField, LuaLSFile, LuaLSFunction, LuaLSGeneric, LuaLSGenericList, LuaLSLiteral, LuaLSOperator, LuaLSOverload, LuaLSParam, LuaLSReturn, LuaLSTuple, LuaLSTypeName, LuaLSUnion, to_lua_ident } from "./LuaLS";
 import assert from "assert";
 import type { ProtoDocGenerator } from "./ProtoDocsGenerator";
 
@@ -139,7 +139,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		for (const g of generic_params) {
 			res.push(new LuaLSGeneric(g.name, g.type ? await this.LuaLS_type(g.type): undefined));
 		}
-		return res;
+		return new LuaLSGenericList(res);
 	}
 
 	private async generate_LuaLS_class(aclass:ApiClass<V>, format_description:DocDescriptionFormatter) {
@@ -296,15 +296,8 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 		for (const method of aclass.methods) {
 			const adjust = overlay.adjust.class[aclass.name]?.methods?.[method.name];
-
-			const m:ApiMethod<V> = {
-				...method,
-				return_values: adjust?.return_values ?? method.return_values,
-			};
-			const func = await this.LuaLS_function(m, file, format_description, aclass.name);
-
-			if (adjust?.asfield) { func.asfield = true; }
-
+			const func = await this.LuaLS_function(method, file, format_description, aclass.name);
+			func.asfield = adjust?.asfield;
 			funcclass.add(func);
 		}
 
@@ -344,7 +337,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 						if (typeof v === "object" && v.complex_type === "literal" && v.value === true &&
 								typeof k === "object" && k.complex_type === "union") {
 							const lsclass = new LuaLSClass(concept.name);
-							lsclass.exact = true;
+							lsclass.flavor = "exact";
 							lsclass.description = description;
 							for (const option of k.options) {
 								lsclass.add(new LuaLSField(await this.LuaLS_type(option), await this.LuaLS_type(v)));
@@ -457,7 +450,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 		const add_event_data_type = async (event:ApiEvent<V>)=>{
 			const lsevent = new LuaLSClass(`EventData.${event.name}`);
-			lsevent.exact = true;
+			lsevent.flavor = "exact";
 			lsevent.parents = [new LuaLSTypeName("EventData")];
 			lsevent.description = format_description(this.collect_description(event, {scope: "runtime", member: event.name}));
 			for (const param of event.data) {
@@ -610,22 +603,29 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	}
 
 	private async LuaLS_function(func:ApiMethod, file:LuaLSFile, format_description:DocDescriptionFormatter, in_class?:string):Promise<LuaLSFunction> {
+		const adjust = in_class ? overlay.adjust.class[in_class]?.methods?.[func.name] : undefined;
+
 		const params = func.format.takes_table ?
 			[ new LuaLSParam("param", await this.LuaLS_table_type(func, file, `${in_class??""}${in_class?".":""}${func.name}_param`, format_description), undefined, func.format.table_optional) ]:
-			await this.LuaLS_params(func.parameters, format_description);
-		if (func.variadic_parameter) { // V6
+			await this.LuaLS_params(adjust?.parameters ?? func.parameters, format_description);
+		const var_param = adjust?.variadic_parameter ?? func.variadic_parameter;
+		if (var_param) { // V6
 			params.push(new LuaLSParam(
 				"...",
-				await this.LuaLS_type(func.variadic_parameter.type),
-				format_description(func.variadic_parameter.description)
+				await this.LuaLS_type(var_param.type),
+				format_description(var_param.description)
 			));
 		}
 
-		const returns = await this.LuaLS_returns(func.return_values, format_description);
+		const returns = await this.LuaLS_returns(adjust?.return_values ?? func.return_values, format_description);
 
 		const lsfunc = new LuaLSFunction(func.name, params, returns,
 			format_description(this.collect_description(func), {scope: "runtime", member: in_class??"libraries", part: in_class?func.name:"new-functions"})
 		);
+
+		if (adjust?.generic_params) {
+			lsfunc.generics = await this.LuaLS_generics(adjust.generic_params);
+		}
 
 		if (func.format.takes_table && func.variant_parameter_groups) {
 			const ptype = params[0].type;
@@ -644,7 +644,6 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			});
 		}
 
-		const adjust = in_class ? overlay.adjust.class[in_class]?.methods?.[func.name] : undefined;
 
 		if (adjust?.rule) {
 			switch (adjust.rule) {
@@ -751,7 +750,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	// method table params and table/tuple complex_types
 	private async LuaLS_table_type(type_data:ApiWithParameters, file:LuaLSFile,  table_class_name:string, format_description:DocDescriptionFormatter, parents?:LuaLSType[], extrafields?:LuaLSField[]):Promise<LuaLSTypeName> {
 		const lsclass = new LuaLSClass(table_class_name);
-		lsclass.exact = overlay.adjust.table[table_class_name]?.exact ?? true;
+		if (overlay.adjust.table[table_class_name]?.exact ?? true) { lsclass.flavor = "exact"; }
 		lsclass.generic_args = await this.LuaLS_generics(overlay.adjust.table[table_class_name]?.generic_params);
 		lsclass.parents = parents;
 		file.add(lsclass);
@@ -869,7 +868,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 					throw new Error(`${api_type.complex_type} without parent`);
 				}
 				const lsclass = new LuaLSClass(in_parent.table_class_name);
-				lsclass.exact = true;
+				lsclass.flavor = "exact";
 				for (const attribute of api_type.attributes) {
 					lsclass.add(new LuaLSField(
 						attribute.name,
