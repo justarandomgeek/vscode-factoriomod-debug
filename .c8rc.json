@@ -2,5 +2,6 @@
 	"reporter": [ "html", "lcov", "text" ],
 	"exclude-after-remap": true,
 	"extension": [ ".ts" ],
-	"include": ["**/*.ts"]
+	"include": ["**/*.ts"],
+	"exclude": ["dist/LIB/src/*.ts"]
 }
