@@ -2,4 +2,4 @@
 
 ---@see LuaBootstrap.active_mods
 ---@type {[string]: string}
-mods = {}
+mods = {} --[[@as {[string]: string}]]
