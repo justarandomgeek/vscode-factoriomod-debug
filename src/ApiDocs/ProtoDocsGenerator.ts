@@ -97,7 +97,7 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 			const suffix = simple?"":".struct";
 			if (concept.properties) {
 				const lsclass = new LuaLSClass(concept.name+suffix);
-				lsclass.exact = true;
+				lsclass.flavor = "exact";
 				lsclass.description = await format_description(concept.description, { scope: "prototype", member: concept.name });
 				if (concept.parent) {
 					lsclass.parents = [new LuaLSTypeName(concept.parent)];
@@ -170,7 +170,7 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 		data.global_name = "data";
 		file.add(data);
 		const dataraw = new LuaLSClass("raw");
-		dataraw.exact = true;
+		dataraw.flavor = "exact";
 		file.add(dataraw);
 
 		for (const [_, prototype] of this.prototypes) {
@@ -202,7 +202,7 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 		for (const [_, prototype] of this.prototypes) {
 			const file = new LuaLSFile(`prototype-api/prototypes/${prototype.name}`, this.application_version, this.namespace);
 			const lsproto = new LuaLSClass(prototype.name);
-			lsproto.exact = true;
+			lsproto.flavor = "exact";
 			lsproto.description = await format_description(prototype.description, { scope: "prototype", member: prototype.name });
 			if (prototype.parent) {
 				lsproto.parents = [new LuaLSTypeName(prototype.parent)];
