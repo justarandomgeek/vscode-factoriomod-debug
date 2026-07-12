@@ -21,7 +21,6 @@ local meld = {}
 ---@return delete_op
 meld.delete = function() end
 
----@generic T
 ---@class (exact) overwrite_op<T> : control_op
 ---@field private op "overwrite"
 ---@field private data T
@@ -31,7 +30,6 @@ meld.delete = function() end
 ---@return overwrite_op<T>
 meld.overwrite = function(new) end
 
----@generic T
 ---@class (exact) invoke_op<T> : control_op
 ---@field private op "invoke"
 ---@field private fct fun(v:T):T
@@ -41,17 +39,16 @@ meld.overwrite = function(new) end
 ---@return invoke_op<T>
 meld.invoke = function(fct) end
 
----@generic T
 ---@class (exact) append_op<T> : control_op
 ---@field private op "append"
 ---@field private data T
 
 ---@generic T
----@param T[]
+---@param data T[]
 ---@return append_op<T>
 meld.append = function(data) end
 
----@alias field<T> (T extends string|number|boolean|integer|nil and T or source<T>)|delete_op|overwrite_op<T>|invoke_op<T>|(T extends A[] and append_op<A> or never)
+---@alias field<T> (T extends (string|number|boolean|integer|nil) and T or source<T>)|delete_op|overwrite_op<T>|invoke_op<T>|(T extends infer A[] and append_op<A> or never)
 ---@alias source<T> {[K in keyof T]?: field<T[K]>}
 
 --- recursive table merge but it reuses target table (does not deepcopy it). When target is not to be reused or more than
