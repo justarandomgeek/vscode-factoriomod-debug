@@ -89,8 +89,8 @@
     "tree-kill": "^1.2.2",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.63.0",
-    "vscode-languageclient": "^10.0.1",
-    "vscode-languageserver": "^10.0.1",
+    "vscode-languageclient": "^10.1.0",
+    "vscode-languageserver": "^10.1.0",
     "vscode-languageserver-textdocument": "^1.0.12",
     "vscode-uri": "^3.1.0",
     "yoctocolors": "^2.1.2"
