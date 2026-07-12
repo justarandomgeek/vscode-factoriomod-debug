@@ -6,6 +6,7 @@
 * Debugger:
   * added `hoodDebugConsole` launch option (Factorio >= 2.0.10)
 * Lua Library package:
+  * *IMPORTANT* All sumneko/luals users should migrate to emmylua. Support for sumneko/luals will be dropped completely in a near future version, and may already be broken in some areas.
   * more spacers in generated typedefs for emmylua
   * `meld` type namespace
   * add `__debugcounts` and `__debugchildren` fields to `std.metatable`
@@ -14,6 +15,8 @@
   * switch some `util` functions to use `data.Vector` and `data.Color` where appropriate
   * set `workspace.moduleMap` to resolve modname requires
   * `factorio.workspace.manageLibraryDataLinks` for emmylua excludes library files that have typedefs, and game scripts that are unlikely to be used by mods
+  * type map for LuaRemote interfaces now allows registering interface classes for type-aware `remote.call` usage
+  * types for built-in remotes `freeplay`, `pvp`, `sandbox`, `wave-defense`, `silo-script`, `space-finish-script`
 
 ## 2.1.4
 * Debugger:
