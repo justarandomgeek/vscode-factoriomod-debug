@@ -89,11 +89,11 @@ export const overlay:{
 							},
 						],
 						variadic_parameter: {
-							type: "Parameters<LuaRemote.InterfaceMap[I][F]>",
+							type: "Parameters<LuaRemote.InterfaceMap[I][F]>...",
 						},
 						return_values: [
 							{
-								type: "ReturnType<LuaRemote.InterfaceMap[I][F]>",
+								type: "ReturnType<LuaRemote.InterfaceMap[I][F]>...",
 								description: "",
 								optional: false,
 								order: 1,
