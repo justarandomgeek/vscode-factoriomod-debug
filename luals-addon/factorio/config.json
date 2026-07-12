@@ -17,10 +17,7 @@
 		"Lua.runtime.builtin": {
 			"io":"disable",
 			"os":"disable",
-			"coroutine":"disable",
-			"package":"disable",
-			"math":"disable",
-			"debug":"disable"
+			"coroutine":"disable"
 		},
 		"Lua.diagnostics.globals": [
 			"__DebugAdapter", "__Profiler"
