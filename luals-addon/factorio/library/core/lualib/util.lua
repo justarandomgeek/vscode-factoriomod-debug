@@ -410,9 +410,14 @@ gram = 1
 grams = gram
 kg = 1000*grams
 tons = 1000*kg
-second = 60
-minute = 60 * second
-hour = 60 * minute
+
+---@type MapTick
+second = 60 --[[@as MapTick]]
+---@type MapTick
+minute = (60 * second) --[[@as MapTick]]
+---@type MapTick
+hour = (60 * minute) --[[@as MapTick]]
+
 meter = 1
 kilometer = 1000
 
