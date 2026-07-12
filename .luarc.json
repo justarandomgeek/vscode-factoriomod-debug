@@ -10,11 +10,11 @@
       "test/factorio",
       "luals-addon/factorio/factorio-plugin",
       "luals-addon/factorio/plugin.lua",
-      "out/sumneko-3rd/factorio/factorio-plugin",
-      "out/sumneko-3rd/factorio/plugin.lua"
+      "out"
     ],
     "library": [
-      "out/sumneko-3rd/factorio/library"
+      "out/sumneko-3rd/factorio/library/runtime-api",
+      "out/sumneko-3rd/factorio/library/prototype-api"
     ],
     "moduleMap": [
       {
