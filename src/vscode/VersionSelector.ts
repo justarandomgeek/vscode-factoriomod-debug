@@ -625,6 +625,7 @@ export class FactorioVersionSelector {
 						"core/lualib/util.lua",
 						"core/lualib/silo-script.lua",
 						"core/lualib/space-finish-script.lua",
+						"core/lualib/prototype-info.lua",
 						"base/scripts/freeplay/",
 						"base/scripts/pvp/",
 						"base/scripts/sandbox/",
