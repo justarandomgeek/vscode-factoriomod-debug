@@ -39,23 +39,6 @@
 			"debugWebviews": true
 		},
 		{
-			"name": "Attach To External Debug Adapter",
-			"type": "node",
-			"request": "attach",
-			"continueOnAttach": true,
-			"port": 34198,
-			"skipFiles": [
-				"<node_internals>/**",
-				"<node_modules>/**"
-			],
-			"outFiles": [
-				"${workspaceFolder}/dist/**/*.js"
-			],
-			"presentation": {
-				"group": "1 - Subprocesses"
-			},
-		},
-		{
 			"name": "LSP",
 			"type": "node",
 			"request": "attach",
