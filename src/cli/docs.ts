@@ -13,9 +13,10 @@ async function fetch_docs(url:string) {
 	return result.text();
 }
 
-program.command("luals-addon [outdir]")
+program.command("docs [outdir]")
+	.alias("luals-addon")
 	.alias("sumneko-3rd")
-	.description("Generate a library bundle for LuaLS (sumneko.lua) LSP")
+	.description("Generate a library bundle for EmmyLua LSP")
 	.option("-d, --docs <docsjson>", "Runtime docs")
 	.option("-p, --protos <protosjson>", "Prototype docs")
 	.option("-o, --online [version]", "Use online docs")
