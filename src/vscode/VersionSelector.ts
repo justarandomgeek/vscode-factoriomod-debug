@@ -33,7 +33,6 @@ const onlineStable:FactorioVersion = {
 const emmylua_ids = [
 	"tangzx.emmylua",
 	"xuhuanzy.emmylua-luals",
-	"theo.emmylua",
 ];
 
 export class FactorioVersionSelector {
