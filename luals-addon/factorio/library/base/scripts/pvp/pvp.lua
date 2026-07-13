@@ -65,6 +65,7 @@
 ---@field game_config GameConfig
 ---@field team_config TeamConfig
 ---@field prototypes PrototypeConfig
+---@field modifier_list ModifierList
 ---@field victory VictoryConditions
 --- Any technology ingredients not in this map will prevent the technologies from be initially researched.
 ---
@@ -122,7 +123,21 @@
 
 ---@class TeamConfig
 ---@field friendly_fire boolean
----@field unlock_combat_research boolean Unused
+--- Whether or not the combat technologies are researched with `TeamConfig.research_level` & `Config.research_ingredient_list`.
+---
+---	The following are considered combat technologies:
+--- - `"follower-robot-count"`
+--- - `"energy-weapons-damage"`
+--- - `"laser-shooting-speed"`
+--- - `"physical-projectile-damage"`
+--- - `"weapon-shooting-speed"`
+--- - `"stronger-explosives"`
+--- - `"refined-flammables"`
+--- - `"artillery-shell-range"`
+--- - `"artillery-shell-speed"`
+---
+--- These are within a local variable in `balance.lua` with no way of modifying them.
+---@field unlock_combat_research boolean
 --- A mode where technology is researched randomly and automatically. Players cannot affect research.
 ---@field defcon_mode boolean
 ---@field max_players int
@@ -163,6 +178,47 @@
 ---@field oil data.FluidName
 ---@field oil_resource data.FluidName Unused
 ---@field moat data.TileName
+
+---@class ModifierList
+--- The list of all modifiers and bonuses that are applied to `LuaPlayer` every spawn.
+---
+--- This table is looped over with `pairs`, so you can add any writable numeric fields on `LuaPlayer` you want.
+--- Just be aware that the GUI lets users edit them at a value of `(V + 1) * 100`.
+---@field character_modifiers ModifierList.character
+--- The list of all modifiers and bonuses that are applied to `LuaForce` at the start of the round.
+---
+--- This table is looped over with `pairs`, so you can add any writable numeric fields on `LuaForce` you want.
+--- Just be aware that the GUI lets users edit them at a value of `(V + 1) * 100`.
+---@field force_modifiers ModifierList.force
+--- The values given to [LuaForce.set_turret_attack_modifier](https://lua-api.factorio.com/latest/classes/LuaForce.html#set_turret_attack_modifier) at the start of the round.
+---@field turret_attack_modifier table<data.TurretName,double>
+--- The values given to [LuaForce.set_ammo_damage_modifier](https://lua-api.factorio.com/latest/classes/LuaForce.html#set_ammo_damage_modifier) at the start of the round.
+---@field ammo_damage_modifier table<data.AmmoCategoryName,double>
+--- The values given to [LuaForce.set_gun_speed_modifier](https://lua-api.factorio.com/latest/classes/LuaForce.html#set_gun_speed_modifier) at the start of the round.
+---@field gun_speed_modifier table<data.AmmoCategoryName,double>
+
+---@class ModifierList.character
+---@field character_running_speed_modifier double
+--- This is multplied by the max character health.
+---@field character_health_bonus double
+---@field character_crafting_speed_modifier double
+---@field character_mining_speed_modifier double
+---@field character_build_distance_bonus double
+---@field character_reach_distance_bonus double
+---@class ModifierList.force
+---@field worker_robots_speed_modifier double
+---@field worker_robots_battery_modifier double
+---@field worker_robots_storage_bonus double
+---@field mining_drill_productivity_bonus double
+---@field inserter_stack_size_bonus double
+--- Must be `[0-254]`
+---@field bulk_inserter_capacity_bonus uint32
+---@field laboratory_speed_modifier double
+---@field laboratory_productivity_bonus double
+---@field following_robots_lifetime_modifier double
+--- Minimum value of `1`
+---@field maximum_following_robot_count double
+---@field train_braking_force_bonus double
 
 ---@class VictoryConditions
 ---@field last_silo_standing VictoryCondition.base
