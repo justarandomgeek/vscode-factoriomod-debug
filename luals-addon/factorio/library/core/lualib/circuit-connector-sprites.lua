@@ -54,7 +54,7 @@ default_circuit_wire_max_distance = 9
 ---@field show_shadow? boolean
 
 ---@class circuit_connector_definitions
----@field [string]: data.CircuitConnectorDefinition[]|data.CircuitConnectorDefinition
+---@field [string] data.CircuitConnectorDefinition[]|data.CircuitConnectorDefinition
 circuit_connector_definitions = {}
 
 ---@param template connector_sprite_template
