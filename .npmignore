@@ -22,3 +22,6 @@ todo
 tsconfig.json
 **/*.vsix
 **/*.tgz
+.c8rc.json
+.luarc.json
+eslint.config.ts
