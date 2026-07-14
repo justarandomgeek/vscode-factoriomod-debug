@@ -7,7 +7,7 @@
 
 ---@class RemoteInterface
 ---@field set_no_victory fun(b:boolean)
----@field get_no_vicotry fun():boolean
+---@field get_no_victory fun():boolean
 
 ---@type event_handler
 local silo_script
