@@ -6,7 +6,7 @@
 
 ## 2.1.5
 * Debugger:
-  * added `hoodDebugConsole` launch option (Factorio >= 2.0.10)
+  * added `hoodDebugConsole` launch option (Factorio >= 2.1.10)
 * Lua Library package:
   * *IMPORTANT* All sumneko/luals users should migrate to emmylua. Support for sumneko/luals will be dropped completely in a near future version, and may already be broken in some areas.
   * more spacers in generated typedefs for emmylua
