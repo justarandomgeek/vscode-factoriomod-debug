@@ -69,8 +69,9 @@ export const overlay:{
 				methods: {
 					call: {
 						generic_params: [
-							{name: "I", type: "keyof LuaRemote.InterfaceMap"},
-							{name: "F", type: "keyof LuaRemote.InterfaceMap[I]"},
+							{name: "I", type: "(keyof LuaRemote.InterfaceMap)|string"},
+							{name: "F", type: "I extends keyof LuaRemote.InterfaceMap and keyof LuaRemote.InterfaceMap[I] or string"},
+							{name: "FF", type: "I extends keyof LuaRemote.InterfaceMap and LuaRemote.InterfaceMap[I][F] or (fun(...:Any):Any...)"},
 						],
 						parameters: [
 							{
@@ -89,11 +90,11 @@ export const overlay:{
 							},
 						],
 						variadic_parameter: {
-							type: "Parameters<LuaRemote.InterfaceMap[I][F]>...",
+							type: "Parameters<FF>...",
 						},
 						return_values: [
 							{
-								type: "ReturnType<LuaRemote.InterfaceMap[I][F]>...",
+								type: "ReturnType<FF>...",
 								description: "",
 								optional: false,
 								order: 1,
