@@ -137,7 +137,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		if (!generic_params) { return; }
 		const res = [];
 		for (const g of generic_params) {
-			res.push(new LuaLSGeneric(g.name, g.type ? await this.LuaLS_type(g.type): undefined));
+			res.push(new LuaLSGeneric(g.name, g.type ? await this.LuaLS_type(g.type): undefined, g.default_));
 		}
 		return new LuaLSGenericList(res);
 	}

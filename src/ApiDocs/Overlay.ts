@@ -11,7 +11,7 @@ export const overlay:{
 			}
 		}
 		class: { [classname:string]: {
-			generic_params?: {name:string; type?:ApiType}[]
+			generic_params?: {name:string; type?:ApiType; default_?:string}[]
 			generic_parent?: ApiType
 			no_index?: boolean
 			no_common_base?: boolean
@@ -130,7 +130,7 @@ export const overlay:{
 				},
 			},
 			"LuaModData": {
-				generic_params: [{name: "T", type: "table<string,AnyBasic>"}],
+				generic_params: [{name: "T", default_: "table<string,AnyBasic>"}],
 				members: {
 					data: {
 						type: "T",

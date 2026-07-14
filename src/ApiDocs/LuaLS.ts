@@ -208,13 +208,22 @@ export class LuaLSGeneric {
 	constructor(
 		public readonly name:string,
 		public readonly type?:LuaLSType,
+		public readonly default_?:string,
 	) {}
 
 	write(output:Writable) {
-		output.write(`${this.name}`);
+		output.write(this.format());
+	}
+
+	format() {
+		let result = `${this.name}`;
 		if (this.type) {
-			output.write(`: ${this.type.format()}`);
+			result+=`: ${this.type.format()}`;
 		}
+		if (this.default_) {
+			result+=` = ${this.default_}`;
+		}
+		return result;
 	}
 }
 
@@ -236,7 +245,7 @@ export class LuaLSGenericList {
 	}
 
 	format() {
-		return `<${this.params.map(p=>p.name).join(", ")}>`;
+		return `<${this.params.map(p=>p.format()).join(", ")}>`;
 	}
 }
 
