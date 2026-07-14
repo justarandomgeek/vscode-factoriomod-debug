@@ -1,7 +1,7 @@
 export const overlay:{
 	adjust: {
 		table: { [classname:string]: {
-				generic_params?: {name:string; type?:ApiType}[]
+				generic_params?: {name:string; type?:ApiType; default_?:string}[]
 				exact?: boolean
 				parameters?: {
 					[member:string]: {
@@ -56,7 +56,7 @@ export const overlay:{
 				exact: false,
 			},
 			"ModSetting": {
-				generic_params: [{name: "T", type: "int32|double|boolean|string|Color"}],
+				generic_params: [{name: "T", type: "int32|double|boolean|string|Color", default_: "int32|double|boolean|string|Color"}],
 				parameters: {
 					value: {
 						type: "T",
