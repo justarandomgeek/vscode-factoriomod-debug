@@ -225,7 +225,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 								};
 								for (const proto of ["bool-setting", "int-setting", "double-setting", "string-setting", "color-setting"]) {
 									for (const name in this.settingsdump[proto]) {
-										subclass.add(new LuaLSField(is_lua_ident(name) ? name : new LuaLSLiteral(name), new LuaLSTypeName(type.generic_args[1], [typemap[proto as keyof typeof typemap]])));
+										subclass.add(new LuaLSField(is_lua_ident(name) ? name : new LuaLSLiteral(name), new LuaLSTypeName(type.generic_args[1], [typemap[proto as keyof typeof typemap], new LuaLSLiteral(this.settingsdump[proto][name].setting_type) ])));
 									}
 								}
 							}
