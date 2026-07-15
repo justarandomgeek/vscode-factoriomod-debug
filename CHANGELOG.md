@@ -8,6 +8,7 @@
   * fixed `remote.call` handling of unknown interfaces
   * fixed generic type args on `LuaModData`
   * runtime table-or-tuple types now name the table member `TypeName.struct` (previously `TypeName.0`)
+  * add `LuaPrototypes.mod_settings` type info from prototypes when available
 
 ## 2.1.5
 * Debugger:
