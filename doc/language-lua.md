@@ -20,7 +20,7 @@ In addition to the types listed in the json, a few extra related types are defin
  * `LuaObject.object_name`: Union of all LuaObject class names seen in the json.
 
 When using prototype dumps, the following additional types are generated:
-  * `data.ThingID` get a corresponding `data.ThingName` for the union of `string` and all known specific names. Runtime `ThingID` union types have the corresponding `data.ThingName` inserted as well.
+  * `data.ThingID` types get a corresponding `data.ThingName` for the union of `string` and all known specific names. Runtime `ThingID` union types have the corresponding `data.ThingName` inserted as well.
   * `on_event` and `event_handler` distinguish event name strings between CustomEvent and CustomInputEvent
   * LuaPrototypes dicts are populated with known names
     * in `LuaPrototypes.mod_data`, the value of `data_type` is used as the EmmyLua typename for `data`, if set
@@ -31,15 +31,7 @@ When using prototype dumps, the following additional types are generated:
 
 Factorio [modifies some builtin libraries](https://lua-api.factorio.com/latest/auxiliary/libraries.html), and this package includes corresponding modified definitions for those libraries.
 
-Type definitions are also included for some of the libraries included in `__core__/lualib`, such as `util` and `mod-gui`.
-
-## Configuration
-
-The VS Code extension will automatically configure `.luarc.json` in the workspace when installing this package. The vscode setting `factorio.workspace.manageLibraryDataLinks` controls if this includes a link to the `/data` tree of the selected installation.
-
-## Troubleshooting
-
-If these functions are not working properly, try re-running the version selector, or running `Factorio: Check Config` and resolving any warnings. If that still doesn't resolve the issue, delete `.luarc.json` in the workspace and re-run the version selector again.
+Type definitions are also included for many of Factorio's lua libraries in `__core__/lualib` and scenario scripts in `__base__/scripts/`.
 
 ### `require()`
 
@@ -49,7 +41,7 @@ require("__modname__.filename")
 ```
 Factorio also allows require paths with slashes, and replaces any file extension in them with `.lua`.
 
-The generated `.luarc.json` file has `moduleMap` and `requirePattern` confugired to handle these variations. If your workspace is not the root `/mods` folder, you may want to add the `/mods` folder as a library path in `emmyrc.json` to allow resolving mod names.
+The generated `.luarc.json` file has `moduleMap` and `requirePattern` configured to handle these variations. If your workspace is not the root `/mods` folder, you may want to add the `/mods` folder as a library path in `emmyrc.json` to allow resolving mod names.
 
 ### `storage`
 
@@ -58,7 +50,7 @@ Each mod has its own private version of [`storage`](https://lua-api.factorio.com
 EmmyLua is not aware of the separations, and needs some hints to handle this well. For best results, include an assignment like
 
 ```lua
--- using a namespace is optional, but saves you having to keep the `Storage` name unique per-mod
+-- using a namespace is optional, but saves you having to keep the `Storage` name for each mod globally unique
 ---@namespace YourMod
 
 ---@type Storage
@@ -68,17 +60,25 @@ at the top of every file using `storage` to tag its class for that file. This se
 
 ### `remote` interfaces
 
-To provide type signatures for remote interfaces, register your interface class as a member of the partial class LuaRemote.InterfaceMap:
+To provide type signatures for remote interfaces, register your interface as a member of the partial class `LuaRemote.InterfaceMap`:
 
 
 ```lua
 ---@class (partial) LuaRemote.InterfaceMap
 ---@field silo-script SiloScript.RemoteInterface
 
--- using a namespace is optional, but if used, the partial `LuaRemote.InterfaceMap` must be *outside* the namespace
+-- using a namespace is optional, but if used, the partial `LuaRemote.InterfaceMap` must be *outside* the namespace. If not using a namespace, ensure your class name is globally unique.
 ---@namespace SiloScript
 
 ---@class RemoteInterface
 ---@field set_no_victory fun(b:boolean)
 ---@field get_no_victory fun():boolean
 ```
+
+## Configuration
+
+The VS Code extension will automatically configure `.luarc.json` in the workspace when installing this package. The vscode setting `factorio.workspace.manageLibraryDataLinks` controls if this includes a link to the `/data` tree of the selected installation.
+
+## Troubleshooting
+
+If these functions are not working properly, try re-running the version selector, or running `Factorio: Check Config` and resolving any warnings. If that still doesn't resolve the issue, delete `.luarc.json` in the workspace and re-run the version selector again.
