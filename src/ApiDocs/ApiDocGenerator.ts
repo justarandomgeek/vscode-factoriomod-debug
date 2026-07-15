@@ -178,6 +178,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 					assert(type.name === "LuaCustomTable");
 					assert(type.generic_args);
 					assert(type.generic_args.length === 2);
+					assert(type.generic_args.every(a=>a instanceof LuaLSTypeName));
 					const subclass = new LuaLSClass(`${lsclass.name}.${attribute.name}`);
 					subclass.parents = [type];
 					switch (adjust.rule) {
@@ -215,10 +216,16 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 							break;
 						case "setting-names":
 							if (this.settingsdump) {
-								//TODO: extract these types an apply as generic to LuaModSettingsPrototype? some properties won't quite work...
+								const typemap = {
+									"bool-setting": new LuaLSTypeName("boolean"),
+									"int-setting": new LuaLSTypeName("int32"),
+									"double-setting": new LuaLSTypeName("double"),
+									"string-setting": new LuaLSTypeName("string"),
+									"color-setting": new LuaLSTypeName("Color"),
+								};
 								for (const proto of ["bool-setting", "int-setting", "double-setting", "string-setting", "color-setting"]) {
 									for (const name in this.settingsdump[proto]) {
-										subclass.add(new LuaLSField(is_lua_ident(name) ? name : new LuaLSLiteral(name), type.generic_args[1]));
+										subclass.add(new LuaLSField(is_lua_ident(name) ? name : new LuaLSLiteral(name), new LuaLSTypeName(type.generic_args[1], [typemap[proto as keyof typeof typemap]])));
 									}
 								}
 							}

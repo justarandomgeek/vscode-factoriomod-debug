@@ -23,7 +23,8 @@ When using prototype dumps, the following additional types are generated:
   * `data.ThingID` get a corresponding `data.ThingName` for the union of `string` and all known specific names. Runtime `ThingID` union types have the corresponding `data.ThingName` inserted as well.
   * `on_event` and `event_handler` distinguish event name strings between CustomEvent and CustomInputEvent
   * LuaPrototypes dicts are populated with known names
-    * in LuaPrototypes.mod_data, the value of `data_type` is used as the EmmyLua typename for `data`, if set
+    * in `LuaPrototypes.mod_data`, the value of `data_type` is used as the EmmyLua typename for `data`, if set
+    * in `LuaPrototypes.mod_settings`, the setting type is populated as well
   * names and types in `settings` are populated
 
 ## Libraries

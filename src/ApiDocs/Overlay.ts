@@ -137,6 +137,17 @@ export const overlay:{
 					},
 				},
 			},
+			"LuaModSettingPrototype": {
+				generic_params: [{name: "T", default_: "boolean|double|int32|string|Color"}],
+				members: {
+					default_value: { type: "T" },
+					minimum_value: { type: "T extends (int32|double) and T or nil" },
+					maximum_value: { type: "T extends (int32|double) and T or nil" },
+					allowed_values: { type: "T extends (int32|double|string) and T[] or nil" },
+					allow_blank: {type: "T extends string and boolean or nil" },
+					auto_trim: {type: "T extends string and boolean or nil" },
+				},
+			},
 			"LuaBootstrap": {
 				methods: {
 					"on_event": { rule: "on-event" },
