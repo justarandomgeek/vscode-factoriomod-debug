@@ -47,7 +47,7 @@ Factorio allows requiring files from another mod with a `__modname__` prefix:
 ```lua
 require("__modname__.filename")
 ```
-In require paths with slashes, Factorio also replaces any file extension with `.lua`.
+Factorio also allows require paths with slashes, and replaces any file extension in them with `.lua`.
 
 The generated `.luarc.json` file has `moduleMap` and `requirePattern` confugired to handle these variations. If your workspace is not the root `/mods` folder, you may want to add the `/mods` folder as a library path in `emmyrc.json` to allow resolving mod names.
 
