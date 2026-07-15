@@ -842,6 +842,24 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 			case "dictionary":
 				return new LuaLSDict(await this.LuaLS_type(api_type.key, sub_parent("key")), await this.LuaLS_type(api_type.value, sub_parent("value")));
 			case "union":
+				const options = api_type.options;
+				if (options.length >= 2 &&
+					typeof options[0] === "object" && options[0].complex_type==="table" &&
+					options.slice(1).every(t=>typeof t === "object" && t.complex_type==="tuple")) {
+					// table or tuple(s)
+					return new LuaLSUnion([
+						await this.LuaLS_type(options[0], sub_parent(`struct`)),
+						...await Promise.all(api_type.options.slice(1).map((t, i)=>this.LuaLS_type(t, sub_parent(`${i+1}`)))),
+					]);
+				} else if (options.length === 2 &&
+					typeof options[0] === "object" && options[0].complex_type==="table" &&
+					options[1] === "string") {
+					//table or string
+					return new LuaLSUnion([
+						await this.LuaLS_type(options[0], sub_parent(`struct`)),
+						await this.LuaLS_type("string"),
+					]);
+				}
 				return new LuaLSUnion(await Promise.all(api_type.options.map((t, i)=>this.LuaLS_type(t, sub_parent(`${i}`)))));
 			case "LuaLazyLoadedValue":
 				return new LuaLSTypeName("LuaLazyLoadedValue", [await this.LuaLS_type(api_type.value, sub_parent("value"))]);
