@@ -2,7 +2,7 @@
 
 FMTK provides a library package for the EmmyLua language server ([tangzx.emmylua](https://marketplace.visualstudio.com/items?itemName=tangzx.emmylua), [xuhuanzy.emmylua-luals](https://open-vsx.org/extension/xuhuanzy/emmylua-luals)) for Factorio's Lua environment. The VS Code extension will automatically install this when a Factorio version is selected, or it can be generated manually with `fmtk docs`.
 
-In addition to the docs (generated from [`runtime-api.json`](https://lua-api.factorio.com/latest/auxiliary/json-docs-runtime.html) and [`prototype-api.json`](https://lua-api.factorio.com/latest/auxiliary/json-docs-prototype.html)), this package includes several static library files, and applies default configuration settings that enable enhanced handling of `require`, `storage`, event handlers, and `remote` interfaces.
+In addition to the docs (generated from [`runtime-api.json`](https://lua-api.factorio.com/latest/auxiliary/json-docs-runtime.html) and [`prototype-api.json`](https://lua-api.factorio.com/latest/auxiliary/json-docs-prototype.html)), this package includes several static library files, and applies default configuration settings that enable enhanced handling of `require`, event handlers, and `remote` interfaces.
 
 ## API Type Definitions
 
