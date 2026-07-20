@@ -242,7 +242,7 @@ export class FactorioVersionSelector {
 			this.output.info(`Lua.workspace.checkThirdParty = ${checkThirdParty}`);
 		}
 
-		const manageLibraryDataLinks = factorioconfig.get("workspace.manageLibraryDataLinks", false);
+		const manageLibraryDataLinks = factorioconfig.get<boolean|null>("workspace.manageLibraryDataLinks");
 		const library = luaconfig.get<string[]>("workspace.library");
 		if (!library) {
 			this.output.warn(`Lua.workspace.library not present!`);
@@ -611,7 +611,7 @@ export class FactorioVersionSelector {
 			jsontext = applyEdits(jsontext, modify(jsontext, ["runtime", "version"], "Lua5.2", opts));
 			jsontext = applyEdits(jsontext, modify(jsontext, ["runtime", "requirePattern"], ["?", "?.lua"], opts));
 			const libpaths:(string|{path:string; ignoreDir?:string[]; ignoreGlobs?:string[]})[] = [ Utils.joinPath(emmylualib, "factorio", "library").fsPath ];
-			if (factorioconfig.get<boolean>("workspace.manageLibraryDataLinks") !== false) {
+			if (factorioconfig.get<boolean|null>("workspace.manageLibraryDataLinks") !== false) {
 				libpaths.push({
 					path: await activeVersion.dataPath(),
 					ignoreDir: [
@@ -710,7 +710,7 @@ export class FactorioVersionSelector {
 				await luaconfig.update("workspace.library", library);
 			}
 
-			if (factorioconfig.get("workspace.manageLibraryDataLinks")===true) {
+			if (factorioconfig.get<boolean|null>("workspace.manageLibraryDataLinks")) {
 				const newroot = URI.file(await activeVersion.dataPath());
 				await addLibraryPath(newroot);
 			}
