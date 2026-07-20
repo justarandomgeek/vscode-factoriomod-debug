@@ -41,7 +41,7 @@ require("__modname__.filename")
 ```
 Factorio also allows require paths with slashes, and replaces any file extension in them with `.lua`.
 
-The generated `.luarc.json` file has `moduleMap` and `requirePattern` configured to handle these variations. If your workspace is not the root `/mods` folder, you may want to add the `/mods` folder as a library path in `emmyrc.json` to allow resolving mod names.
+The generated `.luarc.json` file has `moduleMap` and `requirePattern` configured to handle these variations. If your workspace is not the root `/mods` folder, you may want to add the `/mods` folder as a library path in `.emmyrc.json` to allow resolving mod names.
 
 ### `storage`
 
