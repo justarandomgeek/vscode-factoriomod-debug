@@ -39,7 +39,7 @@ export function literalNode<T extends Literal&{value:string}>(
 	} as T;
 }
 
-type allParents<allNodesType> = Extends<allNodesType, Parent>;
+type allParents<allNodesType> = Extract<allNodesType, Parent>;
 
 export type parentOf<N extends Node, allNodesType> = {
 	[k in allParents<allNodesType> as k["type"]]: N extends k["children"][0] ? k : never;

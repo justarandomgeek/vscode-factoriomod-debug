@@ -1,5 +1,3 @@
-type Extends<T, X> = T extends X ? T : never;
-
 type ApiVersions = 6;
 
 interface BaseDocs<V extends ApiVersions = ApiVersions> {
