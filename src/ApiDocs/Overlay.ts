@@ -104,7 +104,7 @@ export const overlay:{
 				},
 			},
 			"LuaLazyLoadedValue": {
-				generic_params: [{name: "T"}],
+				generic_params: [{name: "T", default_: "Any"}],
 				methods: {
 					get: {
 						asfield: true,
@@ -120,7 +120,7 @@ export const overlay:{
 				},
 			},
 			"LuaCustomTable": {
-				generic_params: [{name: "K"}, {name: "V"}],
+				generic_params: [{name: "K", type: "string|uint32",  default_: "string|uint32"}, {name: "V", default_: "Any"}],
 				generic_parent: "table<K,V>",
 				no_index: true,
 				no_common_base: true,
