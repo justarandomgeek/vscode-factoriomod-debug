@@ -688,7 +688,7 @@
     "debuggers": [
       {
         "type": "factorio",
-        "label": "Factorio Debug Adapter Adapter",
+        "label": "Factorio Debug Adapter",
         "program": "factorio",
         "args": [
           "--dap"
