@@ -44,8 +44,8 @@
     "test": "c8 node --experimental-transform-types --test ./test/*.spec.ts"
   },
   "devDependencies": {
-    "@inquirer/input": "^5.0.13",
-    "@inquirer/password": "^5.0.13",
+    "@inquirer/input": "^5.1.2",
+    "@inquirer/password": "^5.1.1",
     "@stylistic/eslint-plugin": "^5.10.0",
     "@types/archiver": "^8.0.0",
     "@types/dateformat": "^5.0.3",
