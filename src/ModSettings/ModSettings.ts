@@ -34,11 +34,11 @@ export class ModSettings {
 			["runtime-per-user"]: {},
 		};
 		for (const scopename of ModSettingsScopeNames) {
-			const treescope = tree.value[scopename];
+			const treescope:PropertyTreeData = tree.value[scopename];
 			assert(treescope.type===PropertyTreeType.dictionary);
 			const loadingscope:ModSettingsScope = loading[scopename];
 			for (const key in treescope.value) {
-				const wrapper = treescope.value[key];
+				const wrapper:PropertyTreeData = treescope.value[key];
 				assert(wrapper.type===PropertyTreeType.dictionary);
 				const element = wrapper.value["value"];
 				switch (element.type) {
