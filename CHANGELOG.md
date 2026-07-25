@@ -6,6 +6,9 @@
 * Lua Library package:
   * *IMPORTANT* All sumneko/luals users should migrate to emmylua. Support for sumneko/luals will be dropped completely in a near future version, and may already be broken in some areas.
   * `factorio.workspace.manageLibraryDataLinks` now correctly defaults on for EmmyLua
+  * fixed generic args on `LuaLazyLoadedValue` and `LuaCustomTable`
+  * fixed `LuaObject` union resolving incorrectly
+  * removed `nil` from runtime `LocalisedString` (workaround for [emmylua#1195](https://github.com/EmmyLuaLs/emmylua-analyzer-rust/issues/1195))
 
 ## 2.1.6
 * Lua Library package:
