@@ -157,6 +157,7 @@ const configs:BuildOptions[] = [
 			"minimatch": "minimatch", // esm/cjs dupe. used as cjs by languageclient
 			"string_decoder": "string_decoder",
 			"safe-buffer": "safe-buffer",
+			"vscode-languageserver-textdocument": "vscode-languageserver-textdocument",
 		},
 		plugins: [
 			...commonConfig.plugins!,
