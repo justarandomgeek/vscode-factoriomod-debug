@@ -35,12 +35,9 @@
     "typecheck-watch": "tsc -p tsconfig.json --noEmit --watch",
     "esbuild": "node --experimental-transform-types ./build.ts",
     "watch": "npm run esbuild -- --watch",
-    "stats": "npm run esbuild -- --minify --meta && esbuild-visualizer --metadata ./out/meta.json --filename ./out/stats.html",
-    "vscode:prepublish": "npm run prepare",
-    "prepare": "rimraf dist && npm run esbuild -- --minify",
-    "package": "vsce package",
-    "publish-vscode": "vsce publish",
-    "publish-vscode-prerelease": "vsce publish --pre-release",
+    "stats": "esbuild-visualizer --metadata ./out/meta.json --filename ./out/stats.html",
+    "vscode:prepublish": "rimraf dist && npm run esbuild -- --minify --meta && npm run stats",
+    "prepack": "vsce pack",
     "test": "c8 node --experimental-transform-types --test ./test/*.spec.ts"
   },
   "devDependencies": {
