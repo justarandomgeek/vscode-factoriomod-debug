@@ -71,7 +71,7 @@ export const overlay:{
 						generic_params: [
 							{name: "I", type: "(keyof LuaRemote.InterfaceMap)|string"},
 							{name: "F", type: "I extends keyof LuaRemote.InterfaceMap and keyof LuaRemote.InterfaceMap[I] or string"},
-							{name: "FF", type: "I extends keyof LuaRemote.InterfaceMap and LuaRemote.InterfaceMap[I][F] or (fun(...:Any):Any...)"},
+							{name: "FF", type: "I extends keyof LuaRemote.InterfaceMap and LuaRemote.InterfaceMap[I][F] or (fun(...:Any?):Any?...)"},
 						],
 						parameters: [
 							{
