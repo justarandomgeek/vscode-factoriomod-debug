@@ -158,7 +158,15 @@ program.command("publish")
 				config.movedToCommitMessage.replace(/\$VERSION/g, newinfo.version).replace(/\$MODNAME/g, newinfo.name));
 
 			if (!info.package?.no_git_push) {
-				const upstream:string|undefined = await new Promise((resolve)=>{
+				const pushDefault:string|undefined = await new Promise((resolve)=>{
+					exec(`git config remote.pushDefault`, (error, stdout)=>{
+						if (error && error.code !== 0) {
+							resolve(undefined);
+						}
+						resolve(stdout.trim());
+					});
+				});
+				const branchRemote:string|undefined = await new Promise((resolve)=>{
 					exec(`git config branch.${branchname}.remote`, (error, stdout)=>{
 						if (error && error.code !== 0) {
 							resolve(undefined);
@@ -166,6 +174,15 @@ program.command("publish")
 						resolve(stdout.trim());
 					});
 				});
+				const branchPushRemote:string|undefined = await new Promise((resolve)=>{
+					exec(`git config branch.${branchname}.pushRemote`, (error, stdout)=>{
+						if (error && error.code !== 0) {
+							resolve(undefined);
+						}
+						resolve(stdout.trim());
+					});
+				});
+				const upstream = branchPushRemote ?? pushDefault ?? branchRemote;
 				if (upstream) {
 					await runPackageGitCommand(`push ${upstream} ${branchname!} ${tagname ?? ""}`);
 				} else {
