@@ -7,6 +7,6 @@ plan:
       npm install --offline
       npm pack
       npm run test
-      cp *.tgz /ci/artifacts/npm/
-      cp *.vsix /ci/artifacts/vsce/
+      cp ./*.tgz /ci/artifacts/npm/
+      cp ./*.vsix /ci/artifacts/vsce/
       cp out/meta.json out/stats.html coverage /ci/artifacts/
