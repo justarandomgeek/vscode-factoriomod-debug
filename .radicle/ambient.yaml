@@ -10,3 +10,4 @@ plan:
       cp ./*.tgz /ci/artifacts/npm/
       cp ./*.vsix /ci/artifacts/vsce/
       cp out/meta.json out/stats.html coverage /ci/artifacts/
+
