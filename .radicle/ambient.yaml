@@ -6,9 +6,17 @@ plan:
       for f in /ci/deps/npm/*.tgz; do
         [ -e "$f" ] && npm cache add "$f"
       done
+  - action: shell
+    shell: |
       npm install --offline
+  - action: shell
+    shell: |
       npm pack
+  - action: shell
+    shell: |
       npm run test
+  - action: shell
+    shell: |
       cp ./*.tgz /ci/artifacts/npm/
       cp ./*.vsix /ci/artifacts/vsce/
       cp out/meta.json out/stats.html coverage /ci/artifacts/
