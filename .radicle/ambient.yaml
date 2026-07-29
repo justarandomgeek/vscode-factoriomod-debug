@@ -3,7 +3,9 @@ pre_plan:
 plan:
   - action: shell
     shell: |
-      npm cache add /ci/deps/npm/*.tgz
+      for f in /ci/deps/npm/*.tgz; do
+        [ -e "$f" ] && npm cache add "$f"
+      done
       npm install --offline
       npm pack
       npm run test
