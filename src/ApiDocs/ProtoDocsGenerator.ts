@@ -192,7 +192,7 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 	public nameFor(type:string) {
 		const p = this.docs.prototypes.find(p=>p.typename===type);
 		if (p) {
-			return new LuaLSTypeName(p.name.replace(/(Prototype)?$/, "Name"));
+			return new LuaLSTypeName("data."+p.name.replace(/(Prototype)?$/, "Name"));
 		}
 		throw new Error(`no type for '${type}'`);
 	}
