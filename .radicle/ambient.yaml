@@ -3,10 +3,9 @@ pre_plan:
 plan:
   - action: shell
     shell: |
-      ls /ci/deps/npm
-  - action: shell
-    shell: |
-      for f in /ci/deps/npm/*.tgz; do [ -e "$f" ] && npm cache add "$f"; done
+      find /ci/deps/npm/ -name "*.tgz" -type f -print0 | while IFS= read -r -d '' file; do
+        npm cache add "$file"
+      done
   - action: shell
     shell: |
       npm install --offline
