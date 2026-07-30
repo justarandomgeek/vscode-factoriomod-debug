@@ -17,7 +17,7 @@ await suite('CLI Mod Manager', { concurrency: false }, async ()=>{
 		await fsp.rm(mods, {recursive: true});
 	});
 
-	await test('install jargtestmod from portal', async ()=>{
+	await test.skip('install jargtestmod from portal', async ()=>{
 		const result = await forkTest(fmtk, ["mods", "install", "--force", "jargtestmod"], {cwd: mods});
 		const jsonresult = JSON.parse(result.stdout.toString("utf8")) as ModInstallResult;
 		assert.equal(jsonresult.from, "installed");

@@ -1,22 +1,27 @@
 pre_plan:
   - action: npm_get
+  - action: http_get
+    items:
+    - url: https://nodejs.org/download/release/v24.18.1/node-v24.18.1-linux-x64.tar.xz
+      filename: node.tar.xz
 plan:
   - action: shell
     shell: |
-      find /ci/deps/npm/ -name "*.tgz" -type f -print0 | while IFS= read -r -d '' file; do
-        npm cache add "$file"
-      done
+      tar xJf /ci/deps/node.tar.xz -C /usr/local --strip-components=1
   - action: shell
     shell: |
+      find /ci/deps/npm/ -name "*.tgz" -type f -exec npm cache add {} \;
       npm install --offline
   - action: shell
     shell: |
       npm pack
-  - action: shell
-    shell: |
       npm run test
   - action: shell
     shell: |
+      mkdir /ci/artifacts/npm
       cp ./*.tgz /ci/artifacts/npm/
+      mkdir /ci/artifacts/vsce
       cp ./*.vsix /ci/artifacts/vsce/
-      cp out/meta.json out/stats.html coverage /ci/artifacts/
+      cp out/meta.json out/stats.html /ci/artifacts/
+      cp -r coverage/lcov-report /ci/artifacts/lcov-report
+

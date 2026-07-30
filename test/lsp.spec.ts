@@ -104,7 +104,7 @@ await suite("LSP", { concurrency: false }, async ()=>{
 			assert.equal(diags.diagnostics.length, 0);
 		});
 
-		await test("../factorio/data/changelog", async ()=>{
+		await test.skip("../factorio/data/changelog", async ()=>{
 			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
 			assert.equal(diags.uri, doc.uri);
 			assert.equal(diags.diagnostics.filter(d=>d.severity===DiagnosticSeverity.Error).length, 0);

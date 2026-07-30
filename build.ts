@@ -241,7 +241,7 @@ await program
 						}
 					}
 				}
-
+				await fsp.mkdir("./out", { recursive: true });
 				await fsp.writeFile(`./out/meta.json`, JSON.stringify(merged));
 			}
 		}
