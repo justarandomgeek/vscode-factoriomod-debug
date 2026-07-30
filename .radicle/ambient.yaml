@@ -16,12 +16,13 @@ plan:
       npm install --offline
   - action: shell
     shell: |
+      npm version "$(jq -r .version package.json | cut -d- -f1)-$(git describe --long | cut -d- -f3)" --git-tag-version=false --allow-same-version
+  - action: shell
+    shell: |
       npm pack
   - action: shell
     shell: |
       tar xJf /ci/deps/factorio.tar.xz -C ./test
-  - action: shell
-    shell: |
       ./test/factorio/bin/x64/factorio --dump-data
   - action: shell
     shell: |
