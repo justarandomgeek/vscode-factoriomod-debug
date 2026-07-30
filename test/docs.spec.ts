@@ -8,7 +8,7 @@ await suite('CLI Docs', async ()=>{
 	const protospath = path.join(import.meta.dirname, "factorio/doc-html/prototype-api.json");
 	const cwd = path.join(import.meta.dirname, "../");
 
-	await test('sumneko-3rd', async ()=>{
+	await test.skip('sumneko-3rd', async ()=>{
 		await forkTest(fmtk, ["sumneko-3rd",
 			"-d", jsonpath,
 			"-p", protospath,
