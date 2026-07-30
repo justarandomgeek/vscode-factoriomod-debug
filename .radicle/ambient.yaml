@@ -4,7 +4,7 @@ pre_plan:
     items:
     - url: https://nodejs.org/download/release/v24.18.1/node-v24.18.1-linux-x64.tar.xz
       filename: node.tar.xz
-    - url: https://factorio.com/get-download/stable/headless/linux64
+    - url: https://factorio.com/get-download/experimental/headless/linux64
       filename: factorio.tar.xz
 plan:
   - action: shell
