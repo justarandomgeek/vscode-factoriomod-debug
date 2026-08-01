@@ -4,9 +4,10 @@
 
 ## 2.1.8
 * Mod Manager
-  * Better match git's config search for upstream remote in `publish` action, use pushDefault if set
+  * Better match git's config search for upstream remote in `publish` action, use pushDefault, pushRemote if set
 * Lua Library package
-  * Fixed `data.ThingName` types being referenced without namespace
+  * *IMPORTANT* All sumneko/luals users should migrate to emmylua. Support for sumneko/luals will be dropped completely in a near future version, and may already be broken in some areas.
+  * Fixed `data.ThingName` types being referenced without namespace by some runtime types
 
 ## 2.1.7
 * Lua Library package:
