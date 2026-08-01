@@ -14,6 +14,7 @@ coverage
 **/*.css.map
 node_modules
 build.ts
+release.sh
 todo
 .github
 **/*.pdn
