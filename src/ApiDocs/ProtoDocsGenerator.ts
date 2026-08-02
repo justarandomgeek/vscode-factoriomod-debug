@@ -10,12 +10,17 @@ export class ProtoDocGenerator<V extends ProtoVersions = ProtoVersions> {
 
 	private readonly namespace = "data";
 
+	private readonly settingsdump?:any;
+	private readonly protosdump?:any;
+
 	constructor(
 		docjson:string,
-		private readonly settingsdump?:any,
-		private readonly protosdump?:any
+		settingsdump?:any,
+		protosdump?:any
 	) {
 		this.docs = JSON.parse(docjson);
+		this.settingsdump = settingsdump;
+		this.protosdump = protosdump;
 
 		if (this.docs.application !== "factorio") {
 			throw new Error(`Unknown application: ${this.docs.application}`);

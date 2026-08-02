@@ -9,10 +9,14 @@ import { getNonce } from "../Util/WebviewNonce";
 import html from "./ModSettingsWebview.html";
 
 export class ModSettingsEditorProvider implements vscode.CustomEditorProvider<ModSettingsDocument> {
+	private readonly context:vscode.ExtensionContext;
+	private readonly webviews = new Map<string, vscode.WebviewPanel>();
 
-	constructor(
-		private readonly context:vscode.ExtensionContext
-	) {
+	private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<vscode.CustomDocumentContentChangeEvent<ModSettingsDocument>>();
+	public readonly onDidChangeCustomDocument = this._onDidChangeCustomDocument.event;
+
+	constructor(context:vscode.ExtensionContext) {
+		this.context = context;
 		this.context.subscriptions.push(vscode.window.registerCustomEditorProvider("fmtk.modsettings", this, {
 			supportsMultipleEditorsPerDocument: false,
 			webviewOptions: {
@@ -20,12 +24,6 @@ export class ModSettingsEditorProvider implements vscode.CustomEditorProvider<Mo
 			},
 		}));
 	}
-
-	private readonly webviews = new Map<string, vscode.WebviewPanel>();
-
-	private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<vscode.CustomDocumentContentChangeEvent<ModSettingsDocument>>();
-	public readonly onDidChangeCustomDocument = this._onDidChangeCustomDocument.event;
-
 
 	async saveCustomDocument(document: ModSettingsDocument, cancellation: vscode.CancellationToken) {
 		return document.save(cancellation);
@@ -122,15 +120,13 @@ export class ModSettingsDocument implements vscode.CustomDocument {
 		return new ModSettingsDocument(uri, content);
 	}
 
+	public readonly uri: vscode.Uri;
 	private _settings:ModSettings;
 
-	private constructor(
-		readonly uri: vscode.Uri,
-		_content:Uint8Array,
-	) {
+	private constructor(uri: vscode.Uri, _content:Uint8Array) {
+		this.uri = uri;
 		this._settings = new ModSettings(new BufferStream(_content));
 	}
-
 
 	public get version() : string {
 		return this._settings.version.format();

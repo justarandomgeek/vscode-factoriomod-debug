@@ -18,9 +18,9 @@ const fsAccessor:  Pick<FileSystem, "readFile"|"writeFile"|"stat"> = {
 		return {
 			size: stat.size,
 			// eslint-disable-next-line no-bitwise
-			type: (stat.isFile() ? <FileType>1 : 0) |
-				(stat.isDirectory() ? <FileType>2 : 0) |
-				(stat.isSymbolicLink() ? <FileType>64 : 0),
+			type: (stat.isFile() ? 1 as FileType : 0) |
+				(stat.isDirectory() ? 2 as FileType : 0) |
+				(stat.isSymbolicLink() ? 64 as FileType : 0),
 			ctime: stat.ctime.valueOf(),
 			mtime: stat.mtime.valueOf(),
 		};

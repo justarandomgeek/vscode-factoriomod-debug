@@ -46,9 +46,9 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 class FactorioDebugProvider implements vscode.DebugConfigurationProvider, vscode.DebugAdapterDescriptorFactory {
-	constructor(
-		private readonly versionSelector: FactorioVersionSelector,
-	) {
+	private readonly versionSelector: FactorioVersionSelector;
+	constructor(versionSelector: FactorioVersionSelector) {
+		this.versionSelector = versionSelector;
 		this.disposables.push(vscode.debug.onDidReceiveDebugSessionCustomEvent(async (e)=>{
 			if (e.session.type === "factorio") {
 				switch (e.event) {

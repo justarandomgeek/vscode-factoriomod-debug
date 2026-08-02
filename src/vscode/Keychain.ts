@@ -1,12 +1,10 @@
 import * as vscode from 'vscode';
 
 export class Keychain {
-	constructor(
-		private readonly secrets: vscode.SecretStorage
-	) {
-
+	private readonly secrets: vscode.SecretStorage;
+	constructor(secrets: vscode.SecretStorage) {
+		this.secrets = secrets;
 	}
-
 
 	public async ReadyAPIKey(setnew?:boolean) {
 		if (process.env["FACTORIO_UPLOAD_API_KEY"]) { return {from: "env"}; }

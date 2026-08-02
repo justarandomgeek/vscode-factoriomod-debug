@@ -1,11 +1,16 @@
 export class MapVersion {
-	constructor(
-		public readonly main:number,
-		public readonly major:number,
-		public readonly minor:number,
-		public readonly patch:number,
-		public readonly branch:number,
-	) {}
+	public readonly main:number;
+	public readonly major:number;
+	public readonly minor:number;
+	public readonly patch:number;
+	public readonly branch:number;
+	constructor(main:number, major:number, minor:number, patch:number, branch:number) {
+		this.main = main;
+		this.major = major;
+		this.minor = minor;
+		this.patch = patch;
+		this.branch = branch;
+	}
 
 	static load(b:Buffer) {
 		const main = b.readUInt16LE(0);

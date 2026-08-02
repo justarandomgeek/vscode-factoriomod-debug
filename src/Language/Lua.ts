@@ -5,9 +5,10 @@ import type { TextDocument } from 'vscode-languageserver-textdocument';
 import type { LocaleLanguageService } from './Locale';
 
 export class LuaLanguageService {
-	constructor(
-		private readonly Locale:LocaleLanguageService
-	) {}
+	private readonly Locale:LocaleLanguageService;
+	constructor(Locale:LocaleLanguageService) {
+		this.Locale = Locale;
+	}
 
 	public onDefinition(request:DefinitionParams, doc:TextDocument) {
 		const line = doc.getText({

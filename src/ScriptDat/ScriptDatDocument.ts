@@ -11,12 +11,11 @@ export class ScriptDatDocument implements vscode.CustomDocument {
 		return new ScriptDatDocument(uri, content);
 	}
 
+	public readonly uri: vscode.Uri;
 	private _data: ScriptDat;
 
-	private constructor(
-		readonly uri: vscode.Uri,
-		_content: Uint8Array
-	) {
+	private constructor(uri: vscode.Uri, _content: Uint8Array) {
+		this.uri = uri;
 		this._data = new ScriptDat(new BufferStream(_content));
 	}
 

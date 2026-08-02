@@ -60,12 +60,15 @@ export function substitutePathVariables(aPath:string, workspaceFolders?:readonly
 }
 
 export class ActiveFactorioVersion {
-	constructor(
-		private readonly fs: Pick<vscode.FileSystem, "readFile"|"writeFile"|"stat">,
-		private readonly fv:FactorioVersion,
-		public readonly docs:ApiDocGenerator,
-		private readonly workspaceFolders?: readonly {readonly uri:URI}[],
-	) {
+	private readonly fs: Pick<vscode.FileSystem, "readFile"|"writeFile"|"stat">;
+	private readonly fv:FactorioVersion;
+	public readonly docs:ApiDocGenerator;
+	private readonly workspaceFolders?: readonly {readonly uri:URI}[];
+	constructor(fs: Pick<vscode.FileSystem, "readFile"|"writeFile"|"stat">, fv:FactorioVersion, docs:ApiDocGenerator, workspaceFolders?: readonly {readonly uri:URI}[]) {
+		this.fs = fs;
+		this.fv = fv;
+		this.docs = docs;
+		this.workspaceFolders = workspaceFolders;
 	}
 
 	public async getBinaryVersion():Promise<string> {

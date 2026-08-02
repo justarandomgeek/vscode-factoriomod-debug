@@ -92,11 +92,12 @@ export async function getModInfo(name:string, full?:boolean):Promise<ModPortalRe
 export class ModManager {
 	private modList:ModList = { mods: [] };
 
+	private readonly modsPath:string;
+	private readonly playerdataPath?:string;
 	public readonly Loaded:Promise<void>;
-	constructor(
-		private readonly modsPath:string,
-		private readonly playerdataPath?:string,
-	) {
+	constructor(modsPath:string, playerdataPath?:string) {
+		this.modsPath = modsPath;
+		this.playerdataPath = playerdataPath;
 		this.Loaded = this.reload();
 	}
 
@@ -141,7 +142,7 @@ export class ModManager {
 		});
 		if (!login_result.ok) { throw new Error(login_result.statusText); }
 
-		const login_json = <{username:string; token:string}>(await login_result.json());
+		const login_json = await login_result.json() as {username:string; token:string};
 
 		if (playerdata) {
 			playerdata['service-username'] = login_json.username;

@@ -193,7 +193,7 @@ await suite("LSP", { concurrency: false }, async ()=>{
 			assert.equal(diags.uri, doc.uri);
 			assert.equal(diags.diagnostics.length, 0);
 
-			const symbols = <DocumentSymbol[]> await clientConnection.sendRequest(DocumentSymbolRequest.type, { textDocument: docItem(doc) } as DocumentSymbolParams);
+			const symbols = await clientConnection.sendRequest(DocumentSymbolRequest.type, { textDocument: docItem(doc) } as DocumentSymbolParams) as DocumentSymbol[];
 			assert.equal(symbols.length, 4);
 			for (const symbol of symbols) {
 				assert.equal(symbol.detail, '');

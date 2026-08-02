@@ -18,13 +18,19 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 	private readonly defines:Set<string>;
 
+	private readonly pdocs?:ProtoDocGenerator<V>;
+	private readonly settingsdump?:any;
+	private readonly protosdump?:any;
 	constructor(
 		docjson:string,
-		private readonly pdocs?:ProtoDocGenerator<V>,
-		private readonly settingsdump?:any,
-		private readonly protosdump?:any
+		pdocs?:ProtoDocGenerator<V>,
+		settingsdump?:any,
+		protosdump?:any
 	) {
 		this.docs = JSON.parse(docjson);
+		this.pdocs = pdocs;
+		this.settingsdump = settingsdump;
+		this.protosdump = protosdump;
 
 		if (this.docs.application !== "factorio") {
 			throw new Error(`Unknown application: ${this.docs.application as string}`);
@@ -289,7 +295,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 					break;
 				}
 				default:
-					throw new Error(`Unkown operator: ${(<ApiOperator>operator).name}`);
+					throw new Error(`Unkown operator: ${(operator as ApiOperator).name}`);
 			}
 		}
 

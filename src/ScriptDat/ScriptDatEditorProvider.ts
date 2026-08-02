@@ -7,10 +7,11 @@ import html from "./ScriptDatWebview.html";
 import { ScriptDatDocument } from "./ScriptDatDocument";
 
 export class ScriptDatEditorProvider implements vscode.CustomReadonlyEditorProvider<ScriptDatDocument> {
+	private readonly context:vscode.ExtensionContext;
+	private readonly webviews = new Map<string, vscode.WebviewPanel>();
 
-	constructor(
-		private readonly context:vscode.ExtensionContext
-	) {
+	constructor(context:vscode.ExtensionContext) {
+		this.context = context;
 		this.context.subscriptions.push(vscode.window.registerCustomEditorProvider("fmtk.scriptdat", this, {
 			supportsMultipleEditorsPerDocument: false,
 			webviewOptions: {
@@ -18,8 +19,6 @@ export class ScriptDatEditorProvider implements vscode.CustomReadonlyEditorProvi
 			},
 		}));
 	}
-
-	private readonly webviews = new Map<string, vscode.WebviewPanel>();
 
 	private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<vscode.CustomDocumentContentChangeEvent<ScriptDatDocument>>();
 	public readonly onDidChangeCustomDocument = this._onDidChangeCustomDocument.event;

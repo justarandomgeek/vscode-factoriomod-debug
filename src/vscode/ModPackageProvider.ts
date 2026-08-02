@@ -104,11 +104,12 @@ export async function activateModPackageProvider(context:vscode.ExtensionContext
 }
 
 class ModTaskProvider implements vscode.TaskProvider {
-	constructor(
-		private readonly context:vscode.ExtensionContext,
-		private readonly modPackages: Map<string, ModPackage>
-	) {}
-
+	private readonly context:vscode.ExtensionContext;
+	private readonly modPackages: Map<string, ModPackage>;
+	constructor(context:vscode.ExtensionContext, modPackages: Map<string, ModPackage>) {
+		this.context = context;
+		this.modPackages = modPackages;
+	}
 
 	provideTasks(token?: vscode.CancellationToken): vscode.ProviderResult<vscode.Task[]> {
 		const tasks:vscode.Task[] = [];
@@ -177,7 +178,7 @@ class ModTaskProvider implements vscode.TaskProvider {
 			if (!task.definition.modsPath) {
 				return this.ConfigErrorTask(task.definition, "missing `modsPath`");
 			}
-			return this.AdjustModsTask(<AdjustModsDefinition>task.definition);
+			return this.AdjustModsTask(task.definition as AdjustModsDefinition);
 		}
 
 		if (!task.definition.modname) {
@@ -275,15 +276,22 @@ class ModTaskProvider implements vscode.TaskProvider {
 }
 
 class ModPackage extends vscode.TreeItem {
-	constructor(
-		public readonly resourceUri: vscode.Uri,
-		private modinfo: ModInfo,
-		private readonly keychain: Keychain,
-		private readonly context:vscode.ExtensionContext,
-		private readonly _onDidChange: (mp:ModPackage)=>void,
-		private readonly gitapi:GitAPI|undefined
-	) {
+	public readonly resourceUri: vscode.Uri;
+	private modinfo: ModInfo;
+	private readonly keychain: Keychain;
+	private readonly context:vscode.ExtensionContext;
+	private readonly _onDidChange: (mp:ModPackage)=>void;
+	private readonly gitapi?:GitAPI;
+	constructor(resourceUri: vscode.Uri, modinfo: ModInfo, keychain: Keychain, context:vscode.ExtensionContext,
+		_onDidChange: (mp:ModPackage)=>void, gitapi?:GitAPI) {
 		super(resourceUri);
+		this.resourceUri = resourceUri;
+		this.modinfo = modinfo;
+		this.keychain = keychain;
+		this.context = context;
+		this._onDidChange = _onDidChange;
+		this.gitapi = gitapi;
+
 		this.command = {
 			title: 'Open',
 			command: 'vscode.open',
@@ -513,16 +521,20 @@ class ModPackage extends vscode.TreeItem {
 	}
 }
 class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>, vscode.Disposable {
+	private readonly context:vscode.ExtensionContext;
+	private readonly keychain:Keychain;
+	private readonly gitapi?:GitAPI;
+
 	private readonly _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | undefined> = new vscode.EventEmitter<vscode.TreeItem | undefined>();
 	readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | undefined> = this._onDidChangeTreeData.event;
 
 	private readonly modPackages: Map<string, ModPackage>;
 	private readonly subscriptions:{dispose():void}[] = [this._onDidChangeTreeData];
-	constructor(
-		private readonly context:vscode.ExtensionContext,
-		private readonly keychain:Keychain,
-		private readonly gitapi:GitAPI|undefined
-	) {
+
+	constructor(context:vscode.ExtensionContext, keychain:Keychain, gitapi?:GitAPI) {
+		this.context = context;
+		this.keychain = keychain;
+		this.gitapi = gitapi;
 		this.modPackages = new Map<string, ModPackage>();
 		vscode.workspace.findFiles('**/info.json').then(infos=>{ infos.forEach((uri)=>void this.updateInfoJson(uri)); });
 		const infoWatcher = vscode.workspace.createFileSystemWatcher('**/info.json');
@@ -758,8 +770,11 @@ class ModTaskPseudoterminal implements vscode.Pseudoterminal {
 	onDidClose?: vscode.Event<void> = this.closeEmitter.event;
 	private readonly tokensource = new vscode.CancellationTokenSource();
 
-	constructor(private readonly runner:(term:ModTaskTerminal, token?:vscode.CancellationToken)=>void|Promise<void>) {}
+	private readonly runner:(term:ModTaskTerminal, token?:vscode.CancellationToken)=>void|Promise<void>;
 
+	constructor(runner:(term:ModTaskTerminal, token?:vscode.CancellationToken)=>void|Promise<void>) {
+		this.runner = runner;
+	}
 
 	open(initialDimensions: vscode.TerminalDimensions | undefined) {
 		const writeEmitter = this.writeEmitter;

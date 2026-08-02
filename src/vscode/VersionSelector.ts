@@ -38,11 +38,20 @@ const emmylua_ids = [
 export class FactorioVersionSelector {
 	private readonly bar:vscode.StatusBarItem;
 
+
+	private context:vscode.ExtensionContext;
+	private output:vscode.LogOutputChannel;
+	private fsprovider:FSProvider;
+
 	constructor(
-		private context:vscode.ExtensionContext,
-		private output:vscode.LogOutputChannel,
-		private fsprovider:FSProvider
+		context:vscode.ExtensionContext,
+		output:vscode.LogOutputChannel,
+		fsprovider:FSProvider
 	) {
+		this.context = context;
+		this.output = output;
+		this.fsprovider = fsprovider;
+
 		this.bar = vscode.window.createStatusBarItem("factorio-version", vscode.StatusBarAlignment.Left, 10);
 		this.bar.name = "Factorio Version Selector";
 		this.bar.text = "Factorio (unselected)";

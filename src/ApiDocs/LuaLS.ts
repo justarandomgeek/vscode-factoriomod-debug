@@ -26,14 +26,19 @@ async function comment_description(output:Writable, description?:Description) {
 }
 
 export class LuaLSFile {
-	constructor(
-		public readonly name:string,
-		public readonly app_version:string,
-		public readonly namespace?:string,
-		public readonly meta:string = "_",
-	) {}
+	public readonly name:string;
+	public readonly app_version:string;
+	public readonly namespace?:string;
+	public readonly meta:string;
 
 	private members?:(LuaLSFunction|LuaLSClass|LuaLSAlias|LuaLSEnum)[];
+
+	constructor(name:string, app_version:string, namespace?:string, meta:string = "_") {
+		this.name = name;
+		this.app_version = app_version;
+		this.namespace = namespace;
+		this.meta = meta;
+	}
 
 	add(member:LuaLSFunction|LuaLSClass|LuaLSAlias|LuaLSEnum) {
 		if (!this.members) {
@@ -70,10 +75,12 @@ export class LuaLSFile {
 export type LuaLSType = LuaLSTypeName|LuaLSClass|LuaLSLiteral|LuaLSFunction|LuaLSDict|LuaLSTuple|LuaLSArray|LuaLSUnion;
 
 export class LuaLSTypeName {
-	constructor(
-		public readonly inner:string|(LuaLSType&{name:string})|LuaLSAlias,
-		public readonly generic_args?:LuaLSType[]
-	) {}
+	public readonly inner:string|(LuaLSType&{name:string})|LuaLSAlias;
+	public readonly generic_args?:LuaLSType[];
+	constructor(inner:string|(LuaLSType&{name:string})|LuaLSAlias, generic_args?:LuaLSType[]) {
+		this.inner = inner;
+		this.generic_args = generic_args;
+	}
 
 	public get name() : string {
 		if (typeof this.inner === "string") {
@@ -81,7 +88,6 @@ export class LuaLSTypeName {
 		}
 		return this.inner.name;
 	}
-
 
 	format():string {
 		if (this.generic_args) {
@@ -92,9 +98,11 @@ export class LuaLSTypeName {
 }
 
 export class LuaLSLiteral {
-	constructor(
-		public readonly value:string|number|boolean,
-	) {}
+	public readonly value:string|number|boolean;
+	constructor(value:string|number|boolean) {
+		this.value = value;
+	}
+
 	format() {
 		switch (typeof this.value) {
 			case "string":
@@ -111,10 +119,12 @@ export class LuaLSLiteral {
 }
 
 export class LuaLSDict {
-	constructor(
-		public readonly key:LuaLSType,
-		public readonly value:LuaLSType,
-	) {}
+	public readonly key:LuaLSType;
+	public readonly value:LuaLSType;
+	constructor(key:LuaLSType, value:LuaLSType) {
+		this.key = key;
+		this.value = value;
+	}
 
 	format():string {
 		return `table<${this.key.format()},${this.value.format()}>`;
@@ -122,9 +132,10 @@ export class LuaLSDict {
 }
 
 export class LuaLSArray {
-	constructor(
-		public readonly member:LuaLSType,
-	) {}
+	public readonly member:LuaLSType;
+	constructor(member:LuaLSType) {
+		this.member = member;
+	}
 
 	format():string {
 		return `(${this.member.format()})[]`;
@@ -132,9 +143,10 @@ export class LuaLSArray {
 }
 
 export class LuaLSTuple {
-	constructor(
-		public readonly members:ReadonlyArray<LuaLSType>,
-	) {}
+	public readonly members:ReadonlyArray<LuaLSType>;
+	constructor(members:ReadonlyArray<LuaLSType>) {
+		this.members = members;
+	}
 
 	format():string {
 		return `[${this.members.map((m)=>`${m.format()}`).join(", ")}]`;
@@ -142,9 +154,10 @@ export class LuaLSTuple {
 }
 
 export class LuaLSUnion {
-	constructor(
-		public readonly members:ReadonlyArray<LuaLSType>,
-	) {}
+	public readonly members:ReadonlyArray<LuaLSType>;
+	constructor(members:ReadonlyArray<LuaLSType>) {
+		this.members = members;
+	}
 
 	format():string {
 		return this.members.map(m=>`(${m.format()})`).join("|");
@@ -152,11 +165,14 @@ export class LuaLSUnion {
 }
 
 export class LuaLSAlias {
-	constructor(
-		public readonly name:string,
-		public readonly type:LuaLSType,
-		public readonly description?:Description,
-	) {}
+	public readonly name:string;
+	public readonly type:LuaLSType;
+	public readonly description?:Description;
+	constructor(name:string, type:LuaLSType, description?:Description) {
+		this.name = name;
+		this.type = type;
+		this.description = description;
+	}
 
 	async write(output:Writable) {
 		await comment_description(output, this.description);
@@ -165,16 +181,20 @@ export class LuaLSAlias {
 }
 
 export class LuaLSEnum {
-	constructor(
-		public readonly name:string,
-		public readonly type_name:string,
-		public readonly fields:ReadonlyArray<LuaLSEnumField>,
-		public readonly description?:Description,
-	) {}
+	public readonly name:string;
+	public readonly typename:string;
+	public readonly fields:ReadonlyArray<LuaLSEnumField>;
+	public readonly description?:Description;
+	constructor(name:string, typename:string, fields:ReadonlyArray<LuaLSEnumField>, description?:Description) {
+		this.name = name;
+		this.typename = typename;
+		this.fields = fields;
+		this.description = description;
+	}
 
 	async write(output:Writable) {
 		await comment_description(output, this.description);
-		output.write(`---@enum ${this.type_name}\n`);
+		output.write(`---@enum ${this.typename}\n`);
 
 		output.write(`${this.name}={\n`);
 		for (const field of this.fields) {
@@ -185,12 +205,16 @@ export class LuaLSEnum {
 }
 
 export class LuaLSEnumField {
-	constructor(
-		public readonly name:string,
-		public readonly typename:LuaLSTypeName,
-		public readonly description?:Description,
-		public readonly value?:LuaLSLiteral,
-	) {}
+	public readonly name:string;
+	public readonly typename:LuaLSTypeName;
+	public readonly description?:Description;
+	public readonly value?:LuaLSLiteral;
+	constructor(name:string, typename:LuaLSTypeName, description?:Description, value?:LuaLSLiteral) {
+		this.name = name;
+		this.typename = typename;
+		this.description = description;
+		this.value = value;
+	}
 
 	async write(output:Writable) {
 		await comment_description(output, this.description);
@@ -205,11 +229,14 @@ export class LuaLSEnumField {
 }
 
 export class LuaLSGeneric {
-	constructor(
-		public readonly name:string,
-		public readonly type?:LuaLSType,
-		public readonly default_?:string,
-	) {}
+	public readonly name:string;
+	public readonly type?:LuaLSType;
+	public readonly default_type?:string;
+	constructor(name:string, type?:LuaLSType, default_type?:string) {
+		this.name = name;
+		this.type = type;
+		this.default_type = default_type;
+	}
 
 	write(output:Writable) {
 		output.write(this.format());
@@ -220,17 +247,18 @@ export class LuaLSGeneric {
 		if (this.type) {
 			result+=`: ${this.type.format()}`;
 		}
-		if (this.default_) {
-			result+=` = ${this.default_}`;
+		if (this.default_type) {
+			result+=` = ${this.default_type}`;
 		}
 		return result;
 	}
 }
 
 export class LuaLSGenericList {
-	constructor(
-		public readonly params:LuaLSGeneric[],
-	) {}
+	public readonly params:LuaLSGeneric[];
+	constructor(params:LuaLSGeneric[]) {
+		this.params = params;
+	}
 
 	write(output:Writable) {
 		output.write(`---@generic `);
@@ -250,20 +278,22 @@ export class LuaLSGenericList {
 }
 
 export class LuaLSClass {
-	constructor(
-		public name:string,
-	) {}
-	description?:Description;
-	parents?:LuaLSType[];
-	generic_args?:LuaLSGenericList;
-	global_name?:string;
-	flavor?:"exact"|"partial";
+	public name:string;
+	public description?:Description;
+	public parents?:LuaLSType[];
+	public generic_args?:LuaLSGenericList;
+	public global_name?:string;
+	public flavor?:"exact"|"partial";
 
 	private operators?:LuaLSOperator[];
 	private call_op?:LuaLSOverload[];
 
 	private fields?:LuaLSField[];
 	private functions?:LuaLSFunction[];
+
+	constructor(name:string) {
+		this.name = name;
+	}
 
 	add(member:LuaLSOperator|LuaLSOverload|LuaLSField|LuaLSFunction) {
 		if (member instanceof LuaLSOperator) {
@@ -363,13 +393,16 @@ export class LuaLSClass {
 }
 
 export class LuaLSOperator {
-	constructor(
-		public readonly name:"len",
-		public readonly type:LuaLSType,
-		public readonly input_type?:LuaLSType,
-	) {}
+	public readonly name:"len";
+	public readonly type:LuaLSType;
+	public readonly input_type?:LuaLSType;
+	public description?:Description;
 
-	description?:Description;
+	constructor(name:"len", type:LuaLSType, input_type?:LuaLSType) {
+		this.name = name;
+		this.type = type;
+		this.input_type = input_type;
+	}
 
 	async write(output:Writable) {
 		await comment_description(output, this.description);
@@ -385,12 +418,16 @@ export class LuaLSOperator {
 
 
 export class LuaLSField {
-	constructor(
-		public readonly name:string|LuaLSType,
-		public readonly type:LuaLSType,
-		public readonly description?:Description,
-		public readonly optional?:boolean,
-	) {}
+	public readonly name:string|LuaLSType;
+	public readonly type:LuaLSType;
+	public readonly description?:Description;
+	public readonly optional?:boolean;
+	constructor(name:string|LuaLSType, type:LuaLSType, description?:Description, optional?:boolean) {
+		this.name = name;
+		this.type = type;
+		this.description = description;
+		this.optional = optional;
+	}
 
 	async write(output:Writable) {
 		await comment_description(output, this.description);
@@ -412,11 +449,14 @@ export class LuaLSField {
 }
 
 export class LuaLSOverload {
-	constructor(
-		public readonly description?:Description,
-		public readonly params?:ReadonlyArray<LuaLSParam>,
-		public readonly returns?:ReadonlyArray<LuaLSReturn>,
-	) {}
+	public readonly description?:Description;
+	public readonly params?:ReadonlyArray<LuaLSParam>;
+	public readonly returns?:ReadonlyArray<LuaLSReturn>;
+	constructor(description?:Description, params?:ReadonlyArray<LuaLSParam>, returns?:ReadonlyArray<LuaLSReturn>) {
+		this.description = description;
+		this.params = params;
+		this.returns = returns;
+	}
 
 	async write(output:Writable) {
 		await comment_description(output, this.description);
@@ -433,18 +473,22 @@ export class LuaLSOverload {
 }
 
 export class LuaLSFunction {
-	constructor(
-		public readonly name:string|undefined,
-		public readonly params?:ReadonlyArray<LuaLSParam>|undefined,
-		public readonly returns?:ReadonlyArray<LuaLSReturn>|undefined,
-		public readonly description?:Description,
-	) {}
+	public readonly name:string|undefined;
+	public readonly params?:ReadonlyArray<LuaLSParam>;
+	public readonly returns?:ReadonlyArray<LuaLSReturn>;
+	public readonly description?:Description;
 
 	public generics?:LuaLSGenericList;
 	private overloads?:LuaLSOverload[];
+	public nodiscard?:boolean;
+	public asfield?: boolean;
 
-	nodiscard?:boolean;
-	asfield?: boolean;
+	constructor(name:string|undefined, params?:ReadonlyArray<LuaLSParam>, returns?:ReadonlyArray<LuaLSReturn>, description?:Description) {
+		this.name = name;
+		this.params = params;
+		this.returns = returns;
+		this.description = description;
+	}
 
 	add(overload:LuaLSOverload) {
 		this.asfield = false;
@@ -503,12 +547,16 @@ export class LuaLSFunction {
 }
 
 export class LuaLSParam {
-	constructor(
-		public readonly name:string,
-		public readonly type:LuaLSType,
-		public readonly description?:Description,
-		public readonly optional?:boolean,
-	) {}
+	public readonly name:string;
+	public readonly type:LuaLSType;
+	public readonly description?:Description;
+	public readonly optional?:boolean;
+	constructor(name:string, type:LuaLSType, description?:Description, optional?:boolean) {
+		this.name = name;
+		this.type = type;
+		this.description = description;
+		this.optional = this.optional;
+	}
 
 	async write(output:Writable) {
 		output.write(`---@param ${this.name}${this.optional?"?":""} ${this.type.format()} ${(await this.description)??""}\n`);
@@ -516,12 +564,16 @@ export class LuaLSParam {
 }
 
 export class LuaLSReturn {
-	constructor(
-		public readonly type:LuaLSType,
-		public readonly name?:string,
-		public readonly description?:Description,
-		public readonly optional?:boolean,
-	) {}
+	public readonly type:LuaLSType;
+	public readonly name?:string;
+	public readonly description?:Description;
+	public readonly optional?:boolean;
+	constructor(type:LuaLSType, name?:string, description?:Description, optional?:boolean) {
+		this.type = type;
+		this.name = name;
+		this.description = description;
+		this.optional = optional;
+	}
 
 	async write(output:Writable) {
 		output.write(`---@return ${this.type.format()}${this.optional?"?":""} ${this.name??""}`);
