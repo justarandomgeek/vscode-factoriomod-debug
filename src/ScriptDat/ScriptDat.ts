@@ -1,17 +1,25 @@
 import { BufferStream } from '../Util/BufferStream';
 import { MapVersion } from '../Util/MapVersion';
 
-export enum SavedLuaTypeTag {
-	Nil = 0,
-	BoolFalse = 1,
-	BoolTrue = 2,
-	Number = 3,
-	String = 4,
-	Table = 5,
-	ExistingGCObject = 6,
-	LuaObject = 7,
-	TableWithMeta = 8,
-};
+type Enum<T extends object> = T[keyof T];
+function getEnumName<T extends object>(value:Enum<T>, enumobj: T): keyof T | undefined {
+	return (Object.keys(enumobj) as (keyof T)[]).find(
+		(key)=>enumobj[key] === value
+	);
+}
+
+export const SavedLuaTypeTag = {
+	Nil: 0,
+	BoolFalse: 1,
+	BoolTrue: 2,
+	Number: 3,
+	String: 4,
+	Table: 5,
+	ExistingGCObject: 6,
+	LuaObject: 7,
+	TableWithMeta: 8,
+} as const;
+export type SavedLuaTypeTag = Enum<typeof SavedLuaTypeTag>;
 
 export type SavedLuaTableValues = {
 	key:SavedLuaValue
@@ -63,177 +71,181 @@ export interface SavedLuaObject {
 export type SavedLuaValue = { type: "Nil"|"BoolFalse"|"BoolTrue"; size:1 }|
 	SavedLuaNumber|SavedLuaString|SavedLuaTable|SavedLuaRef|SavedLuaObject;
 
-export enum LuaObjectType {
-	LuaEntity = 0,
-	LuaInvalidObject = 1,
-	LuaRecipe = 2,
-	LuaTechnology = 3,
-	LuaRandomGenerator = 4,
-	LuaForce = 5,
-	LuaBurner = 6,
-	LuaLogisticPoint = 7,
-	LuaDecorativePrototype = 8,
-	LuaCustomChartTag = 9,
-	LuaPermissionGroups = 10,
-	LuaPermissionGroup = 11,
-	LuaUnitGroup = 12,
-	LuaTrain = 13,
-	LuaFluidBox = 14,
-	LuaEntityPrototype = 15,
-	LuaItemPrototype = 16,
-	LuaEquipmentGrid = 18,
-	LuaEquipment = 19,
-	LuaItemStack = 20,
-	LuaPlayer = 21,
-	LuaGui = 22,
-	LuaGuiElement = 23,
-	LuaStyle = 24,
-	LuaSurface = 25,
-	LuaFluidPrototype = 26,
-	LuaGroup = 27,
-	LuaTile = 28, // LuaTileSurface internally. LuaTile=17 is ancient history.
-	LuaChunkIterator = 29,
-	LuaStructMapSettings = 30,
-	LuaTransportLine = 31,
-	LuaLogisticNetwork = 32,
-	LuaLogisticCell = 33,
-	LuaInventory = 34,
-	LuaControlBehavior = 35,
-	LuaFlowStatistics = 36,
-	LuaTilePrototype = 37,
-	LuaEquipmentPrototype = 38,
-	LuaCircuitNetwork = 39,
-	LuaDamagePrototype = 40,
-	LuaVirtualSignalPrototype = 41,
-	LuaEquipmentGridPrototype = 42,
-	LuaRecipePrototype = 43,
-	LuaTechnologyPrototype = 44,
-	LuaBurnerPrototype = 45,
-	LuaElectricEnergySourcePrototype = 46,
-	LuaCustomInputPrototype = 47,
-	LuaNoiseLayerPrototype = 48, // Deprecated. May only appear if input.mapVersion < MapVersion(1, 2, 0, 298)
-	LuaAutoplaceControlPrototype = 49,
-	LuaModSettingPrototype = 50,
-	LuaAmmoCategoryPrototype = 51,
-	LuaRailPath = 52,
-	LuaFluidBoxPrototype = 53,
-	LuaAISettings = 54,
-	LuaProfiler = 55,
-	LuaNamedNoiseExpression = 56,
-	LuaFuelCategoryPrototype = 57,
-	LuaResourceCategoryPrototype = 58,
-	LuaAchievementPrototype = 59,
-	LuaModuleCategoryPrototype = 60,
-	LuaEquipmentCategoryPrototype = 61,
-	LuaTrivialSmokePrototype = 62,
-	LuaShortcutPrototype = 63,
-	LuaRecipeCategoryPrototype = 64,
-	LuaParticlePrototype = 65,
-	LuaFluidEnergySourcePrototype = 66,
-	LuaHeatEnergySourcePrototype = 67,
-	LuaVoidEnergySourcePrototype = 68,
-	LuaFontPrototype = 69,
-	LuaQualityPrototype = 70,
-	LuaSpaceLocationPrototype = 71,
-	LuaPlanet = 72,
-	LuaUndoRedoStack = 73,
-	LuaSurfacePropertyPrototype = 74,
-	LuaCustomEventPrototype = 75,
-	LuaSpaceConnectionPrototype = 76,
-	LuaActiveTriggerPrototype = 77,
-	LuaSpacePlatform = 78,
-	LuaHeatBufferPrototype = 79,
-	LuaWireConnector = 80,
-	LuaAsteroidChunkPrototype = 81,
-	LuaLogisticSection = 82,
-	LuaRailEnd = 83,
-	LuaNamedNoiseFunction = 84,
-	LuaCollisionLayerPrototype = 85,
-	LuaSimulation = 86,
-	LuaAirbornePollutionPrototype = 87,
-	LuaItem = 88,
-	LuaTrainManager = 89,
-	LuaRenderObject = 90,
-	LuaRecord = 91,
-	LuaBurnerUsagePrototype = 92,
-	LuaSurfacePrototype = 93,
-	LuaProcessionPrototype = 94,
-	LuaProcessionLayerInheritanceGroupPrototype = 95,
-	LuaLogisticSections = 96,
-	LuaCargoHatch = 97,
-	LuaSchedule = 98,
-	LuaTerritory = 99,
-	LuaSegmentedUnit = 100,
-	LuaSegment = 101,
-	LuaModData = 104,
+export const LuaObjectType = {
+	LuaEntity: 0,
+	LuaInvalidObject: 1,
+	LuaRecipe: 2,
+	LuaTechnology: 3,
+	LuaRandomGenerator: 4,
+	LuaForce: 5,
+	LuaBurner: 6,
+	LuaLogisticPoint: 7,
+	LuaDecorativePrototype: 8,
+	LuaCustomChartTag: 9,
+	LuaPermissionGroups: 10,
+	LuaPermissionGroup: 11,
+	LuaUnitGroup: 12,
+	LuaTrain: 13,
+	LuaFluidBox: 14,
+	LuaEntityPrototype: 15,
+	LuaItemPrototype: 16,
+	LuaEquipmentGrid: 18,
+	LuaEquipment: 19,
+	LuaItemStack: 20,
+	LuaPlayer: 21,
+	LuaGui: 22,
+	LuaGuiElement: 23,
+	LuaStyle: 24,
+	LuaSurface: 25,
+	LuaFluidPrototype: 26,
+	LuaGroup: 27,
+	LuaTile: 28, // LuaTileSurface internally. LuaTile=17 is ancient history.
+	LuaChunkIterator: 29,
+	LuaStructMapSettings: 30,
+	LuaTransportLine: 31,
+	LuaLogisticNetwork: 32,
+	LuaLogisticCell: 33,
+	LuaInventory: 34,
+	LuaControlBehavior: 35,
+	LuaFlowStatistics: 36,
+	LuaTilePrototype: 37,
+	LuaEquipmentPrototype: 38,
+	LuaCircuitNetwork: 39,
+	LuaDamagePrototype: 40,
+	LuaVirtualSignalPrototype: 41,
+	LuaEquipmentGridPrototype: 42,
+	LuaRecipePrototype: 43,
+	LuaTechnologyPrototype: 44,
+	LuaBurnerPrototype: 45,
+	LuaElectricEnergySourcePrototype: 46,
+	LuaCustomInputPrototype: 47,
+	LuaNoiseLayerPrototype: 48, // Deprecated. May only appear if input.mapVersion < MapVersion(1, 2, 0, 298)
+	LuaAutoplaceControlPrototype: 49,
+	LuaModSettingPrototype: 50,
+	LuaAmmoCategoryPrototype: 51,
+	LuaRailPath: 52,
+	LuaFluidBoxPrototype: 53,
+	LuaAISettings: 54,
+	LuaProfiler: 55,
+	LuaNamedNoiseExpression: 56,
+	LuaFuelCategoryPrototype: 57,
+	LuaResourceCategoryPrototype: 58,
+	LuaAchievementPrototype: 59,
+	LuaModuleCategoryPrototype: 60,
+	LuaEquipmentCategoryPrototype: 61,
+	LuaTrivialSmokePrototype: 62,
+	LuaShortcutPrototype: 63,
+	LuaRecipeCategoryPrototype: 64,
+	LuaParticlePrototype: 65,
+	LuaFluidEnergySourcePrototype: 66,
+	LuaHeatEnergySourcePrototype: 67,
+	LuaVoidEnergySourcePrototype: 68,
+	LuaFontPrototype: 69,
+	LuaQualityPrototype: 70,
+	LuaSpaceLocationPrototype: 71,
+	LuaPlanet: 72,
+	LuaUndoRedoStack: 73,
+	LuaSurfacePropertyPrototype: 74,
+	LuaCustomEventPrototype: 75,
+	LuaSpaceConnectionPrototype: 76,
+	LuaActiveTriggerPrototype: 77,
+	LuaSpacePlatform: 78,
+	LuaHeatBufferPrototype: 79,
+	LuaWireConnector: 80,
+	LuaAsteroidChunkPrototype: 81,
+	LuaLogisticSection: 82,
+	LuaRailEnd: 83,
+	LuaNamedNoiseFunction: 84,
+	LuaCollisionLayerPrototype: 85,
+	LuaSimulation: 86,
+	LuaAirbornePollutionPrototype: 87,
+	LuaItem: 88,
+	LuaTrainManager: 89,
+	LuaRenderObject: 90,
+	LuaRecord: 91,
+	LuaBurnerUsagePrototype: 92,
+	LuaSurfacePrototype: 93,
+	LuaProcessionPrototype: 94,
+	LuaProcessionLayerInheritanceGroupPrototype: 95,
+	LuaLogisticSections: 96,
+	LuaCargoHatch: 97,
+	LuaSchedule: 98,
+	LuaTerritory: 99,
+	LuaSegmentedUnit: 100,
+	LuaSegment: 101,
+	LuaModData: 104,
 
 	// this one isn't real, just so TS understands that there might be more not covered...
-	xLuaFutureObject = -1
-}
+	xLuaFutureObject: -1,
+} as const;
+export type LuaObjectType = Enum<typeof LuaObjectType>;
 
-export enum LuaItemStackType {
-	None = 0,
-	EntityInventory = 1,
-	ControllerInventory = 2,
-	ItemEntity = 3, // Only used before MapVersion(1, 2, 0, 361), then migrated to Entity
-	EntityCursorStack = 4, // Only used before MapVersion(1, 2, 0, 361), then migrated to Entity
-	ControllerCursorStack = 5, // Only used before MapVersion(1, 2, 0, 361), then migrated to Entity
-	Inserter = 6, // Only used before MapVersion(1, 2, 0, 361), then migrated to Entity
-	ItemWithInventory = 7,
-	BeltConnectable = 8,
-	Equipment = 9,
-	TargetableInventory = 10,
-	TargetableItemStack = 11,
-	PlayerBlueprint = 12,
-	ScriptInventory = 13,
-	LinkedInventory = 14,
-}
+export const LuaItemStackType = {
+	None: 0,
+	EntityInventory: 1,
+	ControllerInventory: 2,
+	ItemEntity: 3, // Only used before MapVersion(1, 2, 0, 361), then migrated to Entity
+	EntityCursorStack: 4, // Only used before MapVersion(1, 2, 0, 361), then migrated to Entity
+	ControllerCursorStack: 5, // Only used before MapVersion(1, 2, 0, 361), then migrated to Entity
+	Inserter: 6, // Only used before MapVersion(1, 2, 0, 361), then migrated to Entity
+	ItemWithInventory: 7,
+	BeltConnectable: 8,
+	Equipment: 9,
+	TargetableInventory: 10,
+	TargetableItemStack: 11,
+	PlayerBlueprint: 12,
+	ScriptInventory: 13,
+	LinkedInventory: 14,
+} as const;
+export type LuaItemStackType = Enum<typeof LuaItemStackType>;
 
-export enum LuaControlBehaviorType {
-	Container = 1,
-	GenericOnOff = 2,
-	Inserter = 3,
-	Lamp = 4,
-	LogisticContainer = 5,
-	Roboport = 6,
-	StorageTank = 7,
-	TrainStop = 8,
-	DeciderCombinator = 9,
-	ArithmeticCombinator = 10,
-	ConstantCombinator = 11,
-	TransportBelt = 12,
-	Accumulator = 13,
-	RailSignal = 14,
-	Wall = 15,
-	MiningDrill = 16,
-	ProgrammableSpeaker = 17,
-	RailChainSignal = 18,
-	AssemblingMachine = 19,
-	SelectorCombinator = 20,
-	Pump = 21,
-	RocketSilo = 22,
-	Turret = 23,
-	Reactor = 24,
-	SpacePlatformHub = 25,
-	ArtilleryTurret = 26,
-	Radar = 27,
-	AsteroidCollector = 28,
-	DisplayPanel = 29,
-	Loader = 30,
-	CargoLandingPad = 31,
-	AgriculturalTower = 32,
-	Furnace = 33,
-	ProxyContainer = 34,
-}
+export const LuaControlBehaviorType = {
+	Container: 1,
+	GenericOnOff: 2,
+	Inserter: 3,
+	Lamp: 4,
+	LogisticContainer: 5,
+	Roboport: 6,
+	StorageTank: 7,
+	TrainStop: 8,
+	DeciderCombinator: 9,
+	ArithmeticCombinator: 10,
+	ConstantCombinator: 11,
+	TransportBelt: 12,
+	Accumulator: 13,
+	RailSignal: 14,
+	Wall: 15,
+	MiningDrill: 16,
+	ProgrammableSpeaker: 17,
+	RailChainSignal: 18,
+	AssemblingMachine: 19,
+	SelectorCombinator: 20,
+	Pump: 21,
+	RocketSilo: 22,
+	Turret: 23,
+	Reactor: 24,
+	SpacePlatformHub: 25,
+	ArtilleryTurret: 26,
+	Radar: 27,
+	AsteroidCollector: 28,
+	DisplayPanel: 29,
+	Loader: 30,
+	CargoLandingPad: 31,
+	AgriculturalTower: 32,
+	Furnace: 33,
+	ProxyContainer: 34,
+} as const;
+export type LuaControlBehaviorType = Enum<typeof LuaControlBehaviorType>;
 
-export enum LuaFlowStatisticsType {
-	ItemProduction = 1,
-	FluidProduction = 2,
-	KillCount = 3,
-	EntityBuild = 6,
-	ElectricNetwork = 7,
-	Pollution = 8,
-}
+export const LuaFlowStatisticsType = {
+	ItemProduction: 1,
+	FluidProduction: 2,
+	KillCount: 3,
+	EntityBuild: 6,
+	ElectricNetwork: 7,
+	Pollution: 8,
+} as const;
+export type LuaFlowStatisticsType = Enum<typeof LuaFlowStatisticsType>;
 
 export class ScriptDat {
 	readonly version: MapVersion;
@@ -280,8 +292,8 @@ export class ScriptDat {
 	}
 
 	private loadLuaValue(b:BufferStream):SavedLuaValue {
-		const typetag:SavedLuaTypeTag = b.readUInt8();
-		const type = SavedLuaTypeTag[typetag];
+		const typetag = b.readUInt8() as SavedLuaTypeTag;
+		const type = getEnumName(typetag, SavedLuaTypeTag);
 		switch (type) {
 			case "Nil":
 			case "BoolFalse":
@@ -332,8 +344,8 @@ export class ScriptDat {
 			case "LuaObject": {
 				const type = "LuaObject";
 				const thisgcid = this.gcid++;
-				const ltype:LuaObjectType = b.readUInt32LE();
-				const ltypename = LuaObjectType[ltype] as keyof typeof LuaObjectType;
+				const ltype = b.readUInt32LE() as LuaObjectType;
+				const ltypename = getEnumName(ltype, LuaObjectType);
 				const data = Object.assign(
 					{type: ltypename},
 					this.loadLuaObjectData(ltype, b)
@@ -681,11 +693,11 @@ export class ScriptDat {
 
 	private loadLuaItemStack(b:BufferStream) {
 
-		const type:LuaItemStackType = (this.version.isBeyond(1, 2, 0, 359) ? b.readUInt8() : b.readUInt32LE());
+		const type = (this.version.isBeyond(1, 2, 0, 359) ? b.readUInt8() : b.readUInt32LE()) as LuaItemStackType;
 		let size = this.version.isBeyond(1, 2, 0, 359) ? 1 : 4;
 		switch (type) {
 			case LuaItemStackType.None:
-				return { stacktype: LuaItemStackType[type], size };
+				return { stacktype: getEnumName(type, LuaItemStackType), size };
 			case LuaItemStackType.EntityInventory:
 			case LuaItemStackType.ControllerInventory:
 			case LuaItemStackType.ItemWithInventory:
@@ -703,7 +715,7 @@ export class ScriptDat {
 					location = { inventoryIndex, slotIndex };
 					size += 1+2;
 				}
-				return { stacktype: LuaItemStackType[type], target, location, size};
+				return { stacktype: getEnumName(type, LuaItemStackType), target, location, size};
 			}
 			case LuaItemStackType.ItemEntity:
 			case LuaItemStackType.EntityCursorStack:
@@ -713,7 +725,7 @@ export class ScriptDat {
 			{
 				const target = b.readUInt32LE();
 				size += 4;
-				return { stacktype: LuaItemStackType[type], target, size};
+				return { stacktype: getEnumName(type, LuaItemStackType), target, size};
 			}
 			case LuaItemStackType.BeltConnectable:
 			{
@@ -730,19 +742,19 @@ export class ScriptDat {
 					item = b.readUInt8();
 					size += 1;
 				}
-				return { stacktype: LuaItemStackType[type], target, line, item, itemid, size};
+				return { stacktype: getEnumName(type, LuaItemStackType), target, line, item, itemid, size};
 			}
 			case LuaItemStackType.TargetableInventory:
 				throw new Error(`LuaItemStack type ${type} cannot have been saved`);
 
 			case LuaItemStackType.TargetableItemStack:
-				return { stacktype: LuaItemStackType[type], size };
+				return { stacktype: getEnumName(type, LuaItemStackType), size };
 			case LuaItemStackType.ScriptInventory:
 			{
 				const target = b.readUInt32LE();
 				const slot = b.readUInt16LE();
 				size += 4+2;
-				return { stacktype: LuaItemStackType[type], target, slot, size};
+				return { stacktype: getEnumName(type, LuaItemStackType), target, slot, size};
 			}
 			case LuaItemStackType.LinkedInventory:
 			{
@@ -750,7 +762,7 @@ export class ScriptDat {
 				const proto = b.readUInt16LE();
 				const linkid = b.readUInt32LE();
 				size += 1+2+4;
-				return { stacktype: LuaItemStackType[type], force, proto, linkid, size};
+				return { stacktype: getEnumName(type, LuaItemStackType), force, proto, linkid, size};
 			}
 
 			default:
@@ -760,13 +772,13 @@ export class ScriptDat {
 	}
 
 	private loadLuaControlBehavior(b:BufferStream) {
-		const type:LuaControlBehaviorType = b.readUInt32LE();
+		const type = b.readUInt32LE() as LuaControlBehaviorType;
 		const target = b.readUInt32LE();
-		return {behavior: LuaControlBehaviorType[type], target, size: 4*2};
+		return {behavior: getEnumName(type, LuaControlBehaviorType), target, size: 4*2};
 	}
 
 	private loadLuaFlowStatistics(b:BufferStream) {
-		const type:LuaFlowStatisticsType = b.readUInt32LE();
+		const type = b.readUInt32LE() as LuaFlowStatisticsType;
 		let size = 4;
 
 		switch (type) {
@@ -782,7 +794,7 @@ export class ScriptDat {
 				}
 				const force = b.readUInt8();
 				size += 1;
-				return {flow: LuaFlowStatisticsType[type], force, surface, size};
+				return {flow: getEnumName(type, LuaFlowStatisticsType), force, surface, size};
 			}
 			case LuaFlowStatisticsType.ElectricNetwork:
 			{
@@ -793,7 +805,7 @@ export class ScriptDat {
 					surface = b.readPackedUInt_8_32();
 					size += surface>=0xff?5:1;
 				}
-				return {flow: LuaFlowStatisticsType[type], target, surface, size};
+				return {flow: getEnumName(type, LuaFlowStatisticsType), target, surface, size};
 			}
 			case LuaFlowStatisticsType.Pollution:
 			{
@@ -802,7 +814,7 @@ export class ScriptDat {
 					surface = b.readPackedUInt_8_32();
 					size += surface>=0xff?5:1;
 				}
-				return {flow: LuaFlowStatisticsType[type], surface, size };
+				return {flow: getEnumName(type, LuaFlowStatisticsType), surface, size };
 			}
 			default:
 				throw new Error(`Unknown LuaFlowStatistics type ${type}`);
