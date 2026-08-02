@@ -33,12 +33,12 @@
     "lint": "eslint . --ext ts --flag unstable_native_nodejs_ts_config",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "typecheck-watch": "tsc -p tsconfig.json --noEmit --watch",
-    "esbuild": "node --experimental-transform-types ./build.ts",
+    "esbuild": "node ./build.ts",
     "watch": "npm run esbuild -- --watch",
     "stats": "esbuild-visualizer --metadata ./out/meta.json --filename ./out/stats.html",
     "vscode:prepublish": "rimraf dist && npm run esbuild -- --minify --meta && npm run stats",
     "prepack": "vsce pack",
-    "test": "c8 node --experimental-transform-types --test ./test/*.spec.ts"
+    "test": "c8 node --test ./test/*.spec.ts"
   },
   "devDependencies": {
     "@inquirer/input": "^5.1.2",

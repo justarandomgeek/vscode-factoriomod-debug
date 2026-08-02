@@ -21,7 +21,7 @@
         {
             "extensions": ["ts"],
             "filePatterns": ["**/*.spec.ts"],
-            "parameters": [ "--experimental-transform-types" ]
+            "parameters": []
         }
     ],
     "nodejs-testing.debugOptions": {
