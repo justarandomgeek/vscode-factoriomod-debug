@@ -633,11 +633,11 @@ export class FactorioVersionSelector {
 						"base/scripts/wave-defense/",
 					],
 					ignoreGlobs: [
-						"*/migrations",
-						"*/scenarios",
-						"*/campaigns",
-						"*/tutorials",
-						"*/menu-simulations",
+						"*/migrations/**",
+						"*/scenarios/**",
+						"*/campaigns/**",
+						"*/tutorials/**",
+						"*/menu-simulations/**",
 					],
 				});
 			}
