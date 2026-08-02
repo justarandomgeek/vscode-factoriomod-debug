@@ -15,7 +15,7 @@ sed -i '/## '"$VERSION"'/i \## '"$NEWVERSION"'\n' CHANGELOG.md
 git add package.json package-lock.json CHANGELOG.md
 git commit -m "moved to $NEWVERSION"
 
-npm publish ".\factoriomod-debug-$VERSION.tgz"
-npx vsce publish --packagePath ".\factoriomod-debug-$VERSION.vsix"
+npm publish "./factoriomod-debug-$VERSION.tgz"
+npx vsce publish --packagePath "./factoriomod-debug-$VERSION.vsix"
 git push self "$VERSION" next current
 git push origin "$VERSION" next current
