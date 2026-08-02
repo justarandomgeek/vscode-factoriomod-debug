@@ -1,26 +1,27 @@
 import type { BufferStream } from "./BufferStream";
 
 export type PropertyTreeData =
-	{ type:PropertyTreeType.none } |
-	{ type:PropertyTreeType.bool; value:boolean } |
-	{ type:PropertyTreeType.number; value:number } |
-	{ type:PropertyTreeType.string; value:string } |
-	{ type:PropertyTreeType.list; value:PropertyTreeData[] } |
-	{ type:PropertyTreeType.dictionary; value:PropertyTreeDict } |
-	{ type:PropertyTreeType.signedinteger|PropertyTreeType.unsignedinteger; value:bigint };
+	{ type:typeof PropertyTreeType.none } |
+	{ type:typeof PropertyTreeType.bool; value:boolean } |
+	{ type:typeof PropertyTreeType.number; value:number } |
+	{ type:typeof PropertyTreeType.string; value:string } |
+	{ type:typeof PropertyTreeType.list; value:PropertyTreeData[] } |
+	{ type:typeof PropertyTreeType.dictionary; value:PropertyTreeDict } |
+	{ type:typeof PropertyTreeType.signedinteger|typeof PropertyTreeType.unsignedinteger; value:bigint };
 
 export type PropertyTreeDict = {[k:string]:PropertyTreeData};
 
-export enum PropertyTreeType {
-	none = 0,
-	bool = 1,
-	number = 2,
-	string = 3,
-	list = 4,
-	dictionary = 5,
-	signedinteger = 6,
-	unsignedinteger = 7
-}
+export const PropertyTreeType =  {
+	none: 0,
+	bool: 1,
+	number: 2,
+	string: 3,
+	list: 4,
+	dictionary: 5,
+	signedinteger: 6,
+	unsignedinteger: 7,
+} as const;
+export type PropertyTreeType = typeof PropertyTreeType[keyof typeof PropertyTreeType];
 
 function readPTreeString(b:BufferStream) {
 	const empty = b.readUInt8() !== 0;
@@ -33,7 +34,7 @@ function readPTreeString(b:BufferStream) {
 }
 
 export function loadPTree(b:BufferStream) : PropertyTreeData {
-	const type:PropertyTreeType = b.readUInt8();
+	const type = b.readUInt8() as PropertyTreeType;
 	b.readUInt8(); // discard isAnyType
 	switch (type) {
 		case PropertyTreeType.none:
