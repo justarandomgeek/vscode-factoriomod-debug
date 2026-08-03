@@ -4,6 +4,7 @@ import { URI, Utils } from 'vscode-uri';
 import { getPackageinfo, doPackageZip  } from "./tasks";
 
 program.command("package")
+	.alias("pack")
 	.description("Build a zip package")
 	.option("--outdir <outdir>", "", "")
 	.action(async (options)=>{
