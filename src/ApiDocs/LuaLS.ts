@@ -555,7 +555,7 @@ export class LuaLSParam {
 		this.name = name;
 		this.type = type;
 		this.description = description;
-		this.optional = this.optional;
+		this.optional = optional;
 	}
 
 	async write(output:Writable) {
