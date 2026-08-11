@@ -179,11 +179,11 @@ function utillib.conditional_return(value, data) end
 function utillib.merge(tables) end
 
 ---@param entity LuaControl?
----@param item_dict {[data.ItemID]:ItemCountType}?
+---@param item_dict table<data.ItemID, ItemCountType>?
 utillib.insert_safe = function(entity, item_dict) end
 
 ---@param entity LuaControl?
----@param item_dict {[data.ItemID]:ItemCountType}?
+---@param item_dict table<data.ItemID, ItemCountType>?
 utillib.remove_safe = function(entity, item_dict) end
 
 ---@param string string?
