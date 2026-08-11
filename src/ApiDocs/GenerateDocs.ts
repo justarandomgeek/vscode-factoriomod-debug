@@ -7,9 +7,10 @@ import type { Root, Link } from "mdast";
 import { ApiDocGenerator } from './ApiDocGenerator';
 import { ProtoDocGenerator } from './ProtoDocsGenerator';
 import * as LuaLSAddon from "../LuaLSAddon";
+import { URI } from 'vscode-uri';
+import { Utils } from "vscode-uri";
 
-
-export async function GenerateDocs(docsjson:string, protosjson:string, sdumpjson:string|undefined, pdumpjson:string|undefined, write_file:(subpath:string, write:(output:Writable)=>void|Promise<void>)=>Promise<void>) {
+export async function GenerateDocs(docsjson:string, protosjson:string, baseuri:URI, sdumpjson:string|undefined, pdumpjson:string|undefined, write_file:(subpath:string, write:(output:Writable)=>void|Promise<void>)=>Promise<void>) {
 	const settings = sdumpjson && JSON.parse(sdumpjson);
 	const prototypes = pdumpjson && JSON.parse(pdumpjson);
 
@@ -29,17 +30,19 @@ export async function GenerateDocs(docsjson:string, protosjson:string, sdumpjson
 				case 'runtime':
 					const rlink = docs.resolve_link(matches[2], matches[3]);
 					if (rlink) {
-						node.url = "https://lua-api.factorio.com/latest"+rlink;
+						const uri = URI.parse(rlink);
+						node.url = Utils.joinPath(baseuri, uri.path).with({query: uri.query, fragment: uri.fragment}).toString();
 					}
 					break;
 				case 'prototype':
 					const plink = pdocs.resolve_link(matches[2], matches[3]);
 					if (plink) {
-						node.url = "https://lua-api.factorio.com/latest"+plink;
+						const uri = URI.parse(plink);
+						node.url = Utils.joinPath(baseuri, plink).with({query: uri.query, fragment: uri.fragment}).toString();
 					}
 					break;
 				case 'auxiliary':
-					node.url = `https://lua-api.factorio.com/latest/${matches[2]}.html`;
+					node.url = Utils.joinPath(baseuri, `${matches[2]}.html`).toString();
 					break;
 			}
 		}

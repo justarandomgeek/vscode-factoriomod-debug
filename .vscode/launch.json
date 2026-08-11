@@ -111,6 +111,7 @@
 				"-p","${workspaceFolder}/test/factorio/doc-html/prototype-api.json",
 				"--sdump","${workspaceFolder}/test/factorio/script-output/mod-settings-dump.json",
 				"--pdump","${workspaceFolder}/test/factorio/script-output/data-raw-dump.json",
+				//"--docbase","d:/factorio/Factorio_2.1.x/doc-html",
 				"${workspaceFolder}/out/sumneko-3rd",
 			],
 			"console": "integratedTerminal",

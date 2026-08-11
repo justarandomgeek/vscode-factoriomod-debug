@@ -765,10 +765,15 @@ export class FactorioVersionSelector {
 		}
 
 		const output = this.output;
+		const docConfig = vscode.workspace.getConfiguration("factorio.docs");
+		const docArgs = await activeVersion.docArgs(docConfig.get("usePrototypeDumps", false));
+		const baseuri = docConfig.get<string>("docLinksBaseUri");
+		if (baseuri) {
+			docArgs.push("--docbase", baseuri);
+		}
 		const result = await forkScript(
 			{ close() {}, write(data) { output.info(`docgen: ${data.trimEnd()}`); } },
-			this.context.asAbsolutePath("./dist/fmtk-cli.js"),
-			await activeVersion.docArgs(vscode.workspace.getConfiguration("factorio").get("docs.usePrototypeDumps", false)), basedir.fsPath);
+			this.context.asAbsolutePath("./dist/fmtk-cli.js"), docArgs, basedir.fsPath);
 
 		if (result !== 0) {
 			this.output.warn(`docgen return code ${result}`);

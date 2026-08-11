@@ -2,7 +2,7 @@ import * as fsp from 'fs/promises';
 import path from 'path';
 import { program } from 'commander';
 import { createWriteStream } from 'fs';
-
+import { URI } from 'vscode-uri';
 import { GenerateDocs } from '../ApiDocs/GenerateDocs';
 
 async function fetch_docs(url:string) {
@@ -22,6 +22,7 @@ program.command("docs [outdir]")
 	.option("-o, --online [version]", "Use online docs")
 	.option("--sdump <mod-settings-dump.json>", "Load Settings Prototype dump")
 	.option("--pdump <data-raw-dump.json>", "Load Prototype dump")
+	.option("--docbase <url>", "Base URL for doc links")
 	.action(async (outdir:string|undefined, options:{
 			docs?:string
 			protos?:string
@@ -29,6 +30,8 @@ program.command("docs [outdir]")
 
 			sdump?:string
 			pdump?:string
+
+			docbase?:string
 		})=>{
 		let docsjson:string;
 		let protosjson:string;
@@ -53,8 +56,14 @@ program.command("docs [outdir]")
 		const sdumpjson = options.sdump && await fsp.readFile(options.sdump, "utf8");
 		const pdumpjson = options.pdump && await fsp.readFile(options.pdump, "utf8");
 
+		let baseuri = URI.parse(options.docbase ?? `https://lua-api.factorio.com/${options.online ?? "latest"}`, false);
+		if (options.docbase && baseuri.scheme.length === 1) {
+			baseuri = URI.file(options.docbase);
+		}
+		console.log(`Base URI: ${baseuri.toString()}`);
+
 		let fileCount = 0;
-		await GenerateDocs(docsjson, protosjson, sdumpjson, pdumpjson,
+		await GenerateDocs(docsjson, protosjson, baseuri, sdumpjson, pdumpjson,
 			async (subpath, write)=>{
 				const filepath = path.join(outdir ?? process.cwd(), subpath);
 				await fsp.mkdir(path.dirname(filepath), { recursive: true });
