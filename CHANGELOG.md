@@ -5,6 +5,10 @@
 ## 2.1.10
 
 ## 2.1.9
+* Lua Library package
+  * *IMPORTANT* All sumneko/luals users should migrate to emmylua. Support for sumneko/luals will be dropped completely in a near future version, and may already be broken in some areas.
+  * fixed `/data` ignore globs missing `/**` suffix
+  * fixed some types in util.lua (#224)
 
 ## 2.1.8
 * Mod Manager
