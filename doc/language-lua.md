@@ -41,13 +41,13 @@ require("__modname__.filename")
 ```
 Factorio also allows require paths with slashes, and replaces any file extension in them with `.lua`.
 
-The generated `.luarc.json` file has `moduleMap` and `requirePattern` configured to handle these variations. If your workspace is not the root `/mods` folder, you may want to add the `/mods` folder as a library path in `.emmyrc.json` to allow resolving mod names.
+The generated `.luarc.json` file has `moduleMap` and `requirePattern` configured to handle these variations. If your workspace is not the root `/mods` folder, you may want to add the `/mods` folder as a `workspace.library` path, or individual mods as `workspace.packages` in `.emmyrc.json` to allow resolving mod names.
 
 ### `storage`
 
 Each mod has its own private version of [`storage`](https://lua-api.factorio.com/latest/auxiliary/storage.html).
 
-EmmyLua is not aware of the separations, and needs some hints to handle this well. For best results, include an assignment like
+EmmyLua is not aware of the separations, and needs some hints to handle this well. For best results, include a no-op assignment like this at the top of every file using `storage` to tag its class for that file. This sets both the declared type (`@type`) and the observed/'actual' type (`@as`) so that it will deduce correctly for the rest of the file. The `Storage` class is then defined normally.
 
 ```lua
 -- using a namespace is optional, but saves you having to keep the `Storage` name for each mod globally unique
@@ -55,8 +55,13 @@ EmmyLua is not aware of the separations, and needs some hints to handle this wel
 
 ---@type Storage
 storage = storage --[[@as Storage]]
+
+-- and actually define the Storage class in one file (or assemble it from partial classes)
+---@class Storage
+---@field stuff Any[]
+---@field things Any[]
+---...
 ```
-at the top of every file using `storage` to tag its class for that file. This sets both the declared type (`@type`) and the observed/'actual' type (`@as`) so that it will deduce correctly for the rest of the file. Define the `YourMod.Storage` class as normal.
 
 ### `remote` interfaces
 
