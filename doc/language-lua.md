@@ -80,6 +80,25 @@ To provide type signatures for remote interfaces, register your interface as a m
 ---@field get_no_victory fun():boolean
 ```
 
+Because of [an EmmyLua bug](https://github.com/EmmyLuaLs/emmylua-analyzer-rust/issues/1197), if you want to call a dynamic interface (interface name typed `string` rather than a specific literal string), you currently must cast it first to a name that is not a known interface:
+
+```lua
+---@type string
+local foo
+---@type string
+local bar
+---@type string
+local box
+
+-- this incorrectly errors on `box`:
+remote.call(foo, bar, box )
+
+-- but either of these are fine:
+remote.call(foo--[[@as "literally anything"]], bar, box )
+---@cast foo "literally anything"
+remote.call(foo, bar, box )
+```
+
 ## Configuration
 
 The VS Code extension will automatically configure `.luarc.json` in the workspace when installing this package. The vscode setting `factorio.workspace.manageLibraryDataLinks` controls if this includes a link to the `/data` tree of the selected installation.
