@@ -486,7 +486,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		for (const [_, event] of this.events) {
 			await add_event_data_type(event);
 
-			if (event.name === "CustomInputEvent") {
+			if (event.name === "CustomInputEvent" || event.name === "RecipeCraftedEvent") {
 				continue;
 			}
 
@@ -719,7 +719,7 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 					};
 
 					for (const [_, event] of this.events) {
-						if (event.name === "CustomInputEvent") {
+						if (event.name === "CustomInputEvent" || event.name === "RecipeCraftedEvent") {
 							//handled separately
 							continue;
 						}
