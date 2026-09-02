@@ -7,7 +7,7 @@ import { BigIntReviver, FromBigIntValue } from "./ModSettingsMessages";
 
 import type { VscodeButton, VscodeTextfield, VscodeCheckbox, VscodeSingleSelect, VscodeOption } from "@vscode-elements/elements";
 ///@ts-expect-error unused
-import { VscodeTabs, VscodeTabHeader, VscodeTabPanel } from "@vscode-elements/elements";
+import { VscodeTabs, VscodeTabHeader, VscodeTabPanel, VscodeTable, VscodeTableBody, VscodeTableRow, VscodeTableCell } from "@vscode-elements/elements";
 
 const vscode = acquireVsCodeApi();
 
@@ -36,109 +36,48 @@ const templates = {
 	setting_add: document.getElementById("setting-add")! as HTMLTemplateElement,
 };
 
-window.addEventListener('change', (e)=>{
-	const target = e.target as HTMLElement;
-	if (target.classList.contains("setting-value")) {
-		const scope = target.closest("tbody")!.id as ModSettingsScopeName;
-		const key = target.closest("tr")!.id;
+function addSetting(button:VscodeButton) {
+	const scopebody = button.closest("vscode-table-body")!;
+	const scope = scopebody.id as ModSettingsScopeName;
 
-		switch (target.localName) {
-			case "vscode-textfield":
-			{
-				const value = settings[scope][key];
-				switch (value.type) {
-					case "int":
-						try {
-							value.value = BigInt.asIntN(64, BigInt((target as VscodeTextfield).value));
-						} catch (error) {
-							(target as VscodeTextfield).value = value.value.toString();
-							return;
-						}
-						break;
-					case "number":
-						value.value = Number((target as VscodeTextfield).value);
-						(target as VscodeTextfield).value = value.value.toString();
-						break;
-					case "string":
-						value.value = (target as VscodeTextfield).value;
-						break;
-					case "color":
-						if (target.classList.contains("setting-a-value")) {
-							value.value.a = Number((target as VscodeTextfield).value);
-							value.value.a = Math.max(0, Math.min(1, value.value.a));
-							(target as VscodeTextfield).value = value.value.a.toString();
-						}
-						break;
-				}
-				postMessage("edit",  {scope: scope, name: key, value: FromBigIntValue(value)});
-				break;
-			}
-			case "vscode-checkbox":
-			{
-				const value = settings[scope][key]  as ModSettingsValue & {type:"bool"};
-				value.value = (target as VscodeCheckbox).checked;
-				postMessage("edit", {scope: scope, name: key, value: value});
-				break;
-			}
-			case "input":
-			{
-				if (target.classList.contains("setting-color-value")) {
-					const value = settings[scope][key] as ModSettingsValue & {type:"color"};
-					const match = (target as HTMLInputElement).value.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i)!;
-					value.value.r = parseInt(match[1], 16)/255;
-					value.value.g = parseInt(match[2], 16)/255;
-					value.value.b = parseInt(match[3], 16)/255;
-					postMessage("edit", {scope: scope, name: key, value: value});
-					break;
-				}
-			}
-		}
+	const row = button.closest("vscode-table-row")!;
+	const namefield = row.querySelector(".setting-add-name") as VscodeTextfield;
+	if (!namefield.value) { return; }
+	if (document.getElementById(namefield.value)) { return; }
+	const typefield = row.querySelector(".setting-add-type") as VscodeSingleSelect;
+	let value:ModSettingsValue;
+	switch (typefield.value as ModSettingsValue["type"]) {
+		case "string":
+			value = { type: "string", value: ""};
+			break;
+		case "number":
+			value = { type: "number", value: 0};
+			break;
+		case "int":
+			value = { type: "int", value: 0n};
+			break;
+		case "bool":
+			value = { type: "bool", value: false};
+			break;
+		case "color":
+			value = { type: "color", value: {r: 0, g: 0, b: 0, a: 1}};
+			break;
 	}
-});
+	settings[scope][namefield.value] = value;
+	row.before(settingNode(namefield.value, value));
+	postMessage("edit",  {scope: scope, name: namefield.value, value: FromBigIntValue(value) });
+	namefield.value = "";
+}
 
-window.addEventListener('click', e=>{
-	const target = e.target as HTMLElement;
-	const button = target.closest<VscodeButton>("vscode-button");
-	if (button) {
-		const scopebody = button.closest("tbody")!;
-		const scope = scopebody.id as ModSettingsScopeName;
-		if (button.classList.contains("setting-addbtn")) {
-			const row = button.closest("tr")!;
-			const namefield = row.querySelector(".setting-add-name") as VscodeTextfield;
-			if (!namefield.value) { return; }
-			if (document.getElementById(namefield.value)) { return; }
-			const typefield = row.querySelector(".setting-add-type") as VscodeSingleSelect;
-			let value:ModSettingsValue;
-			switch (typefield.value as ModSettingsValue["type"]) {
-				case "string":
-					value = { type: "string", value: ""};
-					break;
-				case "number":
-					value = { type: "number", value: 0};
-					break;
-				case "int":
-					value = { type: "int", value: 0n};
-					break;
-				case "bool":
-					value = { type: "bool", value: false};
-					break;
-				case "color":
-					value = { type: "color", value: {r: 0, g: 0, b: 0, a: 1}};
-					break;
-			}
-			settings[scope][namefield.value] = value;
-			row.before(settingNode(namefield.value, value));
-			postMessage("edit",  {scope: scope, name: namefield.value, value: FromBigIntValue(value) });
-			namefield.value = "";
-		} else if (button.classList.contains("setting-delete")) {
-			const row = button.closest("tr")!;
-			const key = row.id;
-			row.remove();
-			delete settings[scope][key];
-			postMessage("edit",  {scope: scope, name: key, value: { type: "none" }});
-		}
-	}
-});
+function deleteSetting(button:VscodeButton) {
+	const scopebody = button.closest("vscode-table-body")!;
+	const scope = scopebody.id as ModSettingsScopeName;
+	const row = button.closest("vscode-table-row")!;
+	const key = row.id;
+	row.remove();
+	delete settings[scope][key];
+	postMessage("edit",  {scope: scope, name: key, value: { type: "none" }});
+}
 
 function settingNode(key:string, value:ModSettingsValue):DocumentFragment {
 	let node:DocumentFragment;
@@ -146,44 +85,81 @@ function settingNode(key:string, value:ModSettingsValue):DocumentFragment {
 		case "bool":
 		{
 			node = templates.setting_bool.content.cloneNode(true) as DocumentFragment;
-			const row = node.querySelector("tr")!;
+			const row = node.querySelector("vscode-table-row")!;
 			const header = node.querySelector(".setting-name") as HTMLTableCellElement;
 			const field = node.querySelector(".setting-value") as VscodeCheckbox;
 
 			row.id = key;
 			header.append(key);
 			field.checked = value.value;
+			field.addEventListener("change", (ev)=>{
+				const target = ev.target as VscodeCheckbox;
+				const scope = target.closest("vscode-table-body")!.id as ModSettingsScopeName;
+				const key = target.closest("vscode-table-row")!.id;
+				const value = settings[scope][key] as ModSettingsValue & {type:"bool"};
+				value.value = target.checked;
+				postMessage("edit", {scope: scope, name: key, value: value});
+			});
 			break;
 		}
 		case "int":
 		case "number":
 		{
 			node = templates.setting_number.content.cloneNode(true) as DocumentFragment;
-			const row = node.querySelector("tr")!;
+			const row = node.querySelector("vscode-table-row")!;
 			const header = node.querySelector(".setting-name") as HTMLTableCellElement;
 			const field = node.querySelector(".setting-value") as VscodeTextfield;
 
 			row.id = key;
 			header.append(key);
 			field.value = value.value.toString();
+			field.addEventListener("change", (ev)=>{
+				const target = ev.target as VscodeTextfield;
+				const scope = target.closest("vscode-table-body")!.id as ModSettingsScopeName;
+				const key = target.closest("vscode-table-row")!.id;
+				const value = settings[scope][key];
+				switch (value.type) {
+					case "int":
+						try {
+							value.value = BigInt.asIntN(64, BigInt(target.value));
+						} catch (error) {
+							target.value = value.value.toString();
+							return;
+						}
+						break;
+					case "number":
+						value.value = Number(target.value);
+						target.value = value.value.toString();
+						break;
+				}
+				postMessage("edit",  {scope: scope, name: key, value: FromBigIntValue(value)});
+			});
 			break;
 		}
 		case "string":
 		{
 			node = templates.setting_string.content.cloneNode(true) as DocumentFragment;
-			const row = node.querySelector("tr")!;
+			const row = node.querySelector("vscode-table-row")!;
 			const header = node.querySelector(".setting-name") as HTMLTableCellElement;
 			const field = node.querySelector(".setting-value") as VscodeTextfield;
 
 			row.id = key;
 			header.append(key);
 			field.value = value.value;
+			field.addEventListener("change", (ev)=>{
+				const target = ev.target as VscodeTextfield;
+				const scope = target.closest("vscode-table-body")!.id as ModSettingsScopeName;
+				const key = target.closest("vscode-table-row")!.id;
+				const value = settings[scope][key];
+				value.value = target.value;
+				postMessage("edit",  {scope: scope, name: key, value: FromBigIntValue(value)});
+			});
 			break;
 		}
 		case "color":
 		{
 			node = templates.setting_color.content.cloneNode(true) as DocumentFragment;
-			const row = node.querySelector("tr")!;
+			const row = node.querySelector("vscode-table-row")!;
 			const header = node.querySelector(".setting-name") as HTMLTableCellElement;
 			const cfield = node.querySelector(".setting-color-value") as HTMLInputElement;
 			const afield = node.querySelector(".setting-a-value") as VscodeTextfield;
@@ -191,10 +167,37 @@ function settingNode(key:string, value:ModSettingsValue):DocumentFragment {
 			row.id = key;
 			header.append(key);
 			cfield.value = `#${Math.round(value.value.r*255).toString(16).padStart(2, '0')}${Math.round(value.value.g*255).toString(16).padStart(2, '0')}${Math.round(value.value.b*255).toString(16).padStart(2, '0')}`;
+			cfield.addEventListener("change", (ev)=>{
+				const target = ev.target as VscodeTextfield;
+				const scope = target.closest("vscode-table-body")!.id as ModSettingsScopeName;
+				const key = target.closest("vscode-table-row")!.id;
+				const value = settings[scope][key] as ModSettingsValue & {type:"color"};
+				const match = target.value.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i)!;
+				value.value.r = parseInt(match[1], 16)/255;
+				value.value.g = parseInt(match[2], 16)/255;
+				value.value.b = parseInt(match[3], 16)/255;
+				postMessage("edit",  {scope: scope, name: key, value: FromBigIntValue(value)});
+			});
 			afield.value = value.value.a.toString();
+			afield.addEventListener("change", (ev)=>{
+				const target = ev.target as VscodeTextfield;
+				const scope = target.closest("vscode-table-body")!.id as ModSettingsScopeName;
+				const key = target.closest("vscode-table-row")!.id;
+				const value = settings[scope][key] as ModSettingsValue & {type:"color"};
+				value.value.a = Number(target.value);
+				value.value.a = Math.max(0, Math.min(1, value.value.a));
+				target.value = value.value.a.toString();
+				postMessage("edit",  {scope: scope, name: key, value: FromBigIntValue(value)});
+			});
 			break;
 		}
 	}
+
+	node.querySelector(".setting-delete")?.addEventListener("click", (ev)=>{
+		const target = ev.target as HTMLElement;
+		const button = target.closest<VscodeButton>("vscode-button")!;
+		deleteSetting(button);
+	});
 	return node;
 }
 
@@ -212,10 +215,10 @@ window.addEventListener('message', <K extends keyof ModSettingsMessages>(e:Messa
 
 			for (const templatename in templates) {
 				const template = templates[templatename as keyof typeof templates];
-				template.content.querySelectorAll<VscodeTextfield>("vscode-textfield").forEach(b=>b.disabled = initbody.editable);
-				template.content.querySelectorAll<VscodeCheckbox>("vscode-checkbox").forEach(b=>b.disabled = initbody.editable);
-				template.content.querySelectorAll<VscodeSingleSelect>("vscode-single-select").forEach(b=>b.disabled = initbody.editable);
-				template.content.querySelectorAll<VscodeButton>("vscode-button").forEach(b=>b.disabled = initbody.editable);
+				template.content.querySelectorAll<VscodeTextfield>("vscode-textfield").forEach(b=>b.disabled = !initbody.editable);
+				template.content.querySelectorAll<VscodeCheckbox>("vscode-checkbox").forEach(b=>b.disabled = !initbody.editable);
+				template.content.querySelectorAll<VscodeSingleSelect>("vscode-single-select").forEach(b=>b.disabled = !initbody.editable);
+				template.content.querySelectorAll<VscodeButton>("vscode-button").forEach(b=>b.disabled = !initbody.editable);
 			}
 
 			for (const scope of ModSettingsScopeNames) {
@@ -227,6 +230,11 @@ window.addEventListener('message', <K extends keyof ModSettingsMessages>(e:Messa
 				}
 				if (initbody.editable) {
 					const addnode = templates.setting_add.content.cloneNode(true) as DocumentFragment;
+					addnode.querySelector(".setting-addbtn")!.addEventListener("click", (ev)=>{
+						const target = ev.target as HTMLElement;
+						const button = target.closest<VscodeButton>("vscode-button")!;
+						addSetting(button);
+					});
 					scopenode.append(addnode);
 				}
 			}

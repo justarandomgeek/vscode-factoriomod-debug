@@ -20,89 +20,89 @@
 	<vscode-tabs aria-label="Settings">
 		<vscode-tab-header slot="header">Startup</vscode-tab-header>
 		<vscode-tab-panel>
-			<table>
-				<tbody id="startup"></tbody>
-			</table>
+			<vscode-table zebra>
+				<vscode-table-body slot="body" id="startup"></vscode-table-body>
+			</vscode-table>
 		</vscode-tab-panel>
 		<vscode-tab-header slot="header">Runtime Global</vscode-tab-header>
 		<vscode-tab-panel>
-			<table>
-				<tbody id="runtime-global"></tbody>
-			</table>
+			<vscode-table zebra>
+				<vscode-table-body slot="body" id="runtime-global"></vscode-table-body>
+			</vscode-table>
 		</vscode-tab-panel>
 		<vscode-tab-header slot="header">Runtime Per User</vscode-tab-header>
 		<vscode-tab-panel>
-			<table>
-				<tbody id="runtime-per-user"></tbody>
-			</table>
+			<vscode-table zebra>
+				<vscode-table-body slot="body" id="runtime-per-user"></vscode-table-body>
+			</vscode-table>
 		</vscode-tab-panel>
 	</vscode-tabs>
 
 	<template id="setting-string">
-		<tr>
-			<td class="setting-name"></td>
-			<td>
+		<vscode-table-row>
+			<vscode-table-cell class="setting-name"></vscode-table-cell>
+			<vscode-table-cell>
 				<vscode-textfield class="setting-value"></vscode-textfield>
-			</td>
-			<td class="setting-controls">
+			</vscode-table-cell>
+			<vscode-table-cell class="setting-controls">
 				<vscode-button class="setting-delete" appearance="icon" aria-label="Delete">
 					<span class="codicon codicon-trash"></span>
 				</vscode-button>
-			</td>
-		</tr>
+			</vscode-table-cell>
+		</vscode-table-row>
 	</template>
 
 	<template id="setting-number">
-		<tr>
-			<td class="setting-name"></td>
-			<td>
-				<vscode-textfield class="setting-value" type="number"></vscode-textfield>
-			</td>
-			<td class="setting-controls">
+		<vscode-table-row>
+			<vscode-table-cell class="setting-name"></vscode-table-cell>
+			<vscode-table-cell>
+				<vscode-textfield class="setting-value"></vscode-textfield>
+			</vscode-table-cell>
+			<vscode-table-cell class="setting-controls">
 				<vscode-button class="setting-delete" appearance="icon" aria-label="Delete">
 					<span class="codicon codicon-trash"></span>
 				</vscode-button>
-			</td>
-		</tr>
+			</vscode-table-cell>
+		</vscode-table-row>
 	</template>
 
 	<template id="setting-bool">
-		<tr>
-			<td class="setting-name"></td>
-			<td>
+		<vscode-table-row>
+			<vscode-table-cell class="setting-name"></vscode-table-cell>
+			<vscode-table-cell>
 				<vscode-checkbox class="setting-value"></vscode-checkbox>
-			</td>
-			<td class="setting-controls">
+			</vscode-table-cell>
+			<vscode-table-cell class="setting-controls">
 				<vscode-button class="setting-delete" appearance="icon" aria-label="Delete">
 					<span class="codicon codicon-trash"></span>
 				</vscode-button>
-			</td>
-		</tr>
+			</vscode-table-cell>
+		</vscode-table-row>
 	</template>
 
 	<template id="setting-color">
-		<tr>
-			<td class="setting-name"></td>
-			<td>
+		<vscode-table-row>
+			<vscode-table-cell class="setting-name"></vscode-table-cell>
+			<vscode-table-cell>
 				<label>Color:</label>
 				<input type="color" class="setting-value setting-color-value"/>
 				<label>Alpha:</label>
 				<vscode-textfield class="setting-value setting-a-value" type="number"></vscode-textfield>
-			</td>
-			<td class="setting-controls">
+			</vscode-table-cell>
+			<vscode-table-cell class="setting-controls">
 				<vscode-button class="setting-delete" appearance="icon" aria-label="Delete">
 					<span class="codicon codicon-trash"></span>
 				</vscode-button>
-			</td>
-		</tr>
+			</vscode-table-cell>
+		</vscode-table-row>
 	</template>
 
 	<template id="setting-add">
-		<tr>
-			<td>
+		<vscode-table-row>
+			<vscode-table-cell>
 				<vscode-textfield class="setting-add-name"></vscode-textfield>
-			</td>
-			<td>
+			</vscode-table-cell>
+			<vscode-table-cell>
 				<vscode-single-select class="setting-add-type">
 					<vscode-option>string</vscode-option>
 					<vscode-option>bool</vscode-option>
@@ -110,15 +110,15 @@
 					<vscode-option hidden>int</vscode-option>
 					<vscode-option>color</vscode-option>
 				</vscode-single-select>
-			</td>
-			<td class="setting-controls">
+			</vscode-table-cell>
+			<vscode-table-cell class="setting-controls">
 				<vscode-button class="setting-addbtn" appearance="icon" aria-label="Add">
 					<span class="codicon codicon-add"></span>
 				</vscode-button>
-			</td>
-		</tr>
+			</vscode-table-cell>
+		</vscode-table-row>
 	</template>
 
-	<script type="module" nonce="$nonce$" src="$ModSettingsWebview.js$" defer/></script>
+	<script type="module" nonce="$nonce$" src="$ModSettingsWebview.js$" defer></script>
 </body>
 </html>
