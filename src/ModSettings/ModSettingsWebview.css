@@ -1,1 +1,9 @@
 @import "@vscode/codicons/dist/codicon.css";
+
+vscode-table-body {
+	width: auto;
+}
+
+vscode-textfield.setting-a-value {
+	width: auto;
+}

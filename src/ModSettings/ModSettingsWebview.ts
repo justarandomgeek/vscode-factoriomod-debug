@@ -7,7 +7,7 @@ import { BigIntReviver, FromBigIntValue } from "./ModSettingsMessages";
 
 import type { VscodeButton, VscodeTextfield, VscodeCheckbox, VscodeSingleSelect, VscodeOption } from "@vscode-elements/elements";
 ///@ts-expect-error unused
-import { VscodeTabs, VscodeTabHeader, VscodeTabPanel, VscodeTable, VscodeTableBody, VscodeTableRow, VscodeTableCell } from "@vscode-elements/elements";
+import { VscodeTabs, VscodeTabHeader, VscodeTabPanel, VscodeTable, VscodeTableBody, VscodeTableRow, VscodeTableCell, VscodeLabel } from "@vscode-elements/elements";
 
 const vscode = acquireVsCodeApi();
 
@@ -117,7 +117,7 @@ function settingNode(key:string, value:ModSettingsValue):DocumentFragment {
 				const target = ev.target as VscodeTextfield;
 				const scope = target.closest("vscode-table-body")!.id as ModSettingsScopeName;
 				const key = target.closest("vscode-table-row")!.id;
-				const value = settings[scope][key];
+				const value = settings[scope][key] as ModSettingsValue & {type:"int"|"number"};
 				switch (value.type) {
 					case "int":
 						try {
@@ -129,9 +129,9 @@ function settingNode(key:string, value:ModSettingsValue):DocumentFragment {
 						break;
 					case "number":
 						value.value = Number(target.value);
-						target.value = value.value.toString();
 						break;
 				}
+				target.value = value.value.toString();
 				postMessage("edit",  {scope: scope, name: key, value: FromBigIntValue(value)});
 			});
 			break;

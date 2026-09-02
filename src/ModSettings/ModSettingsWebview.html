@@ -13,8 +13,7 @@
 </head>
 <body>
 	<section>
-		<h1>Version</h1>
-		<div id="version"></div>
+		<vscode-label for="version">Version: <span class="normal" id="version"></span></vscode-label>
 	</section>
 
 	<vscode-tabs aria-label="Settings">
@@ -87,7 +86,7 @@
 				<label>Color:</label>
 				<input type="color" class="setting-value setting-color-value"/>
 				<label>Alpha:</label>
-				<vscode-textfield class="setting-value setting-a-value" type="number"></vscode-textfield>
+				<vscode-textfield class="setting-value setting-a-value"></vscode-textfield>
 			</vscode-table-cell>
 			<vscode-table-cell class="setting-controls">
 				<vscode-button class="setting-delete" appearance="icon" aria-label="Delete">
