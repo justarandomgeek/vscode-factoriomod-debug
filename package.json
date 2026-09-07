@@ -699,7 +699,12 @@
                   "type": "string",
                   "examples": [
                     "--load-scenario",
-                    "--disable-migration-window"
+                    "--disable-migration-window",
+                    "--check-unused-prototype-data",
+                    "--enable-unsafe-lua-debug-api",
+                    "--enable-lua-udp",
+                    "--dump-data",
+                    "--benchmark"
                   ]
                 },
                 "default": [],
@@ -727,16 +732,21 @@
           {
             "type": "factorio",
             "request": "launch",
-            "name": "Factorio Debug Adapter"
+            "name": "Factorio Debug Adapter",
+            "factorioArgs": [],
+            "tags": {}
           }
         ],
         "configurationSnippets": [
           {
-            "type": "factorio",
-            "request": "launch",
-            "name": "Factorio Debug Adapter",
-            "factorioArgs": [],
-            "tags": {}
+            "label": "Factorio Debug Adapter",
+            "body": {
+              "type": "factorio",
+              "request": "launch",
+              "name": "Factorio Debug Adapter",
+              "factorioArgs": [],
+              "tags": {}
+            }
           }
         ]
       },
