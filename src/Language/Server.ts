@@ -139,10 +139,17 @@ export async function runLanguageServer():Promise<void> {
 		switch (event.document.languageId) {
 			case "factorio-locale":
 				void connection.sendDiagnostics({ uri: event.document.uri, diagnostics: [] });
+				Locale.clearDocument(event.document.uri);
+				void scanFile(event.document.uri).catch((error:NodeJS.ErrnoException)=>{
+					if (error.code !== 'ENOENT') { connection.console.error(String(error)); }
+				});
 				break;
-
 			case "factorio-changelog":
 				void connection.sendDiagnostics({ uri: event.document.uri, diagnostics: [] });
+				ChangeLog.clearDocument(event.document.uri);
+				void scanFile(event.document.uri).catch((error:NodeJS.ErrnoException)=>{
+					if (error.code !== 'ENOENT') { connection.console.error(String(error)); }
+				});
 				break;
 		}
 	});
