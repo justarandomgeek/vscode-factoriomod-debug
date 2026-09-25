@@ -41,16 +41,14 @@ export class FactorioVersionSelector {
 
 	private context:vscode.ExtensionContext;
 	private output:vscode.LogOutputChannel;
-	private fsprovider:FSProvider;
 
 	constructor(
 		context:vscode.ExtensionContext,
 		output:vscode.LogOutputChannel,
-		fsprovider:FSProvider
+		_fsprovider:FSProvider
 	) {
 		this.context = context;
 		this.output = output;
-		this.fsprovider = fsprovider;
 
 		this.bar = vscode.window.createStatusBarItem("factorio-version", vscode.StatusBarAlignment.Left, 10);
 		this.bar.name = "Factorio Version Selector";
