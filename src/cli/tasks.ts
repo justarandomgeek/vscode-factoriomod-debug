@@ -198,7 +198,7 @@ export async function doPackageZip(info:ModInfo): Promise<ZipArchive> {
 	const files = await matchGlob(process.cwd(), {
 		pattern: "**",
 		nodir: true,
-		ignore: [`**/${info.name}_*.zip`].concat(info.package?.ignore||[]),
+		ignore: [`**/${info.name}_*.zip`, "**/*.iml", "**/.idea/**", "**/.emmyrc.json"].concat(info.package?.ignore||[]),
 	});
 	files.forEach(add_file);
 
