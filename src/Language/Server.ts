@@ -1,6 +1,6 @@
 import * as fsp from 'fs/promises';
 import type { InitializeParams, InitializeResult } from 'vscode-languageserver/node';
-import { createConnection, TextDocuments, ProposedFeatures, TextDocumentSyncKind, FileChangeType } from 'vscode-languageserver/node';
+import { createConnection, TextDocuments, ProposedFeatures, TextDocumentSyncKind, FileChangeType, DidChangeWatchedFilesNotification } from 'vscode-languageserver/node';
 import type { DocumentUri } from 'vscode-languageserver-textdocument';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
@@ -76,9 +76,11 @@ export async function runLanguageServer():Promise<void> {
 	}
 
 	let hasWorkspaceFolderCapability = false;
+	let hasDynamicFileWatchCapability = false;
 
 	connection.onInitialize(async (params: InitializeParams)=>{
 		const capabilities = params.capabilities;
+		hasDynamicFileWatchCapability = !!capabilities.workspace?.didChangeWatchedFiles?.dynamicRegistration;
 
 		hasWorkspaceFolderCapability = !!(
 			capabilities.workspace && !!capabilities.workspace.workspaceFolders
@@ -122,6 +124,14 @@ export async function runLanguageServer():Promise<void> {
 	});
 
 	connection.onInitialized(()=>{
+		if (hasDynamicFileWatchCapability) {
+			void connection.client.register(DidChangeWatchedFilesNotification.type, {
+				watchers: [
+					{ globPattern: '**/locale/*/*.cfg' },
+					{ globPattern: '**/changelog.txt' },
+				],
+			}).catch((error:unknown)=>connection.console.error(`File watch registration failed: ${String(error)}`));
+		}
 		if (hasWorkspaceFolderCapability) {
 			connection.workspace.onDidChangeWorkspaceFolders(async (event)=>{
 				for (const removed of event.removed) {
