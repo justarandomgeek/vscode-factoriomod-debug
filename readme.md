@@ -13,3 +13,12 @@ A collection of tools for developing Factorio mods. This package is both [an npm
 ## Support FMTK
 
 [<img height='36' style='border:0px;height:36px;' src='https://az743702.vo.msecnd.net/cdn/kofi2.png?v=2' border='0' alt='Buy Me a Coffee at ko-fi.com'/>](https://ko-fi.com/X8X41IE4T)
+
+### Separate API property read/write types
+
+`fmtk docs --target emmylua` generates complementary `---@field (read)` and
+`---@field (write)` declarations for runtime attributes with different getter and
+setter types, including nested LuaStruct attributes. This requires an EmmyLua
+analyzer with directional field support. The default, `--target luals`, preserves
+the existing single-type output for other consumers. This option does not enforce
+read-only/write-only permissions or change index operator definitions.

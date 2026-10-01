@@ -1,6 +1,6 @@
 import * as fsp from 'fs/promises';
 import path from 'path';
-import { program } from 'commander';
+import { program, Option } from 'commander';
 import { createWriteStream } from 'fs';
 import { URI } from 'vscode-uri';
 import { GenerateDocs } from '../ApiDocs/GenerateDocs';
@@ -23,6 +23,7 @@ program.command("docs [outdir]")
 	.option("--sdump <mod-settings-dump.json>", "Load Settings Prototype dump")
 	.option("--pdump <data-raw-dump.json>", "Load Prototype dump")
 	.option("--docbase <url>", "Base URL for doc links")
+	.addOption(new Option("--target <target>", "Definition consumer (emmylua supports separate read/write types)").choices(["luals", "emmylua"]).default("luals"))
 	.action(async (outdir:string|undefined, options:{
 			docs?:string
 			protos?:string
@@ -31,6 +32,7 @@ program.command("docs [outdir]")
 			sdump?:string
 			pdump?:string
 
+			target:"luals"|"emmylua"
 			docbase?:string
 		})=>{
 		let docsjson:string;
@@ -71,6 +73,6 @@ program.command("docs [outdir]")
 				await write(file);
 				fileCount++;
 				file.close();
-			});
+			}, {target: options.target});
 		console.log(`Generated bundle with ${fileCount} files`);
 	});

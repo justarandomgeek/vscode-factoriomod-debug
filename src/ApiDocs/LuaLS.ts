@@ -422,17 +422,19 @@ export class LuaLSField {
 	public readonly type:LuaLSType;
 	public readonly description?:Description;
 	public readonly optional?:boolean;
-	constructor(name:string|LuaLSType, type:LuaLSType, description?:Description, optional?:boolean) {
+	public readonly access?:"read"|"write";
+	constructor(name:string|LuaLSType, type:LuaLSType, description?:Description, optional?:boolean, access?:"read"|"write") {
 		this.name = name;
 		this.type = type;
 		this.description = description;
 		this.optional = optional;
+		this.access = access;
 	}
 
 	async write(output:Writable) {
 		await comment_description(output, this.description);
 
-		output.write(`---@field `);
+		output.write(`---@field ${this.access ? `(${this.access}) ` : ""}`);
 		if (typeof this.name === "string") {
 			output.write(this.name);
 		} else {

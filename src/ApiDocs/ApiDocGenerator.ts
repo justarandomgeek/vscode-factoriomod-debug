@@ -10,6 +10,7 @@ function sort_by_order(a:{order:number}, b:{order:number}) {
 
 export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 	private readonly docs:ApiDocs<V>;
+	private readonly target:"luals"|"emmylua";
 
 	private readonly classes:Map<string, ApiClass<V>>;
 	private readonly events:Map<string, ApiEvent<V>>;
@@ -25,9 +26,11 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		docjson:string,
 		pdocs?:ProtoDocGenerator<V>,
 		settingsdump?:any,
-		protosdump?:any
+		protosdump?:any,
+		target:"luals"|"emmylua" = "luals"
 	) {
 		this.docs = JSON.parse(docjson);
+		this.target = target;
 		this.pdocs = pdocs;
 		this.settingsdump = settingsdump;
 		this.protosdump = protosdump;
@@ -168,6 +171,13 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 
 		for (const attribute of aclass.attributes) {
 			const adjust = overlay.adjust.class[aclass.name]?.members?.[attribute.name];
+			if (this.target === "emmylua" && !adjust?.rule && attribute.name !== "object_name") {
+				for (const field of await this.LuaLS_attribute(attribute, file, `${aclass.name}.${attribute.name}`, format_description,
+					format_description(this.collect_description(attribute, { scope: "runtime", member: aclass.name, part: attribute.name })), adjust)) {
+					lsclass.add(field);
+				}
+				continue;
+			}
 			let type =
 				(attribute.name === "object_name") ? new LuaLSLiteral(aclass.name):
 				await this.LuaLS_type(adjust?.type ?? attribute.write_type ?? attribute.read_type, {
@@ -901,16 +911,11 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 				const lsclass = new LuaLSClass(in_parent.table_class_name);
 				lsclass.flavor = "exact";
 				for (const attribute of api_type.attributes) {
-					lsclass.add(new LuaLSField(
-						attribute.name,
-						await this.LuaLS_type(attribute.write_type ?? attribute.read_type, {
-							file: in_parent.file,
-							table_class_name: `${in_parent.table_class_name}.${attribute.name}`,
-							format_description: in_parent.format_description,
-						}),
-						in_parent.format_description(this.collect_description(attribute)),
-						attribute.optional
-					));
+					for (const field of await this.LuaLS_attribute(attribute, in_parent.file,
+						`${in_parent.table_class_name}.${attribute.name}`, in_parent.format_description,
+						in_parent.format_description(this.collect_description(attribute)))) {
+						lsclass.add(field);
+					}
 				}
 				in_parent.file.add(lsclass);
 				return new LuaLSTypeName(in_parent.table_class_name);
@@ -919,6 +924,24 @@ export class ApiDocGenerator<V extends ApiVersions = ApiVersions> {
 		}
 		throw new Error("Invalid Type");
 
+	}
+
+	private async LuaLS_attribute(attribute:ApiAttribute<V>, file:LuaLSFile, name:string,
+		format_description:DocDescriptionFormatter, description:ReturnType<DocDescriptionFormatter>,
+		adjust?:{type?:ApiType; read_type?:ApiType; write_type?:ApiType}):Promise<LuaLSField[]> {
+		const read = adjust?.read_type ?? adjust?.type ?? attribute.read_type;
+		const write = adjust?.write_type ?? adjust?.type ?? attribute.write_type;
+		if (this.target === "emmylua" && read !== undefined && write !== undefined && JSON.stringify(read) !== JSON.stringify(write)) {
+			const readType = await this.LuaLS_type(read, {file, table_class_name: `${name}.read`, format_description});
+			const writeType = await this.LuaLS_type(write, {file, table_class_name: `${name}.write`, format_description});
+			if (readType.format() !== writeType.format()) {
+				return [new LuaLSField(attribute.name, readType, description, attribute.optional, "read"),
+					new LuaLSField(attribute.name, writeType, undefined, attribute.optional, "write")];
+			}
+			return [new LuaLSField(attribute.name, readType, description, attribute.optional)];
+		}
+		const type = await this.LuaLS_type(write ?? read, {file, table_class_name: name, format_description});
+		return [new LuaLSField(attribute.name, type, description, attribute.optional)];
 	}
 
 	private collect_description(obj:Omit<DocBasicMember, "name">&{

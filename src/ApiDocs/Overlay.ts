@@ -20,6 +20,8 @@ export const overlay:{
 			split_funcs?: boolean
 			members?: {
 				[member:string]: {
+					read_type?: ApiType
+					write_type?: ApiType
 					type?: ApiType
 				} & (
 					{ rule?:undefined }|

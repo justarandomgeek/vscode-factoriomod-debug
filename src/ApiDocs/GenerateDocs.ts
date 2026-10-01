@@ -10,12 +10,12 @@ import * as LuaLSAddon from "../LuaLSAddon";
 import { URI } from 'vscode-uri';
 import { Utils } from "vscode-uri";
 
-export async function GenerateDocs(docsjson:string, protosjson:string, baseuri:URI, sdumpjson:string|undefined, pdumpjson:string|undefined, write_file:(subpath:string, write:(output:Writable)=>void|Promise<void>)=>Promise<void>) {
+export async function GenerateDocs(docsjson:string, protosjson:string, baseuri:URI, sdumpjson:string|undefined, pdumpjson:string|undefined, write_file:(subpath:string, write:(output:Writable)=>void|Promise<void>)=>Promise<void>, options:{target?:"luals"|"emmylua"} = {}) {
 	const settings = sdumpjson && JSON.parse(sdumpjson);
 	const prototypes = pdumpjson && JSON.parse(pdumpjson);
 
 	const pdocs = new ProtoDocGenerator(protosjson, settings, prototypes);
-	const docs = new ApiDocGenerator(docsjson, pdocs, settings, prototypes);
+	const docs = new ApiDocGenerator(docsjson, pdocs, settings, prototypes, options.target);
 
 	console.log(`Loaded Prototype docs ${pdocs.application_version}`);
 	console.log(`Loaded Runtime docs ${docs.application_version}`);

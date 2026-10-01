@@ -107,8 +107,8 @@ interface ApiMethod<V extends ApiVersions = ApiVersions> extends DocBasicMember<
 
 interface ApiAttribute<V extends ApiVersions = ApiVersions> extends DocBasicMember<V> {
 	readonly subclasses?: string[]
-	readonly read_type: ApiType<V>
-	readonly write_type: ApiType<V>
+	readonly read_type?: ApiType<V>
+	readonly write_type?: ApiType<V>
 	readonly raises?: ApiEventRaised[]
 	readonly optional?: boolean
 }

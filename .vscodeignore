@@ -25,3 +25,4 @@ tsconfig.json
 .c8rc.json
 .luarc.json
 eslint.config.ts
+build/
