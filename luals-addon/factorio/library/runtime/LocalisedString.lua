@@ -1,3 +1,3 @@
 ---@meta
 
----@alias LocalisedString [string, LocalisedString...]|{x:number,y:number}|LuaObject|number|boolean|string
+---@alias LocalisedString string|number|boolean|LuaObject|nil|LocalisedString[]
