@@ -1,7 +1,7 @@
 import { DiagnosticSeverity } from 'vscode-languageserver';
 
 import type { DiagnoseContext, DiagnoseResult, DiagnoseRule, DiagnoseVisitor, parentOf } from "../ASTUtil.ts";
-import type { EntryExt, allNodes, Entry, Root, VersionLine, Category } from "./AST.ts";
+import type { allNodes, Entry, Root, VersionLine, Category } from "./AST.ts";
 
 import { visit } from "unist-util-visit";
 import type { DocumentUri } from 'vscode-languageserver-textdocument';
@@ -460,13 +460,29 @@ const rules:DiagnoseRule<allNodes>[] = [
 		message: "Duplicate entry",
 		code: "entry.duplicate",
 		setup(context) {
-			let activeCategoryLines:Map<string, Entry|EntryExt>|undefined;
-			const seenCategoryLines = new Map<string, Map<string, Entry|EntryExt>>();
+			let activeCategoryEntries:Map<string, Entry>|undefined;
+			const seenCategoryEntries = new Map<string, Map<string, Entry>>();
+			const seenNestedEntries = new WeakMap<Entry, Map<string, Entry>>();
 
-			const entry:DiagnoseVisitor<Entry|EntryExt, allNodes> = (node, index, parent)=>{
-				const catLines = activeCategoryLines;
-				if (!catLines) { return; }
-				const seen = catLines.get(node.full_line);
+			// Continuations and nested entries belong to the complete parent entry.
+			function entryText(node:Entry):string {
+				return [node.full_line, ...node.children.map(child=>{
+					return child.type === "entry" ? entryText(child) : child.full_line;
+				})].join("\n");
+			}
+
+			const entry:DiagnoseVisitor<Entry, allNodes> = (node, index, parent)=>{
+				let entries = activeCategoryEntries;
+				if (parent.type === "entry") {
+					entries = seenNestedEntries.get(parent);
+					if (!entries) {
+						entries = new Map();
+						seenNestedEntries.set(parent, entries);
+					}
+				}
+				if (!entries) { return; }
+				const text = entryText(node);
+				const seen = entries.get(text);
 				if (seen) {
 					context.report({diag: {
 						range: node.selectionRange,
@@ -481,25 +497,25 @@ const rules:DiagnoseRule<allNodes>[] = [
 						],
 					}});
 				} else {
-					catLines.set(node.full_line, node);
+					entries.set(text, node);
 				}
 			};
 			return {
 				section: (node, index, parent)=>{
-					seenCategoryLines.clear();
+					seenCategoryEntries.clear();
+					activeCategoryEntries = undefined;
 				},
 				category: (node, index, parent)=>{
-					if (node.missing) { return; }
-					const seen = seenCategoryLines.get(node.value);
+					if (node.missing) { activeCategoryEntries = undefined; return; }
+					const seen = seenCategoryEntries.get(node.value);
 					if (seen) {
-						activeCategoryLines = seen;
+						activeCategoryEntries = seen;
 					} else {
-						activeCategoryLines = new Map();
-						seenCategoryLines.set(node.value, activeCategoryLines);
+						activeCategoryEntries = new Map();
+						seenCategoryEntries.set(node.value, activeCategoryEntries);
 					}
 				},
 				entry: entry,
-				entryext: entry,
 			};
 		},
 	},

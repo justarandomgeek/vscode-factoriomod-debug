@@ -144,7 +144,11 @@ await suite("LSP", { concurrency: false }, async ()=>{
 		await test("category-none", singleDiagTest("category.missing", true));
 		await test("line-blank", singleDiagTest("entry.empty"));
 		await test("line-duplicate", singleDiagTest("entry.duplicate"));
-		await test("line-extduplicate", singleDiagTest("entry.duplicate"));
+		await test("line-extduplicate", async ()=>{
+			const diags = await waitForNotification(PublishDiagnosticsNotification.type);
+			assert.equal(diags.uri, doc.uri);
+			assert.equal(diags.diagnostics.length, 0);
+		});
 		await test("line-nesting", singleDiagTest("entry.prefix"));
 		await test("line-format", singleDiagTest("entry.prefix", true));
 		await test("line-extformat", singleDiagTest("entryext.prefix", true));
