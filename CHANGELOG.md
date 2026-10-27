@@ -4,7 +4,9 @@
 
 ## 2.1.10
 * Debugger:
-  * automatically pass `configPath` from version info as `--config` unless it would conflict
+  * automatically pass `configPath` from version info as `--config` unless it would conflict with launch config
+* VSCode:
+  * modernized webview editors
 
 ## 2.1.9
 * Lua Library package
