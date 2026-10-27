@@ -49,6 +49,7 @@ program.command("publish")
 			// throw if uncommitted changes
 			if (repoStatus==="HasChanges") {
 				console.log("Cannot Publish with uncommitted changes");
+				process.exitCode = 1;
 				return;
 			}
 			branchname = await new Promise((resolve, reject)=>{
