@@ -98,7 +98,7 @@ class FactorioDebugProvider implements vscode.DebugConfigurationProvider, vscode
 		const activeVersion = await this.versionSelector.getActiveVersion();
 		if (!activeVersion) { return; }
 
-		const factorioArgs = config.factorioArgs??[] as string[];
+		const factorioArgs = (config.factorioArgs??[]) as string[];
 
 		if (activeVersion.configPathIsOverriden()) {
 			if (!factorioArgs.includes("-c") && !factorioArgs.includes("--config")) {
@@ -133,8 +133,13 @@ class FactorioDebugProvider implements vscode.DebugConfigurationProvider, vscode
 			throw new Error("Cannot debug online docs. Select a local Factorio install to debug.");
 		}
 
+		const factorioArgs = (session.configuration.factorioArgs??[]) as string[];
+
+		const configIndex = factorioArgs.findIndex(s=>(s==="-c"||s==="--config"));
+		const configArgPath = configIndex === -1 ? undefined : factorioArgs[configIndex+1];
+
 		let waited = 0;
-		const lockpath = path.join(await activeVersion.writeDataPath(), ".lock");
+		const lockpath = path.join(await activeVersion.writeDataPath(configArgPath), ".lock");
 		while (fs.existsSync(lockpath)) {
 			try {
 				fs.rmSync(lockpath);

@@ -177,13 +177,17 @@ export class ActiveFactorioVersion {
 	}
 
 	private iniData? : FactorioConfigIni|Thenable<FactorioConfigIni>;
-	private async configIni() {
-		if (!this.iniData) {
-			this.iniData =
-				this.fs.readFile(URI.file(await this.configPath()))
-					.then(dat=>ini.parse(dat.toString()));
+	private async configIni(configPath?:string) {
+		const ownConfigPath = await this.configPath();
+		if (this.iniData && configPath === ownConfigPath) {
+			return this.iniData;
 		}
-		return this.iniData;
+		const iniData = this.fs.readFile(URI.file(configPath ?? ownConfigPath))
+			.then(dat=>ini.parse(dat.toString()));
+		if (!configPath || configPath === ownConfigPath) {
+			this.iniData = iniData;
+		}
+		return iniData;
 	}
 
 	public async isPrototypeCacheEnabled() {
@@ -262,8 +266,8 @@ export class ActiveFactorioVersion {
 		return path.posix.normalize(path.resolve(await this.dataPath(), "core", "lualib"));
 	}
 
-	public async writeDataPath() {
-		const configDataPath = (await this.configIni()).path?.["write-data"];
+	public async writeDataPath(configPath?:string) {
+		const configDataPath = (await this.configIni(configPath)).path?.["write-data"];
 		if (!configDataPath) {
 			throw new Error("path.write-data missing in config.ini");
 		}
