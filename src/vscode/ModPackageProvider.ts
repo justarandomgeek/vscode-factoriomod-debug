@@ -95,183 +95,11 @@ export async function activateModPackageProvider(context:vscode.ExtensionContext
 		if (gitExtension && !gitExtension.isActive) {
 			await gitExtension.activate();
 		}
-		const treeDataProvider = new ModsTreeDataProvider(context, keychain, gitExtension?.exports.getAPI(1));
-		context.subscriptions.push(treeDataProvider);
-		const view = vscode.window.createTreeView('factoriomods', { treeDataProvider: treeDataProvider });
+		const packageProvider = new ModPackageProvider(context, keychain, gitExtension?.exports.getAPI(1));
+		context.subscriptions.push(packageProvider);
+		const view = vscode.window.createTreeView('factoriomods', { treeDataProvider: packageProvider });
 		context.subscriptions.push(view);
 		extensionUri = context.extensionUri;
-	}
-}
-
-class ModTaskProvider implements vscode.TaskProvider {
-	private readonly context:vscode.ExtensionContext;
-	private readonly modPackages: Map<string, ModPackage>;
-	constructor(context:vscode.ExtensionContext, modPackages: Map<string, ModPackage>) {
-		this.context = context;
-		this.modPackages = modPackages;
-	}
-
-	provideTasks(token?: vscode.CancellationToken): vscode.ProviderResult<vscode.Task[]> {
-		const tasks:vscode.Task[] = [];
-
-		const latest = ModPackage.latestPackages(this.modPackages.values());
-		for (const modpackage of this.modPackages.values()) {
-			if (!latest.has(modpackage)) { continue; }
-			tasks.push(new vscode.Task(
-				{label: `${modpackage.name}.datestamp`, type: "factorio", modname: modpackage.label, command: "datestamp"},
-				vscode.workspace.getWorkspaceFolder(modpackage.resourceUri) || vscode.TaskScope.Workspace,
-				`${modpackage.name}.datestamp`,
-				"factorio",
-				modpackage.DateStampTask(),
-				[]
-			));
-			tasks.push(new vscode.Task(
-				{label: `${modpackage.name}.package`, type: "factorio", modname: modpackage.label, command: "package"},
-				vscode.workspace.getWorkspaceFolder(modpackage.resourceUri) || vscode.TaskScope.Workspace,
-				`${modpackage.name}.package`,
-				"factorio",
-				modpackage.PackageTask(),
-				[]
-			));
-			tasks.push(new vscode.Task(
-				{label: `${modpackage.name}.version`, type: "factorio", modname: modpackage.label, command: "version"},
-				vscode.workspace.getWorkspaceFolder(modpackage.resourceUri) || vscode.TaskScope.Workspace,
-				`${modpackage.name}.version`,
-				"factorio",
-				modpackage.IncrementTask(),
-				[]
-			));
-			tasks.push(new vscode.Task(
-				{label: `${modpackage.name}.upload`, type: "factorio", modname: modpackage.label, command: "upload"},
-				vscode.workspace.getWorkspaceFolder(modpackage.resourceUri) || vscode.TaskScope.Workspace,
-				`${modpackage.name}.upload`,
-				"factorio",
-				modpackage.PostToPortalTask(),
-				[]
-			));
-			tasks.push(new vscode.Task(
-				{label: `${modpackage.name}.details`, type: "factorio", modname: modpackage.label, command: "details"},
-				vscode.workspace.getWorkspaceFolder(modpackage.resourceUri) || vscode.TaskScope.Workspace,
-				`${modpackage.name}.details`,
-				"factorio",
-				modpackage.DetailsTask(),
-				[]
-			));
-			tasks.push(new vscode.Task(
-				{label: `${modpackage.name}.publish`, type: "factorio", modname: modpackage.label, command: "publish"},
-				vscode.workspace.getWorkspaceFolder(modpackage.resourceUri) || vscode.TaskScope.Workspace,
-				`${modpackage.name}.publish`,
-				"factorio",
-				modpackage.PublishTask(),
-				[]
-			));
-		};
-
-		return tasks;
-	}
-
-	resolveTaskExecution(task: vscode.Task, token?: vscode.CancellationToken) {
-		if (task.definition.command === "adjustMods") {
-			if (!task.definition.adjustMods) {
-				return this.ConfigErrorTask(task.definition, "missing `adjustMods`");
-			}
-			if (!task.definition.modsPath) {
-				return this.ConfigErrorTask(task.definition, "missing `modsPath`");
-			}
-			return this.AdjustModsTask(task.definition as AdjustModsDefinition);
-		}
-
-		if (!task.definition.modname) {
-			return this.ConfigErrorTask(task.definition, "missing `modname`");
-		}
-
-		if (task.definition.command === "run") {
-			if (!task.definition.script) {
-				return this.ConfigErrorTask(task.definition, "missing `script`");
-			}
-		}
-
-		const latest = ModPackage.latestPackages(this.modPackages.values());
-		for (const modpackage of this.modPackages.values()) {
-			if (modpackage.label === task.definition.modname && latest.has(modpackage)) {
-				const mp = modpackage;
-				switch (task.definition.command) {
-					case "run":
-						return mp.RunTask(task.definition.script, task.definition.scriptArgs);
-					case "compile":
-						return mp.RunTask("compile");
-					case "datestamp":
-						return mp.DateStampTask();
-					case "package":
-						return mp.PackageTask();
-					case "version":
-						return mp.IncrementTask();
-					case "upload":
-						return mp.PostToPortalTask();
-					case "details":
-						return mp.DetailsTask();
-					case "publish":
-						return mp.PublishTask();
-					default:
-						return this.ConfigErrorTask(task.definition, `unknown \`command\` "${task.definition.command}"`);
-				}
-			}
-		}
-		return this.ConfigErrorTask(task.definition, `mod "${task.definition.modname}" not found`);
-	}
-
-	resolveTask(task: vscode.Task, token?: vscode.CancellationToken): vscode.ProviderResult<vscode.Task> {
-		if (task.definition.type === "factorio") {
-			const execution = this.resolveTaskExecution(task, token);
-
-
-			return new vscode.Task(
-				task.definition,
-				task.scope || vscode.TaskScope.Workspace,
-				task.name,
-				task.source,
-				execution,
-				[]);
-		}
-		return undefined;
-	}
-
-	private ConfigErrorTask(def:vscode.TaskDefinition, error:string): vscode.CustomExecution {
-		return new vscode.CustomExecution(async ()=>{
-			return new ModTaskPseudoterminal(term=>{
-				term.write(error+"\n");
-				term.write(JSON.stringify(def, undefined, 2));
-				term.close();
-			});
-		});
-	}
-
-	private getFMTKCLIPath() {
-		return this.context.asAbsolutePath("./dist/fmtk-cli.js");
-	}
-
-	private AdjustModsTask(def:AdjustModsDefinition) {
-		const args = [
-			"mods", "--modsPath", def.modsPath, "adjust",
-		];
-		if (def.allowDisableBaseMod) {
-			args.push("--allowDisableBase");
-		}
-		if (def.disableExtraMods) {
-			args.push("--disableExtra");
-		}
-		for (const mod in def.adjustMods) {
-			args.push(`${mod}=${def.adjustMods[mod]}`);
-		}
-		return new vscode.CustomExecution(async ()=>{
-			return new ModTaskPseudoterminal(async term=>{
-				await forkScript(term,
-					this.getFMTKCLIPath(),
-					args,
-					process.cwd());
-				term.close();
-			});
-		});
 	}
 }
 
@@ -520,7 +348,8 @@ class ModPackage extends vscode.TreeItem {
 		});
 	}
 }
-class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>, vscode.Disposable {
+
+export class ModPackageProvider implements vscode.TreeDataProvider<vscode.TreeItem>, vscode.TaskProvider, vscode.Disposable {
 	private readonly context:vscode.ExtensionContext;
 	private readonly keychain:Keychain;
 	private readonly gitapi?:GitAPI;
@@ -560,7 +389,7 @@ class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>, 
 			}));
 		}
 
-		this.subscriptions.push(vscode.tasks.registerTaskProvider("factorio", new ModTaskProvider(this.context, this.modPackages)));
+		this.subscriptions.push(vscode.tasks.registerTaskProvider("factorio", this));
 
 		this.subscriptions.push(
 			vscode.commands.registerCommand("factorio.openchangelog",
@@ -685,6 +514,169 @@ class ModsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem>, 
 		} else {
 			return [];
 		}
+	}
+
+	provideTasks(token?: vscode.CancellationToken): vscode.ProviderResult<vscode.Task[]> {
+		const tasks:vscode.Task[] = [];
+
+		const latest = ModPackage.latestPackages(this.modPackages.values());
+		for (const modpackage of this.modPackages.values()) {
+			if (!latest.has(modpackage)) { continue; }
+			tasks.push(new vscode.Task(
+				{label: `${modpackage.name}.datestamp`, type: "factorio", modname: modpackage.label, command: "datestamp"},
+				vscode.workspace.getWorkspaceFolder(modpackage.resourceUri) || vscode.TaskScope.Workspace,
+				`${modpackage.name}.datestamp`,
+				"factorio",
+				modpackage.DateStampTask(),
+				[]
+			));
+			tasks.push(new vscode.Task(
+				{label: `${modpackage.name}.package`, type: "factorio", modname: modpackage.label, command: "package"},
+				vscode.workspace.getWorkspaceFolder(modpackage.resourceUri) || vscode.TaskScope.Workspace,
+				`${modpackage.name}.package`,
+				"factorio",
+				modpackage.PackageTask(),
+				[]
+			));
+			tasks.push(new vscode.Task(
+				{label: `${modpackage.name}.version`, type: "factorio", modname: modpackage.label, command: "version"},
+				vscode.workspace.getWorkspaceFolder(modpackage.resourceUri) || vscode.TaskScope.Workspace,
+				`${modpackage.name}.version`,
+				"factorio",
+				modpackage.IncrementTask(),
+				[]
+			));
+			tasks.push(new vscode.Task(
+				{label: `${modpackage.name}.upload`, type: "factorio", modname: modpackage.label, command: "upload"},
+				vscode.workspace.getWorkspaceFolder(modpackage.resourceUri) || vscode.TaskScope.Workspace,
+				`${modpackage.name}.upload`,
+				"factorio",
+				modpackage.PostToPortalTask(),
+				[]
+			));
+			tasks.push(new vscode.Task(
+				{label: `${modpackage.name}.details`, type: "factorio", modname: modpackage.label, command: "details"},
+				vscode.workspace.getWorkspaceFolder(modpackage.resourceUri) || vscode.TaskScope.Workspace,
+				`${modpackage.name}.details`,
+				"factorio",
+				modpackage.DetailsTask(),
+				[]
+			));
+			tasks.push(new vscode.Task(
+				{label: `${modpackage.name}.publish`, type: "factorio", modname: modpackage.label, command: "publish"},
+				vscode.workspace.getWorkspaceFolder(modpackage.resourceUri) || vscode.TaskScope.Workspace,
+				`${modpackage.name}.publish`,
+				"factorio",
+				modpackage.PublishTask(),
+				[]
+			));
+		};
+
+		return tasks;
+	}
+
+	resolveTaskExecution(task: vscode.Task, token?: vscode.CancellationToken) {
+		if (task.definition.command === "adjustMods") {
+			if (!task.definition.adjustMods) {
+				return this.ConfigErrorTask(task.definition, "missing `adjustMods`");
+			}
+			if (!task.definition.modsPath) {
+				return this.ConfigErrorTask(task.definition, "missing `modsPath`");
+			}
+			return this.AdjustModsTask(task.definition as AdjustModsDefinition);
+		}
+
+		if (!task.definition.modname) {
+			return this.ConfigErrorTask(task.definition, "missing `modname`");
+		}
+
+		if (task.definition.command === "run") {
+			if (!task.definition.script) {
+				return this.ConfigErrorTask(task.definition, "missing `script`");
+			}
+		}
+
+		const latest = ModPackage.latestPackages(this.modPackages.values());
+		for (const modpackage of this.modPackages.values()) {
+			if (modpackage.label === task.definition.modname && latest.has(modpackage)) {
+				const mp = modpackage;
+				switch (task.definition.command) {
+					case "run":
+						return mp.RunTask(task.definition.script, task.definition.scriptArgs);
+					case "compile":
+						return mp.RunTask("compile");
+					case "datestamp":
+						return mp.DateStampTask();
+					case "package":
+						return mp.PackageTask();
+					case "version":
+						return mp.IncrementTask();
+					case "upload":
+						return mp.PostToPortalTask();
+					case "details":
+						return mp.DetailsTask();
+					case "publish":
+						return mp.PublishTask();
+					default:
+						return this.ConfigErrorTask(task.definition, `unknown \`command\` "${task.definition.command}"`);
+				}
+			}
+		}
+		return this.ConfigErrorTask(task.definition, `mod "${task.definition.modname}" not found`);
+	}
+
+	resolveTask(task: vscode.Task, token?: vscode.CancellationToken): vscode.ProviderResult<vscode.Task> {
+		if (task.definition.type === "factorio") {
+			const execution = this.resolveTaskExecution(task, token);
+
+
+			return new vscode.Task(
+				task.definition,
+				task.scope || vscode.TaskScope.Workspace,
+				task.name,
+				task.source,
+				execution,
+				[]);
+		}
+		return undefined;
+	}
+
+	private ConfigErrorTask(def:vscode.TaskDefinition, error:string): vscode.CustomExecution {
+		return new vscode.CustomExecution(async ()=>{
+			return new ModTaskPseudoterminal(term=>{
+				term.write(error+"\n");
+				term.write(JSON.stringify(def, undefined, 2));
+				term.close();
+			});
+		});
+	}
+
+	private getFMTKCLIPath() {
+		return this.context.asAbsolutePath("./dist/fmtk-cli.js");
+	}
+
+	private AdjustModsTask(def:AdjustModsDefinition) {
+		const args = [
+			"mods", "--modsPath", def.modsPath, "adjust",
+		];
+		if (def.allowDisableBaseMod) {
+			args.push("--allowDisableBase");
+		}
+		if (def.disableExtraMods) {
+			args.push("--disableExtra");
+		}
+		for (const mod in def.adjustMods) {
+			args.push(`${mod}=${def.adjustMods[mod]}`);
+		}
+		return new vscode.CustomExecution(async ()=>{
+			return new ModTaskPseudoterminal(async term=>{
+				await forkScript(term,
+					this.getFMTKCLIPath(),
+					args,
+					process.cwd());
+				term.close();
+			});
+		});
 	}
 }
 
