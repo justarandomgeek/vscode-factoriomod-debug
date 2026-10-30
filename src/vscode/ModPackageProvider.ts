@@ -8,6 +8,8 @@ import { Keychain } from './Keychain';
 import { platform, tmpdir } from 'os';
 import { default as dotize } from "dotize";
 import type { GitExtension, API as GitAPI } from './git';
+import * as FactorioTestController from "./FactorioTestController";
+import type { FactorioVersionSelector } from './VersionSelector';
 
 interface ModPackageScripts {
 	[key:string]: string|undefined
@@ -82,7 +84,7 @@ function addBinToPath(path:string) {
 	return path;
 }
 
-export async function activateModPackageProvider(context:vscode.ExtensionContext) {
+export async function activateModPackageProvider(context:vscode.ExtensionContext, versionSelector:FactorioVersionSelector) {
 	if (vscode.workspace.workspaceFolders) {
 		const keychain = new Keychain(context.secrets);
 		context.subscriptions.push(vscode.commands.registerCommand("factorio.clearApiKey", async ()=>{
@@ -100,6 +102,8 @@ export async function activateModPackageProvider(context:vscode.ExtensionContext
 		const view = vscode.window.createTreeView('factoriomods', { treeDataProvider: packageProvider });
 		context.subscriptions.push(view);
 		extensionUri = context.extensionUri;
+
+		FactorioTestController.activate(context, packageProvider, versionSelector);
 	}
 }
 
@@ -193,6 +197,18 @@ class ModPackage extends vscode.TreeItem {
 		}
 
 		return undefined;
+	}
+
+	public async discoverTestSuites() {
+		try {
+			const testsdoc = await vscode.workspace.openTextDocument(vscode.Uri.joinPath(this.resourceUri, "../tests.json"));
+			const jsonstr = testsdoc.getText();
+			const suites:FactorioTestController.TestSuiteList = JSON.parse(jsonstr);
+			//TODO: validate it against schema?
+			return suites;
+		} catch (error) {
+			return undefined;
+		}
 	}
 
 	public async ReloadInfo() {
@@ -514,6 +530,17 @@ export class ModPackageProvider implements vscode.TreeDataProvider<vscode.TreeIt
 		} else {
 			return [];
 		}
+	}
+
+	async discoverTestSuites() {
+		const modSuites = new Map<string, FactorioTestController.TestSuiteList>();
+		for (const modpackage of ModPackage.latestPackages(this.modPackages.values())) {
+			const suites = await modpackage.discoverTestSuites();
+			if (suites) {
+				modSuites.set(modpackage.name, suites);
+			}
+		}
+		return modSuites;
 	}
 
 	provideTasks(token?: vscode.CancellationToken): vscode.ProviderResult<vscode.Task[]> {

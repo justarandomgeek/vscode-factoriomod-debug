@@ -1,0 +1,33 @@
+{
+  "title": "Factorio Mod tests.json",
+  "$schema": "https://json-schema.org/draft-07/schema",
+  "type":"array",
+  "items": {
+    "type": "object",
+    "oneOf": [
+      {
+        "required": ["save"],
+        "properties": { "save": { "type": "string" } }
+      },
+      {
+        "required": ["scenario"],
+        "properties": { "scenario": { "type": "string" } }
+      }
+    ],
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "ticks": {
+        "type":"integer"
+      },
+      "arg": {
+        "type": "string"
+      },
+      "factorioArgs": {
+        "type": "array",
+        "items": { "type":"string" }
+      }
+    }
+  }
+}

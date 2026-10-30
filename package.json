@@ -629,6 +629,12 @@
       },
       {
         "fileMatch": [
+          "tests.json"
+        ],
+        "url": "./schema/modtests.json"
+      },
+      {
+        "fileMatch": [
           "info.json",
           "!locale/*/info.json",
           "!data/**/info.json",

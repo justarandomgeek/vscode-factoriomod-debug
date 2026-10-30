@@ -32,7 +32,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		LanguageClient.activate(context);
 
 		output.info(`Registering Mod Package Provider...`);
-		await activateModPackageProvider(context);
+		await activateModPackageProvider(context, versionSelector);
 
 		output.info(`Registering Custom Editors...`);
 		new ModSettingsEditorProvider(context);

@@ -4,7 +4,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { URI } from "vscode-uri";
 import type { ApiDocGenerator } from '../ApiDocs/ApiDocGenerator';
-import { execFile } from 'child_process';
+import { type ExecException, execFile } from 'child_process';
 
 
 // requires at least one of `factorioPath` or `onlineDocs`
@@ -87,6 +87,19 @@ export class ActiveFactorioVersion {
 					}
 
 					reject(new Error(`Unable to read version:\nstdout: ${stdout}\nstderr: ${stderr}`));
+				});
+		});
+	}
+
+	public async run(args:string[]) {
+		return new Promise<{error:ExecException|null; stdout:string; stderr:string}>((resolve, reject)=>{
+			execFile(
+				this.factorioPath, args,
+				{
+					env: Object.assign({}, process.env, {SteamAppId: "427520"}),
+				},
+				(error, stdout, stderr)=>{
+					resolve({error, stdout, stderr});
 				});
 		});
 	}
