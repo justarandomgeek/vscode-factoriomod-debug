@@ -31,7 +31,24 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 	const controller = vscode.tests.createTestController("factorio", "Factorio");
 	context.subscriptions.push(controller);
 
+	const discoverTests = async ()=>{
+		const items:vscode.TestItem[] = [];
+		const suites = await packageProvider.discoverTestSuites();
+		suites.forEach((suites, modname)=>{
+			const modItem:vscode.TestItem&{modname?:string} = controller.createTestItem(modname, modname);
+			modItem.modname = modname;
+			items.push(modItem);
 
+			suites.forEach(suite=>{
+				//TODO: if save/scenario is glob, look for matches and list those...
+				const testItem:vscode.TestItem&{modname?:string; suiteConfig?:SaveTestSuite|ScenarioTestSuite} = controller.createTestItem(suite.name, suite.name);
+				testItem.modname = modname;
+				testItem.suiteConfig = suite;
+				modItem.children.add(testItem);
+			});
+		});
+		controller.items.replace(items);
+	};
 
 	const runHandler = (request: vscode.TestRunRequest, cancellation: vscode.CancellationToken)=>{
 		return startTestRun(request);
@@ -101,30 +118,18 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 				}
 			};
 		} else {
-			//TODO: discover and run everything!
+			// discover and run everything!
+			await discoverTests();
+			for (const [_modname, moditem] of controller.items) {
+				for (const [_id, child] of moditem.children) {
+					await runOne(child);
+				}
+			}
 		}
 
 		run.end();
 	};
 
-	const discoverTests = async ()=>{
-		const items:vscode.TestItem[] = [];
-		const suites = await packageProvider.discoverTestSuites();
-		suites.forEach((suites, modname)=>{
-			const modItem:vscode.TestItem&{modname?:string} = controller.createTestItem(modname, modname);
-			modItem.modname = modname;
-			items.push(modItem);
-
-			suites.forEach(suite=>{
-				//TODO: if save/scenario is glob, look for matches and list those...
-				const testItem:vscode.TestItem&{modname?:string; suiteConfig?:SaveTestSuite|ScenarioTestSuite} = controller.createTestItem(suite.name, suite.name);
-				testItem.modname = modname;
-				testItem.suiteConfig = suite;
-				modItem.children.add(testItem);
-			});
-		});
-		controller.items.replace(items);
-	};
 	controller.refreshHandler = discoverTests;
 	context.subscriptions.push(packageProvider.onDidChangeTreeData(()=>{ void discoverTests(); }));
 
