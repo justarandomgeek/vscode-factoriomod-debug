@@ -74,6 +74,7 @@
     "remark": "^15.0.1",
     "rimraf": "^6.1.3",
     "semver": "^7.8.5",
+    "tap-parser": "^18.3.4",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.72.1",
     "vscode-languageclient": "^10.1.2",

@@ -27,6 +27,18 @@
       "factorioArgs": {
         "type": "array",
         "items": { "type":"string" }
+      },
+      "results": {
+        "oneOf": [
+          {
+            "type":"object",
+            "required": ["format", "filename"],
+            "properties": {
+              "format": { "const": "tap" },
+              "filename": { "type": "string" }
+            }
+          }
+        ]
       }
     }
   }

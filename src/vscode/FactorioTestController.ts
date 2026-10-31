@@ -2,7 +2,9 @@ import * as vscode from 'vscode';
 import type { ModSettingsScopeName, ModSettingsValue } from '../ModSettings/ModSettings';
 import type { ModPackageProvider } from './ModPackageProvider';
 import type { FactorioVersionSelector } from './VersionSelector';
-import type { ActiveFactorioVersion } from './FactorioVersion';
+import type { Plan, Result, EventLog} from "tap-parser";
+import { Parser } from "tap-parser";
+import assert from 'assert';
 
 export interface TestSuite {
 	adjustMods?: {[modname:string]:string|boolean}
@@ -16,6 +18,8 @@ export interface TestSuite {
 	arg?:string
 
 	factorioArgs?:string[]
+
+	results?: {format:"tap"; filename:string}
 };
 
 export interface SaveTestSuite extends TestSuite {
@@ -90,6 +94,66 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 					//TODO: adjust settings...
 				}
 				const result = await activeVersion.run(args);
+
+				if (item.suiteConfig.results) {
+					switch (item.suiteConfig.results.format) {
+						case "tap":
+							const tapfileuri = vscode.Uri.joinPath(vscode.Uri.file(await activeVersion.scriptOutputPath()), item.suiteConfig.results.filename );
+							const tap = Parser.parse((await vscode.workspace.fs.readFile(tapfileuri)).toString());
+							item.children.replace([]);
+
+							const tapToTestItems = (tap:EventLog, item:vscode.TestItem)=>{
+								for (let i = 0; i < tap.length; i++) {
+									const tapEvent = tap[i];
+									switch (tapEvent[0]) {
+										case "plan":
+											const plan = tapEvent[1] as Plan;
+											console.log(plan);
+											break;
+										case "child":
+											{
+												const child = tapEvent[1] as EventLog;
+												const subTest = tap[++i];
+												assert(subTest[0]==="assert");
+												const result = subTest[1]  as Result;
+												const tapItem = controller.createTestItem(result.id.toString(), result.name);
+												item.children.add(tapItem);
+												run.started(tapItem);
+
+												tapToTestItems(child, tapItem);
+
+												if (result.ok) {
+													run.passed(tapItem);
+												} else {
+													run.failed(tapItem, {message: ""});
+												}
+											}
+											break;
+										case "assert":
+											{
+												const result = tapEvent[1]  as Result;
+
+												const tapItem = controller.createTestItem(result.id.toString(), result.name);
+												item.children.add(tapItem);
+												if (result.ok) {
+													run.passed(tapItem);
+												} else {
+													run.failed(tapItem, {message: ""});
+												}
+											}
+											break;
+										default:
+											break;
+									}
+								}
+							};
+
+							tapToTestItems(tap, item);
+							console.log(tap);
+							break;
+					}
+				}
+
 				if (result.error) {
 					run.failed(item, { message: result.stdout });
 				} else {
@@ -102,7 +166,7 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 
 		if (request.include) {
 			for (const _item of request.include) {
-				const item = _item as vscode.TestItem&{modname?:string; suiteConfig?:SaveTestSuite|ScenarioTestSuite};
+				let item = _item as vscode.TestItem&{modname?:string; suiteConfig?:SaveTestSuite|ScenarioTestSuite};
 				if (item.modname) {
 					if (item.suiteConfig) {
 						// run a specific test...
@@ -114,7 +178,13 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 						}
 					}
 				} else {
-					//TODO: or if it was a deep result, walk up until we find the suite to re-run...
+					// or if it was a deep result, walk up until we find the suite to re-run...
+					while (item.parent && !item.suiteConfig) {
+						item = item.parent;
+					}
+					if (item.suiteConfig) {
+						await runOne(item);
+					}
 				}
 			};
 		} else {
