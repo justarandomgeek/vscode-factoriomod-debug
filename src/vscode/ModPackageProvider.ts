@@ -10,6 +10,7 @@ import { default as dotize } from "dotize";
 import type { GitExtension, API as GitAPI } from './git';
 import * as FactorioTestController from "./FactorioTestController";
 import type { FactorioVersionSelector } from './VersionSelector';
+import type { TestSpec } from '../Test/TestSpec';
 
 interface ModPackageScripts {
 	[key:string]: string|undefined
@@ -203,8 +204,9 @@ class ModPackage extends vscode.TreeItem {
 		try {
 			const testsdoc = await vscode.workspace.openTextDocument(vscode.Uri.joinPath(this.resourceUri, "../tests.json"));
 			const jsonstr = testsdoc.getText();
-			const suites:FactorioTestController.TestSuiteList = JSON.parse(jsonstr);
+			const suites:TestSpec[] = JSON.parse(jsonstr);
 			//TODO: validate it against schema?
+			//TODO: expand wildcard saves/scenarios?
 			return suites;
 		} catch (error) {
 			return undefined;
@@ -533,7 +535,7 @@ export class ModPackageProvider implements vscode.TreeDataProvider<vscode.TreeIt
 	}
 
 	async discoverTestSuites() {
-		const modSuites = new Map<string, FactorioTestController.TestSuiteList>();
+		const modSuites = new Map<string, TestSpec[]>();
 		for (const modpackage of ModPackage.latestPackages(this.modPackages.values())) {
 			const suites = await modpackage.discoverTestSuites();
 			if (suites) {

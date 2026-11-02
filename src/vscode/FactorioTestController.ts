@@ -1,35 +1,10 @@
 import * as vscode from 'vscode';
-import type { ModSettingsScopeName, ModSettingsValue } from '../ModSettings/ModSettings';
 import type { ModPackageProvider } from './ModPackageProvider';
 import type { FactorioVersionSelector } from './VersionSelector';
 import type { Plan, Result, EventLog} from "tap-parser";
 import { Parser } from "tap-parser";
 import assert from 'assert';
-
-export interface TestSuite {
-	adjustMods?: {[modname:string]:string|boolean}
-	disableUnlistedMods?:boolean
-	allowDisableBaseMod?:boolean
-
-	settings?: {scope: ModSettingsScopeName; name: string; value: ModSettingsValue<string>|{type:"none"; value?:undefined}}[]
-
-	name:string // test suite name, unique within mod
-	ticks?:number
-	arg?:string
-
-	factorioArgs?:string[]
-
-	results?: {format:"tap"; filename:string}
-};
-
-export interface SaveTestSuite extends TestSuite {
-	save:string
-}
-export interface ScenarioTestSuite extends TestSuite {
-	scenario:string
-}
-
-export type TestSuiteList = (SaveTestSuite|ScenarioTestSuite)[];
+import { TestSpecArgs, type TestSpec } from '../Test/TestSpec';
 
 export function activate(context: vscode.ExtensionContext, packageProvider: ModPackageProvider, versionSelector:FactorioVersionSelector) {
 	const controller = vscode.tests.createTestController("factorio", "Factorio");
@@ -41,12 +16,15 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 		suites.forEach((suites, modname)=>{
 			const modItem:vscode.TestItem&{modname?:string} = controller.createTestItem(modname, modname);
 			modItem.modname = modname;
+			//@ts-expect-error readonly bound incorrectly
+			modItem.tags.push(new vscode.TestTag("CanRun"));
 			items.push(modItem);
 
 			suites.forEach(suite=>{
-				//TODO: if save/scenario is glob, look for matches and list those...
-				const testItem:vscode.TestItem&{modname?:string; suiteConfig?:SaveTestSuite|ScenarioTestSuite} = controller.createTestItem(suite.name, suite.name);
+				const testItem:vscode.TestItem&{modname?:string; suiteConfig?:TestSpec} = controller.createTestItem(suite.name, suite.name);
 				testItem.modname = modname;
+				//@ts-expect-error readonly bound incorrectly
+				testItem.tags.push(new vscode.TestTag("CanRun"));
 				testItem.suiteConfig = suite;
 				modItem.children.add(testItem);
 			});
@@ -54,37 +32,16 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 		controller.items.replace(items);
 	};
 
-	const runHandler = (request: vscode.TestRunRequest, cancellation: vscode.CancellationToken)=>{
-		return startTestRun(request);
-	};
-
-	const startTestRun = async (request: vscode.TestRunRequest)=>{
+	const runHandler = async (request: vscode.TestRunRequest, cancellation: vscode.CancellationToken)=>{
 		const run = controller.createTestRun(request);
 
 		const activeVersion = await versionSelector.getActiveVersion();
 
-		const runOne = async (_item: vscode.TestItem&{modname?:string; suiteConfig?:SaveTestSuite|ScenarioTestSuite})=>{
-			const item = _item as vscode.TestItem&{modname:string; suiteConfig:SaveTestSuite|ScenarioTestSuite};
+		const runOne = async (_item: vscode.TestItem&{modname?:string; suiteConfig?:TestSpec})=>{
+			const item = _item as vscode.TestItem&{modname:string; suiteConfig:TestSpec};
 			run.started(item);
 			if (activeVersion) {
-				const args: string[] = [];
-				if ("scenario" in item.suiteConfig && item.suiteConfig.scenario) {
-					args.push("--test-scenario", item.suiteConfig.scenario);
-				}
-				if ("save" in item.suiteConfig && item.suiteConfig.save) {
-					args.push("--test-save", item.suiteConfig.save);
-				}
-
-				if (item.suiteConfig.ticks) {
-					args.push("--test-ticks", item.suiteConfig.ticks.toString());
-				}
-				if (item.suiteConfig.arg) {
-					args.push("--test-arg", item.suiteConfig.arg);
-				}
-
-				if (item.suiteConfig.factorioArgs) {
-					args.push(...item.suiteConfig.factorioArgs);
-				}
+				const args: string[] = TestSpecArgs(item.suiteConfig);
 
 				if (item.suiteConfig.adjustMods) {
 					//TODO: adjust mods...
@@ -102,43 +59,38 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 							const tap = Parser.parse((await vscode.workspace.fs.readFile(tapfileuri)).toString());
 							item.children.replace([]);
 
-							const tapToTestItems = (tap:EventLog, item:vscode.TestItem)=>{
+							function tapToTestItems(tap: EventLog, item: vscode.TestItem, run:vscode.TestRun, newChild: (parent:vscode.TestItem, id:string, label:string)=>vscode.TestItem) {
 								for (let i = 0; i < tap.length; i++) {
 									const tapEvent = tap[i];
 									switch (tapEvent[0]) {
 										case "plan":
 											const plan = tapEvent[1] as Plan;
-											console.log(plan);
 											break;
 										case "child":
 											{
 												const child = tapEvent[1] as EventLog;
 												const subTest = tap[++i];
-												assert(subTest[0]==="assert");
-												const result = subTest[1]  as Result;
-												const tapItem = controller.createTestItem(result.id.toString(), result.name);
-												item.children.add(tapItem);
-												run.started(tapItem);
-
-												tapToTestItems(child, tapItem);
+												assert(subTest[0] === "assert");
+												const result = subTest[1] as Result;
+												const tapItem = newChild(item, result.id.toString(), result.name);
+												tapToTestItems(child, tapItem, run, newChild);
 
 												if (result.ok) {
 													run.passed(tapItem);
 												} else {
-													run.failed(tapItem, {message: ""});
+													run.failed(tapItem, { message: "" });
 												}
 											}
 											break;
 										case "assert":
 											{
-												const result = tapEvent[1]  as Result;
+												const result = tapEvent[1] as Result;
 
-												const tapItem = controller.createTestItem(result.id.toString(), result.name);
-												item.children.add(tapItem);
+												const tapItem = newChild(item, result.id.toString(), result.name);
 												if (result.ok) {
 													run.passed(tapItem);
 												} else {
-													run.failed(tapItem, {message: ""});
+													run.failed(tapItem, { message: "" });
 												}
 											}
 											break;
@@ -146,10 +98,13 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 											break;
 									}
 								}
-							};
+							}
 
-							tapToTestItems(tap, item);
-							console.log(tap);
+							tapToTestItems(tap, item, run, (parent, id, label)=>{
+								const child = controller.createTestItem(id, label);
+								parent.children.add(child);
+								return child;
+							});
 							break;
 					}
 				}
@@ -166,7 +121,7 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 
 		if (request.include) {
 			for (const _item of request.include) {
-				let item = _item as vscode.TestItem&{modname?:string; suiteConfig?:SaveTestSuite|ScenarioTestSuite};
+				const item = _item as vscode.TestItem&{modname?:string; suiteConfig?:TestSpec};
 				if (item.modname) {
 					if (item.suiteConfig) {
 						// run a specific test...
@@ -176,14 +131,6 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 						for (const [_id, child] of item.children) {
 							await runOne(child);
 						}
-					}
-				} else {
-					// or if it was a deep result, walk up until we find the suite to re-run...
-					while (item.parent && !item.suiteConfig) {
-						item = item.parent;
-					}
-					if (item.suiteConfig) {
-						await runOne(item);
 					}
 				}
 			};
@@ -196,14 +143,12 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 				}
 			}
 		}
-
 		run.end();
 	};
 
 	controller.refreshHandler = discoverTests;
 	context.subscriptions.push(packageProvider.onDidChangeTreeData(()=>{ void discoverTests(); }));
 
-	controller.createRunProfile("run", vscode.TestRunProfileKind.Run, runHandler, true);
-
-
+	controller.createRunProfile("run", vscode.TestRunProfileKind.Run, runHandler, true, new vscode.TestTag("CanRun"));
+	//TODO: Debug profile
 }
