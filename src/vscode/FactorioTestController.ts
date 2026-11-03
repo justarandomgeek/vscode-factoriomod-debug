@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import type { ModPackageProvider } from './ModPackageProvider';
 import type { FactorioVersionSelector } from './VersionSelector';
 import { Parser } from "tap-parser";
-import { TestSpecArgs, type TestSpec } from '../Test/TestSpec';
+import { TestSpecArgs, type ScenarioTestSpec, type TestSpec, type WildcardTestSpec } from '../Test/TestSpec';
 import { tapToTestItems } from '../Test/TAP';
 
 export function activate(context: vscode.ExtensionContext, packageProvider: ModPackageProvider, versionSelector:FactorioVersionSelector) {
@@ -15,12 +15,13 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 		specs.forEach((specs, modname)=>{
 			const modItem:vscode.TestItem&{modname?:string} = controller.createTestItem(modname, modname);
 			modItem.modname = modname;
-			//@ts-expect-error readonly bound incorrectly
-			modItem.tags.push(new vscode.TestTag("CanRun"));
+			(modItem.tags as vscode.TestTag[]).push(new vscode.TestTag("CanRun"));
+			(modItem.tags as vscode.TestTag[]).push(new vscode.TestTag("RunChildren"));
 			items.push(modItem);
 
-			specs.forEach(spec=>{
+			specs.forEach((spec, i)=>{
 				const testItem:vscode.TestItem&{modname?:string; suiteConfig?:TestSpec} = controller.createTestItem(spec.name, spec.name);
+				testItem.sortText= i.toString();
 				testItem.modname = modname;
 				(testItem.tags as vscode.TestTag[]).push(new vscode.TestTag("CanRun"));
 				testItem.suiteConfig = spec;
@@ -30,11 +31,11 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 					if (spec.matched.length === 0) {
 						// no valid match... error it and no run?
 						(testItem.tags as vscode.TestTag[]).pop();
-						testItem.error = "No matching Scenario";
+						testItem.error = `No scenarios match '${(spec as WildcardTestSpec<ScenarioTestSpec>).scenario}'`;
 					} else {
 						// matches, add them as children, flag parent as wildcard to run children
 						(testItem.tags as vscode.TestTag[]).push(new vscode.TestTag("RunChildren"));
-						for (const match of spec.matched) {
+						spec.matched.forEach((match, i)=>{
 							const matchItem:vscode.TestItem&{modname?:string; suiteConfig?:TestSpec; match?:string } = controller.createTestItem(match, match);
 							matchItem.modname = modname;
 							(matchItem.tags as vscode.TestTag[]).push(new vscode.TestTag("CanRun"));
@@ -42,10 +43,9 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 							matchItem.suiteConfig = spec;
 							matchItem.match = match;
 							testItem.children.add(matchItem);
-						}
+						});
 					}
 				}
-
 			});
 		});
 		controller.items.replace(items);
@@ -99,40 +99,25 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 			}
 		};
 
-		if (request.include) {
-			for (const _item of request.include) {
-				const item = _item as vscode.TestItem&{modname?:string; suiteConfig?:TestSpec};
-				if (item.modname) {
-					if (item.suiteConfig && !item.tags.find(t=>t.id === "RunChildren")) {
-						// run a specific test...
-						await runOne(item);
-					} else {
-						// run all tests in a mod...
-						for (const [_id, child] of item.children) {
-							if (child.tags.find(t=>t.id === "RunChildren")) {
-								for (const [_id, match] of child.children) {
-									await runOne(match);
-								}
-							} else {
-								await runOne(child);
-							}
-						}
-					}
+		const runItem = async (item:vscode.TestItem)=>{
+			if (!item.tags.find(t=>t.id === "RunChildren")) {
+				await runOne(item);
+			} else {
+				for (const [_id, child] of item.children) {
+					await runItem(child);
 				}
+			}
+		};
+
+		if (request.include) {
+			for (const item of request.include) {
+				await runItem(item);
 			};
 		} else {
 			// discover and run everything!
 			await discoverTests();
 			for (const [_modname, moditem] of controller.items) {
-				for (const [_id, child] of moditem.children) {
-					if (child.tags.find(t=>t.id === "RunChildren")) {
-						for (const [_id, match] of child.children) {
-							await runOne(match);
-						}
-					} else {
-						await runOne(child);
-					}
-				}
+				await runItem(moditem);
 			}
 		}
 		run.end();
