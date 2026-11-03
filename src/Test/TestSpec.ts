@@ -26,17 +26,17 @@ export interface ScenarioTestSpec extends BaseTestSpec {
 
 export type TestSpec = SaveTestSpec | ScenarioTestSpec;
 
-export type WildcardTestSpec = TestSpec & {
+export type WildcardTestSpec<T = TestSpec> = T & {
 	matched: string[]
 };
 
 export function TestSpecArgs(spec:TestSpec, match?:string) {
 	const args: string[] = [];
 	if ("scenario" in spec && spec.scenario) {
-		args.push("--test-scenario", spec.scenario);
+		args.push("--test-scenario", match ?? spec.scenario);
 	}
 	if ("save" in spec && spec.save) {
-		args.push("--test-save", spec.save);
+		args.push("--test-save", match ?? spec.save);
 	}
 
 	if (spec.ticks) {

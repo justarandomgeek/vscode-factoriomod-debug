@@ -10,7 +10,8 @@ import { default as dotize } from "dotize";
 import type { GitExtension, API as GitAPI } from './git';
 import * as FactorioTestController from "./FactorioTestController";
 import type { FactorioVersionSelector } from './VersionSelector';
-import type { TestSpec } from '../Test/TestSpec';
+import type { ScenarioTestSpec, TestSpec, WildcardTestSpec } from '../Test/TestSpec';
+import { readdirGlob } from 'readdir-glob';
 
 interface ModPackageScripts {
 	[key:string]: string|undefined
@@ -200,14 +201,43 @@ class ModPackage extends vscode.TreeItem {
 		return undefined;
 	}
 
-	public async discoverTestSuites() {
+	public async discoverTestSpecs() {
 		try {
 			const testsdoc = await vscode.workspace.openTextDocument(vscode.Uri.joinPath(this.resourceUri, "../tests.json"));
 			const jsonstr = testsdoc.getText();
-			const suites:TestSpec[] = JSON.parse(jsonstr);
+			const specs:(WildcardTestSpec|TestSpec)[] = JSON.parse(jsonstr);
 			//TODO: validate it against schema?
-			//TODO: expand wildcard saves/scenarios?
-			return suites;
+			for (const spec of specs) {
+				//TODO: expand wildcard saves/scenarios?
+				if ("scenario" in spec && spec.scenario) {
+					//scenarios: parse modname, glob scenario name
+					const match = spec.scenario.match(/(?:(.*?)\/)?(.*)/)!;
+					const modname:string|undefined = match[1]; // undefined for user scenarios
+					const scenario = match[2];
+					if (modname === this.name) { // for now only expand in own package...
+						const matched = await new Promise<string[]>((resolve, reject)=>{
+							const matched:string[] = [];
+							const globber = readdirGlob(vscode.Uri.joinPath(this.resourceUri, "../scenarios").fsPath, {
+								pattern: scenario,
+							});
+							globber.on('match', (match:{ relative:string; absolute:string })=>{
+								matched.push(`${modname}/${match.relative}`);
+							});
+							globber.on('error', (err)=>{ reject(err); });
+							globber.on('end', ()=>{ resolve(matched); });
+						});
+
+						// but don't bother listing if it's just a single literal match
+						if (!(matched.length === 1 && matched[0]===spec.scenario)) {
+							const wspec = spec as WildcardTestSpec<ScenarioTestSpec>;
+							wspec.matched = matched;
+						}
+					}
+				} else if ("save" in spec && spec.save) {
+					//saves: resolve from mod root, give factorio absolute path/list relative in test tree
+				}
+			}
+			return specs;
 		} catch (error) {
 			return undefined;
 		}
@@ -534,10 +564,10 @@ export class ModPackageProvider implements vscode.TreeDataProvider<vscode.TreeIt
 		}
 	}
 
-	async discoverTestSuites() {
-		const modSuites = new Map<string, TestSpec[]>();
+	async discoverTestSpecs() {
+		const modSuites = new Map<string, (WildcardTestSpec|TestSpec)[]>();
 		for (const modpackage of ModPackage.latestPackages(this.modPackages.values())) {
-			const suites = await modpackage.discoverTestSuites();
+			const suites = await modpackage.discoverTestSpecs();
 			if (suites) {
 				modSuites.set(modpackage.name, suites);
 			}

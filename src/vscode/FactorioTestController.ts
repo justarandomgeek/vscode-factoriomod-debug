@@ -1,10 +1,9 @@
 import * as vscode from 'vscode';
 import type { ModPackageProvider } from './ModPackageProvider';
 import type { FactorioVersionSelector } from './VersionSelector';
-import type { Plan, Result, EventLog} from "tap-parser";
 import { Parser } from "tap-parser";
-import assert from 'assert';
 import { TestSpecArgs, type TestSpec } from '../Test/TestSpec';
+import { tapToTestItems } from '../Test/TAP';
 
 export function activate(context: vscode.ExtensionContext, packageProvider: ModPackageProvider, versionSelector:FactorioVersionSelector) {
 	const controller = vscode.tests.createTestController("factorio", "Factorio");
@@ -12,21 +11,41 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 
 	const discoverTests = async ()=>{
 		const items:vscode.TestItem[] = [];
-		const suites = await packageProvider.discoverTestSuites();
-		suites.forEach((suites, modname)=>{
+		const specs = await packageProvider.discoverTestSpecs();
+		specs.forEach((specs, modname)=>{
 			const modItem:vscode.TestItem&{modname?:string} = controller.createTestItem(modname, modname);
 			modItem.modname = modname;
 			//@ts-expect-error readonly bound incorrectly
 			modItem.tags.push(new vscode.TestTag("CanRun"));
 			items.push(modItem);
 
-			suites.forEach(suite=>{
-				const testItem:vscode.TestItem&{modname?:string; suiteConfig?:TestSpec} = controller.createTestItem(suite.name, suite.name);
+			specs.forEach(spec=>{
+				const testItem:vscode.TestItem&{modname?:string; suiteConfig?:TestSpec} = controller.createTestItem(spec.name, spec.name);
 				testItem.modname = modname;
-				//@ts-expect-error readonly bound incorrectly
-				testItem.tags.push(new vscode.TestTag("CanRun"));
-				testItem.suiteConfig = suite;
+				(testItem.tags as vscode.TestTag[]).push(new vscode.TestTag("CanRun"));
+				testItem.suiteConfig = spec;
 				modItem.children.add(testItem);
+
+				if ("matched" in spec) {
+					if (spec.matched.length === 0) {
+						// no valid match... error it and no run?
+						(testItem.tags as vscode.TestTag[]).pop();
+						testItem.error = "No matching Scenario";
+					} else {
+						// matches, add them as children, flag parent as wildcard to run children
+						(testItem.tags as vscode.TestTag[]).push(new vscode.TestTag("RunChildren"));
+						for (const match of spec.matched) {
+							const matchItem:vscode.TestItem&{modname?:string; suiteConfig?:TestSpec; match?:string } = controller.createTestItem(match, match);
+							matchItem.modname = modname;
+							(matchItem.tags as vscode.TestTag[]).push(new vscode.TestTag("CanRun"));
+							(matchItem.tags as vscode.TestTag[]).push(new vscode.TestTag("RunMatch"));
+							matchItem.suiteConfig = spec;
+							matchItem.match = match;
+							testItem.children.add(matchItem);
+						}
+					}
+				}
+
 			});
 		});
 		controller.items.replace(items);
@@ -34,14 +53,22 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 
 	const runHandler = async (request: vscode.TestRunRequest, cancellation: vscode.CancellationToken)=>{
 		const run = controller.createTestRun(request);
-
+		const newChild = (parent:vscode.TestItem, id:string, label:string)=>{
+			const child = controller.createTestItem(id, label);
+			parent.children.add(child);
+			return child;
+		};
 		const activeVersion = await versionSelector.getActiveVersion();
+		const readOutputFile = async (filename:string)=>{
+			const uri = vscode.Uri.joinPath(vscode.Uri.file(await activeVersion!.scriptOutputPath()), filename );
+			return (await vscode.workspace.fs.readFile(uri)).toString();
+		};
 
-		const runOne = async (_item: vscode.TestItem&{modname?:string; suiteConfig?:TestSpec})=>{
-			const item = _item as vscode.TestItem&{modname:string; suiteConfig:TestSpec};
+		const runOne = async (_item: vscode.TestItem&{modname?:string; suiteConfig?:TestSpec; match?:string})=>{
+			const item = _item as vscode.TestItem&{modname:string; suiteConfig:TestSpec; match?:string};
 			run.started(item);
 			if (activeVersion) {
-				const args: string[] = TestSpecArgs(item.suiteConfig);
+				const args: string[] = TestSpecArgs(item.suiteConfig, item.match);
 
 				if (item.suiteConfig.adjustMods) {
 					//TODO: adjust mods...
@@ -55,56 +82,9 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 				if (item.suiteConfig.results) {
 					switch (item.suiteConfig.results.format) {
 						case "tap":
-							const tapfileuri = vscode.Uri.joinPath(vscode.Uri.file(await activeVersion.scriptOutputPath()), item.suiteConfig.results.filename );
-							const tap = Parser.parse((await vscode.workspace.fs.readFile(tapfileuri)).toString());
+							const tap = Parser.parse(await readOutputFile(item.suiteConfig.results.filename));
 							item.children.replace([]);
-
-							function tapToTestItems(tap: EventLog, item: vscode.TestItem, run:vscode.TestRun, newChild: (parent:vscode.TestItem, id:string, label:string)=>vscode.TestItem) {
-								for (let i = 0; i < tap.length; i++) {
-									const tapEvent = tap[i];
-									switch (tapEvent[0]) {
-										case "plan":
-											const plan = tapEvent[1] as Plan;
-											break;
-										case "child":
-											{
-												const child = tapEvent[1] as EventLog;
-												const subTest = tap[++i];
-												assert(subTest[0] === "assert");
-												const result = subTest[1] as Result;
-												const tapItem = newChild(item, result.id.toString(), result.name);
-												tapToTestItems(child, tapItem, run, newChild);
-
-												if (result.ok) {
-													run.passed(tapItem);
-												} else {
-													run.failed(tapItem, { message: "" });
-												}
-											}
-											break;
-										case "assert":
-											{
-												const result = tapEvent[1] as Result;
-
-												const tapItem = newChild(item, result.id.toString(), result.name);
-												if (result.ok) {
-													run.passed(tapItem);
-												} else {
-													run.failed(tapItem, { message: "" });
-												}
-											}
-											break;
-										default:
-											break;
-									}
-								}
-							}
-
-							tapToTestItems(tap, item, run, (parent, id, label)=>{
-								const child = controller.createTestItem(id, label);
-								parent.children.add(child);
-								return child;
-							});
+							tapToTestItems(tap, item, run, newChild);
 							break;
 					}
 				}
@@ -123,13 +103,19 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 			for (const _item of request.include) {
 				const item = _item as vscode.TestItem&{modname?:string; suiteConfig?:TestSpec};
 				if (item.modname) {
-					if (item.suiteConfig) {
+					if (item.suiteConfig && !item.tags.find(t=>t.id === "RunChildren")) {
 						// run a specific test...
 						await runOne(item);
 					} else {
 						// run all tests in a mod...
 						for (const [_id, child] of item.children) {
-							await runOne(child);
+							if (child.tags.find(t=>t.id === "RunChildren")) {
+								for (const [_id, match] of child.children) {
+									await runOne(match);
+								}
+							} else {
+								await runOne(child);
+							}
 						}
 					}
 				}
@@ -139,7 +125,13 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 			await discoverTests();
 			for (const [_modname, moditem] of controller.items) {
 				for (const [_id, child] of moditem.children) {
-					await runOne(child);
+					if (child.tags.find(t=>t.id === "RunChildren")) {
+						for (const [_id, match] of child.children) {
+							await runOne(match);
+						}
+					} else {
+						await runOne(child);
+					}
 				}
 			}
 		}
