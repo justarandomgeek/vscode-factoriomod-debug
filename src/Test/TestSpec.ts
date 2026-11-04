@@ -1,17 +1,17 @@
 import type { ModSettingsScopeName, ModSettingsValue } from '../ModSettings/ModSettings';
 
 export interface BaseTestSpec {
-	adjustMods?: { [modname: string]: string | boolean }
-	disableUnlistedMods?: boolean
-	allowDisableBaseMod?: boolean
-
-	settings?: { scope: ModSettingsScopeName; name: string; value: ModSettingsValue<string> | { type: "none"; value?: undefined } }[]
-
 	name: string // test suite name, unique within mod
 	ticks?: number
 	arg?: string
 
 	factorioArgs?: string[]
+
+	adjustMods?: { [modname: string]: string | boolean }
+	disableUnlistedMods?: boolean
+	allowDisableBaseMod?: boolean
+
+	settings?: { scope: ModSettingsScopeName; name: string; value: ModSettingsValue<string> | { type: "none"; value?: undefined } }[]
 
 	results?: { format: "tap"; filename: string }
 }

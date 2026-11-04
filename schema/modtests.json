@@ -28,6 +28,77 @@
         "type": "array",
         "items": { "type":"string" }
       },
+      "adjustMods": {
+        "type": "object",
+        "additionalProperties": {
+          "oneOf": [
+            { "type": "boolean" },
+            { "type": "string", "pattern": "(\\d+\\.){2}\\d+" }
+          ]
+        }
+      },
+      "disableUnlistedMods": { "type": "boolean" },
+      "allowDisableBaseMod": { "type": "boolean" },
+      "settings": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["scope", "name", "value"],
+          "properties": {
+            "scope": { "enum": ["startup", "runtime-global", "runtime-per-user"] },
+            "name": { "type": "string" },
+            "value": {
+              "type": "object",
+              "oneOf": [
+                {
+                  "properties": {
+                    "type": { "const": "none" }
+                  }
+                },
+                {
+                  "properties": {
+                    "type": { "const": "string" },
+                    "value": { "type": "string" }
+                  }
+                },
+                {
+                  "properties": {
+                    "type": { "const": "number" },
+                    "value": { "type": "number" }
+                  }
+                },
+                {
+                  "properties": {
+                    "type": { "const": "int" },
+                    "value": { "type": "string" }
+                  }
+                },
+                {
+                  "properties": {
+                    "type": { "const": "bool" },
+                    "value": { "type": "boolean" }
+                  }
+                },
+                {
+                  "properties": {
+                    "type": { "const": "color" },
+                    "value": {
+                      "type": "object",
+                      "required": ["r", "g", "b", "a"],
+                      "properties": {
+                        "r": { "type": "number" },
+                        "g": { "type": "number" },
+                        "b": { "type": "number" },
+                        "a": { "type": "number" }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
       "results": {
         "oneOf": [
           {

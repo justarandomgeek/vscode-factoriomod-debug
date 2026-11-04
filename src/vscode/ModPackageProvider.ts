@@ -10,7 +10,7 @@ import { default as dotize } from "dotize";
 import type { GitExtension, API as GitAPI } from './git';
 import * as FactorioTestController from "./FactorioTestController";
 import type { FactorioVersionSelector } from './VersionSelector';
-import type { ScenarioTestSpec, TestSpec, WildcardTestSpec } from '../Test/TestSpec';
+import type { SaveTestSpec, ScenarioTestSpec, TestSpec, WildcardTestSpec } from '../Test/TestSpec';
 import { readdirGlob } from 'readdir-glob';
 
 interface ModPackageScripts {
@@ -208,7 +208,6 @@ class ModPackage extends vscode.TreeItem {
 			const specs:(WildcardTestSpec|TestSpec)[] = JSON.parse(jsonstr);
 			//TODO: validate it against schema?
 			for (const spec of specs) {
-				//TODO: expand wildcard saves/scenarios?
 				if ("scenario" in spec && spec.scenario) {
 					//scenarios: parse modname, glob scenario name
 					const match = spec.scenario.match(/(?:(.*?)\/)?(.*)/)!;
@@ -235,6 +234,25 @@ class ModPackage extends vscode.TreeItem {
 					}
 				} else if ("save" in spec && spec.save) {
 					//saves: resolve from mod root, give factorio absolute path/list relative in test tree
+					const matched = await new Promise<string[]>((resolve, reject)=>{
+						const matched:string[] = [];
+						const pattern = [];
+						if (spec.save.endsWith(".zip") || spec.save.endsWith("/")) {
+							pattern.push(spec.save);
+						} else {
+							pattern.push(spec.save + ".zip");
+							pattern.push(spec.save + "/");
+						}
+						const globber = readdirGlob(vscode.Uri.joinPath(this.resourceUri, "../").fsPath, { pattern });
+						globber.on('match', (match:{ relative:string; absolute:string })=>{
+							//TODO: pass both up somehow to make prettier tree items
+							matched.push(match.absolute);
+						});
+						globber.on('error', (err)=>{ reject(err); });
+						globber.on('end', ()=>{ resolve(matched); });
+					});
+					const wspec = spec as WildcardTestSpec<SaveTestSpec>;
+					wspec.matched = matched;
 				}
 			}
 			return specs;

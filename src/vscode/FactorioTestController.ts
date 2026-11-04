@@ -2,8 +2,11 @@ import * as vscode from 'vscode';
 import type { ModPackageProvider } from './ModPackageProvider';
 import type { FactorioVersionSelector } from './VersionSelector';
 import { Parser } from "tap-parser";
-import { TestSpecArgs, type ScenarioTestSpec, type TestSpec, type WildcardTestSpec } from '../Test/TestSpec';
+import { TestSpecArgs, type TestSpec } from '../Test/TestSpec';
 import { tapToTestItems } from '../Test/TAP';
+import { BufferStream } from '../Util/BufferStream';
+import { ModSettings } from '../ModSettings/ModSettings';
+import { ModManager } from '../ModManager';
 
 export function activate(context: vscode.ExtensionContext, packageProvider: ModPackageProvider, versionSelector:FactorioVersionSelector) {
 	const controller = vscode.tests.createTestController("factorio", "Factorio");
@@ -28,22 +31,42 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 				modItem.children.add(testItem);
 
 				if ("matched" in spec) {
-					if (spec.matched.length === 0) {
-						// no valid match... error it and no run?
-						(testItem.tags as vscode.TestTag[]).pop();
-						testItem.error = `No scenarios match '${(spec as WildcardTestSpec<ScenarioTestSpec>).scenario}'`;
-					} else {
-						// matches, add them as children, flag parent as wildcard to run children
-						(testItem.tags as vscode.TestTag[]).push(new vscode.TestTag("RunChildren"));
-						spec.matched.forEach((match, i)=>{
-							const matchItem:vscode.TestItem&{modname?:string; suiteConfig?:TestSpec; match?:string } = controller.createTestItem(match, match);
-							matchItem.modname = modname;
-							(matchItem.tags as vscode.TestTag[]).push(new vscode.TestTag("CanRun"));
-							(matchItem.tags as vscode.TestTag[]).push(new vscode.TestTag("RunMatch"));
-							matchItem.suiteConfig = spec;
-							matchItem.match = match;
-							testItem.children.add(matchItem);
-						});
+					if ("scenario" in spec && spec.scenario) {
+						if (spec.matched.length === 0) {
+							// no valid match... error it and no run?
+							(testItem.tags as vscode.TestTag[]).pop();
+							testItem.error = `No scenarios match '${spec.scenario}'`;
+						} else {
+							// matches, add them as children, flag parent as wildcard to run children
+							(testItem.tags as vscode.TestTag[]).push(new vscode.TestTag("RunChildren"));
+							spec.matched.forEach((match, i)=>{
+								const matchItem:vscode.TestItem&{modname?:string; suiteConfig?:TestSpec; match?:string } = controller.createTestItem(match, match);
+								matchItem.modname = modname;
+								(matchItem.tags as vscode.TestTag[]).push(new vscode.TestTag("CanRun"));
+								(matchItem.tags as vscode.TestTag[]).push(new vscode.TestTag("RunMatch"));
+								matchItem.suiteConfig = spec;
+								matchItem.match = match;
+								testItem.children.add(matchItem);
+							});
+						}
+					} else if ("save" in spec && spec.save) {
+						if (spec.matched.length === 0) {
+							// no valid match... error it and no run?
+							(testItem.tags as vscode.TestTag[]).pop();
+							testItem.error = `No saves match '${spec.save}'`;
+						} else {
+							// matches, add them as children, flag parent as wildcard to run children
+							(testItem.tags as vscode.TestTag[]).push(new vscode.TestTag("RunChildren"));
+							spec.matched.forEach((match, i)=>{
+								const matchItem:vscode.TestItem&{modname?:string; suiteConfig?:TestSpec; match?:string } = controller.createTestItem(match, match);
+								matchItem.modname = modname;
+								(matchItem.tags as vscode.TestTag[]).push(new vscode.TestTag("CanRun"));
+								(matchItem.tags as vscode.TestTag[]).push(new vscode.TestTag("RunMatch"));
+								matchItem.suiteConfig = spec;
+								matchItem.match = match;
+								testItem.children.add(matchItem);
+							});
+						}
 					}
 				}
 			});
@@ -71,11 +94,35 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 				const args: string[] = TestSpecArgs(item.suiteConfig, item.match);
 
 				if (item.suiteConfig.adjustMods) {
-					//TODO: adjust mods...
+					const manager = new ModManager(await activeVersion.defaultModsPath());
+					await manager.Loaded;
+					if (item.suiteConfig.disableUnlistedMods) {
+						manager.disableAll();
+					}
+					for (const modname in item.suiteConfig.adjustMods) {
+						manager.set(modname, item.suiteConfig.adjustMods[modname]);
+					}
+					if (!item.suiteConfig.allowDisableBaseMod) { manager.set("base", true); }
+					await manager.write();
 				}
 
 				if (item.suiteConfig.settings) {
-					//TODO: adjust settings...
+					const modSettingsUri = vscode.Uri.joinPath(vscode.Uri.file(await activeVersion.defaultModsPath()), "mod-settings.dat");
+					const settings = new ModSettings(new BufferStream(await vscode.workspace.fs.readFile(modSettingsUri)));
+					for (const element of item.suiteConfig.settings) {
+						switch (element.value.type) {
+							case 'none':
+								settings.set(element.scope, element.name, undefined);
+								break;
+							case 'int':
+								settings.set(element.scope, element.name, { type: "int", value: BigInt(element.value.value) });
+								break;
+							default:
+								settings.set(element.scope, element.name, element.value);
+								break;
+						}
+					}
+					await vscode.workspace.fs.writeFile(modSettingsUri, settings.save());
 				}
 				const result = await activeVersion.run(args);
 
@@ -100,11 +147,13 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 		};
 
 		const runItem = async (item:vscode.TestItem)=>{
-			if (!item.tags.find(t=>t.id === "RunChildren")) {
-				await runOne(item);
-			} else {
-				for (const [_id, child] of item.children) {
-					await runItem(child);
+			if (item.tags.find(t=>t.id === "CanRun")) {
+				if (!item.tags.find(t=>t.id === "RunChildren")) {
+					await runOne(item);
+				} else {
+					for (const [_id, child] of item.children) {
+						await runItem(child);
+					}
 				}
 			}
 		};
