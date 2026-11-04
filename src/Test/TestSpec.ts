@@ -27,7 +27,7 @@ export interface ScenarioTestSpec extends BaseTestSpec {
 export type TestSpec = SaveTestSpec | ScenarioTestSpec;
 
 export type WildcardTestSpec<T = TestSpec> = T & {
-	matched: string[]
+	matched: { name:string; path: string }[]
 };
 
 export function TestSpecArgs(spec:TestSpec, match?:string) {

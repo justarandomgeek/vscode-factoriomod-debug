@@ -214,28 +214,25 @@ class ModPackage extends vscode.TreeItem {
 					const modname:string|undefined = match[1]; // undefined for user scenarios
 					const scenario = match[2];
 					if (modname === this.name) { // for now only expand in own package...
-						const matched = await new Promise<string[]>((resolve, reject)=>{
-							const matched:string[] = [];
+						const matched = await new Promise<{ name:string; path: string }[]>((resolve, reject)=>{
+							const matched:{ name:string; path: string }[] = [];
 							const globber = readdirGlob(vscode.Uri.joinPath(this.resourceUri, "../scenarios").fsPath, {
 								pattern: scenario,
 							});
 							globber.on('match', (match:{ relative:string; absolute:string })=>{
-								matched.push(`${modname}/${match.relative}`);
+								matched.push({name: `${modname}/${match.relative}`, path: match.absolute});
 							});
 							globber.on('error', (err)=>{ reject(err); });
 							globber.on('end', ()=>{ resolve(matched); });
 						});
 
-						// but don't bother listing if it's just a single literal match
-						if (!(matched.length === 1 && matched[0]===spec.scenario)) {
-							const wspec = spec as WildcardTestSpec<ScenarioTestSpec>;
-							wspec.matched = matched;
-						}
+						const wspec = spec as WildcardTestSpec<ScenarioTestSpec>;
+						wspec.matched = matched;
 					}
 				} else if ("save" in spec && spec.save) {
 					//saves: resolve from mod root, give factorio absolute path/list relative in test tree
-					const matched = await new Promise<string[]>((resolve, reject)=>{
-						const matched:string[] = [];
+					const matched = await new Promise<{ name:string; path: string }[]>((resolve, reject)=>{
+						const matched:{ name:string; path: string }[] = [];
 						const pattern = [];
 						if (spec.save.endsWith(".zip") || spec.save.endsWith("/")) {
 							pattern.push(spec.save);
@@ -246,7 +243,7 @@ class ModPackage extends vscode.TreeItem {
 						const globber = readdirGlob(vscode.Uri.joinPath(this.resourceUri, "../").fsPath, { pattern });
 						globber.on('match', (match:{ relative:string; absolute:string })=>{
 							//TODO: pass both up somehow to make prettier tree items
-							matched.push(match.absolute);
+							matched.push({ name: match.relative, path: match.absolute});
 						});
 						globber.on('error', (err)=>{ reject(err); });
 						globber.on('end', ()=>{ resolve(matched); });
