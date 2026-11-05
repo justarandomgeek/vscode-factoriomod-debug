@@ -4,9 +4,7 @@
   "oneOf": [
     {
       "type": "object",
-      "required":[
-        "order", "multiplayer-compatible"
-      ],
+      "required":[],
       "properties": {
         "order":{
           "type":"string"
