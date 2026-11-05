@@ -146,6 +146,7 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 				if (result.error) {
 					run.failed(item, { message: result.stdout });
 				} else {
+					run.appendOutput(result.stdout, undefined, item);
 					run.passed(item);
 				}
 			} else {
