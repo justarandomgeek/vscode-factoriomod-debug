@@ -13,7 +13,7 @@ import * as ChangeLog from "../Language/ChangeLog";
 
 import type { VFile } from "vfile";
 import type { Root, Image, Link } from "mdast";
-import type { ModInfo } from "../vscode/ModPackageProvider";
+import type { ModInfo } from '../vscode/ModPackage';
 
 import { URI, Utils } from 'vscode-uri';
 import { applyEdits, modify } from "jsonc-parser";

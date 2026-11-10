@@ -4,7 +4,7 @@ import * as crypto from "crypto";
 import path from 'path';
 import { exec } from "child_process";
 import { program } from 'commander';
-import type { ModInfo } from "../vscode/ModPackageProvider";
+import type { ModInfo } from '../vscode/ModPackage';
 import { getConfig } from "./util";
 
 import { runPackageScript, doPackageDatestamp, addModRelease, doPackageVersion, doPackageZip, runPackageGitCommand, doPackageDetails  } from "./tasks";

@@ -1,12 +1,8 @@
 import * as vscode from 'vscode';
+import { URI, Utils } from 'vscode-uri';
 import type { ModPackageProvider } from './ModPackageProvider';
 import type { FactorioVersionSelector } from './VersionSelector';
-import { Parser } from "tap-parser";
-import { TestSpecArgs, type TestSpec } from '../Test/TestSpec';
-import { tapToTestItems } from '../Test/TAP';
-import { BufferStream } from '../Util/BufferStream';
-import { ModSettings } from '../ModSettings/ModSettings';
-import { ModManager } from '../ModManager';
+import { runTestSpec, type TestSpec } from '../Test/TestSpec';
 
 export function activate(context: vscode.ExtensionContext, packageProvider: ModPackageProvider, versionSelector:FactorioVersionSelector) {
 	const controller = vscode.tests.createTestController("factorio", "Factorio");
@@ -41,9 +37,9 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 							// matches, add them as children, flag parent as wildcard to run children
 							(testItem.tags as vscode.TestTag[]).push(new vscode.TestTag("RunChildren"));
 							for (const match of spec.matched) {
-								let testUri = vscode.Uri.file(match.path);
+								let testUri = URI.file(match.path);
 								try {
-									const controlUri = vscode.Uri.joinPath(testUri, "control.lua");
+									const controlUri = Utils.joinPath(testUri, "control.lua");
 									await vscode.workspace.fs.stat(controlUri);// throws if no file
 									testUri = controlUri;
 								} catch (error) {}
@@ -89,75 +85,12 @@ export function activate(context: vscode.ExtensionContext, packageProvider: ModP
 			return child;
 		};
 		const activeVersion = await versionSelector.getActiveVersion();
-		const readOutputFile = async (filename:string)=>{
-			const uri = vscode.Uri.joinPath(vscode.Uri.file(await activeVersion!.scriptOutputPath()), filename );
-			return (await vscode.workspace.fs.readFile(uri)).toString();
-		};
-
-		const runOne = async (_item: vscode.TestItem&{modname?:string; suiteConfig?:TestSpec; match?:string})=>{
-			const item = _item as vscode.TestItem&{modname:string; suiteConfig:TestSpec; match?:string};
-			run.started(item);
-			if (activeVersion) {
-				const args: string[] = TestSpecArgs(item.suiteConfig, item.match);
-
-				if (item.suiteConfig.adjustMods) {
-					const manager = new ModManager(await activeVersion.defaultModsPath());
-					await manager.Loaded;
-					if (item.suiteConfig.disableUnlistedMods) {
-						manager.disableAll();
-					}
-					for (const modname in item.suiteConfig.adjustMods) {
-						manager.set(modname, item.suiteConfig.adjustMods[modname]);
-					}
-					if (!item.suiteConfig.allowDisableBaseMod) { manager.set("base", true); }
-					await manager.write();
-				}
-
-				if (item.suiteConfig.settings) {
-					const modSettingsUri = vscode.Uri.joinPath(vscode.Uri.file(await activeVersion.defaultModsPath()), "mod-settings.dat");
-					const settings = new ModSettings(new BufferStream(await vscode.workspace.fs.readFile(modSettingsUri)));
-					for (const element of item.suiteConfig.settings) {
-						switch (element.value.type) {
-							case 'none':
-								settings.set(element.scope, element.name, undefined);
-								break;
-							case 'int':
-								settings.set(element.scope, element.name, { type: "int", value: BigInt(element.value.value) });
-								break;
-							default:
-								settings.set(element.scope, element.name, element.value);
-								break;
-						}
-					}
-					await vscode.workspace.fs.writeFile(modSettingsUri, settings.save());
-				}
-				const result = await activeVersion.run(args);
-
-				if (item.suiteConfig.results) {
-					switch (item.suiteConfig.results.format) {
-						case "tap":
-							const tap = Parser.parse(await readOutputFile(item.suiteConfig.results.filename));
-							item.children.replace([]);
-							tapToTestItems(tap, item, run, newChild);
-							break;
-					}
-				}
-
-				if (result.error) {
-					run.failed(item, { message: result.stdout });
-				} else {
-					run.appendOutput(result.stdout, undefined, item);
-					run.passed(item);
-				}
-			} else {
-				run.errored(item, {message: "No Active Factorio Version"});
-			}
-		};
 
 		const runItem = async (item:vscode.TestItem)=>{
 			if (item.tags.find(t=>t.id === "CanRun")) {
 				if (!item.tags.find(t=>t.id === "RunChildren")) {
-					await runOne(item);
+					const { suiteConfig, match } = item as vscode.TestItem&{modname:string; suiteConfig:TestSpec; match?:string};
+					await runTestSpec(activeVersion, vscode.workspace.fs, item, run, newChild, suiteConfig, match);
 				} else {
 					for (const [_id, child] of item.children) {
 						await runItem(child);

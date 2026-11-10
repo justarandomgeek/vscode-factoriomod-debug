@@ -3,6 +3,7 @@ import assert from 'assert';
 import type * as vscode from 'vscode';
 
 export function tapToTestItems(tap: EventLog, item: vscode.TestItem, run:vscode.TestRun, newChild: (parent:vscode.TestItem, id:string, label:string)=>vscode.TestItem) {
+	item.children.replace([]);
 	for (let i = 0; i < tap.length; i++) {
 		const tapEvent = tap[i];
 		switch (tapEvent[0]) {

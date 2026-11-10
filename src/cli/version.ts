@@ -1,6 +1,6 @@
 import * as fsp from 'fs/promises';
 import { program } from 'commander';
-import type { ModInfo } from "../vscode/ModPackageProvider";
+import type { ModInfo } from '../vscode/ModPackage';
 import { doPackageVersion } from "./tasks";
 
 program.command("version")

@@ -6,6 +6,7 @@ import { displayName, version as bundleVersion } from "../../package.json";
 import "./mods";
 import "./settings";
 import "./run";
+import "./test";
 import "./datestamp";
 import "./version";
 import "./package";

@@ -13,7 +13,7 @@ import { default as compress } from "esbuild-compress";
 import { program } from 'commander';
 import { ZipArchive } from "archiver";
 
-import type { ModInfo } from './src/vscode/ModPackageProvider';
+import type { ModInfo } from './src/vscode/ModPackage';
 
 import { readdirGlob } from 'readdir-glob';
 

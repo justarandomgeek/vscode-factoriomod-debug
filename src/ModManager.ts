@@ -1,7 +1,7 @@
 import * as fsp from 'fs/promises';
 import * as path from 'path';
 
-import type { ModInfo } from './vscode/ModPackageProvider';
+import type { ModInfo } from './vscode/ModPackage';
 //import { version as bundleVersion } from "../package.json";
 
 const BundledMods:{[name:string]:{version:string; zip:Uint8Array}} = {
