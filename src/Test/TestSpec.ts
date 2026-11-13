@@ -64,7 +64,7 @@ export function TestSpecArgs(spec:TestSpec, match?:string) {
 
 export async function discoverTestSpecs(modUri:URI, fs:typeof fsAccessor) {
 	try {
-		const info: ModInfo = JSON.parse((await fs.readFile(Utils.joinPath(modUri, "../info.json"))).toString());
+		const info: ModInfo = JSON.parse((await fs.readFile(modUri)).toString());
 		const specs: (WildcardTestSpec | TestSpec)[] = JSON.parse((await fs.readFile(Utils.joinPath(modUri, "../tests.json"))).toString());
 		//TODO: validate it against schema?
 		for (const spec of specs) {
@@ -117,7 +117,9 @@ export async function discoverTestSpecs(modUri:URI, fs:typeof fsAccessor) {
 	}
 }
 
-export async function runTestSpec(activeVersion:ActiveFactorioVersion|undefined, fs:typeof fsAccessor, item: TestItem, run:TestRun, newChild: (parent:TestItem, id:string, label:string)=>TestItem, suiteConfig:TestSpec, match?:string) {
+export type TestRunInterface = Pick<TestRun, "started"|"failed"|"errored"|"passed"|"appendOutput">;
+
+export async function runTestSpec(activeVersion:ActiveFactorioVersion|undefined, fs:typeof fsAccessor, item: TestItem, run:TestRunInterface, newChild: (parent:TestItem, id:string, label:string)=>TestItem, suiteConfig:TestSpec, match?:string) {
 	run.started(item);
 	if (activeVersion) {
 		const args: string[] = TestSpecArgs(suiteConfig, match);

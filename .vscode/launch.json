@@ -80,7 +80,7 @@
 			"request": "launch",
 			"program": "${workspaceFolder}/dist/fmtk-cli.js",
 			"args": [
-				"publish"
+				"test", "C:/Program Files (x86)/Steam/steamapps/common/Factorio/bin/x64/factorio.exe"
 			],
 			// env file with FACTORIO_UPLOAD_API_KEY for uploads
 			"envFile": "${workspaceFolder}/test/.env",

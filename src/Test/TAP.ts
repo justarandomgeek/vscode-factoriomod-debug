@@ -2,7 +2,7 @@ import type { Plan, Result, EventLog} from "tap-parser";
 import assert from 'assert';
 import type * as vscode from 'vscode';
 
-export function tapToTestItems(tap: EventLog, item: vscode.TestItem, run:vscode.TestRun, newChild: (parent:vscode.TestItem, id:string, label:string)=>vscode.TestItem) {
+export function tapToTestItems(tap: EventLog, item: vscode.TestItem, run:Pick<vscode.TestRun, "started"|"failed"|"passed">, newChild: (parent:vscode.TestItem, id:string, label:string)=>vscode.TestItem) {
 	item.children.replace([]);
 	for (let i = 0; i < tap.length; i++) {
 		const tapEvent = tap[i];
@@ -17,6 +17,7 @@ export function tapToTestItems(tap: EventLog, item: vscode.TestItem, run:vscode.
 					assert(subTest[0] === "assert");
 					const result = subTest[1] as Result;
 					const tapItem = newChild(item, result.id.toString(), result.name);
+					run.started(tapItem);
 					tapToTestItems(child, tapItem, run, newChild);
 
 					if (result.ok) {
@@ -31,6 +32,7 @@ export function tapToTestItems(tap: EventLog, item: vscode.TestItem, run:vscode.
 					const result = tapEvent[1] as Result;
 
 					const tapItem = newChild(item, result.id.toString(), result.name);
+					run.started(tapItem);
 					if (result.ok) {
 						run.passed(tapItem);
 					} else {
